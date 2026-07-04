@@ -14,7 +14,9 @@ COPY . .
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction || true
 
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN chmod +x /var/www/docker-entrypoint.sh \
+    && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 9000
+ENTRYPOINT ["/var/www/docker-entrypoint.sh"]
 CMD ["php-fpm"]
