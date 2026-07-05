@@ -20,6 +20,8 @@ class OfficeResource extends JsonResource
             'logo_url' => $this->logo_path ? url('storage/'.$this->logo_path) : null,
             'is_active' => $this->is_active,
             'trial_ends_at' => $this->trial_ends_at?->toIso8601String(),
+            'on_trial' => $this->isOnTrial(),
+            'has_access' => $this->hasAccess(),
             'subscription' => $this->whenLoaded('subscription', function () {
                 return [
                     'status' => $this->subscription?->status,

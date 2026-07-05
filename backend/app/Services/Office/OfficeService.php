@@ -3,11 +3,13 @@
 namespace App\Services\Office;
 
 use App\Enums\UserRole;
+use App\Jobs\SendInviteSmsJob;
 use App\Models\Office;
 use App\Models\OfficeInvitation;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Activity\ActivityLogger;
+use App\Services\Settings\SystemSettingsService;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -16,6 +18,7 @@ class OfficeService
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly ActivityLogger $activityLogger,
+        private readonly SystemSettingsService $settings,
     ) {}
 
     public function createOffice(array $data, User $manager): Office
@@ -25,7 +28,7 @@ class OfficeService
             'phone' => $data['phone'] ?? null,
             'address' => $data['address'] ?? null,
             'city' => $data['city'] ?? null,
-            'trial_ends_at' => now()->addDays(14),
+            'trial_ends_at' => now()->addDays((int) $this->settings->get('trial_days', 14)),
         ]);
 
         $manager->update([
@@ -55,6 +58,18 @@ class OfficeService
             ]);
         }
 
+        $office = Office::with('subscription.plan')->find($manager->office_id);
+        $subscription = $office?->subscription?->plan;
+
+        if ($subscription) {
+            $currentMembers = User::where('office_id', $manager->office_id)->count();
+            if ($currentMembers >= $subscription->max_users) {
+                throw ValidationException::withMessages([
+                    'mobile' => ['به حداکثر تعداد کاربران پلن رسیده‌اید. اشتراک را ارتقا دهید.'],
+                ]);
+            }
+        }
+
         $invitation = OfficeInvitation::create([
             'office_id' => $manager->office_id,
             'invited_by' => $manager->id,
@@ -80,6 +95,12 @@ class OfficeService
         }
 
         $this->activityLogger->log($manager, 'office.invitation_sent', $invitation, "دعوتنامه برای {$mobile} ارسال شد");
+
+        SendInviteSmsJob::dispatchSync(
+            $mobile,
+            $office->name ?? 'دفتر املاک',
+            $manager->name,
+        );
 
         return $invitation;
     }

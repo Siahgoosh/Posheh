@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(SystemSettingsSeeder::class);
         $this->seedPlans();
         $this->seedSuperAdmin();
         $this->seedDemoOffice();
@@ -69,9 +70,20 @@ class DatabaseSeeder extends Seeder
     private function seedSuperAdmin(): void
     {
         User::updateOrCreate(
+            ['mobile' => '09170577873'],
+            [
+                'name' => 'مدیر کل پوشه',
+                'role' => UserRole::SuperAdmin,
+                'is_active' => true,
+                'mobile_verified_at' => now(),
+            ]
+        );
+
+        // Legacy demo super admin
+        User::updateOrCreate(
             ['mobile' => '09120000000'],
             [
-                'name' => 'مدیر سیستم',
+                'name' => 'مدیر سیستم (دمو)',
                 'role' => UserRole::SuperAdmin,
                 'is_active' => true,
                 'mobile_verified_at' => now(),

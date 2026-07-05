@@ -13,6 +13,8 @@ export interface User {
     name: string
     slug: string
     city?: string
+    on_trial?: boolean
+    has_access?: boolean
     subscription?: {
       status: string
       ends_at: string

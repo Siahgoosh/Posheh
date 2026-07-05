@@ -86,9 +86,10 @@ npm run dev
 
 ### Demo Accounts
 
-| Role | Mobile | OTP (dev) |
+| Role | Mobile | OTP (dev/log mode) |
 |------|--------|-----------|
-| Super Admin | 09120000000 | 123456 |
+| **Super Admin (شما)** | **09170577873** | 123456 |
+| Super Admin (demo) | 09120000000 | 123456 |
 | Office Manager | 09121111111 | 123456 |
 | Consultant | 09122222222 | 123456 |
 

@@ -31,7 +31,7 @@ export function TeamPage() {
   const inviteMutation = useMutation({
     mutationFn: async () => api.post('/office/invite', { mobile }),
     onSuccess: () => {
-      setMessage('دعوتنامه با موفقیت ارسال شد')
+      setMessage('دعوتنامه ارسال شد و پیامک برای مشاور فرستاده شد')
       setMobile('')
       queryClient.invalidateQueries({ queryKey: ['team'] })
     },

@@ -2,6 +2,7 @@
 
 namespace App\Services\Payment;
 
+use App\Services\Settings\SystemSettingsService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -9,12 +10,17 @@ class AqayepardakhtService
 {
     private string $baseUrl = 'https://panel.aqayepardakht.ir';
 
+    public function __construct(
+        private readonly SystemSettingsService $settings,
+    ) {}
+
     public function create(int $amount, string $callback, array $extra = []): array
     {
-        $pin = config('services.aqayepardakht.pin');
-        $sandbox = config('services.aqayepardakht.sandbox', true);
+        $config = $this->settings->aqayepardakhtConfig();
+        $pin = $config['pin'];
+        $sandbox = $config['sandbox'];
 
-        if (! $pin) {
+        if (! $pin && ! $sandbox) {
             throw new \RuntimeException('درگاه آقای پرداخت تنظیم نشده است.');
         }
 
@@ -46,11 +52,10 @@ class AqayepardakhtService
 
     public function verify(int $amount, string $transId): bool
     {
-        $pin = config('services.aqayepardakht.pin');
-        $sandbox = config('services.aqayepardakht.sandbox', true);
+        $config = $this->settings->aqayepardakhtConfig();
 
         $response = Http::asJson()->post("{$this->baseUrl}/api/v2/verify", [
-            'pin' => $sandbox ? 'sandbox' : $pin,
+            'pin' => $config['sandbox'] ? 'sandbox' : $config['pin'],
             'amount' => $amount,
             'transid' => $transId,
         ]);

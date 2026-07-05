@@ -81,6 +81,16 @@ class Office extends Model
             ->exists();
     }
 
+    public function isOnTrial(): bool
+    {
+        return $this->trial_ends_at && $this->trial_ends_at->isFuture();
+    }
+
+    public function hasAccess(): bool
+    {
+        return $this->hasActiveSubscription() || $this->isOnTrial();
+    }
+
     public function getSetting(string $key, mixed $default = null): mixed
     {
         return data_get($this->settings, $key, $default);

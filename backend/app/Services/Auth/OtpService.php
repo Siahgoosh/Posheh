@@ -9,12 +9,14 @@ use App\Models\Device;
 use App\Models\OtpCode;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Services\Settings\SystemSettingsService;
 use Illuminate\Validation\ValidationException;
 
 class OtpService
 {
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
+        private readonly SystemSettingsService $settings,
     ) {}
 
     public function send(SendOtpDTO $dto): array
@@ -31,7 +33,9 @@ class OtpService
             ]);
         }
 
-        $code = app()->environment('production')
+        $liveSms = $this->settings->isSmsLive();
+
+        $code = $liveSms
             ? str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT)
             : '123456';
 
@@ -46,7 +50,7 @@ class OtpService
             'expires_at' => now()->addMinutes(5),
         ]);
 
-        if (app()->environment('production')) {
+        if ($liveSms) {
             SendOtpSmsJob::dispatchSync($mobile, $code);
         }
 

@@ -64,4 +64,20 @@ class AdminController extends Controller
 
         return response()->json(['data' => $announcement], 201);
     }
+
+    public function updateOffice(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'is_active' => ['sometimes', 'boolean'],
+            'name' => ['sometimes', 'string', 'max:255'],
+        ]);
+
+        $office = Office::findOrFail($id);
+        $office->update($request->only(['is_active', 'name']));
+
+        return response()->json([
+            'data' => $office->load('subscription.plan'),
+            'message' => 'دفتر به‌روزرسانی شد.',
+        ]);
+    }
 }

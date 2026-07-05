@@ -8,6 +8,7 @@ import {
   CreditCard,
   Star,
   CheckSquare,
+  Shield,
   LogOut,
   Moon,
   Sun,
@@ -30,6 +31,8 @@ const navItems = [
   { to: '/settings', icon: Settings, label: 'تنظیمات' },
 ]
 
+const adminNavItem = { to: '/admin', icon: Shield, label: 'پنل مدیر کل' }
+
 export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { user, logout } = useAuthStore()
@@ -48,7 +51,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 px-3">
-        {navItems.map((item) => (
+        {(user?.role === 'super_admin' ? [adminNavItem, ...navItems] : navItems).map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

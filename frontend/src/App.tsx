@@ -13,6 +13,8 @@ import { TeamPage } from '@/pages/TeamPage'
 import { SubscriptionPage } from '@/pages/SubscriptionPage'
 import { TasksPage } from '@/pages/TasksPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
+import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -24,11 +26,39 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function SuperAdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated } = useAuthStore()
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (user?.role !== 'super_admin') return <Navigate to="/dashboard" replace />
+  return <>{children}</>
+}
+
+function SubscriptionGuard({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthStore()
+  if (user?.role === 'super_admin') return <>{children}</>
+  const hasAccess = user?.office?.has_access ?? user?.office?.on_trial
+  if (user?.office && !hasAccess) {
+    return <Navigate to="/subscription" replace />
+  }
+  return <>{children}</>
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/admin/*"
+          element={
+            <SuperAdminRoute>
+              <AppLayout />
+            </SuperAdminRoute>
+          }
+        >
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
+        </Route>
         <Route
           element={
             <ProtectedRoute>
@@ -36,16 +66,16 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/properties" element={<PropertiesPage />} />
-          <Route path="/properties/new" element={<PropertyFormPage />} />
-          <Route path="/properties/:id" element={<PropertyDetailPage />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/favorites" element={<FavoritesPage />} />
-          <Route path="/team" element={<TeamPage />} />
-          <Route path="/tasks" element={<TasksPage />} />
           <Route path="/subscription" element={<SubscriptionPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/dashboard" element={<SubscriptionGuard><DashboardPage /></SubscriptionGuard>} />
+          <Route path="/properties" element={<SubscriptionGuard><PropertiesPage /></SubscriptionGuard>} />
+          <Route path="/properties/new" element={<SubscriptionGuard><PropertyFormPage /></SubscriptionGuard>} />
+          <Route path="/properties/:id" element={<SubscriptionGuard><PropertyDetailPage /></SubscriptionGuard>} />
+          <Route path="/search" element={<SubscriptionGuard><SearchPage /></SubscriptionGuard>} />
+          <Route path="/favorites" element={<SubscriptionGuard><FavoritesPage /></SubscriptionGuard>} />
+          <Route path="/team" element={<SubscriptionGuard><TeamPage /></SubscriptionGuard>} />
+          <Route path="/tasks" element={<SubscriptionGuard><TasksPage /></SubscriptionGuard>} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
