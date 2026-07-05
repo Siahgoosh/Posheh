@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>پوشه — اندروید</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    body {
+      background: #1a1a2e;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 100vh; padding: 40px 20px; gap: 24px;
+    }
+    .page-title { color: #a1a1aa; font-size: .9rem; text-align: center; }
+    .page-title h1 { color: #fafafa; font-size: 1.2rem; margin-bottom: 4px; }
+    .phone-frame {
+      width: 375px; height: 812px;
+      background: #111118;
+      border-radius: 44px;
+      border: 3px solid #333;
+      box-shadow: 0 0 0 6px #222, 0 30px 80px rgba(0,0,0,.6);
+      overflow: hidden; position: relative;
+      display: flex; flex-direction: column;
+    }
+    .phone-notch {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 150px; height: 28px; background: #111118;
+      border-radius: 0 0 20px 20px; z-index: 10;
+    }
+    .status-bar {
+      height: 44px; display: flex; align-items: flex-end;
+      justify-content: space-between; padding: 0 24px 6px;
+      font-size: .7rem; color: #fafafa; flex-shrink: 0;
+    }
+    .app-header {
+      padding: 12px 20px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .app-header h2 { font-size: 1.1rem; font-weight: 700; }
+    .app-content { flex: 1; overflow-y: auto; padding: 0 16px 16px; }
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .mini-stat {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px; padding: 14px;
+    }
+    .mini-stat .val { font-size: 1.3rem; font-weight: 700; }
+    .mini-stat .lbl { font-size: .7rem; color: #71717a; margin-top: 2px; }
+    .section-title { font-size: .85rem; font-weight: 600; margin-bottom: 10px; color: #a1a1aa; }
+    .mobile-card {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px; padding: 14px; margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .mobile-card .code { font-weight: 600; font-size: .9rem; }
+    .mobile-card .meta { font-size: .72rem; color: #71717a; margin-top: 2px; }
+    .mobile-badge {
+      padding: 3px 8px; border-radius: 6px; font-size: .65rem;
+      background: rgba(99,102,241,.2); color: #818cf8;
+    }
+    .bottom-nav {
+      height: 72px; background: rgba(255,255,255,.04);
+      border-top: 1px solid rgba(255,255,255,.08);
+      display: flex; align-items: center; justify-content: space-around;
+      padding-bottom: 8px; flex-shrink: 0;
+    }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      font-size: .6rem; color: #71717a; cursor: pointer;
+    }
+    .nav-item.active { color: #818cf8; }
+    .nav-item .icon { font-size: 20px; }
+    .fab {
+      position: absolute; bottom: 84px; left: 20px;
+      width: 52px; height: 52px; border-radius: 16px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; color: #fff;
+      box-shadow: 0 6px 20px rgba(99,102,241,.4);
+    }
+    .screens { display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; }
+    .screen-label { text-align: center; color: #71717a; font-size: .75rem; margin-top: 12px; }
+    .phone-small { width: 320px; height: 693px; border-radius: 38px; }
+    .phone-small .phone-notch { width: 120px; height: 24px; }
+    .login-screen {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 32px 24px;
+    }
+    .login-logo {
+      width: 64px; height: 64px; border-radius: 18px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; margin-bottom: 16px;
+    }
+    .login-screen h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+    .login-screen p { font-size: .8rem; color: #71717a; margin-bottom: 32px; }
+    .login-input {
+      width: 100%; padding: 13px; border-radius: 12px;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+      color: #fafafa; font-family: inherit; font-size: 1rem;
+      text-align: center; direction: ltr; margin-bottom: 12px;
+    }
+    .login-btn {
+      width: 100%; padding: 13px; border-radius: 12px; border: none;
+      background: #6366f1; color: #fff; font-family: inherit;
+      font-size: .9rem; font-weight: 500; cursor: pointer;
+    }
+    .back-link { position: fixed; }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-link">← بازگشت</a>
+
+  <div class="page-title">
+    <h1>📲 پیش‌نمایش اپ اندروید</h1>
+    <p>Flutter · Material Design 3 · RTL</p>
+  </div>
+
+  <div class="screens">
+    <!-- Login Screen -->
+    <div>
+      <div class="phone-frame phone-small">
+        <div class="phone-notch"></div>
+        <div class="status-bar"><span>۹:۴۱</span><span>📶 🔋</span></div>
+        <div class="login-screen">
+          <div class="login-logo">🏢</div>
+          <h2>پوشه</h2>
+          <p>سامانه ابری ثبت املاک</p>
+          <input class="login-input" value="09121111111" readonly>
+          <button class="login-btn">دریافت کد تأیید</button>
+        </div>
+      </div>
+      <div class="screen-label">صفحه ورود</div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div>
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="status-bar"><span>۹:۴۱</span><span>📶 🔋</span></div>
+        <div class="app-header">
+          <h2>داشبورد</h2>
+          <span style="font-size:20px">🔔</span>
+        </div>
+        <div class="app-content">
+          <div class="stats-row">
+            <div class="mini-stat"><div class="val">۴۵</div><div class="lbl">کل املاک</div></div>
+            <div class="mini-stat"><div class="val">۳۸</div><div class="lbl">فعال</div></div>
+            <div class="mini-stat"><div class="val">۳</div><div class="lbl">امروز</div></div>
+            <div class="mini-stat"><div class="val">۵</div><div class="lbl">انقضا</div></div>
+          </div>
+          <div class="section-title">املاک اخیر</div>
+          <div class="mobile-card">
+            <div><div class="code">A-1001</div><div class="meta">فروش · ولنجک · ۵ میلیارد</div></div>
+            <span class="mobile-badge">فعال</span>
+          </div>
+          <div class="mobile-card">
+            <div><div class="code">B-2045</div><div class="meta">اجاره · نیاوران</div></div>
+            <span class="mobile-badge">فعال</span>
+          </div>
+          <div class="mobile-card">
+            <div><div class="code">C-3012</div><div class="meta">رهن · اصفهان</div></div>
+            <span class="mobile-badge">فعال</span>
+          </div>
+          <div class="section-title" style="margin-top:16px">در حال انقضا</div>
+          <div class="mobile-card">
+            <div><div class="code">D-1088</div><div class="meta">۳ روز مانده</div></div>
+            <span class="mobile-badge" style="background:rgba(245,158,11,.2);color:#fbbf24">⚠️</span>
+          </div>
+        </div>
+        <div class="fab">+</div>
+        <div class="bottom-nav">
+          <div class="nav-item active"><span class="icon">📊</span>داشبورد</div>
+          <div class="nav-item"><span class="icon">🏠</span>املاک</div>
+          <div class="nav-item"><span class="icon">⚙️</span>تنظیمات</div>
+        </div>
+      </div>
+      <div class="screen-label">داشبورد</div>
+    </div>
+
+    <!-- Properties Screen -->
+    <div>
+      <div class="phone-frame phone-small">
+        <div class="phone-notch"></div>
+        <div class="status-bar"><span>۹:۴۱</span><span>📶 🔋</span></div>
+        <div class="app-header">
+          <h2>املاک</h2>
+          <span style="font-size:13px;color:#71717a">۴۵ ملک</span>
+        </div>
+        <div style="padding:0 16px 10px">
+          <input class="login-input" style="font-size:.85rem;text-align:right;direction:rtl;margin:0" placeholder="🔍 جستجو..." readonly>
+        </div>
+        <div class="app-content">
+          <div class="mobile-card" style="flex-direction:column;align-items:flex-start;gap:8px">
+            <div style="display:flex;justify-content:space-between;width:100%">
+              <span class="code">A-1001</span>
+              <span class="mobile-badge">فروش</span>
+            </div>
+            <div style="color:#818cf8;font-weight:600;font-size:.85rem">۵,۰۰۰,۰۰۰,۰۰۰ تومان</div>
+            <div class="meta">۱۲۰متر · ۳خواب · تهران، ولنجک</div>
+          </div>
+          <div class="mobile-card" style="flex-direction:column;align-items:flex-start;gap:8px">
+            <div style="display:flex;justify-content:space-between;width:100%">
+              <span class="code">B-2045</span>
+              <span class="mobile-badge" style="background:rgba(34,197,94,.2);color:#4ade80">اجاره</span>
+            </div>
+            <div style="color:#818cf8;font-weight:600;font-size:.85rem">۸۰,۰۰۰,۰۰۰ تومان</div>
+            <div class="meta">۸۵متر · ۲خواب · نیاوران</div>
+          </div>
+          <div class="mobile-card" style="flex-direction:column;align-items:flex-start;gap:8px">
+            <div style="display:flex;justify-content:space-between;width:100%">
+              <span class="code">C-3012</span>
+              <span class="mobile-badge" style="background:rgba(245,158,11,.2);color:#fbbf24">رهن</span>
+            </div>
+            <div style="color:#818cf8;font-weight:600;font-size:.85rem">۲,۰۰۰,۰۰۰,۰۰۰ تومان</div>
+            <div class="meta">۲۰۰متر · اصفهان</div>
+          </div>
+        </div>
+        <div class="fab">+</div>
+        <div class="bottom-nav">
+          <div class="nav-item"><span class="icon">📊</span>داشبورد</div>
+          <div class="nav-item active"><span class="icon">🏠</span>املاک</div>
+          <div class="nav-item"><span class="icon">⚙️</span>تنظیمات</div>
+        </div>
+      </div>
+      <div class="screen-label">لیست املاک</div>
+    </div>
+  </div>
+</body>
+</html>
