@@ -124,6 +124,42 @@ docker volume rm posheh_mysql_data
 docker compose up -d --build
 ```
 
+### OTP send fails / 502 Bad Gateway
+
+The Laravel app container may have crashed. Run the fix script:
+
+```bash
+chmod +x scripts/server-fix.sh
+./scripts/server-fix.sh
+```
+
+Or manually:
+
+```bash
+docker compose ps
+docker compose logs app --tail 50
+docker compose restart app
+docker compose exec app php artisan config:clear
+```
+
+Ensure `.env` uses file-based cache (not Redis):
+
+```env
+CACHE_STORE=file
+QUEUE_CONNECTION=sync
+SESSION_DRIVER=file
+```
+
+For testing without SMS, set:
+
+```env
+APP_ENV=local
+```
+
+Then OTP code is always `123456`.
+
+> **Security note:** If you see a database named `RECOVER_YOUR_DATA`, your MySQL was likely exposed to the internet. Change all passwords, close port 3306 in the firewall, and do not expose MySQL publicly.
+
 ## Mobile App Build
 
 ### Android
