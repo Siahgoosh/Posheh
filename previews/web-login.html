@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ورود — پوشه</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    body.theme-dark { --bg: #0a0a0f; }
+    body {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 24px;
+      background: var(--bg);
+    }
+    .bg-glow {
+      position: fixed; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 500px 400px at 75% 15%, rgba(99,102,241,.2), transparent),
+        radial-gradient(ellipse 400px 300px at 15% 85%, rgba(139,92,246,.15), transparent);
+    }
+    .login-wrap { width: 100%; max-width: 400px; position: relative; z-index: 1; }
+    .brand { text-align: center; margin-bottom: 32px; }
+    .brand-icon {
+      width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 16px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; box-shadow: 0 8px 28px rgba(99,102,241,.35);
+    }
+    .brand h1 { font-size: 1.75rem; font-weight: 700; }
+    .brand p { color: var(--muted); font-size: .9rem; margin-top: 6px; }
+    .card { border-radius: var(--radius-xl); padding: 28px; }
+    .card-title {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1rem; font-weight: 600; margin-bottom: 24px;
+    }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 6px; }
+    .field input { text-align: center; font-size: 1.1rem; letter-spacing: .05em; direction: ltr; }
+    .btn-full { width: 100%; padding: 13px; margin-top: 8px; }
+    .hint { text-align: center; font-size: .8rem; color: var(--muted); margin-top: 16px; }
+    .step-otp .otp-input {
+      font-size: 1.5rem; letter-spacing: .6em; text-align: center;
+      padding: 14px; direction: ltr;
+    }
+    .otp-meta {
+      display: flex; justify-content: space-between;
+      font-size: .8rem; margin-top: 12px;
+    }
+    .otp-meta a, .otp-meta button {
+      background: none; border: none; color: var(--primary);
+      font-family: inherit; font-size: .8rem; cursor: pointer;
+    }
+    .otp-meta span { color: var(--muted); }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tab {
+      flex: 1; padding: 8px; border-radius: 10px; border: 1px solid var(--card-border);
+      background: transparent; color: var(--muted); font-family: inherit;
+      font-size: .8rem; cursor: pointer; transition: all .2s;
+    }
+    .tab.active { background: rgba(99,102,241,.15); color: #818cf8; border-color: rgba(99,102,241,.3); }
+    #step-otp { display: none; }
+  </style>
+</head>
+<body class="theme-dark">
+  <a href="index.html" class="back-link">← بازگشت</a>
+  <div class="bg-glow"></div>
+
+  <div class="login-wrap">
+    <div class="brand">
+      <div class="brand-icon">🏢</div>
+      <h1 class="gradient-text">پوشه</h1>
+      <p>سامانه ابری ثبت و مدیریت املاک</p>
+    </div>
+
+    <div class="card glass">
+      <div class="tabs">
+        <button class="tab active" onclick="showStep('mobile')">ورود با موبایل</button>
+        <button class="tab" onclick="showStep('otp')">کد تأیید</button>
+      </div>
+
+      <div id="step-mobile">
+        <div class="card-title">📱 ورود با موبایل</div>
+        <div class="field">
+          <label>شماره موبایل</label>
+          <input type="tel" value="09121111111" placeholder="09121234567">
+        </div>
+        <button class="btn-primary btn-full" onclick="showStep('otp')">دریافت کد تأیید</button>
+        <p class="hint">کد ۶ رقمی به موبایل شما ارسال می‌شود</p>
+      </div>
+
+      <div id="step-otp">
+        <div class="card-title">✅ تأیید کد</div>
+        <p style="font-size:.85rem;color:var(--muted);margin-bottom:16px">
+          کد تأیید به <span dir="ltr">09121111111</span> ارسال شد
+        </p>
+        <div class="field">
+          <input class="otp-input" type="text" value="123456" maxlength="6" placeholder="------">
+        </div>
+        <button class="btn-primary btn-full">ورود به پوشه</button>
+        <div class="otp-meta">
+          <button onclick="showStep('mobile')">تغییر شماره</button>
+          <span>ارسال مجدد (۱:۴۵)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showStep(step) {
+      document.getElementById('step-mobile').style.display = step === 'mobile' ? 'block' : 'none';
+      document.getElementById('step-otp').style.display = step === 'otp' ? 'block' : 'none';
+      document.querySelectorAll('.tab').forEach((t,i) => {
+        t.classList.toggle('active', (step === 'mobile' && i===0) || (step === 'otp' && i===1));
+      });
+    }
+  </script>
+</body>
+</html>
