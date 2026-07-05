@@ -41,11 +41,22 @@ class AdminSettingsController extends Controller
         $request->validate([
             'mobile' => ['required', 'string', 'regex:/^09\d{9}$/'],
             'message' => ['nullable', 'string', 'max:500'],
+            'settings' => ['nullable', 'array'],
         ]);
+
+        // Save settings first if provided (so test uses latest values)
+        if ($request->filled('settings')) {
+            $this->settings->setMany($request->input('settings'));
+        }
+
+        $configOverride = $request->filled('settings')
+            ? $this->settings->ippanelConfigFromArray($request->input('settings'))
+            : null;
 
         $result = $this->sms->test(
             $request->input('mobile'),
-            $request->input('message', 'تست پیامک پوشه - مدیر سیستم')
+            $request->input('message', 'تست پیامک پوشه - مدیر سیستم'),
+            $configOverride
         );
 
         return response()->json($result, $result['success'] ? 200 : 422);

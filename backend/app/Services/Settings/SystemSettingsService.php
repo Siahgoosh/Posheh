@@ -55,11 +55,18 @@ class SystemSettingsService
     {
         return [
             'api_key' => $this->get('ippanel_api_key'),
+            'username' => $this->get('ippanel_username'),
+            'password' => $this->get('ippanel_password'),
             'from_number' => $this->get('ippanel_from_number'),
             'otp_pattern_code' => $this->get('ippanel_otp_pattern_code'),
             'invite_pattern_code' => $this->get('ippanel_invite_pattern_code'),
             'base_url' => $this->get('ippanel_base_url', 'https://edge.ippanel.com/v1'),
         ];
+    }
+
+    public function ippanelConfigFromArray(array $override): array
+    {
+        return array_merge($this->ippanelConfig(), array_filter($override, fn ($v) => $v !== null && $v !== '' && $v !== '********'));
     }
 
     public function aqayepardakhtConfig(): array
@@ -111,6 +118,8 @@ class SystemSettingsService
     {
         return match ($key) {
             'ippanel_api_key' => env('IPPANEL_API_KEY', $default),
+            'ippanel_username' => env('IPPANEL_USERNAME', $default),
+            'ippanel_password' => env('IPPANEL_PASSWORD', $default),
             'ippanel_from_number' => env('IPPANEL_FROM_NUMBER', $default),
             'ippanel_otp_pattern_code' => env('IPPANEL_OTP_PATTERN_CODE', $default),
             'ippanel_invite_pattern_code' => env('IPPANEL_INVITE_PATTERN_CODE', $default),

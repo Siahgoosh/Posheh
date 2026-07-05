@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Settings, Send, Save } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,6 +25,16 @@ export function AdminSettingsPage() {
     queryFn: async () => (await api.get('/admin/settings')).data.data as Record<string, SettingItem[]>,
   })
 
+  useEffect(() => {
+    if (!data) return
+    const initial: Record<string, string> = {}
+    Object.values(data).flat().forEach((item) => {
+      if (item.is_secret || item.value === '********') return
+      if (item.value) initial[item.key] = item.value
+    })
+    setForm((prev) => ({ ...initial, ...prev }))
+  }, [data])
+
   const saveMutation = useMutation({
     mutationFn: async () => api.put('/admin/settings', { settings: form }),
     onSuccess: () => {
@@ -34,11 +44,21 @@ export function AdminSettingsPage() {
   })
 
   const testSmsMutation = useMutation({
-    mutationFn: async () => api.post('/admin/test-sms', { mobile: testMobile }),
+    mutationFn: async () => {
+      const settingsToSend = { ...form }
+      if (form.sms_mode === undefined || form.sms_mode === '') {
+        settingsToSend.sms_mode = 'live'
+      }
+      return api.post('/admin/test-sms', {
+        mobile: testMobile,
+        settings: settingsToSend,
+      })
+    },
     onSuccess: (res) => setMessage(res.data.message || 'ارسال شد'),
     onError: (err: unknown) => {
-      const e = err as { response?: { data?: { message?: string } } }
-      setMessage(e.response?.data?.message || 'خطا در ارسال')
+      const e = err as { response?: { data?: { message?: string; details?: unknown } } }
+      const detail = e.response?.data?.details ? ` — ${JSON.stringify(e.response.data.details)}` : ''
+      setMessage((e.response?.data?.message || 'خطا در ارسال') + detail)
     },
   })
 
@@ -117,11 +137,14 @@ export function AdminSettingsPage() {
 
       <Card className="glass">
         <CardHeader><CardTitle className="flex items-center gap-2"><Send className="h-5 w-5" />تست پیامک</CardTitle></CardHeader>
-        <CardContent className="flex gap-3">
-          <Input value={testMobile} onChange={(e) => setTestMobile(e.target.value)} dir="ltr" className="max-w-xs" />
-          <Button onClick={() => testSmsMutation.mutate()} disabled={testSmsMutation.isPending}>
-            ارسال تست
-          </Button>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted">مقادیر فرم را پر کنید و «ارسال تست» بزنید — تنظیمات خودکار ذخیره می‌شود.</p>
+          <div className="flex gap-3 flex-wrap">
+            <Input value={testMobile} onChange={(e) => setTestMobile(e.target.value)} dir="ltr" className="max-w-xs" />
+            <Button onClick={() => testSmsMutation.mutate()} disabled={testSmsMutation.isPending}>
+              {testSmsMutation.isPending ? 'در حال ارسال...' : 'ارسال تست'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
