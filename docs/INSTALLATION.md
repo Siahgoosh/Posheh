@@ -105,6 +105,25 @@ server {
 0 3 * * * docker compose exec app php artisan properties:mark-expired
 ```
 
+## Troubleshooting
+
+### Unknown database 'posheh'
+
+This happens when the MySQL data volume was created before the `posheh` database was configured. Fix it with:
+
+```bash
+docker compose exec mysql mysql -uroot -psecret -e "CREATE DATABASE IF NOT EXISTS posheh CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+docker compose exec app php artisan migrate --seed --force
+```
+
+Or recreate the MySQL volume (deletes all data):
+
+```bash
+docker compose down
+docker volume rm posheh_mysql_data
+docker compose up -d --build
+```
+
 ## Mobile App Build
 
 ### Android
