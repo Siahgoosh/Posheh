@@ -21,4 +21,19 @@ mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
 
+if [ -d vendor ] && [ -f artisan ]; then
+  echo "Waiting for database..."
+  i=0
+  while [ "$i" -lt 30 ]; do
+    if php artisan migrate:status --no-interaction >/dev/null 2>&1; then
+      break
+    fi
+    i=$((i + 1))
+    sleep 2
+  done
+
+  echo "Running database migrations..."
+  php artisan migrate --force --no-interaction
+fi
+
 exec docker-php-entrypoint "$@"

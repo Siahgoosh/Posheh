@@ -33,6 +33,24 @@ class AuthTest extends TestCase
         $this->assertDatabaseHas('otp_codes', ['mobile' => '09121111111']);
     }
 
+    public function test_otp_send_is_rate_limited(): void
+    {
+        User::factory()->create(['mobile' => '09121111111']);
+
+        OtpCode::create([
+            'mobile' => '09121111111',
+            'code' => '123456',
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/otp/send', [
+            'mobile' => '09121111111',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['mobile']);
+    }
+
     public function test_user_can_verify_otp_and_login(): void
     {
         $office = Office::create(['name' => 'Test Office', 'slug' => 'test-office']);

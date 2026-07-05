@@ -35,7 +35,11 @@ export function LoginPage() {
       }, 1000)
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
-      setError(axiosErr.response?.data?.errors?.mobile?.[0] || axiosErr.response?.data?.message || 'خطا در ارسال کد')
+      const message = axiosErr.response?.data?.message
+      setError(
+        axiosErr.response?.data?.errors?.mobile?.[0]
+          || (message && message !== 'Server Error' ? message : 'خطا در اتصال به سرور. لطفاً دوباره تلاش کنید.')
+      )
     } finally {
       setLoading(false)
     }

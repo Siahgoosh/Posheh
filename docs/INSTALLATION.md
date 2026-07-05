@@ -57,10 +57,15 @@ SMS_API_KEY=your-sms-api-key
 docker compose up -d --build
 ```
 
-### Step 4: Initialize Database
+Database migrations run automatically when the app container starts. For demo data, seed once:
 
 ```bash
-docker compose exec app php artisan migrate --seed --force
+docker compose exec app php artisan db:seed --force
+```
+
+### Step 4: Storage Link
+
+```bash
 docker compose exec app php artisan storage:link
 ```
 

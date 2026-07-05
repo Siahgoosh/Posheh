@@ -9,8 +9,6 @@ use App\Models\Device;
 use App\Models\OtpCode;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OtpService
@@ -23,8 +21,11 @@ class OtpService
     {
         $mobile = $this->normalizeMobile($dto->mobile);
 
-        $rateLimitKey = "otp_rate:{$mobile}";
-        if (Cache::has($rateLimitKey)) {
+        $recentOtp = OtpCode::where('mobile', $mobile)
+            ->where('created_at', '>', now()->subMinutes(2))
+            ->exists();
+
+        if ($recentOtp) {
             throw ValidationException::withMessages([
                 'mobile' => ['لطفاً چند دقیقه صبر کنید و دوباره تلاش کنید.'],
             ]);
@@ -45,10 +46,8 @@ class OtpService
             'expires_at' => now()->addMinutes(5),
         ]);
 
-        Cache::put($rateLimitKey, true, now()->addMinutes(2));
-
         if (app()->environment('production')) {
-            SendOtpSmsJob::dispatch($mobile, $code);
+            SendOtpSmsJob::dispatchSync($mobile, $code);
         }
 
         return [
