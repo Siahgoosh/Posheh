@@ -24,11 +24,11 @@ docker compose exec app php artisan config:clear --no-interaction || true
 echo "4. Running migrations and seed..."
 docker compose exec app php artisan migrate --seed --force --no-interaction
 
-echo "5. Restarting app container..."
-docker compose restart app queue
+echo "5. Restarting app and nginx..."
+docker compose restart app queue nginx
 
 echo "6. Testing API..."
-sleep 3
+sleep 8
 curl -s -o /dev/null -w "OTP endpoint HTTP status: %{http_code}\n" \
   -X POST http://localhost:8000/api/v1/auth/otp/send \
   -H "Content-Type: application/json" \

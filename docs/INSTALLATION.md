@@ -126,7 +126,13 @@ docker compose up -d --build
 
 ### OTP send fails / 502 Bad Gateway
 
-The Laravel app container may have crashed. Run the fix script:
+Nginx caches the app container IP. After rebuilding or restarting `app`, restart nginx too:
+
+```bash
+docker compose restart app nginx
+```
+
+The fix script also restarts nginx automatically:
 
 ```bash
 chmod +x scripts/server-fix.sh
@@ -138,7 +144,7 @@ Or manually:
 ```bash
 docker compose ps
 docker compose logs app --tail 50
-docker compose restart app
+docker compose restart app nginx
 docker compose exec app php artisan config:clear
 ```
 
