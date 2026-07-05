@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>داشبورد — پوشه (روشن)</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 256px; flex-shrink: 0;
+      background: var(--sidebar-bg);
+      border-left: 1px solid var(--card-border);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; right: 0; bottom: 0;
+      box-shadow: -2px 0 20px rgba(0,0,0,.04);
+    }
+    .sidebar-brand { display: flex; align-items: center; gap: 12px; padding: 24px 20px; }
+    .sidebar-logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .sidebar-brand h2 { font-size: 1rem; font-weight: 700; }
+    .sidebar-brand small { font-size: .7rem; color: var(--muted); display: block; }
+    .nav { flex: 1; padding: 8px 12px; }
+    .nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 12px;
+      color: var(--muted); text-decoration: none; font-size: .875rem;
+      margin-bottom: 2px; transition: all .2s;
+    }
+    .nav a:hover { background: var(--hover); color: var(--fg); }
+    .nav a.active { background: rgba(99,102,241,.1); color: #4f46e5; font-weight: 500; }
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--card-border); }
+    .user-row { display: flex; align-items: center; gap: 10px; padding: 8px; }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(99,102,241,.12); color: #4f46e5;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem; font-weight: 600;
+    }
+    .main { flex: 1; margin-right: 256px; padding: 32px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+    .page-header h1 { font-size: 1.5rem; font-weight: 700; }
+    .page-header p { color: var(--muted); font-size: .875rem; margin-top: 4px; }
+    .theme-toggle {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 10px;
+      background: var(--card); border: 1px solid var(--card-border);
+      font-size: .8rem; color: var(--muted); text-decoration: none;
+    }
+    .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+    .stat-card {
+      padding: 18px; border-radius: var(--radius-lg);
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .stat-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+      background: #f4f4f5; margin-bottom: 10px;
+    }
+    .stat-val { font-size: 1.4rem; font-weight: 700; }
+    .stat-label { font-size: .7rem; color: var(--muted); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .panel { border-radius: var(--radius-xl); padding: 22px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .panel-title { font-size: .95rem; font-weight: 600; margin-bottom: 16px; }
+    .list-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px; border-radius: 12px; margin-bottom: 4px;
+      transition: background .2s;
+    }
+    .list-item:hover { background: #f4f4f5; }
+    .list-item .code { font-weight: 600; }
+    .list-item .meta { font-size: .75rem; color: var(--muted); }
+    .back-link { background: #fff; }
+  </style>
+</head>
+<body class="theme-light">
+  <a href="index.html" class="back-link">← بازگشت</a>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">🏢</div>
+        <div>
+          <h2 class="gradient-text">پوشه</h2>
+          <small>دفتر املاک نمونه</small>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="web-light.html" class="active"><span>📊</span> داشبورد</a>
+        <a href="web-properties.html"><span>🏠</span> املاک</a>
+        <a href="#"><span>🔍</span> جستجو</a>
+        <a href="#"><span>⭐</span> علاقه‌مندی‌ها</a>
+        <a href="#"><span>👥</span> تیم</a>
+        <a href="#"><span>💳</span> اشتراک</a>
+        <a href="#"><span>⚙️</span> تنظیمات</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-row">
+          <div class="avatar">ع</div>
+          <div>
+            <div style="font-size:.85rem;font-weight:500">علی محمدی</div>
+            <div style="font-size:.7rem;color:var(--muted)">مدیر دفتر</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="page-header">
+        <div>
+          <h1>داشبورد</h1>
+          <p>خلاصه وضعیت دفتر املاک</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <a href="web-dark.html" class="theme-toggle">🌙 حالت تاریک</a>
+          <button class="btn-primary">+ ثبت ملک جدید</button>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card glass">
+          <div class="stat-icon">🏠</div>
+          <div class="stat-val">۴۵</div>
+          <div class="stat-label">کل املاک</div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-icon">✅</div>
+          <div class="stat-val">۳۸</div>
+          <div class="stat-label">فعال</div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-icon">📅</div>
+          <div class="stat-val">۳</div>
+          <div class="stat-label">امروز</div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-icon">⚠️</div>
+          <div class="stat-val">۵</div>
+          <div class="stat-label">در حال انقضا</div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-icon">👥</div>
+          <div class="stat-val">۸</div>
+          <div class="stat-label">اعضای تیم</div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:28px">
+        <div class="panel glass">
+          <div class="panel-title">املاک اخیر</div>
+          <div class="list-item">
+            <div><div class="code">A-1001</div><div class="meta">فروش · تهران، ولنجک · ۵ میلیارد</div></div>
+            <span class="badge badge-success">فعال</span>
+          </div>
+          <div class="list-item">
+            <div><div class="code">B-2045</div><div class="meta">اجاره · نیاوران · ۸۰ میلیون</div></div>
+            <span class="badge badge-success">فعال</span>
+          </div>
+          <div class="list-item">
+            <div><div class="code">C-3012</div><div class="meta">رهن · اصفهان · ۲ میلیارد</div></div>
+            <span class="badge badge-success">فعال</span>
+          </div>
+        </div>
+        <div class="panel glass">
+          <div class="panel-title">وظایف امروز</div>
+          <div class="list-item">
+            <div><div class="code">تماس با مالک A-1001</div><div class="meta">سارا احمدی · اولویت بالا</div></div>
+            <span class="badge badge-warning">در انتظار</span>
+          </div>
+          <div class="list-item">
+            <div><div class="code">بازدید ملک B-2045</div><div class="meta">رضا کریمی · ساعت ۱۵:۰۰</div></div>
+            <span class="badge badge-primary">در حال انجام</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

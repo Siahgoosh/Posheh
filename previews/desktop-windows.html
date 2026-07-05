@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>پوشه — دسکتاپ ویندوز</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    body {
+      background: #0078d4;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 100vh; padding: 40px 20px; gap: 20px;
+    }
+    .page-title { text-align: center; color: #fff; }
+    .page-title h1 { font-size: 1.2rem; margin-bottom: 4px; }
+    .page-title p { font-size: .85rem; opacity: .8; }
+    .window-frame {
+      width: 1100px; max-width: 95vw;
+      background: #0a0a0f;
+      border-radius: 8px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      overflow: hidden;
+      border: 1px solid #333;
+    }
+    .titlebar {
+      height: 36px; background: #1e1e2e;
+      display: flex; align-items: center;
+      padding: 0 12px; gap: 8px;
+      border-bottom: 1px solid #333;
+      -webkit-app-region: drag;
+    }
+    .titlebar-btns { display: flex; gap: 8px; }
+    .titlebar-btn {
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+    .btn-close { background: #ff5f57; }
+    .btn-min { background: #febc2e; }
+    .btn-max { background: #28c840; }
+    .titlebar-title {
+      flex: 1; text-align: center; font-size: .75rem; color: #a1a1aa;
+    }
+    .app-layout { display: flex; height: 640px; }
+    .sidebar {
+      width: 220px; background: rgba(255,255,255,.02);
+      border-left: 1px solid rgba(255,255,255,.08);
+      display: flex; flex-direction: column; padding: 16px 10px;
+    }
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px 20px; font-weight: 700; font-size: .95rem;
+    }
+    .sidebar-brand .logo {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+    .sidebar nav a {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 12px; border-radius: 10px;
+      color: #71717a; text-decoration: none; font-size: .85rem;
+      margin-bottom: 2px; transition: all .2s;
+    }
+    .sidebar nav a:hover { background: rgba(255,255,255,.05); color: #fafafa; }
+    .sidebar nav a.active { background: rgba(99,102,241,.15); color: #818cf8; }
+    .sidebar-footer {
+      margin-top: auto; padding: 12px 10px;
+      border-top: 1px solid rgba(255,255,255,.08);
+      font-size: .8rem; color: #71717a;
+    }
+    .main { flex: 1; padding: 24px 28px; overflow-y: auto; }
+    .main-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px;
+    }
+    .main-header h1 { font-size: 1.3rem; font-weight: 700; }
+    .main-header p { color: #71717a; font-size: .85rem; margin-top: 2px; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+    .search-desktop {
+      padding: 8px 14px; border-radius: 10px; width: 220px;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+      color: #fafafa; font-family: inherit; font-size: .8rem;
+    }
+    .stats { display: grid; grid-template-columns: repeat(5,1fr); gap: 12px; margin-bottom: 24px; }
+    .stat-card {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px; padding: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .stat-icon { font-size: 20px; }
+    .stat-val { font-size: 1.3rem; font-weight: 700; }
+    .stat-lbl { font-size: .7rem; color: #71717a; }
+    .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .panel {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px; padding: 18px;
+    }
+    .panel h3 { font-size: .9rem; font-weight: 600; margin-bottom: 14px; }
+    .panel-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 12px; border-radius: 10px; margin-bottom: 4px;
+      font-size: .85rem; transition: background .2s; cursor: pointer;
+    }
+    .panel-item:hover { background: rgba(255,255,255,.05); }
+    .panel-item .meta { font-size: .72rem; color: #71717a; margin-top: 2px; }
+    .badge-sm {
+      padding: 2px 8px; border-radius: 6px; font-size: .65rem;
+      background: rgba(99,102,241,.2); color: #818cf8;
+    }
+    .taskbar {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 48px;
+      background: rgba(0,0,0,.8); backdrop-filter: blur(20px);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      border-top: 1px solid rgba(255,255,255,.1);
+    }
+    .taskbar-icon {
+      width: 40px; height: 40px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; cursor: pointer;
+    }
+    .taskbar-icon.active {
+      background: rgba(255,255,255,.1);
+      border-bottom: 2px solid #6366f1;
+    }
+    .back-link { position: fixed; background: rgba(0,0,0,.5); color: #fff; border-color: rgba(255,255,255,.2); }
+    .back-link:hover { color: #fff; }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-link">← بازگشت</a>
+
+  <div class="page-title">
+    <h1>🖥️ پیش‌نمایش دسکتاپ ویندوز</h1>
+    <p>Flutter Desktop · Windows 11</p>
+  </div>
+
+  <div class="window-frame">
+    <div class="titlebar">
+      <div class="titlebar-btns">
+        <div class="titlebar-btn btn-close"></div>
+        <div class="titlebar-btn btn-min"></div>
+        <div class="titlebar-btn btn-max"></div>
+      </div>
+      <div class="titlebar-title">پوشه — سامانه ثبت املاک</div>
+      <div style="width:52px"></div>
+    </div>
+
+    <div class="app-layout">
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="logo">🏢</div>
+          <span style="background:linear-gradient(to left,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">پوشه</span>
+        </div>
+        <nav>
+          <a href="#" class="active">📊 داشبورد</a>
+          <a href="#">🏠 املاک</a>
+          <a href="#">🔍 جستجو</a>
+          <a href="#">⭐ علاقه‌مندی‌ها</a>
+          <a href="#">👥 تیم</a>
+          <a href="#">💳 اشتراک</a>
+          <a href="#">📊 گزارش‌ها</a>
+          <a href="#">⚙️ تنظیمات</a>
+        </nav>
+        <div class="sidebar-footer">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:28px;height:28px;border-radius:50%;background:rgba(99,102,241,.2);color:#818cf8;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:600">ع</div>
+            <div>
+              <div style="color:#fafafa;font-size:.8rem">علی محمدی</div>
+              <div style="font-size:.7rem">مدیر دفتر</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="main-header">
+          <div>
+            <h1>داشبورد</h1>
+            <p>دفتر املاک نمونه · ۱۴۰۴/۰۴/۱۴</p>
+          </div>
+          <div class="header-actions">
+            <input class="search-desktop" placeholder="🔍 جستجوی سریع... (Ctrl+K)">
+            <button class="btn-primary" style="font-size:.8rem;padding:8px 16px">+ ثبت ملک</button>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat-card">
+            <span class="stat-icon">🏠</span>
+            <div><div class="stat-val">۴۵</div><div class="stat-lbl">کل املاک</div></div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">✅</span>
+            <div><div class="stat-val">۳۸</div><div class="stat-lbl">فعال</div></div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">📅</span>
+            <div><div class="stat-val">۳</div><div class="stat-lbl">امروز</div></div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">⚠️</span>
+            <div><div class="stat-val">۵</div><div class="stat-lbl">انقضا</div></div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">👥</span>
+            <div><div class="stat-val">۸</div><div class="stat-lbl">تیم</div></div>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <div class="panel">
+            <h3>املاک اخیر</h3>
+            <div class="panel-item">
+              <div><div style="font-weight:600">A-1001</div><div class="meta">فروش · ولنجک · ۵ میلیارد</div></div>
+              <span class="badge-sm">فعال</span>
+            </div>
+            <div class="panel-item">
+              <div><div style="font-weight:600">B-2045</div><div class="meta">اجاره · نیاوران · ۸۰ میلیون</div></div>
+              <span class="badge-sm">فعال</span>
+            </div>
+            <div class="panel-item">
+              <div><div style="font-weight:600">C-3012</div><div class="meta">رهن · اصفهان</div></div>
+              <span class="badge-sm">فعال</span>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>وظایف و یادآورها</h3>
+            <div class="panel-item">
+              <div><div style="font-weight:600">تماس با مالک A-1001</div><div class="meta">سارا احمدی · امروز ۱۴:۰۰</div></div>
+              <span class="badge-sm" style="background:rgba(245,158,11,.2);color:#fbbf24">در انتظار</span>
+            </div>
+            <div class="panel-item">
+              <div><div style="font-weight:600">بازدید B-2045</div><div class="meta">رضا کریمی · فردا ۱۰:۰۰</div></div>
+              <span class="badge-sm" style="background:rgba(34,197,94,.2);color:#4ade80">تأیید شده</span>
+            </div>
+            <div class="panel-item">
+              <div><div style="font-weight:600">تمدید آگهی D-1088</div><div class="meta">۳ روز تا انقضا</div></div>
+              <span class="badge-sm" style="background:rgba(239,68,68,.2);color:#f87171">فوری</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="taskbar">
+    <div class="taskbar-icon">🪟</div>
+    <div class="taskbar-icon">🔍</div>
+    <div class="taskbar-icon active">🏢</div>
+    <div class="taskbar-icon">📁</div>
+    <div class="taskbar-icon">🌐</div>
+    <div style="margin-right:auto;margin-left:16px;font-size:.75rem;color:#a1a1aa">۱۴:۳۲ · ۱۴۰۴/۰۴/۱۴</div>
+  </div>
+</body>
+</html>
