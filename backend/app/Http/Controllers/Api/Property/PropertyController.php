@@ -101,4 +101,20 @@ class PropertyController extends Controller
 
         return response()->json($result);
     }
+
+    public function favorites(Request $request): JsonResponse
+    {
+        $dto = PropertySearchDTO::fromRequest(array_merge($request->all(), ['favorites_only' => true]));
+        $properties = $this->propertyService->list($request->user(), $dto);
+
+        return response()->json([
+            'data' => PropertyResource::collection($properties),
+            'meta' => [
+                'current_page' => $properties->currentPage(),
+                'last_page' => $properties->lastPage(),
+                'per_page' => $properties->perPage(),
+                'total' => $properties->total(),
+            ],
+        ]);
+    }
 }

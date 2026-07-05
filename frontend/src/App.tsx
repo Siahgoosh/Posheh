@@ -5,8 +5,14 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { PropertiesPage } from '@/pages/PropertiesPage'
+import { PropertyDetailPage } from '@/pages/PropertyDetailPage'
 import { PropertyFormPage } from '@/pages/PropertyFormPage'
 import { SearchPage } from '@/pages/SearchPage'
+import { FavoritesPage } from '@/pages/FavoritesPage'
+import { TeamPage } from '@/pages/TeamPage'
+import { SubscriptionPage } from '@/pages/SubscriptionPage'
+import { TasksPage } from '@/pages/TasksPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -16,14 +22,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore()
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return <>{children}</>
-}
-
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <p className="text-muted">{title} — به زودی</p>
-    </div>
-  )
 }
 
 export default function App() {
@@ -41,11 +39,13 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/properties" element={<PropertiesPage />} />
           <Route path="/properties/new" element={<PropertyFormPage />} />
+          <Route path="/properties/:id" element={<PropertyDetailPage />} />
           <Route path="/search" element={<SearchPage />} />
-          <Route path="/favorites" element={<PlaceholderPage title="علاقه‌مندی‌ها" />} />
-          <Route path="/team" element={<PlaceholderPage title="مدیریت تیم" />} />
-          <Route path="/subscription" element={<PlaceholderPage title="اشتراک" />} />
-          <Route path="/settings" element={<PlaceholderPage title="تنظیمات" />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
+          <Route path="/team" element={<TeamPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>

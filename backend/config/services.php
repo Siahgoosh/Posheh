@@ -40,8 +40,20 @@ return [
         'sandbox' => env('ZARINPAL_SANDBOX', true),
     ],
 
+    'aqayepardakht' => [
+        'pin' => env('AQAYEPARDAKHT_PIN'),
+        'sandbox' => env('AQAYEPARDAKHT_SANDBOX', true),
+    ],
+
+    'ippanel' => [
+        'api_key' => env('IPPANEL_API_KEY'),
+        'from_number' => env('IPPANEL_FROM_NUMBER'),
+        'otp_pattern_code' => env('IPPANEL_OTP_PATTERN_CODE'),
+        'base_url' => env('IPPANEL_BASE_URL', 'https://edge.ippanel.com/v1'),
+    ],
+
     'sms' => [
-        'provider' => env('SMS_PROVIDER', 'kavenegar'),
+        'provider' => env('SMS_PROVIDER', 'ippanel'),
         'api_key' => env('SMS_API_KEY'),
     ],
 

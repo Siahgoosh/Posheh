@@ -3,32 +3,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
 
-class PropertiesScreen extends ConsumerStatefulWidget {
-  const PropertiesScreen({super.key});
+class FavoritesScreen extends ConsumerStatefulWidget {
+  const FavoritesScreen({super.key});
 
   @override
-  ConsumerState<PropertiesScreen> createState() => _PropertiesScreenState();
+  ConsumerState<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
-class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
-  List<dynamic> _properties = [];
+class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
+  List<dynamic> _items = [];
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadProperties();
+    _load();
   }
 
-  Future<void> _loadProperties() async {
+  Future<void> _load() async {
     try {
       final api = ref.read(apiClientProvider);
-      final data = await api.getProperties();
+      final data = await api.getFavorites();
       setState(() {
-        _properties = data['data'] ?? [];
+        _items = data['data'] ?? [];
         _loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       setState(() => _loading = false);
     }
   }
@@ -36,24 +36,23 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('املاک')),
+      appBar: AppBar(title: const Text('علاقه‌مندی‌ها')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _loadProperties,
-              child: _properties.isEmpty
-                  ? const Center(child: Text('ملکی ثبت نشده'))
+              onRefresh: _load,
+              child: _items.isEmpty
+                  ? const Center(child: Text('علاقه‌مندی‌ای ندارید'))
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
-                      itemCount: _properties.length,
-                      itemBuilder: (context, index) {
-                        final p = _properties[index];
+                      itemCount: _items.length,
+                      itemBuilder: (context, i) {
+                        final p = _items[i];
                         return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
                           child: ListTile(
-                            title: Text(p['code'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            leading: const Icon(Icons.star, color: Colors.amber),
+                            title: Text(p['code'] ?? ''),
                             subtitle: Text('${p['type_label']} · ${p['city'] ?? ''}'),
-                            trailing: Chip(label: Text(p['status_label'] ?? '')),
                             onTap: () => context.push('/properties/${p['id']}'),
                           ),
                         );

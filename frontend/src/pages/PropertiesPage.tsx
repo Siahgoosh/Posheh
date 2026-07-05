@@ -1,29 +1,12 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Filter, MapPin, Bed, Maximize } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import api from '@/lib/api'
-import { formatPrice, formatNumber } from '@/lib/utils'
-import { Card } from '@/components/ui/card'
+import { formatNumber } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-
-interface Property {
-  id: number
-  code: string
-  type: string
-  type_label: string
-  status_label: string
-  price?: number
-  rent?: number
-  area?: number
-  rooms?: number
-  city?: string
-  district?: string
-  permission_label: string
-  created_at_jalali: string
-}
+import { PropertyCard, type PropertyItem } from '@/components/PropertyCard'
 
 export function PropertiesPage() {
   const [search, setSearch] = useState('')
@@ -97,67 +80,15 @@ export function PropertiesPage() {
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data?.data?.map((property: Property) => (
-            <Link key={property.id} to={`/properties/${property.id}`}>
-              <Card className="!p-0 overflow-hidden glass-hover cursor-pointer h-full">
-                <div className="h-40 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                  <Building2Placeholder />
-                </div>
-                <div className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-lg">{property.code}</span>
-                    <Badge>{property.type_label}</Badge>
-                  </div>
-                  {(property.price || property.rent) && (
-                    <p className="text-primary font-semibold">
-                      {formatPrice(property.price || property.rent || 0)}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-4 text-sm text-muted">
-                    {property.area && (
-                      <span className="flex items-center gap-1">
-                        <Maximize className="h-3.5 w-3.5" />
-                        {formatNumber(property.area)} متر
-                      </span>
-                    )}
-                    {property.rooms && (
-                      <span className="flex items-center gap-1">
-                        <Bed className="h-3.5 w-3.5" />
-                        {formatNumber(property.rooms)} خواب
-                      </span>
-                    )}
-                  </div>
-                  {property.city && (
-                    <p className="flex items-center gap-1 text-sm text-muted">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {property.city}{property.district ? `، ${property.district}` : ''}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between pt-2 border-t border-card-border">
-                    <Badge variant="outline">{property.permission_label}</Badge>
-                    <span className="text-xs text-muted">{property.created_at_jalali}</span>
-                  </div>
-                </div>
-              </Card>
-            </Link>
+          {data?.data?.map((property: PropertyItem) => (
+            <PropertyCard key={property.id} property={property} />
           ))}
         </div>
       )}
 
       {!isLoading && !data?.data?.length && (
-        <div className="text-center py-20">
-          <Filter className="h-12 w-12 text-muted mx-auto mb-4" />
-          <p className="text-muted">ملکی یافت نشد</p>
-        </div>
+        <div className="text-center py-20 text-muted">ملکی یافت نشد</div>
       )}
     </div>
-  )
-}
-
-function Building2Placeholder() {
-  return (
-    <svg className="h-16 w-16 text-primary/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-    </svg>
   )
 }

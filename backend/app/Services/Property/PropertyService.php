@@ -35,6 +35,10 @@ class PropertyService
             ]);
         }
 
+        $property->is_favorite = PropertyFavorite::where('user_id', $user->id)
+            ->where('property_id', $property->id)
+            ->exists();
+
         return $property;
     }
 

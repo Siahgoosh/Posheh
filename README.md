@@ -95,15 +95,34 @@ npm run dev
 ## Features
 
 - **Multi-tenant** — Complete office isolation
-- **OTP Authentication** — Mobile-based login with device management
-- **Property Filing** — 9 property types with rich metadata
+- **OTP Authentication** — Mobile-based login with IPPanel SMS integration
+- **Property Filing** — 9 property types with detail pages and similar properties
+- **Favorites** — Save and manage favorite listings (web + mobile)
 - **Permission System** — Private, Team, Office, Manager-only
-- **Search** — Quick search, advanced filters, saved searches
+- **Search** — Quick search, advanced filters, **saved searches**
 - **Dashboard** — Statistics, activities, tasks, expiring properties
+- **Tasks** — Create, assign, and track team tasks with notifications
+- **Notifications** — In-app notification center (web bell + API)
+- **Team Management** — View members and invite consultants
 - **Subscriptions** — Basic, Professional, Unlimited plans
-- **Payments** — ZarinPal, Cafe Bazaar, Internal Wallet
+- **Payments** — **Aqayepardakht**, ZarinPal, Cafe Bazaar, Internal Wallet
 - **Jalali Calendar** — Persian date support throughout
 - **RTL Design** — Premium Persian UI with dark/light modes
+- **Cross-platform** — Web, Android, iOS, Windows (Flutter) synced via API
+
+## SMS & Payment Configuration
+
+```env
+# IPPanel SMS (https://docs.ippanel.com)
+IPPANEL_API_KEY=your-api-key
+IPPANEL_FROM_NUMBER=+983000505
+IPPANEL_OTP_PATTERN_CODE=your-pattern-code
+
+# Aqayepardakht (https://aqayepardakht.ir/api/)
+AQAYEPARDAKHT_PIN=your-pin
+AQAYEPARDAKHT_SANDBOX=true
+FRONTEND_URL=http://your-domain:8000
+```
 
 ## API Documentation
 

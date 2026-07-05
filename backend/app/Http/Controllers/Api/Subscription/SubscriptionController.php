@@ -21,11 +21,20 @@ class SubscriptionController extends Controller
         ]);
     }
 
+    public function current(Request $request): JsonResponse
+    {
+        $subscription = $this->subscriptionService->getCurrentSubscription($request->user()->office);
+
+        return response()->json([
+            'data' => $subscription,
+        ]);
+    }
+
     public function subscribe(Request $request): JsonResponse
     {
         $request->validate([
             'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
-            'gateway' => ['required', 'string', 'in:zarinpal,cafe_bazaar,wallet'],
+            'gateway' => ['required', 'string', 'in:zarinpal,aqayepardakht,cafe_bazaar,wallet'],
         ]);
 
         $result = $this->subscriptionService->subscribe(
@@ -45,5 +54,18 @@ class SubscriptionController extends Controller
         );
 
         return response()->json($result);
+    }
+
+    public function aqayepardakhtCallback(Request $request)
+    {
+        $frontendUrl = rtrim(config('app.frontend_url', config('app.url')), '/');
+
+        try {
+            $this->subscriptionService->verifyAqayepardakht($request->all());
+
+            return redirect("{$frontendUrl}/subscription?status=success");
+        } catch (\Throwable) {
+            return redirect("{$frontendUrl}/subscription?status=failed");
+        }
     }
 }

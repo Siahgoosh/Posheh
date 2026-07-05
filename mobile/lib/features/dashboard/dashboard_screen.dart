@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -49,6 +50,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       title: Text(p['code'] ?? ''),
                       subtitle: Text('${p['type_label']} · ${p['city'] ?? ''}'),
                       trailing: Text(p['status_label'] ?? ''),
+                      onTap: () => context.push('/properties/${p['id']}'),
                     ),
                   )),
                 ],

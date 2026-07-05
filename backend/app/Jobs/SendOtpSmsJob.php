@@ -2,10 +2,10 @@
 
 namespace App\Jobs;
 
+use App\Services\Sms\IpPanelSmsService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 class SendOtpSmsJob
 {
@@ -16,9 +16,8 @@ class SendOtpSmsJob
         public string $code,
     ) {}
 
-    public function handle(): void
+    public function handle(IpPanelSmsService $sms): void
     {
-        // Integrate with Kavenegar, Ghasedak, or Melipayamak SMS gateway
-        Log::info("OTP sent to {$this->mobile}: {$this->code}");
+        $sms->sendOtp($this->mobile, $this->code);
     }
 }

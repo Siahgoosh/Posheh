@@ -57,6 +57,10 @@ class PropertyResource extends JsonResource
 
                 return $cover ? new PropertyMediaResource($cover) : null;
             }),
+            'is_favorite' => $this->when(
+                isset($this->is_favorite),
+                (bool) ($this->is_favorite ?? false)
+            ),
         ];
     }
 }

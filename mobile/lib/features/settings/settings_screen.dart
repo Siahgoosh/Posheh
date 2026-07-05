@@ -14,6 +14,27 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         children: [
           ListTile(
+            leading: const Icon(Icons.search),
+            title: const Text('جستجوی پیشرفته'),
+            onTap: () => context.go('/search'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.check_box),
+            title: const Text('وظایف'),
+            onTap: () => context.go('/tasks'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.people),
+            title: const Text('مدیریت تیم'),
+            onTap: () => context.go('/team'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.credit_card),
+            title: const Text('اشتراک و پرداخت'),
+            onTap: () => context.go('/subscription'),
+          ),
+          const Divider(),
+          ListTile(
             leading: const Icon(Icons.dark_mode),
             title: const Text('حالت تاریک'),
             trailing: Switch(
