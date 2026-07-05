@@ -1,10 +1,20 @@
 import { useQuery } from '@tanstack/react-query'
-import { Shield, Building2, Users, DollarSign } from 'lucide-react'
+import { Shield, Building2, Users, DollarSign, Settings, MessageSquare, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import api from '@/lib/api'
 import { formatPrice, formatNumber } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+
+interface SmsStatus {
+  sms_mode: string
+  is_live: boolean
+  has_api_key: boolean
+  has_credentials: boolean
+  has_from_number: boolean
+  is_ready: boolean
+}
 
 export function AdminDashboardPage() {
   const { data: analytics } = useQuery({
@@ -17,6 +27,11 @@ export function AdminDashboardPage() {
     queryFn: async () => (await api.get('/admin/offices')).data,
   })
 
+  const { data: smsStatus } = useQuery({
+    queryKey: ['admin-sms-status'],
+    queryFn: async () => (await api.get<{ data: SmsStatus }>('/admin/sms-status')).data.data,
+  })
+
   const stats = [
     { label: 'کل دفاتر', value: analytics?.total_offices, icon: Building2 },
     { label: 'دفاتر فعال', value: analytics?.active_offices, icon: Shield },
@@ -26,7 +41,7 @@ export function AdminDashboardPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Shield className="h-6 w-6 text-primary" />
@@ -35,9 +50,42 @@ export function AdminDashboardPage() {
           <p className="text-muted mt-1">مدیریت کل پلتفرم پوشه</p>
         </div>
         <Link to="/admin/settings">
-          <Button variant="secondary">تنظیمات سیستم</Button>
+          <Button variant="secondary">
+            <Settings className="h-4 w-4" />
+            تنظیمات سیستم
+          </Button>
         </Link>
       </div>
+
+      {smsStatus && (
+        <Card className={`glass ${smsStatus.is_ready && smsStatus.is_live ? 'border-success/30' : 'border-warning/30'}`}>
+          <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <MessageSquare className="h-6 w-6 text-primary" />
+              <div>
+                <p className="font-medium">وضعیت پیامک IPPanel</p>
+                <p className="text-sm text-muted">
+                  {smsStatus.is_live
+                    ? smsStatus.is_ready
+                      ? 'آماده ارسال OTP و دعوت‌نامه'
+                      : 'تنظیمات ناقص — کلید API یا شماره ارسال‌کننده را تکمیل کنید'
+                    : 'حالت لاگ فعال — OTP واقعی ارسال نمی‌شود'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {smsStatus.is_ready && smsStatus.is_live ? (
+                <Badge variant="success"><CheckCircle2 className="h-3 w-3 ml-1" />فعال</Badge>
+              ) : (
+                <Badge variant="warning"><AlertTriangle className="h-3 w-3 ml-1" />نیاز به تنظیم</Badge>
+              )}
+              <Link to="/admin/settings">
+                <Button size="sm" variant="outline">تنظیم پیامک</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s) => (

@@ -192,7 +192,7 @@ class IpPanelSmsService
     private function resolveAuth(array $config): array
     {
         if (! empty($config['api_key'])) {
-            return ['token' => trim($config['api_key'])];
+            return ['token' => $this->normalizeApiKey($config['api_key'])];
         }
 
         if (empty($config['username']) || empty($config['password'])) {
@@ -234,7 +234,19 @@ class IpPanelSmsService
 
     private function parseResponse(\Illuminate\Http\Client\Response $response): array
     {
-        $body = $response->json() ?? [];
+        $contentType = $response->header('Content-Type') ?? '';
+        $body = str_contains($contentType, 'json') ? ($response->json() ?? []) : [];
+
+        if (empty($body) && ! $response->successful()) {
+            $snippet = trim(strip_tags(substr($response->body(), 0, 200)));
+
+            return [
+                'success' => false,
+                'message' => "خطای IPPanel (HTTP {$response->status()}): ".($snippet ?: 'پاسخ نامعتبر از سرور'),
+                'details' => ['http_status' => $response->status()],
+            ];
+        }
+
         $meta = $body['meta'] ?? [];
         $status = $meta['status'] ?? false;
         $message = $meta['message'] ?? ($body['message'] ?? $response->body());
@@ -277,6 +289,20 @@ class IpPanelSmsService
         }
 
         return $base.'/api';
+    }
+
+    private function normalizeApiKey(string $key): string
+    {
+        $key = trim($key);
+
+        if (preg_match('/^[A-Za-z0-9+\/]+=*$/', $key) && strlen($key) > 40) {
+            $decoded = base64_decode($key, true);
+            if (is_string($decoded) && $decoded !== '' && preg_match('/^[a-zA-Z0-9\-]+$/', $decoded)) {
+                return $decoded;
+            }
+        }
+
+        return $key;
     }
 
     private function normalizeSender(string $number): string

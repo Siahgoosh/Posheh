@@ -46,6 +46,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('admin')->middleware(EnsureUserHasRole::class.':super_admin')->group(function () {
             Route::get('/settings', [AdminSettingsController::class, 'index']);
             Route::put('/settings', [AdminSettingsController::class, 'update']);
+            Route::get('/sms-status', [AdminSettingsController::class, 'smsStatus']);
             Route::post('/test-sms', [AdminSettingsController::class, 'testSms']);
             Route::get('/offices', [AdminController::class, 'offices']);
             Route::put('/offices/{id}', [AdminController::class, 'updateOffice']);

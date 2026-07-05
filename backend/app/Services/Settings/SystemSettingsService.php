@@ -4,10 +4,13 @@ namespace App\Services\Settings;
 
 use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class SystemSettingsService
 {
     private const CACHE_KEY = 'system_settings';
+
+    private const SECRET_PLACEHOLDER = '********';
 
     public function all(bool $maskSecrets = true): array
     {
@@ -30,25 +33,77 @@ class SystemSettingsService
         return $this->castValue($key, $value) ?? $default;
     }
 
-    public function set(string $key, mixed $value): void
+    public function hasValue(string $key): bool
     {
-        SystemSetting::where('key', $key)->update(['value' => is_bool($value) ? ($value ? '1' : '0') : (string) $value]);
-        Cache::forget(self::CACHE_KEY);
+        $value = $this->cached()[$key] ?? null;
+
+        return $value !== null && $value !== '';
     }
 
-    public function setMany(array $data): void
+    public function set(string $key, mixed $value): bool
     {
+        $setting = SystemSetting::where('key', $key)->first();
+
+        if (! $setting) {
+            Log::warning('Attempted to set unknown system setting', ['key' => $key]);
+
+            return false;
+        }
+
+        $stored = is_bool($value) ? ($value ? '1' : '0') : (string) $value;
+
+        $setting->update(['value' => $stored]);
+        Cache::forget(self::CACHE_KEY);
+
+        return true;
+    }
+
+    /**
+     * @return array{saved: string[], skipped: string[], errors: string[]}
+     */
+    public function setMany(array $data): array
+    {
+        $saved = [];
+        $skipped = [];
+        $errors = [];
+
         foreach ($data as $key => $value) {
-            if ($value === '********' || $value === null || $value === '') {
+            if ($this->shouldSkipValue($key, $value)) {
+                $skipped[] = $key;
+
                 continue;
             }
-            $this->set($key, $value);
+
+            if ($this->set($key, $value)) {
+                $saved[] = $key;
+            } else {
+                $errors[] = $key;
+            }
         }
+
+        return compact('saved', 'skipped', 'errors');
     }
 
     public function isSmsLive(): bool
     {
         return $this->get('sms_mode', app()->environment('production') ? 'live' : 'log') === 'live';
+    }
+
+    public function smsStatus(): array
+    {
+        $config = $this->ippanelConfig();
+        $hasCredentials = $this->hasIppanelCredentials($config);
+
+        return [
+            'sms_mode' => (string) $this->get('sms_mode', 'log'),
+            'is_live' => $this->isSmsLive(),
+            'has_api_key' => $this->hasValue('ippanel_api_key'),
+            'has_username' => $this->hasValue('ippanel_username'),
+            'has_password' => $this->hasValue('ippanel_password'),
+            'has_from_number' => ! empty($config['from_number']),
+            'has_credentials' => $hasCredentials,
+            'is_ready' => $hasCredentials && ! empty($config['from_number']),
+        ];
     }
 
     public function ippanelConfig(): array
@@ -66,7 +121,12 @@ class SystemSettingsService
 
     public function ippanelConfigFromArray(array $override): array
     {
-        return array_merge($this->ippanelConfig(), array_filter($override, fn ($v) => $v !== null && $v !== '' && $v !== '********'));
+        $filtered = array_filter(
+            $override,
+            fn ($value) => $value !== null && $value !== '' && $value !== self::SECRET_PLACEHOLDER
+        );
+
+        return array_merge($this->ippanelConfig(), $filtered);
     }
 
     public function aqayepardakhtConfig(): array
@@ -75,6 +135,27 @@ class SystemSettingsService
             'pin' => $this->get('aqayepardakht_pin'),
             'sandbox' => (bool) $this->get('aqayepardakht_sandbox', true),
         ];
+    }
+
+    private function shouldSkipValue(string $key, mixed $value): bool
+    {
+        if ($value === self::SECRET_PLACEHOLDER || $value === null) {
+            return true;
+        }
+
+        if ($value === '') {
+            $setting = SystemSetting::where('key', $key)->first();
+
+            return $setting?->is_secret ?? true;
+        }
+
+        return false;
+    }
+
+    private function hasIppanelCredentials(array $config): bool
+    {
+        return ! empty($config['api_key'])
+            || (! empty($config['username']) && ! empty($config['password']));
     }
 
     private function cached(): array
@@ -86,15 +167,17 @@ class SystemSettingsService
 
     private function formatSetting(SystemSetting $setting, bool $maskSecrets): array
     {
-        $value = $setting->value;
+        $hasValue = $setting->value !== null && $setting->value !== '';
+        $value = $setting->value ?? '';
 
-        if ($maskSecrets && $setting->is_secret && $value) {
-            $value = '********';
+        if ($maskSecrets && $setting->is_secret && $hasValue) {
+            $value = self::SECRET_PLACEHOLDER;
         }
 
         return [
             'key' => $setting->key,
             'value' => $value,
+            'has_value' => $hasValue,
             'label' => $setting->label,
             'type' => $setting->type,
             'is_secret' => $setting->is_secret,

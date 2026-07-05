@@ -19,6 +19,7 @@ class AdminSettingsController extends Controller
     {
         return response()->json([
             'data' => $this->settings->all(maskSecrets: true),
+            'sms_status' => $this->settings->smsStatus(),
         ]);
     }
 
@@ -28,11 +29,32 @@ class AdminSettingsController extends Controller
             'settings' => ['required', 'array'],
         ]);
 
-        $this->settings->setMany($request->input('settings'));
+        $result = $this->settings->setMany($request->input('settings'));
+
+        if (! empty($result['errors'])) {
+            return response()->json([
+                'message' => 'برخی تنظیمات ذخیره نشدند.',
+                'saved' => $result['saved'],
+                'skipped' => $result['skipped'],
+                'errors' => $result['errors'],
+                'data' => $this->settings->all(maskSecrets: true),
+                'sms_status' => $this->settings->smsStatus(),
+            ], 422);
+        }
 
         return response()->json([
             'message' => 'تنظیمات با موفقیت ذخیره شد.',
+            'saved' => $result['saved'],
+            'skipped' => $result['skipped'],
             'data' => $this->settings->all(maskSecrets: true),
+            'sms_status' => $this->settings->smsStatus(),
+        ]);
+    }
+
+    public function smsStatus(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->settings->smsStatus(),
         ]);
     }
 
@@ -44,21 +66,21 @@ class AdminSettingsController extends Controller
             'settings' => ['nullable', 'array'],
         ]);
 
-        // Save settings first if provided (so test uses latest values)
         if ($request->filled('settings')) {
             $this->settings->setMany($request->input('settings'));
         }
 
-        $configOverride = $request->filled('settings')
-            ? $this->settings->ippanelConfigFromArray($request->input('settings'))
-            : null;
-
         $result = $this->sms->test(
             $request->input('mobile'),
             $request->input('message', 'تست پیامک پوشه - مدیر سیستم'),
-            $configOverride
+            $request->filled('settings')
+                ? $this->settings->ippanelConfigFromArray($request->input('settings'))
+                : null
         );
 
-        return response()->json($result, $result['success'] ? 200 : 422);
+        return response()->json([
+            ...$result,
+            'sms_status' => $this->settings->smsStatus(),
+        ], $result['success'] ? 200 : 422);
     }
 }
