@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AdminSettingsController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\RegisterController;
+use App\Http\Controllers\Api\Contact\ContactController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\Notification\NotificationController;
 use App\Http\Controllers\Api\Office\OfficeController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\Api\Property\PropertyController;
 use App\Http\Controllers\Api\SavedSearch\SavedSearchController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
 use App\Http\Controllers\Api\Task\TaskController;
+use App\Http\Controllers\Api\Ticket\TicketController;
 use App\Http\Middleware\EnsureOfficeHasAccess;
 use App\Http\Middleware\EnsureOfficeIsActive;
 use App\Http\Middleware\EnsureUserHasRole;
@@ -50,8 +52,11 @@ Route::prefix('v1')->group(function () {
             Route::post('/test-sms', [AdminSettingsController::class, 'testSms']);
             Route::get('/offices', [AdminController::class, 'offices']);
             Route::put('/offices/{id}', [AdminController::class, 'updateOffice']);
+            Route::post('/offices/{id}/extend-subscription', [AdminController::class, 'extendSubscription']);
             Route::get('/analytics', [AdminController::class, 'analytics']);
+            Route::get('/payments', [AdminController::class, 'payments']);
             Route::get('/tickets', [AdminController::class, 'tickets']);
+            Route::put('/tickets/{id}', [AdminController::class, 'updateTicket']);
             Route::get('/announcements', [AdminController::class, 'announcements']);
             Route::post('/announcements', [AdminController::class, 'createAnnouncement']);
         });
@@ -66,6 +71,11 @@ Route::prefix('v1')->group(function () {
             Route::post('/properties/{id}/favorite', [PropertyController::class, 'toggleFavorite']);
 
             Route::apiResource('tasks', TaskController::class)->except(['show']);
+
+            Route::get('/tickets', [TicketController::class, 'index']);
+            Route::post('/tickets', [TicketController::class, 'store']);
+
+            Route::apiResource('contacts', ContactController::class)->except(['show']);
 
             Route::get('/notifications', [NotificationController::class, 'index']);
             Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);

@@ -12,6 +12,8 @@ import '../../features/tasks/tasks_screen.dart';
 import '../../features/team/team_screen.dart';
 import '../../features/subscription/subscription_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../../features/notifications/notifications_screen.dart';
+import '../../features/contacts/contacts_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -41,6 +43,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/tasks', builder: (context, state) => const TasksScreen()),
           GoRoute(path: '/team', builder: (context, state) => const TeamScreen()),
           GoRoute(path: '/subscription', builder: (context, state) => const SubscriptionScreen()),
+          GoRoute(path: '/notifications', builder: (context, state) => const NotificationsScreen()),
+          GoRoute(path: '/contacts', builder: (context, state) => const ContactsScreen()),
           GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
         ],
       ),
@@ -78,7 +82,9 @@ class MainShell extends StatelessWidget {
             _drawerItem(context, Icons.search, 'جستجو', '/search'),
             _drawerItem(context, Icons.star, 'علاقه‌مندی‌ها', '/favorites'),
             _drawerItem(context, Icons.check_box, 'وظایف', '/tasks'),
+            _drawerItem(context, Icons.contacts, 'مخاطبین', '/contacts'),
             _drawerItem(context, Icons.people, 'تیم', '/team'),
+            _drawerItem(context, Icons.notifications, 'اعلان‌ها', '/notifications'),
             _drawerItem(context, Icons.credit_card, 'اشتراک', '/subscription'),
             _drawerItem(context, Icons.settings, 'تنظیمات', '/settings'),
           ],

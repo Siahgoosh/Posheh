@@ -174,4 +174,14 @@ class ApiClient {
   Future<void> saveSearch(String name, Map<String, dynamic> filters) async {
     await _dio.post('/saved-searches', data: {'name': name, 'filters': filters});
   }
+
+  // Contacts
+  Future<Map<String, dynamic>> getContacts() async {
+    final response = await _dio.get('/contacts');
+    return response.data;
+  }
+
+  Future<void> createContact(String name, String mobile) async {
+    await _dio.post('/contacts', data: {'name': name, 'mobile': mobile, 'type': 'lead'});
+  }
 }

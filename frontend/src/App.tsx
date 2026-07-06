@@ -15,6 +15,11 @@ import { TasksPage } from '@/pages/TasksPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
 import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage'
+import { AdminOfficesPage } from '@/pages/admin/AdminOfficesPage'
+import { AdminFinancePage } from '@/pages/admin/AdminFinancePage'
+import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage'
+import { SupportPage } from '@/pages/SupportPage'
+import { ContactsPage } from '@/pages/ContactsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -57,6 +62,9 @@ export default function App() {
           }
         >
           <Route index element={<AdminDashboardPage />} />
+          <Route path="offices" element={<AdminOfficesPage />} />
+          <Route path="finance" element={<AdminFinancePage />} />
+          <Route path="tickets" element={<AdminTicketsPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>
         <Route
@@ -76,6 +84,8 @@ export default function App() {
           <Route path="/favorites" element={<SubscriptionGuard><FavoritesPage /></SubscriptionGuard>} />
           <Route path="/team" element={<SubscriptionGuard><TeamPage /></SubscriptionGuard>} />
           <Route path="/tasks" element={<SubscriptionGuard><TasksPage /></SubscriptionGuard>} />
+          <Route path="/support" element={<SubscriptionGuard><SupportPage /></SubscriptionGuard>} />
+          <Route path="/contacts" element={<SubscriptionGuard><ContactsPage /></SubscriptionGuard>} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>

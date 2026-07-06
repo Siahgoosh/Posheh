@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { Shield, Building2, Users, DollarSign, Settings, MessageSquare, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { Shield, Building2, Users, DollarSign, MessageSquare, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import api from '@/lib/api'
 import { formatPrice, formatNumber } from '@/lib/utils'
+import { AdminNav } from '@/components/admin/AdminNav'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -49,13 +50,9 @@ export function AdminDashboardPage() {
           </h1>
           <p className="text-muted mt-1">مدیریت کل پلتفرم پوشه</p>
         </div>
-        <Link to="/admin/settings">
-          <Button variant="secondary">
-            <Settings className="h-4 w-4" />
-            تنظیمات سیستم
-          </Button>
-        </Link>
       </div>
+
+      <AdminNav />
 
       {smsStatus && (
         <Card className={`glass ${smsStatus.is_ready && smsStatus.is_live ? 'border-success/30' : 'border-warning/30'}`}>

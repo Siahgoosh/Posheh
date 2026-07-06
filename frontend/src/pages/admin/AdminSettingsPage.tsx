@@ -263,6 +263,16 @@ export function AdminSettingsPage() {
                     <option value="log">فقط لاگ (تست — کد 123456)</option>
                     <option value="live">ارسال واقعی پیامک</option>
                   </select>
+                ) : item.type === 'select' && item.key === 'ippanel_api_mode' ? (
+                  <select
+                    className="w-full h-11 rounded-xl border border-card-border bg-white/5 px-4"
+                    value={form[item.key] ?? 'auto'}
+                    onChange={(e) => updateField(item.key, e.target.value)}
+                  >
+                    <option value="auto">خودکار (Edge + Legacy)</option>
+                    <option value="edge">فقط Edge API</option>
+                    <option value="legacy">فقط Legacy GET</option>
+                  </select>
                 ) : item.type === 'boolean' ? (
                   <select
                     className="w-full h-11 rounded-xl border border-card-border bg-white/5 px-4"
