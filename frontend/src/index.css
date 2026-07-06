@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Vazirmatn", system-ui, sans-serif;
+  --color-background: #0a0a0f;
+  --color-foreground: #fafafa;
+  --color-card: rgba(255, 255, 255, 0.03);
+  --color-card-border: rgba(255, 255, 255, 0.08);
+  --color-primary: #6366f1;
+  --color-primary-foreground: #ffffff;
+  --color-muted: #71717a;
+  --color-accent: #8b5cf6;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+@layer base {
+  * {
+    @apply border-card-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "ss01", "ss02";
+  }
+
+  .light {
+    --color-background: #fafafa;
+    --color-foreground: #09090b;
+    --color-card: rgba(0, 0, 0, 0.02);
+    --color-card-border: rgba(0, 0, 0, 0.08);
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-card backdrop-blur-xl border border-card-border;
+  }
+
+  .glass-hover {
+    @apply transition-all duration-300 hover:bg-white/5 hover:border-white/15;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-l from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
