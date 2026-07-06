@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>جزئیات ملک A-1001 — پوشه</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    body { padding: 24px 32px; max-width: 1100px; margin: 0 auto; }
+    .breadcrumb { font-size: .8rem; color: var(--muted); margin-bottom: 20px; }
+    .breadcrumb a { color: var(--muted); text-decoration: none; }
+    .breadcrumb a:hover { color: #818cf8; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+    .gallery {
+      border-radius: var(--radius-xl); overflow: hidden; margin-bottom: 20px;
+      height: 320px;
+      background: linear-gradient(135deg, rgba(99,102,241,.3), rgba(139,92,246,.2));
+      display: flex; align-items: center; justify-content: center; font-size: 80px;
+      position: relative;
+    }
+    .gallery-badge {
+      position: absolute; top: 16px; right: 16px;
+    }
+    .thumbs { display: flex; gap: 10px; margin-bottom: 24px; }
+    .thumb {
+      width: 72px; height: 56px; border-radius: 10px;
+      background: rgba(99,102,241,.2); border: 2px solid transparent;
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+      cursor: pointer;
+    }
+    .thumb.active { border-color: var(--primary); }
+    .section { border-radius: var(--radius-xl); padding: 22px; margin-bottom: 16px; }
+    .section h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .info-item label { font-size: .75rem; color: var(--muted); display: block; margin-bottom: 4px; }
+    .info-item span { font-size: .9rem; font-weight: 500; }
+    .price-box {
+      border-radius: var(--radius-xl); padding: 24px; text-align: center;
+      margin-bottom: 16px;
+    }
+    .price-box .price { font-size: 1.6rem; font-weight: 700; color: #818cf8; }
+    .price-box .type { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+    .actions { display: flex; flex-direction: column; gap: 10px; }
+    .actions .btn-primary, .actions .btn-ghost {
+      width: 100%; justify-content: center; padding: 12px;
+    }
+    .actions .btn-ghost { border: 1px solid var(--card-border); border-radius: var(--radius); }
+    .features { display: flex; flex-wrap: wrap; gap: 8px; }
+    .feature {
+      padding: 6px 12px; border-radius: 8px; font-size: .8rem;
+      background: var(--hover); border: 1px solid var(--card-border);
+    }
+    .similar { margin-top: 32px; }
+    .similar h2 { font-size: 1rem; margin-bottom: 16px; }
+    .similar-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .similar-card {
+      padding: 14px; border-radius: var(--radius-lg); cursor: pointer;
+      transition: all .2s;
+    }
+    .similar-card:hover { background: var(--hover); }
+    @media (max-width: 800px) {
+      .detail-grid { grid-template-columns: 1fr; }
+      .similar-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="theme-dark">
+  <a href="index.html" class="back-link">← بازگشت</a>
+
+  <div class="breadcrumb">
+    <a href="web-properties.html">املاک</a> / A-1001
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <div>
+      <h1 style="font-size:1.6rem;font-weight:700">A-1001</h1>
+      <p style="color:var(--muted);font-size:.875rem;margin-top:4px">فروش · آپارتمان · تهران، ولنجک</p>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-ghost">⭐ علاقه‌مندی</button>
+      <button class="btn-ghost">📤 اشتراک</button>
+      <button class="btn-primary">✏️ ویرایش</button>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <div>
+      <div class="gallery glass">
+        🏠
+        <span class="badge badge-success gallery-badge">فعال</span>
+      </div>
+      <div class="thumbs">
+        <div class="thumb active">🏠</div>
+        <div class="thumb">🛋️</div>
+        <div class="thumb">🍳</div>
+        <div class="thumb">🛏️</div>
+        <div class="thumb">📷 +۵</div>
+      </div>
+
+      <div class="section glass">
+        <h2>مشخصات ملک</h2>
+        <div class="info-grid">
+          <div class="info-item"><label>متراژ</label><span>۱۲۰ متر مربع</span></div>
+          <div class="info-item"><label>تعداد خواب</label><span>۳ خواب</span></div>
+          <div class="info-item"><label>طبقه</label><span>۴ از ۸</span></div>
+          <div class="info-item"><label>سن بنا</label><span>۵ سال</span></div>
+          <div class="info-item"><label>پارکینگ</label><span>دارد</span></div>
+          <div class="info-item"><label>آسانسور</label><span>دارد</span></div>
+          <div class="info-item"><label>انباری</label><span>دارد</span></div>
+          <div class="info-item"><label>سطح دسترسی</label><span>دفتری</span></div>
+        </div>
+      </div>
+
+      <div class="section glass">
+        <h2>توضیحات</h2>
+        <p style="font-size:.9rem;line-height:1.8;color:var(--muted)">
+          آپارتمان نوساز با نمای جنوبی، نورگیر عالی، کف سرامیک، کابینت های‌گلاس، 
+          سیستم گرمایش از کف، آیفون تصویری. دسترسی عالی به مترو و اتوبان.
+          مناسب برای خانواده. قابل تبدیل به رهن و اجاره.
+        </p>
+      </div>
+
+      <div class="section glass">
+        <h2>امکانات</h2>
+        <div class="features">
+          <span class="feature">🅿️ پارکینگ</span>
+          <span class="feature">🛗 آسانسور</span>
+          <span class="feature">📦 انباری</span>
+          <span class="feature">❄️ کولر</span>
+          <span class="feature">🔥 شوفاژ</span>
+          <span class="feature">📹 آیفون تصویری</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="price-box glass">
+        <div class="price">۵,۰۰۰,۰۰۰,۰۰۰</div>
+        <div class="type">تومان · فروش</div>
+      </div>
+
+      <div class="section glass" style="margin-bottom:16px">
+        <h2>اطلاعات مالک</h2>
+        <div class="info-item" style="margin-bottom:12px">
+          <label>نام</label><span>محمد رضایی</span>
+        </div>
+        <div class="info-item">
+          <label>موبایل</label><span dir="ltr">09123456789</span>
+        </div>
+      </div>
+
+      <div class="section glass" style="margin-bottom:16px">
+        <h2>ثبت‌کننده</h2>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(99,102,241,.2);color:#818cf8;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:600">س</div>
+          <div>
+            <div style="font-size:.9rem;font-weight:500">سارا احمدی</div>
+            <div style="font-size:.75rem;color:var(--muted)">مشاور · ۱۴۰۴/۰۴/۱۰</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary">📞 تماس با مالک</button>
+        <button class="btn-ghost">📄 خروجی PDF</button>
+        <button class="btn-ghost">📊 خروجی Excel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="similar">
+    <h2>املاک مشابه</h2>
+    <div class="similar-grid">
+      <div class="similar-card glass">
+        <div style="font-weight:600">A-1005</div>
+        <div style="font-size:.8rem;color:var(--muted)">فروش · ۴.۸ میلیارد · ولنجک</div>
+      </div>
+      <div class="similar-card glass">
+        <div style="font-weight:600">A-1012</div>
+        <div style="font-size:.8rem;color:var(--muted)">فروش · ۵.۲ میلیارد · زعفرانیه</div>
+      </div>
+      <div class="similar-card glass">
+        <div style="font-weight:600">B-2001</div>
+        <div style="font-size:.8rem;color:var(--muted)">فروش · ۴.۵ میلیارد · نیاوران</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

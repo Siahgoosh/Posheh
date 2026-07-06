@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>داشبورد — پوشه (تاریک)</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 256px; flex-shrink: 0;
+      background: var(--sidebar-bg);
+      border-left: 1px solid var(--card-border);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; right: 0; bottom: 0;
+    }
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 12px;
+      padding: 24px 20px;
+    }
+    .sidebar-logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .sidebar-brand h2 { font-size: 1rem; font-weight: 700; }
+    .sidebar-brand small { font-size: .7rem; color: var(--muted); display: block; }
+    .nav { flex: 1; padding: 8px 12px; }
+    .nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 12px;
+      color: var(--muted); text-decoration: none; font-size: .875rem;
+      margin-bottom: 2px; transition: all .2s;
+    }
+    .nav a:hover { background: var(--hover); color: var(--fg); }
+    .nav a.active { background: rgba(99,102,241,.15); color: #818cf8; }
+    .nav a span { font-size: 16px; }
+    .sidebar-footer {
+      padding: 16px; border-top: 1px solid var(--card-border);
+    }
+    .user-row {
+      display: flex; align-items: center; gap: 10px; padding: 8px;
+    }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(99,102,241,.2); color: #818cf8;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem; font-weight: 600;
+    }
+    .user-row .name { font-size: .85rem; font-weight: 500; }
+    .user-row .role { font-size: .7rem; color: var(--muted); }
+    .main { flex: 1; margin-right: 256px; padding: 32px; }
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .page-header h1 { font-size: 1.5rem; font-weight: 700; }
+    .page-header p { color: var(--muted); font-size: .875rem; margin-top: 4px; }
+    .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+    .stat-card {
+      padding: 18px; border-radius: var(--radius-lg);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .stat-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+      background: var(--hover);
+    }
+    .stat-val { font-size: 1.4rem; font-weight: 700; }
+    .stat-label { font-size: .7rem; color: var(--muted); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .panel { border-radius: var(--radius-xl); padding: 22px; }
+    .panel-title { font-size: .95rem; font-weight: 600; margin-bottom: 16px; }
+    .list-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px; border-radius: 12px; margin-bottom: 6px;
+      transition: background .2s; cursor: pointer;
+    }
+    .list-item:hover { background: var(--hover); }
+    .list-item .code { font-weight: 600; font-size: .9rem; }
+    .list-item .meta { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .activity-item {
+      display: flex; gap: 12px; padding: 10px 14px; border-radius: 12px;
+      margin-bottom: 4px;
+    }
+    .activity-item:hover { background: var(--hover); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-top: 6px; flex-shrink: 0; }
+    .activity-text { font-size: .85rem; }
+    .activity-time { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    @media (max-width: 1100px) { .stats { grid-template-columns: repeat(3,1fr); } }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-right: 0; padding: 20px; }
+      .stats { grid-template-columns: repeat(2,1fr); }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body class="theme-dark">
+  <a href="index.html" class="back-link">← بازگشت</a>
+
+  <div class="layout">
+    <aside class="sidebar glass">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">🏢</div>
+        <div>
+          <h2 class="gradient-text">پوشه</h2>
+          <small>دفتر املاک نمونه</small>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="web-dark.html" class="active"><span>📊</span> داشبورد</a>
+        <a href="web-properties.html"><span>🏠</span> املاک</a>
+        <a href="#"><span>🔍</span> جستجو</a>
+        <a href="#"><span>⭐</span> علاقه‌مندی‌ها</a>
+        <a href="#"><span>👥</span> تیم</a>
+        <a href="#"><span>💳</span> اشتراک</a>
+        <a href="#"><span>⚙️</span> تنظیمات</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-row">
+          <div class="avatar">ع</div>
+          <div>
+            <div class="name">علی محمدی</div>
+            <div class="role">مدیر دفتر</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="page-header">
+        <div>
+          <h1>داشبورد</h1>
+          <p>خلاصه وضعیت دفتر املاک — ۱۴۰۴/۰۴/۱۴</p>
+        </div>
+        <button class="btn-primary">+ ثبت ملک جدید</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card glass">
+          <div class="stat-icon">🏠</div>
+          <div><div class="stat-val">۴۵</div><div class="stat-label">کل املاک</div></div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-icon" style="color:#4ade80">✅</div>
+          <div><div class="stat-val">۳۸</div><div class="stat-label">فعال</div></div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-icon" style="color:#818cf8">📅</div>
+          <div><div class="stat-val">۳</div><div class="stat-label">امروز</div></div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-icon" style="color:#fbbf24">⚠️</div>
+          <div><div class="stat-val">۵</div><div class="stat-label">در حال انقضا</div></div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-icon" style="color:#818cf8">👥</div>
+          <div><div class="stat-val">۸</div><div class="stat-label">اعضای تیم</div></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel glass">
+          <div class="panel-title">املاک اخیر</div>
+          <div class="list-item">
+            <div><div class="code">A-1001</div><div class="meta">فروش · تهران، ولنجک</div></div>
+            <span class="badge badge-success">فعال</span>
+          </div>
+          <div class="list-item">
+            <div><div class="code">B-2045</div><div class="meta">اجاره · تهران، نیاوران</div></div>
+            <span class="badge badge-success">فعال</span>
+          </div>
+          <div class="list-item">
+            <div><div class="code">C-3012</div><div class="meta">رهن · اصفهان</div></div>
+            <span class="badge badge-success">فعال</span>
+          </div>
+        </div>
+
+        <div class="panel glass">
+          <div class="panel-title">⚠️ در حال انقضا</div>
+          <div class="list-item">
+            <div><div class="code">D-1088</div><div class="meta">فروش · ۳ روز مانده</div></div>
+            <span class="badge badge-warning">انقضا نزدیک</span>
+          </div>
+          <div class="list-item">
+            <div><div class="code">E-2055</div><div class="meta">اجاره · ۵ روز مانده</div></div>
+            <span class="badge badge-warning">انقضا نزدیک</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel glass">
+        <div class="panel-title">فعالیت‌های اخیر</div>
+        <div class="activity-item">
+          <div class="dot"></div>
+          <div>
+            <div class="activity-text">ملک جدید A-1001 ثبت شد</div>
+            <div class="activity-time">سارا احمدی · ۱۴۰۴/۰۴/۱۴ · ۱۰:۳۲</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="dot"></div>
+          <div>
+            <div class="activity-text">ملک B-2045 ویرایش شد</div>
+            <div class="activity-time">رضا کریمی · ۱۴۰۴/۰۴/۱۴ · ۰۹:۱۵</div>
+          </div>
+        </div>
+        <div class="activity-item">
+          <div class="dot"></div>
+          <div>
+            <div class="activity-text">دعوتنامه برای 09123456789 ارسال شد</div>
+            <div class="activity-time">علی محمدی · ۱۴۰۴/۰۴/۱۳ · ۱۶:۴۰</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
