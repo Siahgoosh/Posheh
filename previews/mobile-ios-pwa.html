@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>پوشه — PWA آیفون</title>
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    body {
+      background: #1a1a2e;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 100vh; padding: 40px 20px; gap: 24px;
+    }
+    .page-title { text-align: center; }
+    .page-title h1 { color: #fafafa; font-size: 1.2rem; margin-bottom: 4px; }
+    .page-title p { color: #71717a; font-size: .85rem; }
+    .devices { display: flex; gap: 40px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+    .iphone-frame {
+      width: 390px; background: #000;
+      border-radius: 50px; border: 3px solid #444;
+      box-shadow: 0 0 0 4px #222, 0 30px 80px rgba(0,0,0,.6);
+      overflow: hidden; position: relative;
+    }
+    .dynamic-island {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 34px; background: #000;
+      border-radius: 20px; z-index: 10;
+    }
+    .ipad-frame {
+      width: 700px; background: #000;
+      border-radius: 24px; border: 3px solid #444;
+      box-shadow: 0 0 0 4px #222, 0 30px 80px rgba(0,0,0,.6);
+      overflow: hidden;
+    }
+    .safari-bar {
+      background: #1c1c1e; padding: 8px 16px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid #333;
+    }
+    .safari-url {
+      flex: 1; background: #2c2c2e; border-radius: 8px;
+      padding: 6px 12px; font-size: .75rem; color: #8e8e93;
+      text-align: center; direction: ltr;
+    }
+    .pwa-banner {
+      background: rgba(99,102,241,.15); border: 1px solid rgba(99,102,241,.3);
+      border-radius: 12px; padding: 12px 16px; margin: 12px 16px;
+      display: flex; align-items: center; gap: 12px; font-size: .8rem;
+    }
+    .pwa-banner .icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .app-body { background: #0a0a0f; min-height: 600px; }
+    .ipad-body { background: #0a0a0f; min-height: 480px; display: flex; }
+    .ipad-sidebar {
+      width: 220px; background: rgba(255,255,255,.02);
+      border-left: 1px solid rgba(255,255,255,.08); padding: 20px 12px;
+    }
+    .ipad-sidebar a {
+      display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+      border-radius: 10px; color: #71717a; text-decoration: none; font-size: .85rem;
+      margin-bottom: 2px;
+    }
+    .ipad-sidebar a.active { background: rgba(99,102,241,.15); color: #818cf8; }
+    .ipad-main { flex: 1; padding: 24px; }
+    .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+    .stat {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px; padding: 16px;
+    }
+    .stat .val { font-size: 1.4rem; font-weight: 700; }
+    .stat .lbl { font-size: .7rem; color: #71717a; }
+    .ios-home {
+      height: 80px; background: rgba(255,255,255,.08);
+      display: flex; align-items: center; justify-content: center;
+      border-top: 1px solid rgba(255,255,255,.1);
+    }
+    .home-indicator {
+      width: 130px; height: 5px; background: #fafafa;
+      border-radius: 3px; opacity: .3;
+    }
+    .install-steps {
+      max-width: 500px; background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08); border-radius: 16px;
+      padding: 20px; color: #a1a1aa; font-size: .85rem; line-height: 1.8;
+    }
+    .install-steps h3 { color: #fafafa; font-size: .95rem; margin-bottom: 12px; }
+    .install-steps ol { padding-right: 20px; }
+    .install-steps li { margin-bottom: 6px; }
+    .device-label { text-align: center; color: #71717a; font-size: .75rem; margin-top: 12px; }
+    .mobile-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px; }
+    .mobile-stat {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px; padding: 12px;
+    }
+    .back-link { position: fixed; }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-link">← بازگشت</a>
+
+  <div class="page-title">
+    <h1>🍎 پیش‌نمایش PWA — آیفون و آیپد</h1>
+    <p>وب‌اپ قابل نصب روی iOS · بدون نیاز به App Store</p>
+  </div>
+
+  <div class="devices">
+    <!-- iPhone -->
+    <div>
+      <div class="iphone-frame">
+        <div class="dynamic-island"></div>
+        <div class="safari-bar">
+          <span style="font-size:12px">◀ ▶</span>
+          <div class="safari-url">posheh.ir</div>
+          <span>↗</span>
+        </div>
+        <div class="app-body">
+          <div class="pwa-banner">
+            <div class="icon">🏢</div>
+            <div>
+              <div style="font-weight:600;color:#fafafa">نصب پوشه</div>
+              <div style="font-size:.75rem;color:#71717a">Add to Home Screen</div>
+            </div>
+            <button style="margin-right:auto;padding:6px 12px;border-radius:8px;border:none;background:#6366f1;color:#fff;font-family:inherit;font-size:.75rem">نصب</button>
+          </div>
+          <div style="padding:0 16px 8px;display:flex;justify-content:space-between;align-items:center">
+            <h2 style="font-size:1.1rem;font-weight:700">داشبورد</h2>
+            <span>🔔</span>
+          </div>
+          <div class="mobile-stats">
+            <div class="mobile-stat"><div class="val" style="font-size:1.2rem;font-weight:700">۴۵</div><div class="lbl" style="font-size:.65rem;color:#71717a">کل املاک</div></div>
+            <div class="mobile-stat"><div class="val" style="font-size:1.2rem;font-weight:700">۳۸</div><div class="lbl" style="font-size:.65rem;color:#71717a">فعال</div></div>
+            <div class="mobile-stat"><div class="val" style="font-size:1.2rem;font-weight:700">۳</div><div class="lbl" style="font-size:.65rem;color:#71717a">امروز</div></div>
+            <div class="mobile-stat"><div class="val" style="font-size:1.2rem;font-weight:700">۵</div><div class="lbl" style="font-size:.65rem;color:#71717a">انقضا</div></div>
+          </div>
+          <div style="padding:8px 16px;font-size:.8rem;font-weight:600;color:#71717a">املاک اخیر</div>
+          <div style="margin:0 16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:8px">
+            <div style="font-weight:600;font-size:.9rem">A-1001</div>
+            <div style="font-size:.75rem;color:#71717a">فروش · ولنجک · ۵ میلیارد</div>
+          </div>
+          <div style="margin:0 16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px">
+            <div style="font-weight:600;font-size:.9rem">B-2045</div>
+            <div style="font-size:.75rem;color:#71717a">اجاره · نیاوران</div>
+          </div>
+        </div>
+        <div class="ios-home"><div class="home-indicator"></div></div>
+      </div>
+      <div class="device-label">آیفون ۱۵ · Safari PWA</div>
+    </div>
+
+    <!-- iPad -->
+    <div>
+      <div class="ipad-frame">
+        <div class="safari-bar">
+          <span>◀ ▶</span>
+          <div class="safari-url">posheh.ir/dashboard</div>
+          <span style="margin-right:auto;margin-left:12px;font-size:.75rem;color:#71717a">پوشه — داشبورد</span>
+        </div>
+        <div class="ipad-body">
+          <div class="ipad-sidebar">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px 16px;font-weight:700">
+              <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:14px">🏢</div>
+              پوشه
+            </div>
+            <a href="#" class="active">📊 داشبورد</a>
+            <a href="#">🏠 املاک</a>
+            <a href="#">🔍 جستجو</a>
+            <a href="#">⭐ علاقه‌مندی</a>
+            <a href="#">⚙️ تنظیمات</a>
+          </div>
+          <div class="ipad-main">
+            <h2 style="font-size:1.2rem;font-weight:700;margin-bottom:16px">داشبورد</h2>
+            <div class="stats">
+              <div class="stat"><div class="val">۴۵</div><div class="lbl">کل املاک</div></div>
+              <div class="stat"><div class="val">۳۸</div><div class="lbl">فعال</div></div>
+              <div class="stat"><div class="val">۳</div><div class="lbl">امروز</div></div>
+              <div class="stat"><div class="val">۵</div><div class="lbl">انقضا</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px">
+                <div style="font-size:.85rem;font-weight:600;margin-bottom:10px">املاک اخیر</div>
+                <div style="font-size:.8rem;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">A-1001 · فروش · ولنجک</div>
+                <div style="font-size:.8rem;padding:8px 0">B-2045 · اجاره · نیاوران</div>
+              </div>
+              <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px">
+                <div style="font-size:.85rem;font-weight:600;margin-bottom:10px">در حال انقضا</div>
+                <div style="font-size:.8rem;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">D-1088 · ۳ روز مانده</div>
+                <div style="font-size:.8rem;padding:8px 0">E-2055 · ۵ روز مانده</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="device-label">آیپد · حالت Landscape</div>
+    </div>
+  </div>
+
+  <div class="install-steps">
+    <h3>📲 نحوه نصب PWA روی آیفون</h3>
+    <ol>
+      <li>Safari را باز کنید و به آدرس <span dir="ltr">posheh.ir</span> بروید</li>
+      <li>دکمه <strong>Share (اشتراک‌گذاری)</strong> ↗ را بزنید</li>
+      <li>گزینه <strong>Add to Home Screen</strong> را انتخاب کنید</li>
+      <li>روی <strong>Add (افزودن)</strong> بزنید</li>
+      <li>آیکون پوشه روی صفحه اصلی ظاهر می‌شود</li>
+    </ol>
+  </div>
+</body>
+</html>
