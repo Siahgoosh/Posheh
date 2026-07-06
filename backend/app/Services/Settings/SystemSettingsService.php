@@ -86,6 +86,26 @@ class SystemSettingsService
 
     public function isSmsLive(): bool
     {
+        $envMode = strtolower(trim((string) env('SMS_MODE', '')));
+        if ($envMode === 'live') {
+            return true;
+        }
+        if ($envMode === 'log') {
+            return false;
+        }
+
+        if ($this->get('sms_mode') === 'live') {
+            return true;
+        }
+
+        // Production: credentials configured → send real SMS even if DB still says log
+        if (app()->environment('production')) {
+            $config = $this->ippanelConfig();
+            if ($this->hasIppanelCredentials($config) && ! empty($config['from_number'])) {
+                return true;
+            }
+        }
+
         return $this->get('sms_mode', app()->environment('production') ? 'live' : 'log') === 'live';
     }
 

@@ -38,6 +38,9 @@ ensure_env_file() {
     grep -q "^SESSION_DRIVER=" .env && sed -i "s/^SESSION_DRIVER=.*/SESSION_DRIVER=file/" .env || echo "SESSION_DRIVER=file" >> .env
     grep -q "^DB_HOST=" .env || echo "DB_HOST=mysql" >> .env
     grep -q "^DB_DATABASE=" .env || echo "DB_DATABASE=posheh" >> .env
+    grep -q "^SMS_MODE=" .env && sed -i "s/^SMS_MODE=.*/SMS_MODE=live/" .env || echo "SMS_MODE=live" >> .env
+    grep -q "^SMS_PROVIDER=" .env || echo "SMS_PROVIDER=maxsms" >> .env
+    grep -q "^IPPANEL_API_MODE=" .env || echo "IPPANEL_API_MODE=jspd" >> .env
   ' 2>/dev/null || true
 }
 
@@ -80,8 +83,11 @@ $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --
 $COMPOSE exec -T app php artisan db:seed --class=DatabaseSeeder --force --no-interaction \
   || log "DatabaseSeeder warning (may already be seeded)"
 
-log "6/9 Clearing caches"
+log "6/9 Clearing caches and enabling SMS"
 $COMPOSE exec -T app php artisan cache:clear --no-interaction || true
+$COMPOSE exec -T app php artisan config:clear --no-interaction || true
+$COMPOSE exec -T app php artisan system:sms-enable --live --from-env --no-interaction 2>/dev/null \
+  || log "Run manually: docker compose exec app php artisan system:sms-enable --live --from-env"
 $COMPOSE exec -T app php artisan storage:link --force --no-interaction 2>/dev/null || true
 
 log "7/9 Building frontend"
@@ -117,9 +123,10 @@ fi
 cat <<EOF
 
 Next steps:
-  - Login super admin: 09170577873
-  - Admin settings:    /admin/settings
-  - Set sms_mode=live, API key, from_number (+983000505)
-  - Click save, then test SMS
+  - Enable SMS (if needed): docker compose exec app php artisan system:sms-enable --live --from-env
+  - Test SMS:             docker compose exec app php artisan system:sms-test 09170577873 --otp
+  - Login super admin:    09170577873
+  - Admin settings:       /admin/settings
+  - If sms_mode=log only: login OTP code is 123456
 
 EOF
