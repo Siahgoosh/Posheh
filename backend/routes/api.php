@@ -4,11 +4,13 @@ use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AdminSettingsController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\RegisterController;
+use App\Http\Controllers\Api\Crm\CrmController;
 use App\Http\Controllers\Api\Contact\ContactController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\Notification\NotificationController;
 use App\Http\Controllers\Api\Office\OfficeController;
 use App\Http\Controllers\Api\Property\PropertyController;
+use App\Http\Controllers\Api\Property\PropertyMediaController;
 use App\Http\Controllers\Api\SavedSearch\SavedSearchController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
 use App\Http\Controllers\Api\Task\TaskController;
@@ -69,6 +71,8 @@ Route::prefix('v1')->group(function () {
             Route::apiResource('properties', PropertyController::class);
             Route::get('/properties/{id}/similar', [PropertyController::class, 'similar']);
             Route::post('/properties/{id}/favorite', [PropertyController::class, 'toggleFavorite']);
+            Route::post('/properties/{property}/media', [PropertyMediaController::class, 'store']);
+            Route::delete('/properties/{property}/media/{media}', [PropertyMediaController::class, 'destroy']);
 
             Route::apiResource('tasks', TaskController::class)->except(['show']);
 
@@ -76,6 +80,14 @@ Route::prefix('v1')->group(function () {
             Route::post('/tickets', [TicketController::class, 'store']);
 
             Route::apiResource('contacts', ContactController::class)->except(['show']);
+
+            Route::prefix('crm')->group(function () {
+                Route::get('/pipeline', [CrmController::class, 'pipeline']);
+                Route::post('/deals', [CrmController::class, 'storeDeal']);
+                Route::put('/deals/{id}', [CrmController::class, 'updateDeal']);
+                Route::get('/contacts/{id}', [CrmController::class, 'contactDetail']);
+                Route::post('/contacts/{id}/activities', [CrmController::class, 'addActivity']);
+            });
 
             Route::get('/notifications', [NotificationController::class, 'index']);
             Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);

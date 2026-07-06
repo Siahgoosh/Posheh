@@ -24,9 +24,16 @@ class ContactController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'mobile' => ['nullable', 'string', 'max:15'],
+            'email' => ['nullable', 'email', 'max:255'],
             'type' => ['nullable', 'in:buyer,seller,lead,owner'],
             'status' => ['nullable', 'in:new,contacted,qualified,closed,lost'],
+            'source' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'budget_min' => ['nullable', 'integer', 'min:0'],
+            'budget_max' => ['nullable', 'integer', 'min:0'],
+            'property_interest' => ['nullable', 'string', 'max:100'],
+            'rooms_min' => ['nullable', 'integer', 'min:0'],
+            'area_min' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $contact = Contact::create([

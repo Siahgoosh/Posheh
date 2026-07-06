@@ -17,37 +17,14 @@ class Property extends Model
     use BelongsToOffice, HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'office_id',
-        'created_by',
-        'assigned_to',
-        'code',
-        'type',
-        'permission',
-        'status',
-        'owner_name',
-        'owner_mobile',
-        'price',
-        'deposit',
-        'rent',
-        'area',
-        'rooms',
-        'building_age',
-        'floor',
-        'total_floors',
-        'has_parking',
-        'has_elevator',
-        'has_storage',
-        'province',
-        'city',
-        'district',
-        'neighborhood',
-        'address',
-        'latitude',
-        'longitude',
-        'description',
-        'features',
-        'expires_at',
-        'published_at',
+        'office_id', 'created_by', 'assigned_to', 'code', 'title', 'type', 'building_type',
+        'deed_type', 'direction', 'permission', 'status', 'owner_name', 'owner_mobile',
+        'owner_contact_id', 'price', 'price_per_meter', 'deposit', 'rent', 'is_negotiable',
+        'commission_percent', 'source', 'area', 'land_area', 'rooms', 'building_age',
+        'renovation_status', 'floor', 'total_floors', 'units_per_floor', 'has_parking',
+        'has_elevator', 'has_storage', 'heating_type', 'cooling_type', 'province', 'city',
+        'district', 'neighborhood', 'address', 'latitude', 'longitude', 'description',
+        'internal_notes', 'features', 'amenities', 'expires_at', 'published_at',
     ];
 
     protected function casts(): array
@@ -59,7 +36,9 @@ class Property extends Model
             'has_parking' => 'boolean',
             'has_elevator' => 'boolean',
             'has_storage' => 'boolean',
+            'is_negotiable' => 'boolean',
             'features' => 'array',
+            'amenities' => 'array',
             'expires_at' => 'datetime',
             'published_at' => 'datetime',
             'area' => 'decimal:2',
@@ -76,6 +55,11 @@ class Property extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function ownerContact(): BelongsTo
+    {
+        return $this->belongsTo(Contact::class, 'owner_contact_id');
     }
 
     public function media(): HasMany

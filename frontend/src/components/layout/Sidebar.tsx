@@ -16,6 +16,7 @@ import {
   X,
   LifeBuoy,
   Contact,
+  Kanban,
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -29,6 +30,7 @@ const navItems = [
   { to: '/favorites', icon: Star, label: 'علاقه‌مندی‌ها' },
   { to: '/tasks', icon: CheckSquare, label: 'وظایف' },
   { to: '/contacts', icon: Contact, label: 'مخاطبین' },
+  { to: '/crm', icon: Kanban, label: 'قیف فروش' },
   { to: '/team', icon: Users, label: 'تیم' },
   { to: '/support', icon: LifeBuoy, label: 'پشتیبانی' },
   { to: '/subscription', icon: CreditCard, label: 'اشتراک' },

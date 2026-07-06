@@ -44,22 +44,28 @@ class PropertyService
 
     public function create(User $user, CreatePropertyDTO $dto): Property
     {
+        return $this->createFromArray($user, $dto->toArray());
+    }
+
+    public function createFromArray(User $user, array $data): Property
+    {
         $this->ensurePropertyLimit($user);
 
-        if ($this->propertyRepository->findByCode($user->office_id, $dto->code)) {
+        if ($this->propertyRepository->findByCode($user->office_id, $data['code'])) {
             throw ValidationException::withMessages([
                 'code' => ['این کد ملک قبلاً ثبت شده است.'],
             ]);
         }
 
-        $data = array_merge($dto->toArray(), [
+        $payload = array_merge($data, [
             'office_id' => $user->office_id,
             'created_by' => $user->id,
-            'assigned_to' => $dto->assignedTo ?? $user->id,
+            'assigned_to' => $data['assigned_to'] ?? $user->id,
             'published_at' => now(),
+            'expires_at' => $data['expires_at'] ?? now()->addDays(30),
         ]);
 
-        $property = $this->propertyRepository->create($data);
+        $property = $this->propertyRepository->create($payload);
 
         $this->activityLogger->log($user, 'property.created', $property, 'ملک جدید ثبت شد');
 

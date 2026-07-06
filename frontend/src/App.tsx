@@ -20,6 +20,8 @@ import { AdminFinancePage } from '@/pages/admin/AdminFinancePage'
 import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage'
 import { SupportPage } from '@/pages/SupportPage'
 import { ContactsPage } from '@/pages/ContactsPage'
+import { ContactDetailPage } from '@/pages/ContactDetailPage'
+import { CrmPipelinePage } from '@/pages/CrmPipelinePage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -79,6 +81,7 @@ export default function App() {
           <Route path="/dashboard" element={<SubscriptionGuard><DashboardPage /></SubscriptionGuard>} />
           <Route path="/properties" element={<SubscriptionGuard><PropertiesPage /></SubscriptionGuard>} />
           <Route path="/properties/new" element={<SubscriptionGuard><PropertyFormPage /></SubscriptionGuard>} />
+          <Route path="/properties/:id/edit" element={<SubscriptionGuard><PropertyFormPage /></SubscriptionGuard>} />
           <Route path="/properties/:id" element={<SubscriptionGuard><PropertyDetailPage /></SubscriptionGuard>} />
           <Route path="/search" element={<SubscriptionGuard><SearchPage /></SubscriptionGuard>} />
           <Route path="/favorites" element={<SubscriptionGuard><FavoritesPage /></SubscriptionGuard>} />
@@ -86,6 +89,8 @@ export default function App() {
           <Route path="/tasks" element={<SubscriptionGuard><TasksPage /></SubscriptionGuard>} />
           <Route path="/support" element={<SubscriptionGuard><SupportPage /></SubscriptionGuard>} />
           <Route path="/contacts" element={<SubscriptionGuard><ContactsPage /></SubscriptionGuard>} />
+          <Route path="/contacts/:id" element={<SubscriptionGuard><ContactDetailPage /></SubscriptionGuard>} />
+          <Route path="/crm" element={<SubscriptionGuard><CrmPipelinePage /></SubscriptionGuard>} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>

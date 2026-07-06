@@ -22,8 +22,10 @@ class IpPanelSmsServiceTest extends TestCase
             'invite_pattern_code' => null,
             'base_url' => 'https://edge.ippanel.com/v1',
             'api_mode' => 'auto',
+            'sms_provider' => 'ippanel',
         ]);
         $settings->shouldReceive('get')->with('ippanel_api_mode', 'auto')->andReturn('auto');
+        $settings->shouldReceive('get')->with('sms_provider', 'maxsms')->andReturn('ippanel');
 
         Http::fake([
             'https://edge.ippanel.com/v1/api/send' => Http::response('<html>502</html>', 502),

@@ -117,6 +117,7 @@ class SystemSettingsService
             'invite_pattern_code' => $this->get('ippanel_invite_pattern_code'),
             'base_url' => $this->get('ippanel_base_url', 'https://edge.ippanel.com/v1'),
             'api_mode' => $this->get('ippanel_api_mode', 'auto'),
+            'sms_provider' => $this->get('sms_provider', 'maxsms'),
         ];
     }
 

@@ -97,19 +97,22 @@ class IpPanelSmsService
       return ['success' => true, 'message' => 'logged', 'method' => 'log'];
     }
 
-    $auth = $this->resolveAuth($config);
-    if (! $auth['token'] && ! $auth['api_key']) {
+    $provider = $config['sms_provider'] ?? $this->settings->get('sms_provider', 'maxsms');
+    $mode = $config['api_mode'] ?? $this->settings->get('ippanel_api_mode', 'auto');
+    $auth = $this->resolveAuth($config, $mode, $provider);
+
+    if (! $this->hasSendCredentials($auth, $config, $mode, $provider)) {
       return ['success' => false, 'message' => $auth['error'] ?? 'خطا در احراز هویت IPPanel'];
     }
-
-    $mode = $config['api_mode'] ?? $this->settings->get('ippanel_api_mode', 'auto');
-    $strategies = $this->webserviceStrategies($config, $mobile, $message, $auth, $mode);
+    $strategies = $this->webserviceStrategies($config, $mobile, $message, $auth, $mode, $provider);
     $lastResult = ['success' => false, 'message' => 'هیچ روش ارسالی موفق نشد'];
 
     foreach ($strategies as $strategy) {
       try {
         $response = $this->executeStrategy($strategy);
-        $result = $this->parseResponse($response);
+        $result = $strategy['type'] === 'jspd'
+          ? $this->parseJspdResponse($response)
+          : $this->parseResponse($response);
         $result['method'] = $strategy['name'];
 
         if ($result['success']) {
@@ -120,7 +123,7 @@ class IpPanelSmsService
 
         $lastResult = $result;
 
-        if (! $this->shouldRetryWithNextStrategy($response, $mode)) {
+        if (! $this->shouldRetryWithNextStrategy($response, $mode, $strategy['type'] ?? '')) {
           break;
         }
 
@@ -140,8 +143,8 @@ class IpPanelSmsService
 
   private function sendPattern(string $mobile, string $patternCode, array $params, array $config): array
   {
-    $auth = $this->resolveAuth($config);
-    if (! $auth['token'] && ! $auth['api_key']) {
+    $auth = $this->resolveAuth($config, $config['api_mode'] ?? 'auto', $config['sms_provider'] ?? 'maxsms');
+    if (! $this->hasSendCredentials($auth, $config, $config['api_mode'] ?? 'auto', $config['sms_provider'] ?? 'maxsms')) {
       return ['success' => false, 'message' => $auth['error'] ?? 'خطا در احراز هویت IPPanel'];
     }
 
@@ -215,12 +218,14 @@ class IpPanelSmsService
   }
 
   /** @return list<array{name: string, type: string, url: string, options: array}> */
-  private function webserviceStrategies(array $config, string $mobile, string $message, array $auth, string $mode): array
+  private function webserviceStrategies(array $config, string $mobile, string $message, array $auth, string $mode, string $provider = 'maxsms'): array
   {
     $token = $auth['token'] ?? $auth['api_key'];
     $from = $this->normalizeSender($config['from_number']);
     $to = $this->toE164($mobile);
     $edgeBase = $this->apiBase($config);
+
+    $jspdStrategies = $this->jspdStrategies($config, $mobile, $message, $auth);
 
     $edgePost = [
       'name' => 'edge_post',
@@ -265,16 +270,60 @@ class IpPanelSmsService
       ];
     }
 
-    return match ($mode) {
-      'edge' => [$edgePost],
-      'legacy' => $legacyStrategies,
-      default => [$edgePost, ...$legacyStrategies],
+    return match (true) {
+      $mode === 'jspd' => $jspdStrategies,
+      $mode === 'edge' => [$edgePost],
+      $mode === 'legacy' => $legacyStrategies,
+      $provider === 'maxsms' => [...$jspdStrategies, $edgePost, ...$legacyStrategies],
+      default => [$edgePost, ...$legacyStrategies, ...$jspdStrategies],
     };
+  }
+
+  /** @return list<array{name: string, type: string, url: string, options: array}> */
+  private function jspdStrategies(array $config, string $mobile, string $message, array $auth): array
+  {
+    $strategies = [];
+    $recipients = json_encode([$this->toJspdMobile($mobile)]);
+    $from = $this->normalizeSenderForJspd($config['from_number']);
+
+    $credentialSets = [];
+    if (! empty($config['username']) && ! empty($config['password'])) {
+      $credentialSets[] = ['uname' => $config['username'], 'pass' => $config['password'], 'label' => 'user'];
+    }
+    if (! empty($auth['api_key'])) {
+      $credentialSets[] = ['uname' => $auth['api_key'], 'pass' => $auth['api_key'], 'label' => 'apikey'];
+    }
+
+    foreach ($credentialSets as $creds) {
+      $strategies[] = [
+        'name' => 'jspd_'.$creds['label'],
+        'type' => 'jspd',
+        'url' => 'https://ippanel.com/services.jspd',
+        'options' => [
+          'form' => [
+            'uname' => $creds['uname'],
+            'pass' => $creds['pass'],
+            'from' => $from,
+            'message' => $message,
+            'to' => $recipients,
+            'op' => 'send',
+          ],
+        ],
+      ];
+    }
+
+    return $strategies;
   }
 
   private function executeStrategy(array $strategy): Response
   {
     $request = Http::timeout(30)->acceptJson();
+
+    if ($strategy['type'] === 'jspd') {
+      return Http::timeout(30)
+        ->asForm()
+        ->post($strategy['url'], $strategy['options']['form'] ?? []);
+    }
 
     if ($strategy['type'] === 'post') {
       return $request->withHeaders($strategy['options']['headers'] ?? [])->post($strategy['url'], $strategy['options']['json'] ?? []);
@@ -283,10 +332,59 @@ class IpPanelSmsService
     return $request->get($strategy['url'], $strategy['options']['query'] ?? []);
   }
 
-  private function shouldRetryWithNextStrategy(Response $response, string $mode): bool
+  private function parseJspdResponse(Response $response): array
   {
-    if ($mode !== 'auto') {
+    $body = $response->json();
+
+    if (! is_array($body) || count($body) < 2) {
+      return [
+        'success' => false,
+        'message' => 'پاسخ نامعتبر از سرویس مکث/آی‌پی‌پنل',
+        'details' => ['raw' => $response->body()],
+      ];
+    }
+
+    $code = (string) $body[0];
+    $message = (string) $body[1];
+
+    if (in_array($code, ['0', '1'], true)) {
+      return ['success' => true, 'message' => $message ?: 'ارسال شد', 'details' => ['tracking' => $message]];
+    }
+
+    return ['success' => false, 'message' => "خطای مکث/آی‌پی‌پنل ({$code}): {$message}", 'details' => ['code' => $code]];
+  }
+
+  private function normalizeSenderForJspd(string $number): string
+  {
+    $number = preg_replace('/\D/', '', $number);
+    if (str_starts_with($number, '98')) {
+      return substr($number, 2);
+    }
+
+    return ltrim($number, '0');
+  }
+
+  private function toJspdMobile(string $mobile): string
+  {
+    $mobile = preg_replace('/\D/', '', $mobile);
+    if (str_starts_with($mobile, '0')) {
+      $mobile = substr($mobile, 1);
+    }
+    if (str_starts_with($mobile, '98')) {
+      $mobile = substr($mobile, 2);
+    }
+
+    return $mobile;
+  }
+
+  private function shouldRetryWithNextStrategy(Response $response, string $mode, string $strategyType = ''): bool
+  {
+    if ($mode === 'jspd' || $mode === 'edge' || $mode === 'legacy') {
       return false;
+    }
+
+    if ($strategyType === 'jspd' && ! $response->successful()) {
+      return true;
     }
 
     if (in_array($response->status(), self::RETRYABLE_STATUSES, true)) {
@@ -312,7 +410,25 @@ class IpPanelSmsService
     return array_values(array_filter($bases));
   }
 
-  private function resolveAuth(array $config): array
+  private function hasSendCredentials(array $auth, array $config, string $mode, string $provider): bool
+  {
+    if ($auth['token'] || $auth['api_key']) {
+      return true;
+    }
+
+    if (! empty($auth['panel_auth'])) {
+      return true;
+    }
+
+    if (($mode === 'jspd' || $mode === 'legacy' || $provider === 'maxsms')
+      && ! empty($config['username']) && ! empty($config['password'])) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private function resolveAuth(array $config, string $mode = 'auto', string $provider = 'maxsms'): array
   {
     if (! empty($config['api_key'])) {
       $key = $this->normalizeApiKey($config['api_key']);
@@ -322,6 +438,16 @@ class IpPanelSmsService
 
     if (empty($config['username']) || empty($config['password'])) {
       return ['token' => null, 'api_key' => null, 'error' => 'کلید API یا نام کاربری/رمز عبور IPPanel وارد نشده'];
+    }
+
+    if ($mode === 'jspd' || $mode === 'legacy' || $provider === 'maxsms') {
+      return [
+        'token' => null,
+        'api_key' => null,
+        'panel_auth' => true,
+        'username' => $config['username'],
+        'password' => $config['password'],
+      ];
     }
 
     $baseUrl = rtrim($config['base_url'] ?? 'https://edge.ippanel.com/v1', '/');

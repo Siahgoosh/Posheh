@@ -269,9 +269,19 @@ export function AdminSettingsPage() {
                     value={form[item.key] ?? 'auto'}
                     onChange={(e) => updateField(item.key, e.target.value)}
                   >
-                    <option value="auto">خودکار (Edge + Legacy)</option>
+                    <option value="auto">خودکار (مکث: JSPD اول)</option>
+                    <option value="jspd">فقط JSPD (مکث اس‌ام‌اس)</option>
                     <option value="edge">فقط Edge API</option>
                     <option value="legacy">فقط Legacy GET</option>
+                  </select>
+                ) : item.type === 'select' && item.key === 'sms_provider' ? (
+                  <select
+                    className="w-full h-11 rounded-xl border border-card-border bg-white/5 px-4"
+                    value={form[item.key] ?? 'maxsms'}
+                    onChange={(e) => updateField(item.key, e.target.value)}
+                  >
+                    <option value="maxsms">مکث اس‌ام‌اس (maxsms.co)</option>
+                    <option value="ippanel">آی‌پی‌پنل مستقیم</option>
                   </select>
                 ) : item.type === 'boolean' ? (
                   <select
@@ -306,7 +316,10 @@ export function AdminSettingsPage() {
                   </p>
                 )}
                 {item.key === 'ippanel_from_number' && (
-                  <p className="text-xs text-muted mt-1">فرمت E.164 — مثال: +983000505</p>
+                  <p className="text-xs text-muted mt-1">مکث اس‌ام‌اس — مثال شما: +9810008721297974</p>
+                )}
+                {item.key === 'ippanel_username' && (
+                  <p className="text-xs text-muted mt-1">نام کاربری پنل مکث/آی‌پی‌پنل — برای JSPD الزامی است</p>
                 )}
               </div>
             ))}

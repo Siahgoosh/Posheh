@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Property;
 
 use App\DTOs\Property\CreatePropertyDTO;
 use App\DTOs\Property\PropertySearchDTO;
+use App\Http\Requests\Property\StorePropertyRequest;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PropertyResource;
 use App\Services\Property\PropertyService;
@@ -32,26 +33,11 @@ class PropertyController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StorePropertyRequest $request): JsonResponse
     {
-        $request->validate([
-            'code' => ['required', 'string', 'max:50'],
-            'type' => ['required', 'string'],
-            'permission' => ['nullable', 'string'],
-            'owner_name' => ['nullable', 'string', 'max:255'],
-            'owner_mobile' => ['nullable', 'string'],
-            'price' => ['nullable', 'integer', 'min:0'],
-            'area' => ['nullable', 'numeric', 'min:0'],
-            'rooms' => ['nullable', 'integer', 'min:0'],
-            'description' => ['nullable', 'string'],
-            'city' => ['nullable', 'string'],
-            'district' => ['nullable', 'string'],
-            'address' => ['nullable', 'string'],
-        ]);
-
-        $property = $this->propertyService->create(
+        $property = $this->propertyService->createFromArray(
             $request->user(),
-            CreatePropertyDTO::fromArray($request->all())
+            $request->validated()
         );
 
         return response()->json([
@@ -69,9 +55,9 @@ class PropertyController extends Controller
         ]);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(StorePropertyRequest $request, int $id): JsonResponse
     {
-        $property = $this->propertyService->update($request->user(), $id, $request->all());
+        $property = $this->propertyService->update($request->user(), $id, $request->validated());
 
         return response()->json([
             'data' => new PropertyResource($property),
