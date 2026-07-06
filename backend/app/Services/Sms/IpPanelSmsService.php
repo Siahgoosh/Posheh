@@ -31,11 +31,34 @@ class IpPanelSmsService
       return false;
     }
 
-    if (! empty($config['otp_pattern_code'])) {
-      return $this->sendPattern($mobile, $config['otp_pattern_code'], ['code' => $code], $config)['success'];
+    $provider = $config['sms_provider'] ?? $this->settings->get('sms_provider', 'maxsms');
+    $mode = $config['api_mode'] ?? $this->settings->get('ippanel_api_mode', 'auto');
+    $patternCode = trim((string) ($config['otp_pattern_code'] ?? ''));
+
+    // Pattern API uses edge.ippanel.com which is down for MaxSMS — only try on ippanel+edge.
+    if ($patternCode !== '' && $provider === 'ippanel' && $mode === 'edge') {
+      $patternResult = $this->sendPattern($mobile, $patternCode, ['code' => $code], $config);
+      if ($patternResult['success']) {
+        return true;
+      }
+
+      Log::warning('OTP pattern failed, falling back to webservice/JSPD', [
+        'mobile' => $mobile,
+        'message' => $patternResult['message'] ?? null,
+      ]);
     }
 
-    return $this->sendWebservice($mobile, "کد تأیید پوشه: {$code}", $config)['success'];
+    $result = $this->sendWebservice($mobile, "کد تأیید پوشه: {$code}", $config, forceLive: true);
+
+    if (! $result['success']) {
+      Log::error('OTP SMS failed', [
+        'mobile' => $mobile,
+        'message' => $result['message'] ?? null,
+        'method' => $result['method'] ?? null,
+      ]);
+    }
+
+    return $result['success'];
   }
 
   public function sendInvite(string $mobile, string $officeName, string $inviterName): bool
@@ -55,11 +78,19 @@ class IpPanelSmsService
 
     $config = $this->settings->ippanelConfig();
 
-    if (! empty($config['invite_pattern_code'])) {
-      return $this->sendPattern($mobile, $config['invite_pattern_code'], ['office' => $officeName], $config)['success'];
+    if (! empty($config['invite_pattern_code']) && ($config['sms_provider'] ?? '') === 'ippanel') {
+      $patternResult = $this->sendPattern($mobile, $config['invite_pattern_code'], ['office' => $officeName], $config);
+      if ($patternResult['success']) {
+        return true;
+      }
+
+      Log::warning('Invite pattern failed, falling back to webservice/JSPD', [
+        'mobile' => $mobile,
+        'message' => $patternResult['message'] ?? null,
+      ]);
     }
 
-    return $this->sendWebservice($mobile, $message, $config)['success'];
+    return $this->sendWebservice($mobile, $message, $config, forceLive: true)['success'];
   }
 
   public function test(string $mobile, string $message = 'تست پیامک پوشه', ?array $configOverride = null): array

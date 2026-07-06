@@ -10,7 +10,7 @@ class SystemSettingsSeeder extends Seeder
     public function run(): void
     {
         $settings = [
-            ['group' => 'sms', 'key' => 'sms_mode', 'value' => env('SMS_MODE', 'log'), 'label' => 'حالت پیامک (log یا live)', 'type' => 'select'],
+            ['group' => 'sms', 'key' => 'sms_mode', 'value' => env('SMS_MODE', app()->environment('production') ? 'live' : 'log'), 'label' => 'حالت پیامک (log یا live)', 'type' => 'select'],
             ['group' => 'sms', 'key' => 'ippanel_api_key', 'value' => env('IPPANEL_API_KEY', ''), 'label' => 'کلید API پنل IPPanel', 'type' => 'password', 'is_secret' => true],
             ['group' => 'sms', 'key' => 'ippanel_username', 'value' => env('IPPANEL_USERNAME', ''), 'label' => 'نام کاربری IPPanel (جایگزین API Key)', 'type' => 'text'],
             ['group' => 'sms', 'key' => 'ippanel_password', 'value' => env('IPPANEL_PASSWORD', ''), 'label' => 'رمز عبور IPPanel', 'type' => 'password', 'is_secret' => true],

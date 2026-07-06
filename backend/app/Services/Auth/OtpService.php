@@ -4,12 +4,13 @@ namespace App\Services\Auth;
 
 use App\DTOs\Auth\SendOtpDTO;
 use App\DTOs\Auth\VerifyOtpDTO;
-use App\Jobs\SendOtpSmsJob;
 use App\Models\Device;
 use App\Models\OtpCode;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Settings\SystemSettingsService;
+use App\Services\Sms\IpPanelSmsService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class OtpService
@@ -17,6 +18,7 @@ class OtpService
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly SystemSettingsService $settings,
+        private readonly IpPanelSmsService $sms,
     ) {}
 
     public function send(SendOtpDTO $dto): array
@@ -51,7 +53,21 @@ class OtpService
         ]);
 
         if ($liveSms) {
-            SendOtpSmsJob::dispatchSync($mobile, $code);
+            $sent = $this->sms->sendOtp($mobile, $code);
+
+            if (! $sent) {
+                Log::error('OTP SMS dispatch failed', ['mobile' => $mobile]);
+
+                throw ValidationException::withMessages([
+                    'mobile' => ['خطا در ارسال پیامک. لطفاً تنظیمات SMS را بررسی کنید (حالت live و نام کاربری مکث).'],
+                ]);
+            }
+        } else {
+            Log::info('OTP generated in log mode (no SMS sent)', [
+                'mobile' => $mobile,
+                'code' => $code,
+                'hint' => 'Set sms_mode to live in admin settings for real OTP delivery',
+            ]);
         }
 
         return [

@@ -107,7 +107,7 @@ export function AdminSettingsPage() {
   const testSmsMutation = useMutation({
     mutationFn: async () => {
       const payload = buildPayload()
-      if (!payload.sms_mode) payload.sms_mode = 'live'
+      payload.sms_mode = 'live'
       return api.post<SettingsResponse & { message: string; success: boolean }>('/admin/test-sms', {
         mobile: testMobile,
         settings: payload,
@@ -213,19 +213,27 @@ export function AdminSettingsPage() {
             وضعیت پیامک
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Badge variant={smsStatus.is_live ? 'success' : 'outline'}>
-            {smsStatus.is_live ? 'ارسال واقعی' : 'فقط لاگ'}
-          </Badge>
-          <Badge variant={smsStatus.has_api_key ? 'success' : 'warning'}>
-            {smsStatus.has_api_key ? 'کلید API ذخیره شده' : 'کلید API تنظیم نشده'}
-          </Badge>
-          <Badge variant={smsStatus.has_from_number ? 'success' : 'warning'}>
-            {smsStatus.has_from_number ? 'شماره ارسال‌کننده OK' : 'شماره ارسال‌کننده خالی'}
-          </Badge>
-          <Badge variant={smsStatus.is_ready ? 'success' : 'danger'}>
-            {smsStatus.is_ready ? 'آماده ارسال' : 'ناقص'}
-          </Badge>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant={smsStatus.is_live ? 'success' : 'outline'}>
+              {smsStatus.is_live ? 'ارسال واقعی' : 'فقط لاگ'}
+            </Badge>
+            <Badge variant={smsStatus.has_api_key ? 'success' : 'warning'}>
+              {smsStatus.has_api_key ? 'کلید API ذخیره شده' : 'کلید API تنظیم نشده'}
+            </Badge>
+            <Badge variant={smsStatus.has_from_number ? 'success' : 'warning'}>
+              {smsStatus.has_from_number ? 'شماره ارسال‌کننده OK' : 'شماره ارسال‌کننده خالی'}
+            </Badge>
+            <Badge variant={smsStatus.is_ready ? 'success' : 'danger'}>
+              {smsStatus.is_ready ? 'آماده ارسال' : 'ناقص'}
+            </Badge>
+          </div>
+          {!smsStatus.is_live && (
+            <p className="text-sm text-warning bg-warning/10 border border-warning/30 rounded-xl p-3">
+              حالت پیامک روی «فقط لاگ» است — OTP ورود ارسال نمی‌شود (کد تست: 123456).
+              برای ارسال واقعی OTP، حالت را روی «ارسال واقعی» بگذارید و ذخیره کنید.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -336,7 +344,7 @@ export function AdminSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted">
-            ابتدا تنظیمات را ذخیره کنید، سپس تست بزنید. حالت پیامک برای تست روی «ارسال واقعی» قرار می‌گیرد.
+            تست پیامک با حالت live ارسال می‌شود. برای OTP ورود، حتماً «ارسال واقعی» را انتخاب و ذخیره کنید.
           </p>
           <div className="flex gap-3 flex-wrap items-center">
             <Input
