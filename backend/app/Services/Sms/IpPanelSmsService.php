@@ -31,22 +31,26 @@ class IpPanelSmsService
       return false;
     }
 
-    $provider = $config['sms_provider'] ?? $this->settings->get('sms_provider', 'maxsms');
-    $mode = $config['api_mode'] ?? $this->settings->get('ippanel_api_mode', 'auto');
     $patternCode = trim((string) ($config['otp_pattern_code'] ?? ''));
 
-    // Pattern API uses edge.ippanel.com which is down for MaxSMS — only try on ippanel+edge.
-    if ($patternCode !== '' && $provider === 'ippanel' && $mode === 'edge') {
+    if ($patternCode !== '') {
       $patternResult = $this->sendPattern($mobile, $patternCode, ['code' => $code], $config);
+
       if ($patternResult['success']) {
         return true;
       }
 
-      Log::warning('OTP pattern failed, falling back to webservice/JSPD', [
+      Log::error('OTP pattern send failed', [
         'mobile' => $mobile,
+        'pattern' => $patternCode,
         'message' => $patternResult['message'] ?? null,
+        'method' => $patternResult['method'] ?? null,
       ]);
+
+      return false;
     }
+
+    Log::warning('OTP pattern code not configured — plain text may be rejected by provider', ['mobile' => $mobile]);
 
     $result = $this->sendWebservice($mobile, "کد تأیید پوشه: {$code}", $config, forceLive: true);
 
@@ -174,41 +178,155 @@ class IpPanelSmsService
 
   private function sendPattern(string $mobile, string $patternCode, array $params, array $config): array
   {
-    $auth = $this->resolveAuth($config, $config['api_mode'] ?? 'auto', $config['sms_provider'] ?? 'maxsms');
-    if (! $this->hasSendCredentials($auth, $config, $config['api_mode'] ?? 'auto', $config['sms_provider'] ?? 'maxsms')) {
+    $provider = $config['sms_provider'] ?? $this->settings->get('sms_provider', 'maxsms');
+    $mode = $config['api_mode'] ?? $this->settings->get('ippanel_api_mode', 'auto');
+    $auth = $this->resolveAuth($config, $mode, $provider);
+
+    if (! $this->hasSendCredentials($auth, $config, $mode, $provider)) {
       return ['success' => false, 'message' => $auth['error'] ?? 'خطا در احراز هویت IPPanel'];
     }
 
-    $baseUrl = $this->apiBase($config);
-    $token = $auth['token'] ?? $auth['api_key'];
+    $lastResult = ['success' => false, 'message' => 'ارسال پترن ناموفق بود'];
+
+    if ($provider === 'maxsms' || $mode === 'jspd' || $mode === 'auto' || $mode === 'legacy') {
+      $jspdResult = $this->sendPatternJspd($mobile, $patternCode, $params, $config, $auth);
+      if ($jspdResult['success']) {
+        return $jspdResult;
+      }
+      $lastResult = $jspdResult;
+
+      $classicResult = $this->sendPatternClassic($mobile, $patternCode, $params, $config);
+      if ($classicResult['success']) {
+        return $classicResult;
+      }
+      $lastResult = $classicResult;
+
+      if ($mode === 'jspd' || $mode === 'legacy') {
+        return $lastResult;
+      }
+    }
+
+    if ($mode === 'edge' || $mode === 'auto' || $provider === 'ippanel') {
+      $baseUrl = $this->apiBase($config);
+      $token = $auth['token'] ?? $auth['api_key'];
+
+      try {
+        $response = Http::timeout(30)
+          ->withHeaders([
+            'Authorization' => $token,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+          ])
+          ->post("{$baseUrl}/send", [
+            'sending_type' => 'pattern',
+            'from_number' => $this->normalizeSender($config['from_number']),
+            'code' => $patternCode,
+            'recipients' => [$this->toE164($mobile)],
+            'params' => $params,
+          ]);
+
+        $result = $this->parseResponse($response);
+        $result['method'] = 'edge_pattern';
+
+        if ($result['success'] || ! $this->shouldRetryWithNextStrategy($response, 'auto')) {
+          return $result;
+        }
+
+        $lastResult = $result;
+      } catch (\Throwable $e) {
+        Log::error('IPPanel pattern exception', ['error' => $e->getMessage()]);
+      }
+    }
+
+    $legacyResult = $this->sendPatternLegacy($mobile, $patternCode, $params, $config, $auth);
+
+    return $legacyResult['success'] ? $legacyResult : $lastResult;
+  }
+
+  private function sendPatternJspd(string $mobile, string $patternCode, array $params, array $config, array $auth): array
+  {
+    $from = $this->normalizeSenderForJspd($config['from_number']);
+    $recipients = json_encode([$this->toJspdMobile($mobile)]);
+    $pValues = json_encode($params, JSON_UNESCAPED_UNICODE);
+
+    $credentialSets = [];
+    if (! empty($config['username']) && ! empty($config['password'])) {
+      $credentialSets[] = ['uname' => $config['username'], 'pass' => $config['password'], 'label' => 'user'];
+    }
+    if (! empty($auth['api_key'])) {
+      $credentialSets[] = ['uname' => $auth['api_key'], 'pass' => $auth['api_key'], 'label' => 'apikey'];
+    }
+
+    $lastResult = ['success' => false, 'message' => 'ارسال پترن JSPD ناموفق بود'];
+
+    $formVariants = [
+      ['op' => 'pattern', 'p_code' => $patternCode, 'p_values' => $pValues],
+      ['op' => 'sendPattern', 'pattern_code' => $patternCode, 'input_data' => $pValues],
+    ];
+
+    foreach ($credentialSets as $creds) {
+      foreach ($formVariants as $variant) {
+        try {
+          $response = Http::timeout(30)->asForm()->post('https://ippanel.com/services.jspd', [
+            'uname' => $creds['uname'],
+            'pass' => $creds['pass'],
+            'from' => $from,
+            'to' => $recipients,
+            ...$variant,
+          ]);
+
+          $result = $this->parseJspdResponse($response);
+          $result['method'] = 'jspd_pattern_'.$creds['label'].'_'.$variant['op'];
+
+          if ($result['success']) {
+            Log::info('IPPanel pattern sent via JSPD', ['method' => $result['method'], 'mobile' => $mobile]);
+
+            return $result;
+          }
+
+          $lastResult = $result;
+        } catch (\Throwable $e) {
+          $lastResult = ['success' => false, 'message' => 'خطای JSPD pattern: '.$e->getMessage(), 'method' => 'jspd_pattern'];
+        }
+      }
+    }
+
+    return $lastResult;
+  }
+
+  private function sendPatternClassic(string $mobile, string $patternCode, array $params, array $config): array
+  {
+    if (empty($config['username']) || empty($config['password'])) {
+      return ['success' => false, 'message' => 'نام کاربری/رمز برای پترن کلاسیک لازم است'];
+    }
+
+    $query = http_build_query([
+      'username' => $config['username'],
+      'password' => $config['password'],
+      'from' => $this->normalizeSenderForJspd($config['from_number']),
+      'to' => json_encode([$this->toJspdMobile($mobile)]),
+      'input_data' => json_encode($params, JSON_UNESCAPED_UNICODE),
+      'pattern_code' => $patternCode,
+    ]);
 
     try {
       $response = Http::timeout(30)
-        ->withHeaders([
-          'Authorization' => $token,
-          'Content-Type' => 'application/json',
-          'Accept' => 'application/json',
-        ])
-        ->post("{$baseUrl}/send", [
-          'sending_type' => 'pattern',
-          'from_number' => $this->normalizeSender($config['from_number']),
-          'code' => $patternCode,
-          'recipients' => [$this->toE164($mobile)],
-          'params' => $params,
-        ]);
+        ->withBody(json_encode($params, JSON_UNESCAPED_UNICODE), 'application/json')
+        ->post('https://ippanel.com/patterns/pattern?'.$query);
 
-      $result = $this->parseResponse($response);
-      $result['method'] = 'edge_pattern';
+      $body = $response->json();
+      if (is_array($body) && count($body) >= 2 && in_array((string) $body[0], ['0', '1'], true)) {
+        return ['success' => true, 'message' => (string) $body[1], 'method' => 'classic_pattern_url'];
+      }
 
-      if ($result['success'] || ! $this->shouldRetryWithNextStrategy($response, 'auto')) {
-        return $result;
+      if ($response->successful()) {
+        return ['success' => true, 'message' => 'ارسال شد', 'method' => 'classic_pattern_url', 'details' => ['raw' => $response->body()]];
       }
     } catch (\Throwable $e) {
-      Log::error('IPPanel pattern exception', ['error' => $e->getMessage()]);
+      return ['success' => false, 'message' => 'خطای classic pattern: '.$e->getMessage()];
     }
 
-    // Legacy pattern fallback via GET
-    return $this->sendPatternLegacy($mobile, $patternCode, $params, $config, $auth);
+    return ['success' => false, 'message' => 'ارسال پترن کلاسیک ناموفق بود'];
   }
 
   private function sendPatternLegacy(string $mobile, string $patternCode, array $params, array $config, array $auth): array

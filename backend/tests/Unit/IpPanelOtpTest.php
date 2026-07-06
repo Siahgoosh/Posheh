@@ -10,7 +10,7 @@ use Tests\TestCase;
 
 class IpPanelOtpTest extends TestCase
 {
-    public function test_otp_uses_jspd_webservice_when_maxsms(): void
+    public function test_otp_uses_jspd_pattern_when_configured(): void
     {
         $settings = Mockery::mock(SystemSettingsService::class);
         $settings->shouldReceive('isSmsLive')->andReturn(true);
@@ -19,7 +19,7 @@ class IpPanelOtpTest extends TestCase
             'username' => 'paneluser',
             'password' => 'panelpass',
             'from_number' => '+9810008721297974',
-            'otp_pattern_code' => 'some-pattern',
+            'otp_pattern_code' => 'qhhly1nai3njev0',
             'invite_pattern_code' => null,
             'base_url' => 'https://edge.ippanel.com/v1',
             'api_mode' => 'jspd',
@@ -38,7 +38,15 @@ class IpPanelOtpTest extends TestCase
         $sent = (new IpPanelSmsService($settings))->sendOtp('09170577873', '554433');
 
         $this->assertTrue($sent);
-        Http::assertSent(fn ($request) => $request->url() === 'https://ippanel.com/services.jspd'
-            && str_contains($request['message'] ?? '', '554433'));
+        Http::assertSent(function ($request) {
+            if ($request->url() !== 'https://ippanel.com/services.jspd') {
+                return false;
+            }
+            $data = $request->data();
+
+            return ($data['op'] ?? null) === 'pattern'
+                && ($data['p_code'] ?? null) === 'qhhly1nai3njev0'
+                && str_contains($data['p_values'] ?? '', '554433');
+        });
     }
 }

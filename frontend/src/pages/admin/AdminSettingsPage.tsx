@@ -329,6 +329,11 @@ export function AdminSettingsPage() {
                 {item.key === 'ippanel_username' && (
                   <p className="text-xs text-muted mt-1">نام کاربری پنل مکث/آی‌پی‌پنل — برای JSPD الزامی است</p>
                 )}
+                {item.key === 'ippanel_otp_pattern_code' && (
+                  <p className="text-xs text-muted mt-1">
+                    کد پترن تأییدشده OTP — مثال شما: qhhly1nai3njev0 (متغیر: code)
+                  </p>
+                )}
               </div>
             ))}
           </CardContent>

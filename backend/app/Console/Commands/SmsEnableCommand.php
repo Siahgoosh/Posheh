@@ -49,6 +49,7 @@ class SmsEnableCommand extends Command
             'IPPANEL_USERNAME' => 'ippanel_username',
             'IPPANEL_PASSWORD' => 'ippanel_password',
             'IPPANEL_FROM_NUMBER' => 'ippanel_from_number',
+            'IPPANEL_OTP_PATTERN_CODE' => 'ippanel_otp_pattern_code',
             'IPPANEL_BASE_URL' => 'ippanel_base_url',
         ];
 
@@ -72,6 +73,11 @@ class SmsEnableCommand extends Command
             $settings->set('sms_provider', 'maxsms');
             $this->line('  set sms_provider=maxsms');
         }
+
+        if (! env('IPPANEL_OTP_PATTERN_CODE') && ! $settings->hasValue('ippanel_otp_pattern_code')) {
+            $settings->set('ippanel_otp_pattern_code', 'qhhly1nai3njev0');
+            $this->line('  set ippanel_otp_pattern_code=qhhly1nai3njev0');
+        }
     }
 
     private function printStatus(SystemSettingsService $settings): void
@@ -89,6 +95,7 @@ class SmsEnableCommand extends Command
                 ['from_number', (string) $settings->get('ippanel_from_number', '—')],
                 ['sms_provider', (string) $settings->get('sms_provider', '—')],
                 ['api_mode', (string) $settings->get('ippanel_api_mode', '—')],
+                ['otp_pattern', (string) $settings->get('ippanel_otp_pattern_code', '—')],
                 ['is_ready', $status['is_ready'] ? 'YES' : 'NO'],
                 ['SMS_MODE (.env)', (string) env('SMS_MODE', '—')],
             ]
