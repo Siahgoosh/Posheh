@@ -7,17 +7,18 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class SendOtpSmsJob
+class SendInviteSmsJob
 {
     use Dispatchable, Queueable, SerializesModels;
 
     public function __construct(
         public string $mobile,
-        public string $code,
+        public string $officeName,
+        public string $inviterName,
     ) {}
 
     public function handle(IpPanelSmsService $sms): void
     {
-        $sms->sendOtp($this->mobile, $this->code);
+        $sms->sendInvite($this->mobile, $this->officeName, $this->inviterName);
     }
 }

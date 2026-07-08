@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(SystemSettingsSeeder::class);
         $this->seedPlans();
         $this->seedSuperAdmin();
         $this->seedDemoOffice();
