@@ -41,44 +41,29 @@ class IpPanelSmsService
       ];
     }
 
-    $patternCode = trim((string) ($config['otp_pattern_code'] ?? ''));
+    $plainMessage = "کد ورود پوشه: {$code}";
+    $plainResult = $this->sendWebservice($mobile, $plainMessage, $config, forceLive: true);
 
-    if ($patternCode !== '') {
-      $patternResult = $this->sendPattern($mobile, $patternCode, ['code' => $code], $config);
-
-      if ($patternResult['success']) {
-        return ['success' => true, 'method' => $patternResult['method'] ?? null];
-      }
-
-      Log::error('OTP pattern send failed', [
+    if ($plainResult['success']) {
+      Log::info('OTP sent via plain SMS', [
         'mobile' => $mobile,
-        'pattern' => $patternCode,
-        'message' => $patternResult['message'] ?? null,
-        'method' => $patternResult['method'] ?? null,
+        'method' => $plainResult['method'] ?? 'plain',
+        'code_length' => strlen($code),
       ]);
 
-      return [
-        'success' => false,
-        'message' => $patternResult['message'] ?? 'ارسال پترن OTP ناموفق بود',
-      ];
+      return ['success' => true, 'method' => $plainResult['method'] ?? 'plain'];
     }
 
-    Log::warning('OTP pattern code not configured — plain text may be rejected by provider', ['mobile' => $mobile]);
-
-    $result = $this->sendWebservice($mobile, "کد تأیید پوشه: {$code}", $config, forceLive: true);
-
-    if (! $result['success']) {
-      Log::error('OTP SMS failed', [
-        'mobile' => $mobile,
-        'message' => $result['message'] ?? null,
-        'method' => $result['method'] ?? null,
-      ]);
-    }
+    Log::error('OTP plain SMS failed', [
+      'mobile' => $mobile,
+      'message' => $plainResult['message'] ?? null,
+      'method' => $plainResult['method'] ?? null,
+    ]);
 
     return [
-      'success' => (bool) ($result['success'] ?? false),
-      'message' => $result['message'] ?? null,
-      'method' => $result['method'] ?? null,
+      'success' => false,
+      'message' => $plainResult['message'] ?? 'ارسال OTP ناموفق بود. لطفاً با پشتیبانی تماس بگیرید.',
+      'method' => $plainResult['method'] ?? null,
     ];
   }
 

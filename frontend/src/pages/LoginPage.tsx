@@ -17,15 +17,20 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [countdown, setCountdown] = useState(0)
+  const [otpInputKey, setOtpInputKey] = useState(0)
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     setError('')
+    setOtp('')
+    setOtpInputKey((key) => key + 1)
     setLoading(true)
+    const normalizedMobile = normalizeMobile(mobile)
     try {
-      await api.post('/auth/otp/send', { mobile: normalizeMobile(mobile) })
+      await api.post('/auth/otp/send', { mobile: normalizedMobile })
+      setMobile(normalizedMobile)
       setStep('otp')
       setCountdown(120)
       const timer = setInterval(() => {
@@ -59,6 +64,8 @@ export function LoginPage() {
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
       setError(axiosErr.response?.data?.errors?.code?.[0] || axiosErr.response?.data?.errors?.mobile?.[0] || 'کد نامعتبر است')
+      setOtp('')
+      setOtpInputKey((key) => key + 1)
     } finally {
       setLoading(false)
     }
@@ -118,12 +125,15 @@ export function LoginPage() {
                   کد تأیید به {toPersianDigits(mobile)} ارسال شد
                 </p>
                 <Input
+                  key={`otp-input-${otpInputKey}`}
                   type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
                   placeholder="کد ۶ رقمی"
                   value={otp}
                   onChange={(e) => setOtp(toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 6))}
                   dir="ltr"
-                  className="text-center text-2xl tracking-[0.5em]"
+                  className="text-center text-2xl tracking-widest font-mono"
                   maxLength={6}
                   autoFocus
                 />
@@ -132,7 +142,16 @@ export function LoginPage() {
                   {loading ? 'در حال بررسی...' : 'ورود'}
                 </Button>
                 <div className="flex justify-between text-sm">
-                  <button type="button" onClick={() => setStep('mobile')} className="text-muted hover:text-foreground">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep('mobile')
+                      setOtp('')
+                      setOtpInputKey((key) => key + 1)
+                      setError('')
+                    }}
+                    className="text-muted hover:text-foreground"
+                  >
                     تغییر شماره
                   </button>
                   {countdown > 0 ? (

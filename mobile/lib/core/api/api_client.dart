@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../utils/input_normalizers.dart';
 
 const String baseUrl = String.fromEnvironment(
   'API_URL',
@@ -49,14 +50,16 @@ class ApiClient {
   ApiClient(this._dio);
 
   Future<Map<String, dynamic>> sendOtp(String mobile) async {
-    final response = await _dio.post('/auth/otp/send', data: {'mobile': mobile});
+    final response = await _dio.post('/auth/otp/send', data: {
+      'mobile': normalizeMobile(mobile),
+    });
     return response.data;
   }
 
   Future<Map<String, dynamic>> verifyOtp(String mobile, String code) async {
     final response = await _dio.post('/auth/otp/verify', data: {
-      'mobile': mobile,
-      'code': code,
+      'mobile': normalizeMobile(mobile),
+      'code': normalizeOtpCode(code),
       'device_id': 'flutter-mobile',
       'platform': 'android',
     });

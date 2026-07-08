@@ -226,9 +226,13 @@ class OtpService
 
     private function normalizeCode(string $code): string
     {
-        $code = $this->normalizeDigits(trim($code));
+        $code = preg_replace('/\D/', '', $this->normalizeDigits(trim($code)));
 
-        return preg_replace('/\D/', '', $code);
+        if ($code !== '' && strlen($code) < 6) {
+            $code = str_pad($code, 6, '0', STR_PAD_LEFT);
+        }
+
+        return $code;
     }
 
     private function normalizeDigits(string $value): string

@@ -18,11 +18,7 @@ class AuthController extends Controller
 
     public function sendOtp(Request $request): JsonResponse
     {
-        $mobile = preg_replace('/\D/', '', str_replace(
-            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'],
-            ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
-            (string) $request->input('mobile', '')
-        ));
+        $mobile = $this->normalizeMobileInput((string) $request->input('mobile', ''));
         $request->merge(['mobile' => $mobile]);
 
         $request->validate([
@@ -38,16 +34,8 @@ class AuthController extends Controller
 
     public function verifyOtp(Request $request): JsonResponse
     {
-        $mobile = preg_replace('/\D/', '', str_replace(
-            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'],
-            ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
-            (string) $request->input('mobile', '')
-        ));
-        $code = preg_replace('/\D/', '', str_replace(
-            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'],
-            ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
-            (string) $request->input('code', '')
-        ));
+        $mobile = $this->normalizeMobileInput((string) $request->input('mobile', ''));
+        $code = $this->normalizeCodeInput((string) $request->input('code', ''));
 
         $request->merge(['mobile' => $mobile, 'code' => $code]);
 
@@ -101,5 +89,43 @@ class AuthController extends Controller
         $devices = $request->user()->devices()->latest('last_active_at')->get();
 
         return response()->json(['data' => $devices]);
+    }
+
+    private function normalizeMobileInput(string $mobile): string
+    {
+        $mobile = preg_replace('/\D/', '', $this->normalizeDigits($mobile));
+
+        if (str_starts_with($mobile, '98')) {
+            $mobile = '0'.substr($mobile, 2);
+        }
+
+        if ($mobile !== '' && ! str_starts_with($mobile, '0')) {
+            $mobile = '0'.$mobile;
+        }
+
+        return $mobile;
+    }
+
+    private function normalizeCodeInput(string $code): string
+    {
+        $code = preg_replace('/\D/', '', $this->normalizeDigits(trim($code)));
+
+        if ($code !== '' && strlen($code) < 6) {
+            $code = str_pad($code, 6, '0', STR_PAD_LEFT);
+        }
+
+        return $code;
+    }
+
+    private function normalizeDigits(string $value): string
+    {
+        $persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        $arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+
+        return str_replace(
+            array_merge($persian, $arabic),
+            array_merge(range('0', '9'), range('0', '9')),
+            $value
+        );
     }
 }

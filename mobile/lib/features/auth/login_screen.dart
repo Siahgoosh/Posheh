@@ -1,8 +1,10 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
+import '../../core/utils/input_normalizers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -17,33 +19,94 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _otpSent = false;
   bool _loading = false;
   String? _error;
+  String _normalizedMobile = '';
+
+  @override
+  void dispose() {
+    _mobileController.dispose();
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  void _clearOtpInput() {
+    _otpController.clear();
+    setState(() {});
+  }
 
   Future<void> _sendOtp() async {
-    setState(() { _loading = true; _error = null; });
+    final mobile = normalizeMobile(_mobileController.text);
+    if (mobile.length != 11 || !mobile.startsWith('09')) {
+      setState(() => _error = 'شماره موبایل معتبر نیست');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
     try {
       final api = ref.read(apiClientProvider);
-      await api.sendOtp(_mobileController.text);
-      setState(() => _otpSent = true);
+      await api.sendOtp(mobile);
+      setState(() {
+        _otpSent = true;
+        _normalizedMobile = mobile;
+      });
+      _clearOtpInput();
     } catch (e) {
-      setState(() => _error = 'خطا در ارسال کد');
+      setState(() => _error = _extractErrorMessage(e, fallback: 'خطا در ارسال کد'));
     } finally {
       setState(() => _loading = false);
     }
   }
 
   Future<void> _verifyOtp() async {
-    setState(() { _loading = true; _error = null; });
+    final code = normalizeOtpCode(_otpController.text);
+    if (code.length != 6) {
+      setState(() => _error = 'کد ۶ رقمی را کامل وارد کنید');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
     try {
       final api = ref.read(apiClientProvider);
-      final result = await api.verifyOtp(_mobileController.text, _otpController.text);
+      final result = await api.verifyOtp(_normalizedMobile, code);
       const storage = FlutterSecureStorage();
       await storage.write(key: 'token', value: result['token']);
       if (mounted) context.go('/dashboard');
     } catch (e) {
-      setState(() => _error = 'کد نامعتبر است');
+      _clearOtpInput();
+      setState(() => _error = _extractErrorMessage(e, fallback: 'کد نامعتبر است'));
     } finally {
       setState(() => _loading = false);
     }
+  }
+
+  String _extractErrorMessage(Object error, {required String fallback}) {
+    if (error is DioException) {
+      final data = error.response?.data;
+      if (data is Map<String, dynamic>) {
+        final errors = data['errors'];
+        if (errors is Map<String, dynamic>) {
+          for (final field in ['code', 'mobile']) {
+            final messages = errors[field];
+            if (messages is List && messages.isNotEmpty) {
+              return messages.first.toString();
+            }
+          }
+        }
+        final message = data['message'];
+        if (message is String && message.isNotEmpty) {
+          return message;
+        }
+      }
+    }
+
+    return fallback;
   }
 
   @override
@@ -95,7 +158,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ] else ...[
-                Text('کد به ${_mobileController.text} ارسال شد'),
+                Text('کد به $_normalizedMobile ارسال شد'),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _otpController,
@@ -103,7 +166,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   textDirection: TextDirection.ltr,
                   textAlign: TextAlign.center,
                   maxLength: 6,
-                  decoration: const InputDecoration(labelText: 'کد تأیید'),
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'کد تأیید',
+                    counterText: '',
+                  ),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -112,6 +179,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: _loading ? null : _verifyOtp,
                     child: Text(_loading ? 'در حال بررسی...' : 'ورود'),
                   ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: _loading
+                      ? null
+                      : () {
+                          setState(() {
+                            _otpSent = false;
+                            _error = null;
+                          });
+                          _clearOtpInput();
+                        },
+                  child: const Text('تغییر شماره'),
                 ),
               ],
               if (_error != null) ...[
