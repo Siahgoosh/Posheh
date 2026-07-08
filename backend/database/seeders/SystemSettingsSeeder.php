@@ -15,6 +15,7 @@ class SystemSettingsSeeder extends Seeder
             ['group' => 'sms', 'key' => 'ippanel_username', 'value' => env('IPPANEL_USERNAME', ''), 'label' => 'نام کاربری IPPanel (جایگزین API Key)', 'type' => 'text'],
             ['group' => 'sms', 'key' => 'ippanel_password', 'value' => env('IPPANEL_PASSWORD', ''), 'label' => 'رمز عبور IPPanel', 'type' => 'password', 'is_secret' => true],
             ['group' => 'sms', 'key' => 'ippanel_from_number', 'value' => env('IPPANEL_FROM_NUMBER', ''), 'label' => 'شماره ارسال‌کننده (مثال: +983000505)', 'type' => 'text'],
+            ['group' => 'sms', 'key' => 'ippanel_otp_from_number', 'value' => env('IPPANEL_OTP_FROM_NUMBER', ''), 'label' => 'خط پترن OTP (مثال: +9810008721297974)', 'type' => 'text'],
             ['group' => 'sms', 'key' => 'ippanel_otp_pattern_code', 'value' => env('IPPANEL_OTP_PATTERN_CODE', 'qhhly1nai3njev0'), 'label' => 'کد پترن OTP', 'type' => 'text'],
             ['group' => 'sms', 'key' => 'ippanel_invite_pattern_code', 'value' => env('IPPANEL_INVITE_PATTERN_CODE', ''), 'label' => 'کد پترن دعوت مشاور', 'type' => 'text'],
             ['group' => 'sms', 'key' => 'ippanel_base_url', 'value' => env('IPPANEL_BASE_URL', 'https://edge.ippanel.com/v1'), 'label' => 'آدرس API', 'type' => 'text'],

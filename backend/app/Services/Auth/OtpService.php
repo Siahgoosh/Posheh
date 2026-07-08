@@ -35,6 +35,24 @@ class OtpService
 
         $code = $this->generateOtpCode();
 
+        Log::info('OTP dispatching', [
+            'mobile' => $this->maskMobile($mobile),
+            'code_length' => strlen($code),
+        ]);
+
+        $smsResult = $this->dispatchOtpSms($mobile, $code);
+
+        if (! ($smsResult['success'] ?? false)) {
+            Log::error('OTP SMS failed — code not saved', [
+                'mobile' => $this->maskMobile($mobile),
+                'message' => $smsResult['message'] ?? null,
+            ]);
+
+            throw ValidationException::withMessages([
+                'mobile' => [$smsResult['message'] ?? 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.'],
+            ]);
+        }
+
         OtpCode::where('mobile', $mobile)
             ->whereNull('verified_at')
             ->delete();
@@ -48,20 +66,16 @@ class OtpService
 
         Cache::put($rateLimitKey, true, now()->addMinutes(2));
 
-        Log::info('OTP created', [
+        Log::info('OTP saved after SMS', [
             'mobile' => $this->maskMobile($mobile),
-            'code_length' => strlen($code),
+            'method' => $smsResult['method'] ?? null,
         ]);
 
-        $smsResult = $this->dispatchOtpSms($mobile, $code);
-
         return [
-            'message' => ($smsResult['success'] ?? false)
-                ? 'کد تأیید ارسال شد.'
-                : 'کد تأیید ایجاد شد اما ارسال پیامک ناموفق بود. با پشتیبانی تماس بگیرید.',
+            'message' => 'کد تأیید ارسال شد.',
             'expires_in' => 300,
-            'sms_sent' => (bool) ($smsResult['success'] ?? false),
-            'sms_debug' => config('app.debug') ? ($smsResult['message'] ?? null) : null,
+            'sms_sent' => true,
+            'sms_debug' => config('app.debug') ? ($smsResult['method'] ?? null) : null,
         ];
     }
 

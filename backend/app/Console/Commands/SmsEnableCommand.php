@@ -49,6 +49,7 @@ class SmsEnableCommand extends Command
             'IPPANEL_USERNAME' => 'ippanel_username',
             'IPPANEL_PASSWORD' => 'ippanel_password',
             'IPPANEL_FROM_NUMBER' => 'ippanel_from_number',
+            'IPPANEL_OTP_FROM_NUMBER' => 'ippanel_otp_from_number',
             'IPPANEL_OTP_PATTERN_CODE' => 'ippanel_otp_pattern_code',
             'IPPANEL_BASE_URL' => 'ippanel_base_url',
         ];
@@ -93,6 +94,7 @@ class SmsEnableCommand extends Command
                 ['has_password', $status['has_password'] ? 'yes' : 'no'],
                 ['has_api_key', $status['has_api_key'] ? 'yes' : 'no'],
                 ['from_number', (string) $settings->get('ippanel_from_number', '—')],
+                ['otp_from_number', (string) $settings->get('ippanel_otp_from_number', '—')],
                 ['sms_provider', (string) $settings->get('sms_provider', '—')],
                 ['api_mode', (string) $settings->get('ippanel_api_mode', '—')],
                 ['otp_pattern', (string) $settings->get('ippanel_otp_pattern_code', '—')],
