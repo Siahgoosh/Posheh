@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import api from '@/lib/api'
 import { getDeviceId, getDeviceName, getPlatform } from '@/lib/device'
 import { useAuthStore } from '@/stores/auth'
-import { toPersianDigits } from '@/lib/utils'
+import { toEnglishDigits, toPersianDigits, normalizeMobile } from '@/lib/utils'
 
 export function LoginPage() {
   const [step, setStep] = useState<'mobile' | 'otp'>('mobile')
@@ -25,7 +25,7 @@ export function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      await api.post('/auth/otp/send', { mobile })
+      await api.post('/auth/otp/send', { mobile: normalizeMobile(mobile) })
       setStep('otp')
       setCountdown(120)
       const timer = setInterval(() => {
@@ -48,8 +48,8 @@ export function LoginPage() {
     setLoading(true)
     try {
       const { data } = await api.post('/auth/otp/verify', {
-        mobile,
-        code: otp,
+        mobile: normalizeMobile(mobile),
+        code: toEnglishDigits(otp).replace(/\D/g, '').slice(0, 6),
         device_id: getDeviceId(),
         device_name: getDeviceName(),
         platform: getPlatform(),
@@ -101,7 +101,7 @@ export function LoginPage() {
                     type="tel"
                     placeholder="۰۹۱۲۱۲۳۴۵۶۷"
                     value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
+                    onChange={(e) => setMobile(toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 11))}
                     dir="ltr"
                     className="text-center text-lg tracking-widest"
                     maxLength={11}
@@ -121,7 +121,7 @@ export function LoginPage() {
                   type="text"
                   placeholder="کد ۶ رقمی"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={(e) => setOtp(toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 6))}
                   dir="ltr"
                   className="text-center text-2xl tracking-[0.5em]"
                   maxLength={6}

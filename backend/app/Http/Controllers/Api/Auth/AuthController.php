@@ -18,6 +18,13 @@ class AuthController extends Controller
 
     public function sendOtp(Request $request): JsonResponse
     {
+        $mobile = preg_replace('/\D/', '', str_replace(
+            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'],
+            ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+            (string) $request->input('mobile', '')
+        ));
+        $request->merge(['mobile' => $mobile]);
+
         $request->validate([
             'mobile' => ['required', 'string', 'regex:/^09\d{9}$/'],
         ]);
@@ -31,6 +38,19 @@ class AuthController extends Controller
 
     public function verifyOtp(Request $request): JsonResponse
     {
+        $mobile = preg_replace('/\D/', '', str_replace(
+            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'],
+            ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+            (string) $request->input('mobile', '')
+        ));
+        $code = preg_replace('/\D/', '', str_replace(
+            ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'],
+            ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+            (string) $request->input('code', '')
+        ));
+
+        $request->merge(['mobile' => $mobile, 'code' => $code]);
+
         $request->validate([
             'mobile' => ['required', 'string', 'regex:/^09\d{9}$/'],
             'code' => ['required', 'string', 'size:6'],

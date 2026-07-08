@@ -48,6 +48,11 @@ class OtpService
 
         Cache::put($rateLimitKey, true, now()->addMinutes(2));
 
+        Log::info('OTP created', [
+            'mobile' => $this->maskMobile($mobile),
+            'code_length' => strlen($code),
+        ]);
+
         $smsResult = $this->dispatchOtpSms($mobile, $code);
 
         return [
@@ -122,19 +127,30 @@ class OtpService
 
         RateLimiter::hit($verifyKey, 300);
 
+        $submittedCode = $this->normalizeCode($dto->code);
+
         $otp = OtpCode::where('mobile', $mobile)
-            ->where('code', $dto->code)
             ->whereNull('verified_at')
             ->latest()
             ->first();
 
         if (! $otp || ! $otp->isValid()) {
-            if ($otp) {
-                $otp->increment('attempts');
-            }
+            throw ValidationException::withMessages([
+                'code' => ['کد تأیید نامعتبر یا منقضی شده است. لطفاً دوباره درخواست کد دهید.'],
+            ]);
+        }
+
+        if (! hash_equals($this->normalizeCode($otp->code), $submittedCode)) {
+            $otp->increment('attempts');
+
+            Log::warning('OTP mismatch', [
+                'mobile' => $this->maskMobile($mobile),
+                'attempts' => $otp->attempts,
+                'submitted_length' => strlen($submittedCode),
+            ]);
 
             throw ValidationException::withMessages([
-                'code' => ['کد تأیید نامعتبر یا منقضی شده است.'],
+                'code' => ['کد تأیید اشتباه است.'],
             ]);
         }
 
@@ -208,8 +224,28 @@ class OtpService
         );
     }
 
+    private function normalizeCode(string $code): string
+    {
+        $code = $this->normalizeDigits(trim($code));
+
+        return preg_replace('/\D/', '', $code);
+    }
+
+    private function normalizeDigits(string $value): string
+    {
+        $persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        $arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+
+        return str_replace(
+            array_merge($persian, $arabic),
+            array_merge(range('0', '9'), range('0', '9')),
+            $value
+        );
+    }
+
     private function normalizeMobile(string $mobile): string
     {
+        $mobile = $this->normalizeDigits($mobile);
         $mobile = preg_replace('/\D/', '', $mobile);
 
         if (str_starts_with($mobile, '98')) {

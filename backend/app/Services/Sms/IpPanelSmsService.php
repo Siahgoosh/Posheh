@@ -264,7 +264,6 @@ class IpPanelSmsService
   {
     $from = $this->normalizeSenderForJspd($config['from_number']);
     $recipients = json_encode([$this->toJspdMobile($mobile)]);
-    $pValues = json_encode($params, JSON_UNESCAPED_UNICODE);
 
     $credentialSets = [];
     if (! empty($config['username']) && ! empty($config['password'])) {
@@ -276,39 +275,62 @@ class IpPanelSmsService
 
     $lastResult = ['success' => false, 'message' => 'ارسال پترن JSPD ناموفق بود'];
 
-    $formVariants = [
-      ['op' => 'pattern', 'p_code' => $patternCode, 'p_values' => $pValues],
-      ['op' => 'sendPattern', 'pattern_code' => $patternCode, 'input_data' => $pValues],
-    ];
+    $pValueVariants = $this->patternValueVariants($params);
 
     foreach ($credentialSets as $creds) {
-      foreach ($formVariants as $variant) {
-        try {
-          $response = Http::timeout(30)->asForm()->post('https://ippanel.com/services.jspd', [
-            'uname' => $creds['uname'],
-            'pass' => $creds['pass'],
-            'from' => $from,
-            'to' => $recipients,
-            ...$variant,
-          ]);
+      foreach ($pValueVariants as $index => $pValues) {
+        $formVariants = [
+          ['op' => 'pattern', 'p_code' => $patternCode, 'p_values' => $pValues],
+          ['op' => 'sendPattern', 'pattern_code' => $patternCode, 'input_data' => $pValues],
+        ];
 
-          $result = $this->parseJspdResponse($response);
-          $result['method'] = 'jspd_pattern_'.$creds['label'].'_'.$variant['op'];
+        foreach ($formVariants as $variant) {
+          try {
+            $response = Http::timeout(30)->asForm()->post('https://ippanel.com/services.jspd', [
+              'uname' => $creds['uname'],
+              'pass' => $creds['pass'],
+              'from' => $from,
+              'to' => $recipients,
+              ...$variant,
+            ]);
 
-          if ($result['success']) {
-            Log::info('IPPanel pattern sent via JSPD', ['method' => $result['method'], 'mobile' => $mobile]);
+            $result = $this->parseJspdResponse($response);
+            $result['method'] = 'jspd_pattern_'.$creds['label'].'_'.$variant['op'].'_v'.$index;
 
-            return $result;
+            if ($result['success']) {
+              Log::info('IPPanel pattern sent via JSPD', ['method' => $result['method'], 'mobile' => $mobile, 'p_values' => $pValues]);
+
+              return $result;
+            }
+
+            $lastResult = $result;
+          } catch (\Throwable $e) {
+            $lastResult = ['success' => false, 'message' => 'خطای JSPD pattern: '.$e->getMessage(), 'method' => 'jspd_pattern'];
           }
-
-          $lastResult = $result;
-        } catch (\Throwable $e) {
-          $lastResult = ['success' => false, 'message' => 'خطای JSPD pattern: '.$e->getMessage(), 'method' => 'jspd_pattern'];
         }
       }
     }
 
     return $lastResult;
+  }
+
+  /** @return list<string> */
+  private function patternValueVariants(array $params): array
+  {
+    $code = (string) ($params['code'] ?? $params['otp'] ?? $params['verification-code'] ?? array_values($params)[0] ?? '');
+    $variants = [];
+
+    if ($code !== '') {
+      $variants[] = json_encode([$code]);
+      $variants[] = json_encode(['code' => $code]);
+      $variants[] = json_encode(['verification-code' => $code]);
+      $variants[] = json_encode(['otp' => $code]);
+    }
+
+    $variants[] = json_encode(array_values($params), JSON_UNESCAPED_UNICODE);
+    $variants[] = json_encode($params, JSON_UNESCAPED_UNICODE);
+
+    return array_values(array_unique(array_filter($variants)));
   }
 
   private function sendPatternClassic(string $mobile, string $patternCode, array $params, array $config): array
