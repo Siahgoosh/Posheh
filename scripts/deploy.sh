@@ -88,9 +88,11 @@ $COMPOSE exec -T app php artisan config:clear --no-interaction || true
 $COMPOSE exec -T app php artisan migrate --force --no-interaction \
   || fail "Migration failed — check: docker compose logs app"
 
-log "5/9 Seeding settings and demo data"
+log "5/9 Seeding settings, blog and demo data"
 $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --no-interaction \
   || fail "SystemSettingsSeeder failed"
+$COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
+  || log "BlogSeeder warning (may already be seeded)"
 $COMPOSE exec -T app php artisan db:seed --class=DatabaseSeeder --force --no-interaction \
   || log "DatabaseSeeder warning (may already be seeded)"
 
@@ -136,6 +138,8 @@ cat <<EOF
 Next steps:
   - Enable SMS (if needed): docker compose exec app php artisan system:sms-enable --live --from-env
   - Test SMS:             docker compose exec app php artisan system:sms-test 09170577873 --otp
+  - Check SMS status:     docker compose exec app php artisan system:sms-enable
+  - OTP logs:             docker compose exec app tail -50 storage/logs/laravel.log
   - Login super admin:    09170577873
   - Admin settings:       /admin/settings
   - If sms_mode=log only: login OTP code is 123456

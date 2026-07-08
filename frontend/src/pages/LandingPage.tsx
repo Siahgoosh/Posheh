@@ -13,9 +13,12 @@ import {
   ArrowLeft,
   CheckCircle2,
   Sparkles,
+  BookOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { SeoHead } from '@/components/seo/SeoHead'
+import { getOrganizationJsonLd, getSoftwareJsonLd } from '@/lib/seo'
 
 const features = [
   { icon: Building2, title: 'ثبت حرفه‌ای املاک', desc: 'کد یکتا، نوع معامله، موقعیت، تصاویر و جزئیات کامل هر ملک' },
@@ -41,6 +44,13 @@ const plans = [
 export function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      <SeoHead
+        title="سامانه ابری ثبت و مدیریت املاک"
+        description="پوشه — نرم افزار CRM املاک برای مشاوران و آژانس‌ها. ثبت ملک، قیف فروش، حسابداری، مدیریت تیم. وب، اندروید و ویندوز."
+        keywords="نرم افزار املاک, سامانه ثبت ملک, CRM املاک, مدیریت دفتر املاک, نرم افزار مشاور املاک"
+        path="/"
+        jsonLd={[getOrganizationJsonLd(), getSoftwareJsonLd()]}
+      />
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute -top-32 right-0 h-[500px] w-[500px] rounded-full bg-primary/20 blur-[120px]" />
         <div className="absolute bottom-0 left-0 h-[400px] w-[400px] rounded-full bg-accent/15 blur-[100px]" />
@@ -58,6 +68,7 @@ export function LandingPage() {
             <a href="#features" className="hover:text-foreground transition-colors">امکانات</a>
             <a href="#platforms" className="hover:text-foreground transition-colors">پلتفرم‌ها</a>
             <a href="#pricing" className="hover:text-foreground transition-colors">تعرفه</a>
+            <Link to="/blog" className="hover:text-foreground transition-colors">وبلاگ</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/login">
@@ -212,6 +223,33 @@ export function LandingPage() {
                 </Button>
               </Link>
             </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="container mx-auto max-w-6xl px-4 py-16">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <BookOpen className="h-6 w-6 text-primary" />
+              وبلاگ تخصصی املاک
+            </h2>
+            <p className="text-muted mt-1">راهنماها برای رشد دفتر املاک شما</p>
+          </div>
+          <Link to="/blog"><Button variant="outline">همه مقالات</Button></Link>
+        </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          {[
+            { title: 'بهترین CRM املاک ایران', slug: 'best-real-estate-crm-software-iran' },
+            { title: 'نکات ثبت حرفه‌ای ملک', slug: 'property-filing-tips-for-agents' },
+            { title: 'سامانه ابری یا اکسل؟', slug: 'cloud-vs-excel-real-estate-management' },
+          ].map((item) => (
+            <Link key={item.slug} to={`/blog/${item.slug}`}>
+              <Card className="p-5 h-full glass-hover">
+                <h3 className="font-semibold">{item.title}</h3>
+                <p className="text-sm text-primary mt-2">مطالعه مقاله ←</p>
+              </Card>
+            </Link>
           ))}
         </div>
       </section>

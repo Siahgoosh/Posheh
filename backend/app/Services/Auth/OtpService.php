@@ -9,15 +9,17 @@ use App\Models\Device;
 use App\Models\OtpCode;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Services\Settings\SystemSettingsService;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OtpService
 {
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
+        private readonly SystemSettingsService $settings,
     ) {}
 
     public function send(SendOtpDTO $dto): array
@@ -31,9 +33,7 @@ class OtpService
             ]);
         }
 
-        $code = app()->environment('production')
-            ? str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT)
-            : '123456';
+        $code = $this->generateOtpCode();
 
         OtpCode::where('mobile', $mobile)
             ->whereNull('verified_at')
@@ -48,14 +48,65 @@ class OtpService
 
         Cache::put($rateLimitKey, true, now()->addMinutes(2));
 
-        if (app()->environment('production')) {
-            SendOtpSmsJob::dispatch($mobile, $code);
-        }
+        $smsResult = $this->dispatchOtpSms($mobile, $code);
 
         return [
-            'message' => 'کد تأیید ارسال شد.',
+            'message' => ($smsResult['success'] ?? false)
+                ? 'کد تأیید ارسال شد.'
+                : 'کد تأیید ایجاد شد اما ارسال پیامک ناموفق بود. با پشتیبانی تماس بگیرید.',
             'expires_in' => 300,
+            'sms_sent' => (bool) ($smsResult['success'] ?? false),
+            'sms_debug' => config('app.debug') ? ($smsResult['message'] ?? null) : null,
         ];
+    }
+
+    private function generateOtpCode(): string
+    {
+        if (! $this->settings->isSmsLive() && ! app()->environment('production')) {
+            return '123456';
+        }
+
+        return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    }
+
+    /** @return array{success: bool, message?: string} */
+    private function dispatchOtpSms(string $mobile, string $code): array
+    {
+        try {
+            $result = SendOtpSmsJob::dispatchSync($mobile, $code);
+
+            if (is_array($result) && ($result['success'] ?? false)) {
+                Log::info('OTP SMS sent', [
+                    'mobile' => $this->maskMobile($mobile),
+                    'method' => $result['method'] ?? null,
+                ]);
+
+                return ['success' => true];
+            }
+
+            $message = is_array($result) ? ($result['message'] ?? 'SMS failed') : 'SMS job returned no result';
+
+            Log::error('OTP SMS failed', [
+                'mobile' => $this->maskMobile($mobile),
+                'message' => $message,
+                'sms_mode' => $this->settings->get('sms_mode'),
+                'is_live' => $this->settings->isSmsLive(),
+            ]);
+
+            return ['success' => false, 'message' => $message];
+        } catch (\Throwable $e) {
+            Log::error('OTP SMS exception', [
+                'mobile' => $this->maskMobile($mobile),
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    private function maskMobile(string $mobile): string
+    {
+        return substr($mobile, 0, 4).'***'.substr($mobile, -2);
     }
 
     public function verify(VerifyOtpDTO $dto): array

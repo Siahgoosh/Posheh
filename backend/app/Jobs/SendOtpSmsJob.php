@@ -16,8 +16,8 @@ class SendOtpSmsJob
         public string $code,
     ) {}
 
-    public function handle(IpPanelSmsService $sms): void
+    public function handle(IpPanelSmsService $sms): array
     {
-        $sms->sendOtp($this->mobile, $this->code);
+        return $sms->sendOtp($this->mobile, $this->code);
     }
 }

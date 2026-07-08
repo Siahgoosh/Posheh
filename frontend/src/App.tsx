@@ -13,6 +13,8 @@ import { SearchPage } from '@/pages/SearchPage'
 import { FavoritesPage } from '@/pages/FavoritesPage'
 import { TeamPage } from '@/pages/TeamPage'
 import { SubscriptionPage } from '@/pages/SubscriptionPage'
+import { BlogListPage } from '@/pages/BlogListPage'
+import { BlogPostPage } from '@/pages/BlogPostPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 
 const queryClient = new QueryClient({
@@ -38,6 +40,8 @@ export default function App() {
       <AuthBootstrap>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/blog" element={<BlogListPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route
             element={

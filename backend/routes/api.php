@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\AdminController;
+use App\Http\Controllers\Api\Blog\BlogController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\Office\OfficeController;
@@ -15,6 +16,9 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:5,1');
     Route::post('/auth/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:15,1');
     Route::get('/plans', [SubscriptionController::class, 'plans']);
+    Route::get('/blog', [BlogController::class, 'index']);
+    Route::get('/blog/sitemap', [BlogController::class, 'sitemap']);
+    Route::get('/blog/{slug}', [BlogController::class, 'show']);
     Route::get('/payments/zarinpal/callback', [SubscriptionController::class, 'zarinpalCallback'])
         ->middleware('throttle:30,1');
 
