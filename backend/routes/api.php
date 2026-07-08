@@ -12,10 +12,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     // Public routes
-    Route::post('/auth/otp/send', [AuthController::class, 'sendOtp']);
-    Route::post('/auth/otp/verify', [AuthController::class, 'verifyOtp']);
+    Route::post('/auth/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:5,1');
+    Route::post('/auth/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:15,1');
     Route::get('/plans', [SubscriptionController::class, 'plans']);
-    Route::get('/payments/zarinpal/callback', [SubscriptionController::class, 'zarinpalCallback']);
+    Route::get('/payments/zarinpal/callback', [SubscriptionController::class, 'zarinpalCallback'])
+        ->middleware('throttle:30,1');
 
     // Authenticated routes
     Route::middleware(['auth:sanctum', EnsureOfficeIsActive::class])->group(function () {
@@ -41,6 +42,7 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])
             ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+        Route::get('/subscription/current', [SubscriptionController::class, 'current']);
 
         // Super Admin routes
         Route::prefix('admin')->middleware(EnsureUserHasRole::class.':super_admin')->group(function () {

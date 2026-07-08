@@ -21,6 +21,26 @@ class SubscriptionController extends Controller
         ]);
     }
 
+    public function current(Request $request): JsonResponse
+    {
+        $office = $request->user()->office;
+        if (! $office) {
+            return response()->json(['data' => null]);
+        }
+
+        $subscription = $this->subscriptionService->getCurrentSubscription($office);
+
+        return response()->json([
+            'data' => $subscription ? [
+                'id' => $subscription->id,
+                'status' => $subscription->status,
+                'starts_at' => $subscription->starts_at?->toIso8601String(),
+                'ends_at' => $subscription->ends_at?->toIso8601String(),
+                'plan' => $subscription->plan,
+            ] : null,
+        ]);
+    }
+
     public function subscribe(Request $request): JsonResponse
     {
         $request->validate([

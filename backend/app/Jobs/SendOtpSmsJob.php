@@ -21,6 +21,6 @@ class SendOtpSmsJob implements ShouldQueue
     public function handle(): void
     {
         // Integrate with Kavenegar, Ghasedak, or Melipayamak SMS gateway
-        Log::info("OTP sent to {$this->mobile}: {$this->code}");
+        Log::info('OTP SMS dispatched', ['mobile' => substr($this->mobile, 0, 4).'***'.substr($this->mobile, -2)]);
     }
 }

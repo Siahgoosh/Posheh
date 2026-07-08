@@ -25,8 +25,23 @@ readonly class PropertySearchDTO
         public int $perPage = 20,
     ) {}
 
+    private const SORTABLE_COLUMNS = ['created_at', 'price', 'area', 'code', 'expires_at'];
+
+    private const SORT_DIRECTIONS = ['asc', 'desc'];
+
     public static function fromRequest(array $data): self
     {
+        $sortBy = $data['sort_by'] ?? 'created_at';
+        $sortDir = strtolower($data['sort_dir'] ?? 'desc');
+
+        if (! in_array($sortBy, self::SORTABLE_COLUMNS, true)) {
+            $sortBy = 'created_at';
+        }
+
+        if (! in_array($sortDir, self::SORT_DIRECTIONS, true)) {
+            $sortDir = 'desc';
+        }
+
         return new self(
             query: $data['q'] ?? $data['query'] ?? null,
             type: $data['type'] ?? null,
@@ -43,8 +58,8 @@ readonly class PropertySearchDTO
             hasElevator: isset($data['has_elevator']) ? filter_var($data['has_elevator'], FILTER_VALIDATE_BOOLEAN) : null,
             expired: isset($data['expired']) ? filter_var($data['expired'], FILTER_VALIDATE_BOOLEAN) : null,
             favoritesOnly: isset($data['favorites_only']) ? filter_var($data['favorites_only'], FILTER_VALIDATE_BOOLEAN) : null,
-            sortBy: $data['sort_by'] ?? 'created_at',
-            sortDir: $data['sort_dir'] ?? 'desc',
+            sortBy: $sortBy,
+            sortDir: $sortDir,
             perPage: min((int) ($data['per_page'] ?? 20), 100),
         );
     }

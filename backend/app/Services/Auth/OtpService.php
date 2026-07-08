@@ -10,6 +10,7 @@ use App\Models\OtpCode;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -60,6 +61,15 @@ class OtpService
     public function verify(VerifyOtpDTO $dto): array
     {
         $mobile = $this->normalizeMobile($dto->mobile);
+        $verifyKey = 'otp_verify:'.$mobile.':'.request()->ip();
+
+        if (RateLimiter::tooManyAttempts($verifyKey, 10)) {
+            throw ValidationException::withMessages([
+                'code' => ['تعداد تلاش‌های شما بیش از حد مجاز است. لطفاً چند دقیقه صبر کنید.'],
+            ]);
+        }
+
+        RateLimiter::hit($verifyKey, 300);
 
         $otp = OtpCode::where('mobile', $mobile)
             ->where('code', $dto->code)
@@ -78,6 +88,7 @@ class OtpService
         }
 
         $otp->update(['verified_at' => now()]);
+        RateLimiter::clear($verifyKey);
 
         $user = $this->userRepository->findByMobile($mobile);
 

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Building2, Clock, Users, AlertTriangle, Plus, TrendingUp } from 'lucide-react'
+import { CheckCircle2, Building2, Clock, Users, AlertTriangle, Plus, TrendingUp } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import api from '@/lib/api'
 import { formatNumber } from '@/lib/utils'
@@ -165,6 +165,28 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary" />
+            وظایف
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {data?.tasks?.map((task) => (
+            <div key={task.id} className="flex items-center gap-3 p-3 rounded-xl glass-hover">
+              <div className={`h-2 w-2 rounded-full ${task.status === 'completed' ? 'bg-success' : 'bg-muted'}`} />
+              <span className={`text-sm ${task.status === 'completed' ? 'line-through text-muted' : ''}`}>
+                {task.title}
+              </span>
+            </div>
+          ))}
+          {!data?.tasks?.length && (
+            <p className="text-center text-muted py-4 text-sm">وظیفه‌ای ندارید</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

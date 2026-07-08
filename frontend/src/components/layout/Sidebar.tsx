@@ -80,7 +80,7 @@ export function Sidebar() {
           <Button variant="ghost" size="sm" onClick={toggleTheme} className="flex-1">
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
-          <Button variant="ghost" size="sm" onClick={logout} className="flex-1 text-danger">
+          <Button variant="ghost" size="sm" onClick={() => logout().then(() => window.location.href = '/login')} className="flex-1 text-danger">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>

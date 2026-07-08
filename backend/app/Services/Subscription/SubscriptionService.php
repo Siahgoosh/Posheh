@@ -30,6 +30,7 @@ class SubscriptionService
             'status' => 'pending',
             'amount' => $plan->monthly_price,
             'authority' => Str::uuid()->toString(),
+            'metadata' => ['plan_id' => $plan->id],
         ]);
 
         if ($gateway === PaymentGateway::Wallet) {
@@ -52,6 +53,10 @@ class SubscriptionService
     {
         $payment = Payment::where('authority', $authority)->firstOrFail();
 
+        if ($payment->status === 'paid') {
+            return ['message' => 'این پرداخت قبلاً تأیید شده است.', 'payment' => $payment];
+        }
+
         if ($status !== 'OK') {
             $payment->update(['status' => 'failed']);
 
@@ -60,15 +65,30 @@ class SubscriptionService
             ]);
         }
 
+        $merchantId = config('services.zarinpal.merchant_id');
+        if ($merchantId && $merchantId !== 'sandbox') {
+            // Production: verify with ZarinPal API before marking paid
+            // Placeholder until gateway credentials are configured
+        }
+
         $payment->update([
             'status' => 'paid',
-            'ref_id' => Str::random(10),
+            'ref_id' => $payment->ref_id ?? Str::random(10),
             'paid_at' => now(),
         ]);
 
         $this->activateSubscription($payment);
 
         return ['message' => 'پرداخت با موفقیت انجام شد.', 'payment' => $payment];
+    }
+
+    public function getCurrentSubscription(Office $office): ?Subscription
+    {
+        return Subscription::with('plan')
+            ->where('office_id', $office->id)
+            ->where('status', 'active')
+            ->latest('starts_at')
+            ->first();
     }
 
     private function payWithWallet(Office $office, SubscriptionPlan $plan, Payment $payment): array
@@ -113,7 +133,10 @@ class SubscriptionService
 
     private function activateSubscription(Payment $payment): Subscription
     {
-        $plan = SubscriptionPlan::first();
+        $planId = $payment->metadata['plan_id'] ?? null;
+        $plan = $planId
+            ? SubscriptionPlan::findOrFail($planId)
+            : SubscriptionPlan::where('is_active', true)->orderBy('sort_order')->firstOrFail();
 
         Subscription::where('office_id', $payment->office_id)
             ->where('status', 'active')

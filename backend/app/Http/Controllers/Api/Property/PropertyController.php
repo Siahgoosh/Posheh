@@ -8,7 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PropertyResource;
 use App\Services\Property\PropertyService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use App\Http\Requests\Property\UpdatePropertyRequest;
 
 class PropertyController extends Controller
 {
@@ -69,9 +69,9 @@ class PropertyController extends Controller
         ]);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdatePropertyRequest $request, int $id): JsonResponse
     {
-        $property = $this->propertyService->update($request->user(), $id, $request->all());
+        $property = $this->propertyService->update($request->user(), $id, $request->validated());
 
         return response()->json([
             'data' => new PropertyResource($property),

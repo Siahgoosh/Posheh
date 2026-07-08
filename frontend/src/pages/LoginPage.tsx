@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Building2, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import api from '@/lib/api'
+import { getDeviceId, getDeviceName, getPlatform } from '@/lib/device'
 import { useAuthStore } from '@/stores/auth'
 import { toPersianDigits } from '@/lib/utils'
 
@@ -46,7 +47,13 @@ export function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const { data } = await api.post('/auth/otp/verify', { mobile, code: otp })
+      const { data } = await api.post('/auth/otp/verify', {
+        mobile,
+        code: otp,
+        device_id: getDeviceId(),
+        device_name: getDeviceName(),
+        platform: getPlatform(),
+      })
       setAuth(data.user, data.token)
       navigate('/dashboard')
     } catch (err: unknown) {
@@ -70,6 +77,7 @@ export function LoginPage() {
         className="relative w-full max-w-md"
       >
         <div className="mb-8 text-center">
+          <Link to="/" className="text-sm text-muted hover:text-primary mb-4 inline-block">← بازگشت به صفحه اصلی</Link>
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/30">
             <Building2 className="h-8 w-8 text-white" />
           </div>

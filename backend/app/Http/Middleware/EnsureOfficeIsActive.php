@@ -15,7 +15,7 @@ class EnsureOfficeIsActive
         if ($user && ! $user->isSuperAdmin()) {
             $office = $user->office;
 
-            if (! $office || ! $office->is_active) {
+            if ($office && ! $office->is_active) {
                 return response()->json([
                     'message' => 'دفتر شما غیرفعال است. لطفاً با پشتیبانی تماس بگیرید.',
                 ], 403);

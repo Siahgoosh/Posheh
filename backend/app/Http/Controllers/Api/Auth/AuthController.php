@@ -32,7 +32,7 @@ class AuthController extends Controller
     public function verifyOtp(Request $request): JsonResponse
     {
         $request->validate([
-            'mobile' => ['required', 'string'],
+            'mobile' => ['required', 'string', 'regex:/^09\d{9}$/'],
             'code' => ['required', 'string', 'size:6'],
             'device_id' => ['nullable', 'string'],
             'device_name' => ['nullable', 'string'],

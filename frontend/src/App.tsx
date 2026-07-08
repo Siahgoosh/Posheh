@@ -1,54 +1,64 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth'
+import { AuthBootstrap } from '@/components/AuthBootstrap'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { LandingPage } from '@/pages/LandingPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { PropertiesPage } from '@/pages/PropertiesPage'
+import { PropertyDetailPage } from '@/pages/PropertyDetailPage'
 import { PropertyFormPage } from '@/pages/PropertyFormPage'
 import { SearchPage } from '@/pages/SearchPage'
+import { FavoritesPage } from '@/pages/FavoritesPage'
+import { TeamPage } from '@/pages/TeamPage'
+import { SubscriptionPage } from '@/pages/SubscriptionPage'
+import { SettingsPage } from '@/pages/SettingsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
 })
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, hydrated } = useAuthStore()
+  if (!hydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    )
+  }
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return <>{children}</>
-}
-
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <p className="text-muted">{title} — به زودی</p>
-    </div>
-  )
 }
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          element={
-            <ProtectedRoute>
-              <AppLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/properties" element={<PropertiesPage />} />
-          <Route path="/properties/new" element={<PropertyFormPage />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/favorites" element={<PlaceholderPage title="علاقه‌مندی‌ها" />} />
-          <Route path="/team" element={<PlaceholderPage title="مدیریت تیم" />} />
-          <Route path="/subscription" element={<PlaceholderPage title="اشتراک" />} />
-          <Route path="/settings" element={<PlaceholderPage title="تنظیمات" />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Route>
-      </Routes>
+      <AuthBootstrap>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/properties" element={<PropertiesPage />} />
+            <Route path="/properties/new" element={<PropertyFormPage />} />
+            <Route path="/properties/:id/edit" element={<PropertyFormPage />} />
+            <Route path="/properties/:id" element={<PropertyDetailPage />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
+            <Route path="/team" element={<TeamPage />} />
+            <Route path="/subscription" element={<SubscriptionPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
+        </Routes>
+      </AuthBootstrap>
     </QueryClientProvider>
   )
 }
