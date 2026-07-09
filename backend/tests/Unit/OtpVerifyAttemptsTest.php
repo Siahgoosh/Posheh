@@ -50,7 +50,41 @@ class OtpVerifyAttemptsTest extends TestCase
         $this->assertNotEmpty($result['token']);
     }
 
-    public function test_verify_accepts_code_from_cache_when_db_row_missing(): void
+    public function test_verify_accepts_matching_code_from_older_active_row(): void
+    {
+        $office = Office::create(['name' => 'Older OTP Office', 'slug' => 'older-otp-office']);
+        User::create([
+            'name' => 'Older OTP User',
+            'mobile' => '09170577873',
+            'office_id' => $office->id,
+            'role' => UserRole::Consultant,
+            'is_active' => true,
+        ]);
+
+        OtpCode::create([
+            'mobile' => '9170577873',
+            'code' => '150955',
+            'purpose' => 'login',
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        OtpCode::create([
+            'mobile' => '09170577873',
+            'code' => '999999',
+            'purpose' => 'login',
+            'expires_at' => now()->addMinutes(5),
+        ]);
+
+        $service = $this->makeService();
+
+        $result = $service->verify(new VerifyOtpDTO(
+            mobile: '09170577873',
+            code: '150955',
+        ));
+
+        $this->assertSame('09170577873', $result['user']->mobile);
+    }
+
     {
         $office = Office::create(['name' => 'Cache Office', 'slug' => 'cache-office']);
         User::create([

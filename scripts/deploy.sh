@@ -33,7 +33,7 @@ ensure_env_file() {
   fi
 
   $COMPOSE exec -T app sh -c '
-    grep -q "^CACHE_STORE=" .env && sed -i "s/^CACHE_STORE=.*/CACHE_STORE=file/" .env || echo "CACHE_STORE=file" >> .env
+    grep -q "^CACHE_STORE=" .env && sed -i "s/^CACHE_STORE=.*/CACHE_STORE=redis/" .env || echo "CACHE_STORE=redis" >> .env
     grep -q "^QUEUE_CONNECTION=" .env && sed -i "s/^QUEUE_CONNECTION=.*/QUEUE_CONNECTION=sync/" .env || echo "QUEUE_CONNECTION=sync" >> .env
     grep -q "^SESSION_DRIVER=" .env && sed -i "s/^SESSION_DRIVER=.*/SESSION_DRIVER=file/" .env || echo "SESSION_DRIVER=file" >> .env
     grep -q "^DB_HOST=" .env || echo "DB_HOST=mysql" >> .env
