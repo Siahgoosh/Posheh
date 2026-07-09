@@ -100,35 +100,83 @@ class IpPanelSmsService
       'success' => false,
       'message' => $patternResult['message'] ?? 'ارسال پترن OTP ناموفق بود',
       'method' => $patternResult['method'] ?? null,
+      'details' => $patternResult['details'] ?? null,
     ];
   }
 
   /** @param array<string, mixed> $config */
   private function sendOtpJspdOnly(string $mobile, string $patternCode, array $params, array $config, array $auth): array
   {
+    if (empty($config['username']) || empty($config['password'])) {
+      return ['success' => false, 'message' => 'نام کاربری و رمز مکث برای JSPD لازم است'];
+    }
+
+    $code = (string) ($params['code'] ?? '');
     $fromCandidates = array_values(array_unique(array_filter([
       trim((string) ($config['from_number'] ?? '')),
       trim((string) ($config['otp_from_number'] ?? '')),
       '+9810008721297974',
     ])));
 
+    $pValueCandidates = [
+      json_encode([$code], JSON_UNESCAPED_UNICODE),
+      json_encode(['code' => $code], JSON_UNESCAPED_UNICODE),
+    ];
+
+    $recipients = json_encode([$this->toJspdMobile($mobile)]);
     $lastResult = ['success' => false, 'message' => 'ارسال پترن JSPD ناموفق بود'];
 
     foreach ($fromCandidates as $fromNumber) {
-      $tryConfig = array_merge($config, ['from_number' => $fromNumber]);
-      $jspdResult = $this->sendPatternJspd($mobile, $patternCode, $params, $tryConfig, $auth, otpMode: true);
+      $from = $this->normalizeSenderForJspd($fromNumber);
 
-      if ($jspdResult['success']) {
-        return $jspdResult;
+      foreach ($pValueCandidates as $index => $pValues) {
+        try {
+          $response = Http::connectTimeout(5)
+            ->timeout(15)
+            ->asForm()
+            ->post('https://ippanel.com/services.jspd', [
+              'uname' => $config['username'],
+              'pass' => $config['password'],
+              'from' => $from,
+              'to' => $recipients,
+              'op' => 'pattern',
+              'p_code' => $patternCode,
+              'p_values' => $pValues,
+            ]);
+
+          $result = $this->parseJspdResponse($response);
+          $result['method'] = 'jspd_otp_pattern_f'.$from.'_v'.$index;
+
+          if ($result['success']) {
+            Log::info('OTP sent via JSPD pattern', [
+              'mobile' => $mobile,
+              'from' => $fromNumber,
+              'method' => $result['method'],
+              'p_values' => $pValues,
+            ]);
+
+            return $result;
+          }
+
+          $lastResult = $result;
+
+          Log::warning('OTP JSPD pattern rejected', [
+            'mobile' => $mobile,
+            'from' => $fromNumber,
+            'method' => $result['method'],
+            'message' => $result['message'] ?? null,
+            'raw' => isset($result['details']['raw']) ? substr((string) $result['details']['raw'], 0, 200) : null,
+          ]);
+        } catch (\Throwable $e) {
+          $lastResult = ['success' => false, 'message' => $e->getMessage(), 'method' => 'jspd_otp_pattern'];
+
+          Log::warning('OTP JSPD exception', [
+            'mobile' => $mobile,
+            'from' => $fromNumber,
+            'error' => $e->getMessage(),
+          ]);
+        }
       }
-
-      $lastResult = $jspdResult;
-
-      Log::warning('OTP JSPD failed for from line', [
-        'mobile' => $mobile,
-        'from' => $fromNumber,
-        'message' => $jspdResult['message'] ?? null,
-      ]);
     }
 
     return $lastResult;
@@ -337,28 +385,47 @@ class IpPanelSmsService
       return ['success' => false, 'message' => 'توکن Edge API در دسترس نیست'];
     }
 
-    try {
-      $response = Http::timeout(15)
-        ->withHeaders([
-          'Authorization' => $token,
-          'Content-Type' => 'application/json',
-          'Accept' => 'application/json',
-        ])
-        ->post($this->apiBase($config).'/send', [
-          'sending_type' => 'pattern',
-          'from_number' => $this->normalizeSender($config['from_number']),
-          'code' => $patternCode,
-          'recipients' => [$this->toE164($mobile)],
-          'params' => $params,
-        ]);
+    $payload = [
+      'sending_type' => 'pattern',
+      'from_number' => $this->normalizeSender($config['from_number']),
+      'code' => $patternCode,
+      'recipients' => [$this->toE164($mobile)],
+      'params' => $params,
+    ];
 
-      $result = $this->parseResponse($response);
-      $result['method'] = 'edge_pattern';
+    $authHeaders = [
+      $token,
+      'AccessKey '.$token,
+      'Bearer '.$token,
+    ];
 
-      return $result;
-    } catch (\Throwable $e) {
-      return ['success' => false, 'message' => 'خطای Edge pattern: '.$e->getMessage(), 'method' => 'edge_pattern'];
+    $lastResult = ['success' => false, 'message' => 'ارسال Edge pattern ناموفق بود'];
+
+    foreach (array_unique($authHeaders) as $authorization) {
+      try {
+        $response = Http::connectTimeout(5)
+          ->timeout(15)
+          ->withHeaders([
+            'Authorization' => $authorization,
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+          ])
+          ->post($this->apiBase($config).'/send', $payload);
+
+        $result = $this->parseResponse($response);
+        $result['method'] = 'edge_pattern';
+
+        if ($result['success']) {
+          return $result;
+        }
+
+        $lastResult = $result;
+      } catch (\Throwable $e) {
+        $lastResult = ['success' => false, 'message' => 'خطای Edge pattern: '.$e->getMessage(), 'method' => 'edge_pattern'];
+      }
     }
+
+    return $lastResult;
   }
 
   private function sendPatternJspd(string $mobile, string $patternCode, array $params, array $config, array $auth, bool $otpMode = false): array
@@ -647,13 +714,16 @@ class IpPanelSmsService
 
   private function parseJspdResponse(Response $response): array
   {
-    $body = $response->json();
+    $body = $this->decodeJspdBody($response->body());
 
     if (! is_array($body) || count($body) < 2) {
       return [
         'success' => false,
         'message' => 'پاسخ نامعتبر از سرویس مکث/آی‌پی‌پنل',
-        'details' => ['raw' => $response->body()],
+        'details' => [
+          'raw' => mb_substr(trim($response->body()), 0, 300),
+          'http_status' => $response->status(),
+        ],
       ];
     }
 
@@ -665,6 +735,33 @@ class IpPanelSmsService
     }
 
     return ['success' => false, 'message' => "خطای مکث/آی‌پی‌پنل ({$code}): {$message}", 'details' => ['code' => $code]];
+  }
+
+  /** @return mixed */
+  private function decodeJspdBody(string $raw)
+  {
+    $raw = trim($raw);
+    if ($raw === '') {
+      return null;
+    }
+
+    $decoded = json_decode($raw, true);
+    if (json_last_error() === JSON_ERROR_NONE) {
+      if (is_string($decoded)) {
+        $decoded = json_decode($decoded, true);
+      }
+
+      return $decoded;
+    }
+
+    if (preg_match('/\[[^\]]+\]/', $raw, $matches)) {
+      $decoded = json_decode($matches[0], true);
+      if (is_array($decoded)) {
+        return $decoded;
+      }
+    }
+
+    return null;
   }
 
   private function normalizeSenderForJspd(string $number): string

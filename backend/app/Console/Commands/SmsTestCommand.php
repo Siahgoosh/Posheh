@@ -49,6 +49,12 @@ class SmsTestCommand extends Command
                 if (! empty($result['method'])) {
                     $this->line("Last method: {$result['method']}");
                 }
+                if (! empty($result['details']['raw'])) {
+                    $this->line('Provider raw: '.mb_substr((string) $result['details']['raw'], 0, 200));
+                }
+                if (! empty($result['details']['code'])) {
+                    $this->line('Provider code: '.$result['details']['code']);
+                }
             }
 
             return $ok ? self::SUCCESS : self::FAILURE;
