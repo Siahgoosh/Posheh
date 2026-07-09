@@ -64,6 +64,7 @@ class OtpService
             'expires_at' => now()->addMinutes(5),
         ]);
 
+        Cache::put($this->otpCacheKey($mobile), $code, now()->addMinutes(5));
         Cache::put($rateLimitKey, true, now()->addMinutes(2));
 
         Log::info('OTP saved after SMS', [
@@ -100,7 +101,10 @@ class OtpService
                     'method' => $result['method'] ?? null,
                 ]);
 
-                return ['success' => true];
+                return [
+                    'success' => true,
+                    'method' => $result['method'] ?? null,
+                ];
             }
 
             $message = is_array($result) ? ($result['message'] ?? 'SMS failed') : 'SMS job returned no result';
@@ -142,6 +146,7 @@ class OtpService
         RateLimiter::hit($verifyKey, 300);
 
         $submittedCode = $this->normalizeCode($dto->code);
+        $cachedCode = $this->normalizeCode((string) Cache::get($this->otpCacheKey($mobile), ''));
 
         $otp = OtpCode::where('mobile', $mobile)
             ->where('code', $submittedCode)
@@ -150,6 +155,22 @@ class OtpService
             ->where('attempts', '<', 5)
             ->latest()
             ->first();
+
+        if (! $otp && $cachedCode !== '' && hash_equals($cachedCode, $submittedCode)) {
+            $otp = OtpCode::where('mobile', $mobile)
+                ->whereNull('verified_at')
+                ->where('expires_at', '>', now())
+                ->where('attempts', '<', 5)
+                ->latest()
+                ->first();
+
+            if ($otp && ! hash_equals($this->normalizeCode($otp->code), $submittedCode)) {
+                Log::warning('OTP cache/db drift corrected', [
+                    'mobile' => $this->maskMobile($mobile),
+                ]);
+                $otp->update(['code' => $submittedCode]);
+            }
+        }
 
         if (! $otp) {
             $activeOtp = OtpCode::where('mobile', $mobile)
@@ -179,6 +200,7 @@ class OtpService
         }
 
         $otp->update(['verified_at' => now()]);
+        Cache::forget($this->otpCacheKey($mobile));
         RateLimiter::clear($verifyKey);
 
         $user = $this->userRepository->findByMobile($mobile);
@@ -289,17 +311,20 @@ class OtpService
 
     private function sanitizeSmsError(?string $message): string
     {
-        if ($message === null || trim($message) === '') {
-            return 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.';
+        if (config('app.debug') && $message !== null && trim($message) !== '') {
+            $message = preg_replace('/https?:\/\/\S+/', '[sms-api]', $message) ?? $message;
+            $message = preg_replace('/password=\S+/i', 'password=***', $message) ?? $message;
+
+            return mb_strlen($message) > 180
+                ? 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.'
+                : $message;
         }
 
-        $message = preg_replace('/https?:\/\/\S+/', '[sms-api]', $message) ?? $message;
-        $message = preg_replace('/password=\S+/i', 'password=***', $message) ?? $message;
+        return 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.';
+    }
 
-        if (mb_strlen($message) > 180) {
-            return 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.';
-        }
-
-        return $message;
+    private function otpCacheKey(string $mobile): string
+    {
+        return 'otp_active:'.$mobile;
     }
 }

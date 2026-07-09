@@ -9,7 +9,22 @@ class UserRepository implements UserRepositoryInterface
 {
     public function findByMobile(string $mobile): ?User
     {
-        return User::where('mobile', $mobile)->first();
+        $normalized = preg_replace('/\D/', '', $mobile);
+        if (str_starts_with($normalized, '98')) {
+            $normalized = '0'.substr($normalized, 2);
+        }
+        if ($normalized !== '' && ! str_starts_with($normalized, '0')) {
+            $normalized = '0'.$normalized;
+        }
+
+        return User::query()
+            ->whereIn('mobile', array_unique(array_filter([
+                $mobile,
+                $normalized,
+                ltrim($normalized, '0'),
+                '98'.ltrim($normalized, '0'),
+            ])))
+            ->first();
     }
 
     public function findById(int $id): ?User

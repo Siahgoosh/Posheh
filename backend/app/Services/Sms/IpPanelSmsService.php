@@ -50,24 +50,18 @@ class IpPanelSmsService
       ];
     }
 
-    $patternResult = $this->sendPattern(
-      $mobile,
-      $patternCode,
-      ['code' => $code],
-      $patternConfig,
-      otpMode: true,
-    );
+    $patternResult = $this->sendOtpViaJspd($mobile, $patternCode, $code, $patternConfig);
 
     if ($patternResult['success']) {
       Log::info('OTP sent via pattern', [
         'mobile' => $mobile,
-        'method' => $patternResult['method'] ?? 'pattern',
+        'method' => $patternResult['method'] ?? 'jspd_pattern',
         'pattern' => $patternCode,
         'from' => $patternConfig['from_number'],
         'code_tail' => substr($code, -2),
       ]);
 
-      return ['success' => true, 'method' => $patternResult['method'] ?? 'pattern'];
+      return ['success' => true, 'method' => $patternResult['method'] ?? 'jspd_pattern'];
     }
 
     Log::error('OTP pattern send failed', [
@@ -80,9 +74,29 @@ class IpPanelSmsService
 
     return [
       'success' => false,
-      'message' => $patternResult['message'] ?? 'ارسال پترن OTP ناموفق بود.',
+      'message' => 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.',
+      'debug' => config('app.debug') ? ($patternResult['message'] ?? null) : null,
       'method' => $patternResult['method'] ?? null,
     ];
+  }
+
+  /** @param array<string, mixed> $config */
+  private function sendOtpViaJspd(string $mobile, string $patternCode, string $code, array $config): array
+  {
+    $auth = $this->resolveAuth($config, 'jspd', $config['sms_provider'] ?? 'maxsms');
+
+    if (! $this->hasSendCredentials($auth, $config, 'jspd', $config['sms_provider'] ?? 'maxsms')) {
+      return ['success' => false, 'message' => $auth['error'] ?? 'خطا در احراز هویت IPPanel'];
+    }
+
+    return $this->sendPatternJspd(
+      $mobile,
+      $patternCode,
+      ['code' => $code],
+      $config,
+      $auth,
+      otpMode: true,
+    );
   }
 
   /** @param array<string, mixed> $config */
@@ -224,18 +238,15 @@ class IpPanelSmsService
     $lastResult = ['success' => false, 'message' => 'ارسال پترن ناموفق بود'];
 
     if ($otpMode) {
-      $edgeResult = $this->sendPatternEdge($mobile, $patternCode, $params, $config, $auth);
-      if ($edgeResult['success']) {
-        return $edgeResult;
-      }
-      $lastResult = $edgeResult;
-
       $jspdResult = $this->sendPatternJspd($mobile, $patternCode, $params, $config, $auth, true);
       if ($jspdResult['success']) {
         return $jspdResult;
       }
+      $lastResult = $jspdResult;
 
-      return $jspdResult['message'] ? $jspdResult : $lastResult;
+      if ($mode === 'jspd' || $mode === 'legacy') {
+        return $lastResult;
+      }
     }
 
     if ($provider === 'maxsms' || $mode === 'jspd' || $mode === 'auto' || $mode === 'legacy') {
@@ -345,7 +356,10 @@ class IpPanelSmsService
     foreach ($credentialSets as $creds) {
       foreach ($pValueVariants as $index => $pValues) {
         $formVariants = $otpMode
-          ? [['op' => 'pattern', 'p_code' => $patternCode, 'p_values' => $pValues]]
+          ? [
+            ['op' => 'pattern', 'p_code' => $patternCode, 'p_values' => $pValues],
+            ['op' => 'sendPattern', 'pattern_code' => $patternCode, 'input_data' => $pValues],
+          ]
           : [
             ['op' => 'pattern', 'p_code' => $patternCode, 'p_values' => $pValues],
             ['op' => 'sendPattern', 'pattern_code' => $patternCode, 'input_data' => $pValues],
@@ -353,7 +367,7 @@ class IpPanelSmsService
 
         foreach ($formVariants as $variant) {
           try {
-            $response = Http::timeout(30)->asForm()->post('https://ippanel.com/services.jspd', [
+            $response = Http::timeout(20)->asForm()->post('https://ippanel.com/services.jspd', [
               'uname' => $creds['uname'],
               'pass' => $creds['pass'],
               'from' => $from,
@@ -377,7 +391,16 @@ class IpPanelSmsService
 
             $lastResult = $result;
           } catch (\Throwable $e) {
-            $lastResult = ['success' => false, 'message' => 'خطای JSPD pattern: '.$e->getMessage(), 'method' => 'jspd_pattern'];
+            Log::error('IPPanel JSPD pattern exception', [
+              'mobile' => $mobile,
+              'otp_mode' => $otpMode,
+              'error' => $e->getMessage(),
+            ]);
+            $lastResult = ['success' => false, 'message' => $e->getMessage(), 'method' => 'jspd_pattern'];
+
+            if ($otpMode) {
+              break 2;
+            }
           }
         }
       }
@@ -392,11 +415,8 @@ class IpPanelSmsService
     $code = (string) ($params['code'] ?? $params['otp'] ?? $params['verification-code'] ?? array_values($params)[0] ?? '');
 
     if ($otpMode && $code !== '') {
-      // MaxSMS/IPPanel OTP patterns use %code% — must be a named object, not a bare array
-      return [
-        json_encode(['code' => $code], JSON_UNESCAPED_UNICODE),
-        json_encode([$code], JSON_UNESCAPED_UNICODE),
-      ];
+      // JSPD OTP patterns: positional array (proven to deliver on MaxSMS)
+      return [json_encode([$code], JSON_UNESCAPED_UNICODE)];
     }
 
     $variants = [];
