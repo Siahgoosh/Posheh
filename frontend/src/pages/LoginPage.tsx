@@ -62,8 +62,28 @@ export function LoginPage() {
       setAuth(data.user, data.token)
       navigate('/dashboard')
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
-      setError(axiosErr.response?.data?.errors?.code?.[0] || axiosErr.response?.data?.errors?.mobile?.[0] || 'کد نامعتبر است')
+      const axiosErr = err as {
+        response?: {
+          status?: number
+          data?: { message?: string; errors?: Record<string, string[]> }
+        }
+      }
+      const apiMessage = axiosErr.response?.data?.message
+      const fieldError =
+        axiosErr.response?.data?.errors?.code?.[0] ||
+        axiosErr.response?.data?.errors?.mobile?.[0]
+
+      if (axiosErr.response?.status === 419) {
+        setError('خطای امنیتی (CSRF). صفحه را رفرش کنید و دوباره تلاش کنید.')
+      } else if (fieldError) {
+        setError(fieldError)
+      } else if (apiMessage) {
+        setError(apiMessage)
+      } else if (axiosErr.response?.status === 429) {
+        setError('تعداد درخواست‌ها زیاد است. چند دقیقه صبر کنید.')
+      } else {
+        setError('خطا در تأیید کد. دوباره تلاش کنید.')
+      }
       setOtp('')
       setOtpInputKey((key) => key + 1)
     } finally {

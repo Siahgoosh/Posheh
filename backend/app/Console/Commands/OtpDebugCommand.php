@@ -14,6 +14,7 @@ class OtpDebugCommand extends Command
     protected $signature = 'otp:debug
         {mobile : Mobile number e.g. 09170577873}
         {--code= : Test whether this code would verify}
+        {--execute : Actually run verify/login (consumes the OTP)}
         {--reveal : Show full OTP codes (server CLI only)}';
 
     protected $description = 'Show active OTP state for a mobile (for troubleshooting login)';
@@ -71,22 +72,40 @@ class OtpDebugCommand extends Command
 
         $testCode = $this->option('code');
         if ($testCode !== null && $testCode !== '') {
+            $normalizedTestCode = preg_replace('/\D/', '', (string) $testCode);
             $this->newLine();
-            $this->info('Testing verify for code: '.$this->formatCode($testCode, true));
+            $this->info('Testing code match: '.$this->formatCode($normalizedTestCode, true));
 
-            try {
-                $result = $otpService->verify(new VerifyOtpDTO(
-                    mobile: $mobile,
-                    code: (string) $testCode,
-                ));
+            $matching = $activeRows->first(
+                fn (OtpCode $otp) => hash_equals((string) $otp->code, $normalizedTestCode)
+                    || hash_equals(ltrim((string) $otp->code, '0') ?: '0', ltrim($normalizedTestCode, '0') ?: '0')
+            );
 
-                $this->info('Verify OK — user #'.$result['user']->id.' '.$result['user']->name);
-            } catch (ValidationException $e) {
-                $messages = collect($e->errors())->flatten()->implode(' | ');
-                $this->error('Verify failed: '.$messages);
+            if ($matching) {
+                $this->info('Code matches active OTP row id='.$matching->id);
+            } elseif ($cached !== null && hash_equals((string) $cached, $normalizedTestCode)) {
+                $this->info('Code matches cache value.');
+            } else {
+                $this->error('Code does NOT match any active OTP row or cache.');
+            }
+
+            if ($this->option('execute')) {
+                try {
+                    $result = $otpService->verify(new VerifyOtpDTO(
+                        mobile: $mobile,
+                        code: (string) $testCode,
+                    ));
+
+                    $this->info('Verify executed — user #'.$result['user']->id.' '.$result['user']->name);
+                } catch (ValidationException $e) {
+                    $messages = collect($e->errors())->flatten()->implode(' | ');
+                    $this->error('Verify failed: '.$messages);
+                }
+            } else {
+                $this->line('Dry-run only. Add --execute to consume OTP and complete login.');
             }
         } elseif (! $reveal) {
-            $this->line('Tip: add --reveal to see full codes, or --code=123456 to test verify from CLI.');
+            $this->line('Tip: add --reveal for full codes, --code=123456 to test match, --execute to run real verify.');
         }
 
         return self::SUCCESS;
