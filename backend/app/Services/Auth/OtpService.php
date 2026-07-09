@@ -18,6 +18,8 @@ use Illuminate\Validation\ValidationException;
 
 class OtpService
 {
+    private const SEND_COOLDOWN_SECONDS = 60;
+
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly SystemSettingsService $settings,
@@ -29,10 +31,18 @@ class OtpService
         $mobile = $this->normalizeMobile($dto->mobile);
 
         $rateLimitKey = "otp_rate:{$mobile}";
-        if (Cache::has($rateLimitKey)) {
+        $cooldownUntil = Cache::get($rateLimitKey);
+
+        if (is_numeric($cooldownUntil) && now()->timestamp < (int) $cooldownUntil) {
+            $remaining = max(1, (int) $cooldownUntil - now()->timestamp);
+
             throw ValidationException::withMessages([
-                'mobile' => ['لطفاً چند دقیقه صبر کنید و دوباره تلاش کنید.'],
+                'mobile' => ["لطفاً {$remaining} ثانیه صبر کنید و دوباره تلاش کنید."],
             ]);
+        }
+
+        if ($cooldownUntil !== null && ! is_numeric($cooldownUntil)) {
+            Cache::forget($rateLimitKey);
         }
 
         $code = $this->generateOtpCode();
@@ -70,7 +80,11 @@ class OtpService
         ]);
 
         Cache::put($this->otpCacheKey($mobile), $code, now()->addMinutes(5));
-        Cache::put($rateLimitKey, true, now()->addMinutes(2));
+        Cache::put(
+            $rateLimitKey,
+            now()->addSeconds(self::SEND_COOLDOWN_SECONDS)->timestamp,
+            now()->addSeconds(self::SEND_COOLDOWN_SECONDS)
+        );
 
         Log::info('OTP saved after SMS', [
             'mobile' => $this->maskMobile($mobile),
