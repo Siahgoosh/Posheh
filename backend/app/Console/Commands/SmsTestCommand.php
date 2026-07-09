@@ -36,7 +36,7 @@ class SmsTestCommand extends Command
             $this->line('Has API key: '.(! empty($config['api_key']) ? 'yes' : 'no'));
 
             if ($this->option('debug')) {
-                $this->warn('OTP path order: 1) JSPD sendPattern  2) classic pattern  3) Edge API');
+                $this->warn('OTP path order: 1) classic pattern (from_number first)  2) JSPD  3) Edge API');
                 $this->line('OTP from: '.($config['otp_from_number'] ?? $config['from_number'] ?? '—'));
                 $this->line('Base URL: '.($config['base_url'] ?? '—'));
                 $this->line('Username set: '.(! empty($config['username']) ? 'yes' : 'NO — required for OTP'));

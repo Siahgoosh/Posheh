@@ -41,4 +41,20 @@ class ClassicPatternResponseTest extends TestCase
 
         $this->assertTrue($result['success']);
     }
+
+    public function test_classic_pattern_numeric_tracking_is_success(): void
+    {
+        $settings = Mockery::mock(SystemSettingsService::class);
+        $service = new IpPanelSmsService($settings);
+
+        $response = new Response(new \GuzzleHttp\Psr7\Response(200, [], '1441216818'));
+
+        $method = new ReflectionMethod(IpPanelSmsService::class, 'parseClassicPatternResponse');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($service, $response);
+
+        $this->assertTrue($result['success']);
+        $this->assertSame('1441216818', $result['details']['tracking']);
+    }
 }

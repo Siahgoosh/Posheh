@@ -54,13 +54,6 @@ class IpPanelSmsService
         'password' => $creds['password'],
       ]);
 
-      $jspdResult = $this->sendOtpJspdPattern($mobile, $patternCode, $params, $credConfig);
-      $jspdResult['method'] = ($jspdResult['method'] ?? 'jspd_otp').'_'.$creds['label'];
-      $attempts[] = $jspdResult;
-      if ($jspdResult['success']) {
-        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
-      }
-
       if ($creds['label'] === 'panel') {
         $classicResult = $this->sendOtpClassicPattern($mobile, $patternCode, $params, $credConfig);
         $classicResult['method'] = ($classicResult['method'] ?? 'classic_otp').'_'.$creds['label'];
@@ -68,6 +61,13 @@ class IpPanelSmsService
         if ($classicResult['success']) {
           return $this->otpSuccess($mobile, $patternCode, $otpConfig, $classicResult);
         }
+      }
+
+      $jspdResult = $this->sendOtpJspdPattern($mobile, $patternCode, $params, $credConfig);
+      $jspdResult['method'] = ($jspdResult['method'] ?? 'jspd_otp').'_'.$creds['label'];
+      $attempts[] = $jspdResult;
+      if ($jspdResult['success']) {
+        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
       }
     }
 
@@ -305,6 +305,7 @@ class IpPanelSmsService
   private function otpFromCandidates(array $config): array
   {
     return array_values(array_unique(array_filter([
+      trim((string) ($config['from_number'] ?? '')),
       trim((string) ($config['otp_from_number'] ?? '')),
       self::OTP_FROM_NUMBER,
     ])));
@@ -346,14 +347,32 @@ class IpPanelSmsService
 
   private function parseClassicPatternResponse(Response $response): array
   {
-    $body = $this->decodeClassicPatternBody($response->body());
+    $raw = trim($response->body());
+
+    if ($raw === '') {
+      return [
+        'success' => false,
+        'message' => 'پاسخ خالی از سرویس پترن مکث',
+        'details' => ['http_status' => $response->status()],
+      ];
+    }
+
+    if (preg_match('/^\d+$/', $raw)) {
+      return [
+        'success' => true,
+        'message' => 'ارسال شد',
+        'details' => ['tracking' => $raw, 'code' => '0'],
+      ];
+    }
+
+    $body = $this->decodeClassicPatternBody($raw);
 
     if (! is_array($body) || count($body) < 2) {
       return [
         'success' => false,
-        'message' => 'پاسخ نامعتبر از سرویس پترن مکث',
+        'message' => 'خطای پترن مکث: '.$raw,
         'details' => [
-          'raw' => mb_substr(trim($response->body()), 0, 300),
+          'raw' => mb_substr($raw, 0, 300),
           'http_status' => $response->status(),
         ],
       ];
@@ -490,8 +509,7 @@ class IpPanelSmsService
     $baseUrl = rtrim($config['base_url'] ?? 'https://edge.ippanel.com/v1', '/');
 
     try {
-      $response = Http::connectTimeout(5)
-        ->timeout(15)
+      $response = $this->otpHttp()
         ->withHeaders(['Content-Type' => 'application/json', 'Accept' => 'application/json'])
         ->post("{$baseUrl}/api/acl/auth/login", [
           'username' => $config['username'],
@@ -546,19 +564,19 @@ class IpPanelSmsService
   /** @param array<string, mixed> $config */
   private function otpPatternConfig(array $config): array
   {
-    $otpFrom = trim((string) ($config['otp_from_number'] ?? ''));
-    if ($otpFrom === '') {
-      $otpFrom = trim((string) env('IPPANEL_OTP_FROM_NUMBER', ''));
+    if (empty($config['otp_pattern_code'])) {
+      $config['otp_pattern_code'] = self::OTP_PATTERN_CODE;
     }
 
-    if ($otpFrom !== '') {
+    $otpFrom = trim((string) ($config['otp_from_number'] ?? ''));
+    $generalFrom = trim((string) ($config['from_number'] ?? ''));
+
+    if ($generalFrom !== '') {
+      $config['from_number'] = $generalFrom;
+    } elseif ($otpFrom !== '') {
       $config['from_number'] = $otpFrom;
     } else {
       $config['from_number'] = self::OTP_FROM_NUMBER;
-    }
-
-    if (empty($config['otp_pattern_code'])) {
-      $config['otp_pattern_code'] = self::OTP_PATTERN_CODE;
     }
 
     return $config;
