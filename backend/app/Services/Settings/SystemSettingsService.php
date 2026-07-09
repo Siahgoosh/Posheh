@@ -136,7 +136,7 @@ class SystemSettingsService
 
     public function ippanelConfig(): array
     {
-        return [
+        $config = [
             'api_key' => $this->get('ippanel_api_key'),
             'username' => $this->get('ippanel_username'),
             'password' => $this->get('ippanel_password'),
@@ -146,8 +146,39 @@ class SystemSettingsService
             'invite_pattern_code' => $this->get('ippanel_invite_pattern_code'),
             'base_url' => $this->get('ippanel_base_url', 'https://edge.ippanel.com/v1'),
             'api_mode' => $this->get('ippanel_api_mode', 'auto'),
-            'sms_provider' => $this->get('sms_provider', 'maxsms'),
+            'sms_provider' => $this->normalizeSmsProvider((string) $this->get('sms_provider', 'maxsms')),
         ];
+
+        return $this->mergeIppanelEnvConfig($config);
+    }
+
+    /** @param array<string, mixed> $config */
+    private function mergeIppanelEnvConfig(array $config): array
+    {
+        $envConfig = config('services.ippanel', []);
+
+        foreach ([
+            'api_key', 'username', 'password', 'from_number', 'otp_from_number',
+            'otp_pattern_code', 'invite_pattern_code', 'base_url', 'api_mode',
+        ] as $key) {
+            $value = $envConfig[$key] ?? null;
+            if ($value !== null && $value !== '') {
+                $config[$key] = $value;
+            }
+        }
+
+        return $config;
+    }
+
+    private function normalizeSmsProvider(string $provider): string
+    {
+        $provider = trim($provider);
+
+        if ($provider === '' || str_contains($provider, '=')) {
+            return 'maxsms';
+        }
+
+        return $provider;
     }
 
     public function ippanelConfigFromArray(array $override): array

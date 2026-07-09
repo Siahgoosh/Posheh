@@ -45,4 +45,16 @@ return [
         'api_key' => env('SMS_API_KEY'),
     ],
 
+    'ippanel' => [
+        'api_key' => env('IPPANEL_API_KEY'),
+        'username' => env('IPPANEL_USERNAME'),
+        'password' => env('IPPANEL_PASSWORD'),
+        'from_number' => env('IPPANEL_FROM_NUMBER'),
+        'otp_from_number' => env('IPPANEL_OTP_FROM_NUMBER'),
+        'otp_pattern_code' => env('IPPANEL_OTP_PATTERN_CODE'),
+        'invite_pattern_code' => env('IPPANEL_INVITE_PATTERN_CODE'),
+        'base_url' => env('IPPANEL_BASE_URL', 'https://edge.ippanel.com/v1'),
+        'api_mode' => env('IPPANEL_API_MODE', 'jspd'),
+    ],
+
 ];

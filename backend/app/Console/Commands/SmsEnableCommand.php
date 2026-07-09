@@ -60,6 +60,15 @@ class SmsEnableCommand extends Command
                 continue;
             }
 
+            if ($settingKey === 'sms_provider') {
+                $value = trim((string) $value);
+                if (str_contains($value, '=')) {
+                    $this->warn("  skipped invalid sms_provider from .env: {$value}");
+
+                    continue;
+                }
+            }
+
             if ($settings->set($settingKey, $value)) {
                 $this->line("  synced {$settingKey} from .env");
             }

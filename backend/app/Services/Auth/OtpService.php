@@ -4,12 +4,12 @@ namespace App\Services\Auth;
 
 use App\DTOs\Auth\SendOtpDTO;
 use App\DTOs\Auth\VerifyOtpDTO;
-use App\Jobs\SendOtpSmsJob;
 use App\Models\Device;
 use App\Models\OtpCode;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Settings\SystemSettingsService;
+use App\Services\Sms\IpPanelSmsService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -20,6 +20,7 @@ class OtpService
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly SystemSettingsService $settings,
+        private readonly IpPanelSmsService $sms,
     ) {}
 
     public function send(SendOtpDTO $dto): array
@@ -91,13 +92,13 @@ class OtpService
         return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     }
 
-    /** @return array{success: bool, message?: string} */
+    /** @return array{success: bool, message?: string, method?: string} */
     private function dispatchOtpSms(string $mobile, string $code): array
     {
         try {
-            $result = SendOtpSmsJob::dispatchSync($mobile, $code);
+            $result = $this->sms->sendOtp($mobile, $code);
 
-            if (is_array($result) && ($result['success'] ?? false)) {
+            if (($result['success'] ?? false)) {
                 Log::info('OTP SMS sent', [
                     'mobile' => $this->maskMobile($mobile),
                     'method' => $result['method'] ?? null,
@@ -109,11 +110,12 @@ class OtpService
                 ];
             }
 
-            $message = is_array($result) ? ($result['message'] ?? 'SMS failed') : 'SMS job returned no result';
+            $message = $result['message'] ?? 'SMS failed';
 
             Log::error('OTP SMS failed', [
                 'mobile' => $this->maskMobile($mobile),
                 'message' => $message,
+                'method' => $result['method'] ?? null,
                 'sms_mode' => $this->settings->get('sms_mode'),
                 'is_live' => $this->settings->isSmsLive(),
             ]);

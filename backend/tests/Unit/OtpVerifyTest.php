@@ -26,8 +26,9 @@ class OtpVerifyTest extends TestCase
 
         $settings = Mockery::mock(SystemSettingsService::class);
         $users = Mockery::mock(UserRepositoryInterface::class);
+        $sms = Mockery::mock(\App\Services\Sms\IpPanelSmsService::class);
 
-        $service = new OtpService($users, $settings);
+        $service = new OtpService($users, $settings, $sms);
 
         $this->expectException(ValidationException::class);
 
