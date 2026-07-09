@@ -89,7 +89,7 @@ class OtpService
             return '123456';
         }
 
-        return str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        return (string) random_int(100000, 999999);
     }
 
     /** @return array{success: bool, message?: string, method?: string} */
@@ -152,44 +152,26 @@ class OtpService
         $submittedCode = $this->normalizeCode($dto->code);
         $cachedCode = $this->normalizeCode((string) Cache::get($this->otpCacheKey($mobile), ''));
 
-        $otp = OtpCode::where('mobile', $mobile)
-            ->where('code', $submittedCode)
+        $otp = OtpCode::query()
+            ->whereIn('mobile', $this->mobileVariants($mobile))
             ->whereNull('verified_at')
             ->where('expires_at', '>', now())
             ->where('attempts', '<', 5)
             ->latest()
             ->first();
 
-        if (! $otp && $cachedCode !== '' && hash_equals($cachedCode, $submittedCode)) {
-            $otp = OtpCode::where('mobile', $mobile)
-                ->whereNull('verified_at')
-                ->where('expires_at', '>', now())
-                ->where('attempts', '<', 5)
-                ->latest()
-                ->first();
+        $codeAccepted = $otp && (
+            $this->codesMatch($otp->code, $submittedCode)
+            || ($cachedCode !== '' && $this->codesMatch($cachedCode, $submittedCode))
+        );
 
-            if ($otp && ! hash_equals($this->normalizeCode($otp->code), $submittedCode)) {
-                Log::warning('OTP cache/db drift corrected', [
-                    'mobile' => $this->maskMobile($mobile),
-                ]);
-                $otp->update(['code' => $submittedCode]);
-            }
-        }
-
-        if (! $otp) {
-            $activeOtp = OtpCode::where('mobile', $mobile)
-                ->whereNull('verified_at')
-                ->where('expires_at', '>', now())
-                ->where('attempts', '<', 5)
-                ->latest()
-                ->first();
-
-            if ($activeOtp) {
-                $activeOtp->increment('attempts');
+        if (! $codeAccepted) {
+            if ($otp) {
+                $otp->increment('attempts');
 
                 Log::warning('OTP mismatch', [
                     'mobile' => $this->maskMobile($mobile),
-                    'attempts' => $activeOtp->attempts,
+                    'attempts' => $otp->attempts,
                     'submitted_length' => strlen($submittedCode),
                 ]);
 
@@ -201,6 +183,10 @@ class OtpService
             throw ValidationException::withMessages([
                 'code' => ['کد تأیید نامعتبر یا منقضی شده است. لطفاً دوباره درخواست کد دهید.'],
             ]);
+        }
+
+        if ($otp && ! $this->codesMatch($otp->code, $submittedCode) && $this->codesMatch($cachedCode, $submittedCode)) {
+            $otp->update(['code' => $submittedCode]);
         }
 
         $otp->update(['verified_at' => now()]);
@@ -272,6 +258,46 @@ class OtpService
                 'last_active_at' => now(),
             ]
         );
+    }
+
+    private function codesMatch(string $stored, string $submitted): bool
+    {
+        $stored = $this->normalizeCode($stored);
+        $submitted = $this->normalizeCode($submitted);
+
+        if ($stored === '' || $submitted === '') {
+            return false;
+        }
+
+        if (hash_equals($stored, $submitted)) {
+            return true;
+        }
+
+        if (hash_equals($stored, str_pad($submitted, 6, '0', STR_PAD_LEFT))) {
+            return true;
+        }
+
+        if (hash_equals(str_pad($stored, 6, '0', STR_PAD_LEFT), str_pad($submitted, 6, '0', STR_PAD_LEFT))) {
+            return true;
+        }
+
+        return hash_equals(
+            ltrim($stored, '0') ?: '0',
+            ltrim($submitted, '0') ?: '0'
+        );
+    }
+
+    /** @return list<string> */
+    private function mobileVariants(string $mobile): array
+    {
+        $normalized = $this->normalizeMobile($mobile);
+
+        return array_values(array_unique(array_filter([
+            $mobile,
+            $normalized,
+            ltrim($normalized, '0'),
+            '98'.ltrim($normalized, '0'),
+        ])));
     }
 
     private function normalizeCode(string $code): string
