@@ -161,7 +161,7 @@ Next steps:
   - Test SMS:             docker compose exec app php artisan system:sms-test 09170577873 --otp --debug
   - Check SMS status:     docker compose exec app php artisan system:sms-enable
   - OTP logs:             docker compose exec app tail -50 storage/logs/laravel.log
-  - Login super admin:    09170577873
+  - Site URL:            http://YOUR_SERVER_IP/  (or :8000)
   - Admin settings:       /admin/settings
   - If sms_mode=log only: login OTP code is 123456
 

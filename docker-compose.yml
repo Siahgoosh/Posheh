@@ -20,6 +20,7 @@ services:
     container_name: posheh-nginx
     restart: unless-stopped
     ports:
+      - "80:80"
       - "8000:80"
     volumes:
       - ./backend:/var/www
