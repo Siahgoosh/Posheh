@@ -15,6 +15,10 @@ class IpPanelSmsService
 
   private const OTP_FROM_NUMBER = '+9810008721297974';
 
+  private const OTP_CONNECT_TIMEOUT = 30;
+
+  private const OTP_REQUEST_TIMEOUT = 60;
+
   public function __construct(
     private readonly SystemSettingsService $settings,
   ) {}
@@ -50,6 +54,13 @@ class IpPanelSmsService
         'password' => $creds['password'],
       ]);
 
+      $jspdResult = $this->sendOtpJspdPattern($mobile, $patternCode, $params, $credConfig);
+      $jspdResult['method'] = ($jspdResult['method'] ?? 'jspd_otp').'_'.$creds['label'];
+      $attempts[] = $jspdResult;
+      if ($jspdResult['success']) {
+        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
+      }
+
       if ($creds['label'] === 'panel') {
         $classicResult = $this->sendOtpClassicPattern($mobile, $patternCode, $params, $credConfig);
         $classicResult['method'] = ($classicResult['method'] ?? 'classic_otp').'_'.$creds['label'];
@@ -57,13 +68,6 @@ class IpPanelSmsService
         if ($classicResult['success']) {
           return $this->otpSuccess($mobile, $patternCode, $otpConfig, $classicResult);
         }
-      }
-
-      $jspdResult = $this->sendOtpJspdPattern($mobile, $patternCode, $params, $credConfig);
-      $jspdResult['method'] = ($jspdResult['method'] ?? 'jspd_otp').'_'.$creds['label'];
-      $attempts[] = $jspdResult;
-      if ($jspdResult['success']) {
-        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
       }
     }
 
@@ -165,10 +169,23 @@ class IpPanelSmsService
     }
 
     if ($deny) {
-      return 'ارسال OTP ناموفق: IP سرور در پنل مکث whitelist نیست (JSPD deny). نام کاربری/رمز را چک کنید یا IP سرور را در پنل مکث اضافه کنید.';
+      return 'ارسال OTP ناموفق: IP سرور در پنل مکث whitelist نیست (JSPD deny). IP سرور را در پنل مکث اضافه کنید.';
+    }
+
+    foreach ($messages as $message) {
+      if (str_contains($message, 'timed out') || str_contains($message, 'Timeout')) {
+        return 'ارسال OTP ناموفق: اتصال به سرور مکث timeout شد. IP سرور را در پنل whitelist کنید یا چند دقیقه بعد دوباره تلاش کنید.';
+      }
     }
 
     return $messages[0] ?? 'ارسال پترن OTP ناموفق بود. تنظیمات پنل مکث را بررسی کنید.';
+  }
+
+  private function otpHttp(): \Illuminate\Http\Client\PendingRequest
+  {
+    return Http::connectTimeout(self::OTP_CONNECT_TIMEOUT)
+      ->timeout(self::OTP_REQUEST_TIMEOUT)
+      ->retry(2, 2000, throw: false);
   }
 
   /** @param array<string, mixed> $config */
@@ -211,46 +228,72 @@ class IpPanelSmsService
   {
     $code = (string) ($params['code'] ?? '');
     $fromCandidates = $this->otpFromCandidates($config);
-    $pValueCandidates = [
+    $jspdMobile = $this->toJspdMobile($mobile);
+
+    $dataInputs = [
       json_encode(['code' => $code], JSON_UNESCAPED_UNICODE),
       json_encode([$code], JSON_UNESCAPED_UNICODE),
+      json_encode(['verification-code' => $code], JSON_UNESCAPED_UNICODE),
     ];
 
-    $recipients = json_encode([$this->toJspdMobile($mobile)]);
+    $toVariants = [
+      'json_array' => json_encode([$jspdMobile]),
+      'plain_9' => $jspdMobile,
+      'plain_0' => '0'.$jspdMobile,
+    ];
+
+    $formVariants = [];
+    foreach ($dataInputs as $dataInput) {
+      $formVariants[] = [
+        'op' => 'sendPattern',
+        'code_pattern' => $patternCode,
+        'data_input' => $dataInput,
+      ];
+      $formVariants[] = [
+        'op' => 'sendPattern',
+        'pattern_code' => $patternCode,
+        'input_data' => $dataInput,
+      ];
+      $formVariants[] = [
+        'op' => 'pattern',
+        'p_code' => $patternCode,
+        'p_values' => $dataInput,
+      ];
+    }
+
     $lastResult = ['success' => false, 'message' => 'ارسال JSPD pattern ناموفق بود'];
 
     foreach ($fromCandidates as $fromNumber) {
       $from = $this->normalizeSenderForJspd($fromNumber);
 
-      foreach ($pValueCandidates as $index => $pValues) {
-        try {
-          $response = Http::connectTimeout(5)
-            ->timeout(20)
-            ->asForm()
-            ->post('https://ippanel.com/services.jspd', [
-              'uname' => $config['username'],
-              'pass' => $config['password'],
-              'from' => $from,
-              'to' => $recipients,
-              'op' => 'pattern',
-              'p_code' => $patternCode,
-              'p_values' => $pValues,
-            ]);
+      foreach ($toVariants as $toLabel => $toValue) {
+        foreach ($formVariants as $index => $variant) {
+          try {
+            $response = $this->otpHttp()
+              ->asForm()
+              ->post('https://ippanel.com/services.jspd', [
+                'uname' => $config['username'],
+                'pass' => $config['password'],
+                'from' => $from,
+                'to' => $toValue,
+                ...$variant,
+              ]);
 
-          $result = $this->parseJspdResponse($response);
-          $result['method'] = 'jspd_otp_f'.$from.'_v'.$index;
+            $result = $this->parseJspdResponse($response);
+            $result['method'] = 'jspd_otp_f'.$from.'_'.$toLabel.'_v'.$index;
 
-          if ($result['success']) {
-            return $result;
+            if ($result['success']) {
+              return $result;
+            }
+
+            $lastResult = $result;
+          } catch (\Throwable $e) {
+            $lastResult = [
+              'success' => false,
+              'message' => $e->getMessage(),
+              'method' => 'jspd_otp_f'.$from.'_'.$toLabel,
+            ];
           }
-
-          $lastResult = $result;
-        } catch (\Throwable $e) {
-          $lastResult = [
-            'success' => false,
-            'message' => $e->getMessage(),
-            'method' => 'jspd_otp',
-          ];
         }
       }
     }
@@ -284,12 +327,18 @@ class IpPanelSmsService
     ]);
 
     try {
-      $response = Http::connectTimeout(5)
-        ->timeout(20)
+      $response = $this->otpHttp()
         ->withBody($inputData, 'application/json')
         ->post('https://ippanel.com/patterns/pattern?'.$query);
 
-      return $this->parseClassicPatternResponse($response);
+      $result = $this->parseClassicPatternResponse($response);
+      if ($result['success']) {
+        return $result;
+      }
+
+      $getResponse = $this->otpHttp()->get('https://ippanel.com/patterns/pattern?'.$query);
+
+      return $this->parseClassicPatternResponse($getResponse);
     } catch (\Throwable $e) {
       return ['success' => false, 'message' => 'خطای classic pattern: '.$e->getMessage()];
     }
@@ -297,13 +346,16 @@ class IpPanelSmsService
 
   private function parseClassicPatternResponse(Response $response): array
   {
-    $body = $response->json();
+    $body = $this->decodeClassicPatternBody($response->body());
 
     if (! is_array($body) || count($body) < 2) {
       return [
         'success' => false,
         'message' => 'پاسخ نامعتبر از سرویس پترن مکث',
-        'details' => ['raw' => mb_substr(trim($response->body()), 0, 300)],
+        'details' => [
+          'raw' => mb_substr(trim($response->body()), 0, 300),
+          'http_status' => $response->status(),
+        ],
       ];
     }
 
@@ -323,6 +375,33 @@ class IpPanelSmsService
       'message' => "خطای پترن مکث ({$code}): {$message}",
       'details' => ['code' => $code, 'raw' => $response->body()],
     ];
+  }
+
+  /** @return mixed */
+  private function decodeClassicPatternBody(string $raw)
+  {
+    $raw = trim($raw);
+    if ($raw === '') {
+      return null;
+    }
+
+    $decoded = json_decode($raw, true);
+    if (json_last_error() === JSON_ERROR_NONE) {
+      if (is_string($decoded)) {
+        $decoded = json_decode($decoded, true);
+      }
+
+      return $decoded;
+    }
+
+    if (preg_match('/\[[^\]]+\]/', $raw, $matches)) {
+      $decoded = json_decode($matches[0], true);
+      if (is_array($decoded)) {
+        return $decoded;
+      }
+    }
+
+    return null;
   }
 
   /** @param array<string, mixed> $config */
@@ -451,8 +530,7 @@ class IpPanelSmsService
     ];
 
     try {
-      $response = Http::connectTimeout(5)
-        ->timeout(15)
+      $response = $this->otpHttp()
         ->withHeaders(array_merge([
           'Content-Type' => 'application/json',
           'Accept' => 'application/json',
