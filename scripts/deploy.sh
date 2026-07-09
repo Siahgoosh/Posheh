@@ -33,11 +33,13 @@ ensure_env_file() {
   fi
 
   $COMPOSE exec -T app sh -c '
-    grep -q "^CACHE_STORE=" .env && sed -i "s/^CACHE_STORE=.*/CACHE_STORE=redis/" .env || echo "CACHE_STORE=redis" >> .env
+    grep -q "^CACHE_STORE=" .env && sed -i "s/^CACHE_STORE=.*/CACHE_STORE=file/" .env || echo "CACHE_STORE=file" >> .env
     grep -q "^QUEUE_CONNECTION=" .env && sed -i "s/^QUEUE_CONNECTION=.*/QUEUE_CONNECTION=sync/" .env || echo "QUEUE_CONNECTION=sync" >> .env
     grep -q "^SESSION_DRIVER=" .env && sed -i "s/^SESSION_DRIVER=.*/SESSION_DRIVER=file/" .env || echo "SESSION_DRIVER=file" >> .env
     grep -q "^DB_HOST=" .env || echo "DB_HOST=mysql" >> .env
     grep -q "^DB_DATABASE=" .env || echo "DB_DATABASE=posheh" >> .env
+    grep -q "^REDIS_HOST=" .env && sed -i "s/^REDIS_HOST=.*/REDIS_HOST=redis/" .env || echo "REDIS_HOST=redis" >> .env
+    grep -q "^REDIS_PORT=" .env || echo "REDIS_PORT=6379" >> .env
     grep -q "^SMS_MODE=" .env && sed -i "s/^SMS_MODE=.*/SMS_MODE=live/" .env || echo "SMS_MODE=live" >> .env
     grep -q "^SMS_PROVIDER=" .env || echo "SMS_PROVIDER=maxsms" >> .env
     grep -q "^IPPANEL_API_MODE=" .env || echo "IPPANEL_API_MODE=jspd" >> .env
