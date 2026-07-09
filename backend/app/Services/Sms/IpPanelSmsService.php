@@ -74,7 +74,7 @@ class IpPanelSmsService
       ]);
     }
 
-    $patternResult = $this->sendPattern($mobile, $patternCode, $params, $patternConfig);
+    $patternResult = $this->sendOtpJspdOnly($mobile, $patternCode, $params, $patternConfig, $auth);
 
     if ($patternResult['success']) {
       Log::info('OTP sent via pattern', [
@@ -101,6 +101,37 @@ class IpPanelSmsService
       'message' => $patternResult['message'] ?? 'ارسال پترن OTP ناموفق بود',
       'method' => $patternResult['method'] ?? null,
     ];
+  }
+
+  /** @param array<string, mixed> $config */
+  private function sendOtpJspdOnly(string $mobile, string $patternCode, array $params, array $config, array $auth): array
+  {
+    $fromCandidates = array_values(array_unique(array_filter([
+      trim((string) ($config['from_number'] ?? '')),
+      trim((string) ($config['otp_from_number'] ?? '')),
+      '+9810008721297974',
+    ])));
+
+    $lastResult = ['success' => false, 'message' => 'ارسال پترن JSPD ناموفق بود'];
+
+    foreach ($fromCandidates as $fromNumber) {
+      $tryConfig = array_merge($config, ['from_number' => $fromNumber]);
+      $jspdResult = $this->sendPatternJspd($mobile, $patternCode, $params, $tryConfig, $auth, otpMode: true);
+
+      if ($jspdResult['success']) {
+        return $jspdResult;
+      }
+
+      $lastResult = $jspdResult;
+
+      Log::warning('OTP JSPD failed for from line', [
+        'mobile' => $mobile,
+        'from' => $fromNumber,
+        'message' => $jspdResult['message'] ?? null,
+      ]);
+    }
+
+    return $lastResult;
   }
 
   /** @param array<string, mixed> $config */
@@ -406,8 +437,10 @@ class IpPanelSmsService
     $code = (string) ($params['code'] ?? $params['otp'] ?? $params['verification-code'] ?? array_values($params)[0] ?? '');
 
     if ($otpMode && $code !== '') {
-      // JSPD OTP patterns: positional array (proven to deliver on MaxSMS)
-      return [json_encode([$code], JSON_UNESCAPED_UNICODE)];
+      return [
+        json_encode([$code], JSON_UNESCAPED_UNICODE),
+        json_encode(['code' => $code], JSON_UNESCAPED_UNICODE),
+      ];
     }
 
     $variants = [];
@@ -450,7 +483,7 @@ class IpPanelSmsService
         return ['success' => true, 'message' => (string) $body[1], 'method' => 'classic_pattern_url'];
       }
 
-      if ($response->successful()) {
+      if ($response->successful() && is_array($body) && count($body) >= 2) {
         return ['success' => true, 'message' => 'ارسال شد', 'method' => 'classic_pattern_url', 'details' => ['raw' => $response->body()]];
       }
     } catch (\Throwable $e) {

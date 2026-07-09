@@ -21,6 +21,6 @@ class OtpPatternParamsTest extends TestCase
         $variants = $method->invoke($service, ['code' => '860098'], true);
 
         $this->assertSame('["860098"]', $variants[0]);
-        $this->assertCount(1, $variants);
+        $this->assertSame('{"code":"860098"}', $variants[1]);
     }
 }
