@@ -79,6 +79,11 @@ class SmsEnableCommand extends Command
             $settings->set('ippanel_otp_pattern_code', 'qhhly1nai3njev0');
             $this->line('  set ippanel_otp_pattern_code=qhhly1nai3njev0');
         }
+
+        if (! env('IPPANEL_OTP_FROM_NUMBER') && ! $settings->hasValue('ippanel_otp_from_number')) {
+            $settings->set('ippanel_otp_from_number', '+9810008721297974');
+            $this->line('  set ippanel_otp_from_number=+9810008721297974');
+        }
     }
 
     private function printStatus(SystemSettingsService $settings): void
