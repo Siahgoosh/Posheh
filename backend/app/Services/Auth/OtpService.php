@@ -147,32 +147,30 @@ class OtpService
             ]);
         }
 
-        RateLimiter::hit($verifyKey, 300);
-
         $submittedCode = $this->normalizeCode($dto->code);
         $cachedCode = $this->normalizeCode((string) Cache::get($this->otpCacheKey($mobile), ''));
 
-        $otp = OtpCode::query()
-            ->whereIn('mobile', $this->mobileVariants($mobile))
-            ->whereNull('verified_at')
-            ->where('expires_at', '>', now())
-            ->where('attempts', '<', 5)
-            ->latest()
-            ->first();
+        $otp = $this->findActiveOtp($mobile);
+        $dbMatches = $otp !== null && $this->codesMatch($otp->code, $submittedCode);
+        $cacheMatches = $cachedCode !== '' && $this->codesMatch($cachedCode, $submittedCode);
 
-        $codeAccepted = $otp && (
-            $this->codesMatch($otp->code, $submittedCode)
-            || ($cachedCode !== '' && $this->codesMatch($cachedCode, $submittedCode))
-        );
+        if (! $dbMatches && ! $cacheMatches) {
+            RateLimiter::hit($verifyKey, 300);
 
-        if (! $codeAccepted) {
             if ($otp) {
+                if ($otp->attempts >= 5) {
+                    throw ValidationException::withMessages([
+                        'code' => ['تعداد تلاش‌های ناموفق بیش از حد است. لطفاً کد جدید درخواست دهید.'],
+                    ]);
+                }
+
                 $otp->increment('attempts');
 
                 Log::warning('OTP mismatch', [
                     'mobile' => $this->maskMobile($mobile),
                     'attempts' => $otp->attempts,
                     'submitted_length' => strlen($submittedCode),
+                    'has_cache' => $cachedCode !== '',
                 ]);
 
                 throw ValidationException::withMessages([
@@ -185,11 +183,14 @@ class OtpService
             ]);
         }
 
-        if ($otp && ! $this->codesMatch($otp->code, $submittedCode) && $this->codesMatch($cachedCode, $submittedCode)) {
-            $otp->update(['code' => $submittedCode]);
+        if ($otp) {
+            if ($cacheMatches && ! $dbMatches) {
+                $otp->update(['code' => $submittedCode]);
+            }
+
+            $otp->update(['verified_at' => now()]);
         }
 
-        $otp->update(['verified_at' => now()]);
         Cache::forget($this->otpCacheKey($mobile));
         RateLimiter::clear($verifyKey);
 
@@ -367,5 +368,15 @@ class OtpService
     private function otpCacheKey(string $mobile): string
     {
         return 'otp_active:'.$mobile;
+    }
+
+    private function findActiveOtp(string $mobile): ?OtpCode
+    {
+        return OtpCode::query()
+            ->whereIn('mobile', $this->mobileVariants($mobile))
+            ->whereNull('verified_at')
+            ->where('expires_at', '>', now())
+            ->latest()
+            ->first();
     }
 }
