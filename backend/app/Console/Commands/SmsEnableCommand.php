@@ -65,9 +65,9 @@ class SmsEnableCommand extends Command
             }
         }
 
-        if (! env('ippanel_api_mode') && ! $settings->hasValue('ippanel_api_mode')) {
-            $settings->set('ippanel_api_mode', 'jspd');
-            $this->line('  set ippanel_api_mode=jspd (MaxSMS default)');
+        if (! env('IPPANEL_API_MODE') && ! $settings->hasValue('ippanel_api_mode')) {
+            $settings->set('ippanel_api_mode', env('IPPANEL_API_KEY') ? 'edge' : 'jspd');
+            $this->line('  set ippanel_api_mode='.(env('IPPANEL_API_KEY') ? 'edge' : 'jspd').' (MaxSMS default)');
         }
 
         if (! env('sms_provider') && ! $settings->hasValue('sms_provider')) {

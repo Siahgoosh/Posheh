@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 
 class SmsTestCommand extends Command
 {
-    protected $signature = 'system:sms-test {mobile : Mobile number e.g. 09170577873} {--otp : Send OTP-style message}';
+    protected $signature = 'system:sms-test {mobile : Mobile number e.g. 09170577873} {--otp : Send OTP-style message} {--debug : Show Edge/JSPD diagnostic details}';
 
     protected $description = 'Send a test SMS from the server CLI (no admin panel needed)';
 
@@ -35,6 +35,12 @@ class SmsTestCommand extends Command
             $this->line('API mode: '.($config['api_mode'] ?? '—'));
             $this->line('Has API key: '.(! empty($config['api_key']) ? 'yes' : 'no'));
 
+            if ($this->option('debug')) {
+                $this->warn('Debug: OTP uses Edge API first, then JSPD (username/password only).');
+                $this->line('OTP from: '.($config['otp_from_number'] ?? $config['from_number'] ?? '—'));
+                $this->line('Base URL: '.($config['base_url'] ?? '—'));
+            }
+
             $result = $sms->sendOtp($mobile, $code);
             $ok = (bool) ($result['success'] ?? false);
 
@@ -54,6 +60,12 @@ class SmsTestCommand extends Command
                 }
                 if (! empty($result['details']['code'])) {
                     $this->line('Provider code: '.$result['details']['code']);
+                }
+                if ($this->option('debug')) {
+                    $this->newLine();
+                    $this->warn('If Provider raw is "deny": whitelist server IP in MaxSMS panel (JSPD) or fix Edge API key.');
+                    $this->line('Deploy: ./scripts/deploy.sh cursor/fix-otp-edge-deny-e117');
+                    $this->line('Then: php artisan system:sms-enable --live --from-env');
                 }
             }
 

@@ -51,30 +51,29 @@ class IpPanelSmsService
     }
 
     $params = ['code' => $code];
-    $mode = $patternConfig['api_mode'] ?? $this->settings->get('ippanel_api_mode', 'jspd');
-    $provider = $patternConfig['sms_provider'] ?? $this->settings->get('sms_provider', 'maxsms');
-    $auth = $this->resolveAuth($patternConfig, $mode, $provider);
+    $auth = $this->resolveAuth($patternConfig, 'edge', $patternConfig['sms_provider'] ?? 'ippanel');
 
-    // Edge API with API key — named params {code: "123456"} (most reliable when key is configured)
-    if (! empty($patternConfig['api_key']) || ! empty($auth['api_key']) || ! empty($auth['token'])) {
-      $edgeResult = $this->sendPatternEdge($mobile, $patternCode, $params, $patternConfig, $auth);
-      if ($edgeResult['success']) {
-        Log::info('OTP sent via Edge pattern', [
-          'mobile' => $mobile,
-          'method' => $edgeResult['method'] ?? 'edge_pattern',
-          'from' => $patternConfig['from_number'],
-        ]);
-
-        return ['success' => true, 'method' => $edgeResult['method'] ?? 'edge_pattern'];
-      }
-
-      Log::warning('OTP Edge pattern failed, falling back to JSPD', [
+    $edgeResult = $this->sendOtpViaEdge($mobile, $patternCode, $params, $patternConfig, $auth);
+    if ($edgeResult['success']) {
+      Log::info('OTP sent via Edge pattern', [
         'mobile' => $mobile,
-        'message' => $edgeResult['message'] ?? null,
+        'method' => $edgeResult['method'] ?? 'edge_pattern',
+        'from' => $patternConfig['from_number'],
       ]);
+
+      return ['success' => true, 'method' => $edgeResult['method'] ?? 'edge_pattern'];
     }
 
+    Log::warning('OTP Edge pattern failed, falling back to JSPD', [
+      'mobile' => $mobile,
+      'message' => $edgeResult['message'] ?? null,
+      'method' => $edgeResult['method'] ?? null,
+    ]);
+
     $patternResult = $this->sendOtpJspdOnly($mobile, $patternCode, $params, $patternConfig, $auth);
+    if (! $patternResult['success'] && ! empty($edgeResult['message'])) {
+      $patternResult['message'] = $edgeResult['message'].'؛ '.($patternResult['message'] ?? 'JSPD ناموفق');
+    }
 
     if ($patternResult['success']) {
       Log::info('OTP sent via pattern', [
@@ -102,6 +101,146 @@ class IpPanelSmsService
       'method' => $patternResult['method'] ?? null,
       'details' => $patternResult['details'] ?? null,
     ];
+  }
+
+  /** @param array<string, mixed> $config */
+  private function sendOtpViaEdge(string $mobile, string $patternCode, array $params, array $config, array $auth): array
+  {
+    $authHeaders = $this->otpEdgeAuthHeaders($config, $auth);
+    if ($authHeaders === []) {
+      return ['success' => false, 'message' => 'کلید API یا نام کاربری/رمز مکث برای Edge API لازم است'];
+    }
+
+    $fromCandidates = array_values(array_unique(array_filter([
+      trim((string) ($config['from_number'] ?? '')),
+      trim((string) ($config['otp_from_number'] ?? '')),
+      '+9810008721297974',
+    ])));
+
+    $paramVariants = [
+      $params,
+      ['code' => (string) ($params['code'] ?? '')],
+      ['verification-code' => (string) ($params['code'] ?? '')],
+    ];
+
+    $lastResult = ['success' => false, 'message' => 'ارسال Edge pattern ناموفق بود'];
+
+    foreach ($fromCandidates as $fromNumber) {
+      $configWithFrom = array_merge($config, ['from_number' => $fromNumber]);
+
+      foreach ($paramVariants as $paramSet) {
+        foreach ($authHeaders as $label => $headers) {
+          $result = $this->sendPatternEdgeRequest($mobile, $patternCode, $paramSet, $configWithFrom, $headers);
+          $result['method'] = 'edge_otp_'.$label.'_'.preg_replace('/\D/', '', $fromNumber);
+
+          if ($result['success']) {
+            return $result;
+          }
+
+          $lastResult = $result;
+
+          Log::warning('OTP Edge attempt failed', [
+            'mobile' => $mobile,
+            'method' => $result['method'],
+            'message' => $result['message'] ?? null,
+            'from' => $fromNumber,
+          ]);
+        }
+      }
+    }
+
+    return $lastResult;
+  }
+
+  /** @return array<string, array<string, string>> */
+  private function otpEdgeAuthHeaders(array $config, array $auth): array
+  {
+    $headers = [];
+
+    $apiKey = trim((string) ($config['api_key'] ?? $auth['api_key'] ?? ''));
+    if ($apiKey !== '') {
+      $apiKey = $this->normalizeApiKey($apiKey);
+      $headers['api_key'] = ['Authorization' => $apiKey];
+      $headers['access_key'] = ['Authorization' => 'AccessKey '.$apiKey];
+      $headers['apikey_header'] = ['ApiKey' => $apiKey, 'Authorization' => $apiKey];
+    }
+
+    $token = trim((string) ($auth['token'] ?? ''));
+    if ($token !== '' && $token !== $apiKey) {
+      $headers['login_token'] = ['Authorization' => $token];
+      $headers['bearer_token'] = ['Authorization' => 'Bearer '.$token];
+    }
+
+    $loginToken = $this->loginEdgeToken($config);
+    if ($loginToken !== null && $loginToken !== $apiKey && $loginToken !== $token) {
+      $headers['edge_login'] = ['Authorization' => $loginToken];
+    }
+
+    return $headers;
+  }
+
+  /** @param array<string, mixed> $config */
+  private function loginEdgeToken(array $config): ?string
+  {
+    if (empty($config['username']) || empty($config['password'])) {
+      return null;
+    }
+
+    $baseUrl = rtrim($config['base_url'] ?? 'https://edge.ippanel.com/v1', '/');
+
+    try {
+      $response = Http::connectTimeout(5)
+        ->timeout(15)
+        ->withHeaders(['Content-Type' => 'application/json', 'Accept' => 'application/json'])
+        ->post("{$baseUrl}/api/acl/auth/login", [
+          'username' => $config['username'],
+          'password' => $config['password'],
+        ]);
+
+      $body = $response->json();
+      $token = $body['data']['token'] ?? null;
+      $method = $body['data']['method'] ?? 'login';
+
+      if ($token && ($body['meta']['status'] ?? false) && $method === 'login') {
+        return (string) $token;
+      }
+
+      Log::warning('Edge login for OTP failed', [
+        'status' => $body['meta']['status'] ?? false,
+        'method' => $method,
+        'message' => $body['meta']['message'] ?? $response->body(),
+      ]);
+    } catch (\Throwable $e) {
+      Log::warning('Edge login exception for OTP', ['error' => $e->getMessage()]);
+    }
+
+    return null;
+  }
+
+  /** @param array<string, string> $headers */
+  private function sendPatternEdgeRequest(string $mobile, string $patternCode, array $params, array $config, array $headers): array
+  {
+    $payload = [
+      'sending_type' => 'pattern',
+      'from_number' => $this->normalizeSender($config['from_number']),
+      'code' => $patternCode,
+      'recipients' => [$this->toE164($mobile)],
+      'params' => $params,
+    ];
+
+    try {
+      $response = Http::connectTimeout(5)
+        ->timeout(15)
+        ->withHeaders(array_merge([
+          'Content-Type' => 'application/json',
+          'Accept' => 'application/json',
+        ], $headers))
+        ->post($this->apiBase($config).'/send', $payload);
+
+      return $this->parseResponse($response);
+    } catch (\Throwable $e) {
+      return ['success' => false, 'message' => 'خطای Edge pattern: '.$e->getMessage()];
+    }
   }
 
   /** @param array<string, mixed> $config */
@@ -380,49 +519,22 @@ class IpPanelSmsService
   /** @param array<string, mixed> $config */
   private function sendPatternEdge(string $mobile, string $patternCode, array $params, array $config, array $auth): array
   {
-    $token = $auth['token'] ?? $auth['api_key'];
-    if (! $token) {
+    $authHeaders = $this->otpEdgeAuthHeaders($config, $auth);
+    if ($authHeaders === []) {
       return ['success' => false, 'message' => 'توکن Edge API در دسترس نیست'];
     }
 
-    $payload = [
-      'sending_type' => 'pattern',
-      'from_number' => $this->normalizeSender($config['from_number']),
-      'code' => $patternCode,
-      'recipients' => [$this->toE164($mobile)],
-      'params' => $params,
-    ];
-
-    $authHeaders = [
-      $token,
-      'AccessKey '.$token,
-      'Bearer '.$token,
-    ];
-
     $lastResult = ['success' => false, 'message' => 'ارسال Edge pattern ناموفق بود'];
 
-    foreach (array_unique($authHeaders) as $authorization) {
-      try {
-        $response = Http::connectTimeout(5)
-          ->timeout(15)
-          ->withHeaders([
-            'Authorization' => $authorization,
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-          ])
-          ->post($this->apiBase($config).'/send', $payload);
+    foreach ($authHeaders as $label => $headers) {
+      $result = $this->sendPatternEdgeRequest($mobile, $patternCode, $params, $config, $headers);
+      $result['method'] = 'edge_pattern_'.$label;
 
-        $result = $this->parseResponse($response);
-        $result['method'] = 'edge_pattern';
-
-        if ($result['success']) {
-          return $result;
-        }
-
-        $lastResult = $result;
-      } catch (\Throwable $e) {
-        $lastResult = ['success' => false, 'message' => 'خطای Edge pattern: '.$e->getMessage(), 'method' => 'edge_pattern'];
+      if ($result['success']) {
+        return $result;
       }
+
+      $lastResult = $result;
     }
 
     return $lastResult;
@@ -714,14 +826,28 @@ class IpPanelSmsService
 
   private function parseJspdResponse(Response $response): array
   {
-    $body = $this->decodeJspdBody($response->body());
+    $raw = trim($response->body());
+
+    if (strcasecmp($raw, 'deny') === 0) {
+      return [
+        'success' => false,
+        'message' => 'دسترسی JSPD رد شد (deny). IP سرور را در پنل مکث whitelist کنید یا از Edge API با کلید API استفاده کنید.',
+        'details' => [
+          'raw' => 'deny',
+          'http_status' => $response->status(),
+          'code' => 'deny',
+        ],
+      ];
+    }
+
+    $body = $this->decodeJspdBody($raw);
 
     if (! is_array($body) || count($body) < 2) {
       return [
         'success' => false,
         'message' => 'پاسخ نامعتبر از سرویس مکث/آی‌پی‌پنل',
         'details' => [
-          'raw' => mb_substr(trim($response->body()), 0, 300),
+          'raw' => mb_substr($raw, 0, 300),
           'http_status' => $response->status(),
         ],
       ];
@@ -953,9 +1079,9 @@ class IpPanelSmsService
   {
     $key = trim($key);
 
-    if (preg_match('/^[A-Za-z0-9+\/]+=*$/', $key) && strlen($key) > 40) {
-      $decoded = base64_decode($key, true);
-      if (is_string($decoded) && $decoded !== '' && preg_match('/^[a-zA-Z0-9\-]+$/', $decoded)) {
+    if (str_starts_with($key, 'base64:')) {
+      $decoded = base64_decode(substr($key, 7), true);
+      if (is_string($decoded) && $decoded !== '') {
         return $decoded;
       }
     }
