@@ -49,7 +49,7 @@ class OtpService
             ]);
 
             throw ValidationException::withMessages([
-                'mobile' => [$smsResult['message'] ?? 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.'],
+                'mobile' => [$this->sanitizeSmsError($smsResult['message'] ?? null)],
             ]);
         }
 
@@ -144,27 +144,37 @@ class OtpService
         $submittedCode = $this->normalizeCode($dto->code);
 
         $otp = OtpCode::where('mobile', $mobile)
+            ->where('code', $submittedCode)
             ->whereNull('verified_at')
+            ->where('expires_at', '>', now())
+            ->where('attempts', '<', 5)
             ->latest()
             ->first();
 
-        if (! $otp || ! $otp->isValid()) {
+        if (! $otp) {
+            $activeOtp = OtpCode::where('mobile', $mobile)
+                ->whereNull('verified_at')
+                ->where('expires_at', '>', now())
+                ->where('attempts', '<', 5)
+                ->latest()
+                ->first();
+
+            if ($activeOtp) {
+                $activeOtp->increment('attempts');
+
+                Log::warning('OTP mismatch', [
+                    'mobile' => $this->maskMobile($mobile),
+                    'attempts' => $activeOtp->attempts,
+                    'submitted_length' => strlen($submittedCode),
+                ]);
+
+                throw ValidationException::withMessages([
+                    'code' => ['کد تأیید اشتباه است. لطفاً آخرین کد دریافتی را وارد کنید.'],
+                ]);
+            }
+
             throw ValidationException::withMessages([
                 'code' => ['کد تأیید نامعتبر یا منقضی شده است. لطفاً دوباره درخواست کد دهید.'],
-            ]);
-        }
-
-        if (! hash_equals($this->normalizeCode($otp->code), $submittedCode)) {
-            $otp->increment('attempts');
-
-            Log::warning('OTP mismatch', [
-                'mobile' => $this->maskMobile($mobile),
-                'attempts' => $otp->attempts,
-                'submitted_length' => strlen($submittedCode),
-            ]);
-
-            throw ValidationException::withMessages([
-                'code' => ['کد تأیید اشتباه است.'],
             ]);
         }
 
@@ -275,5 +285,21 @@ class OtpService
         }
 
         return $mobile;
+    }
+
+    private function sanitizeSmsError(?string $message): string
+    {
+        if ($message === null || trim($message) === '') {
+            return 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.';
+        }
+
+        $message = preg_replace('/https?:\/\/\S+/', '[sms-api]', $message) ?? $message;
+        $message = preg_replace('/password=\S+/i', 'password=***', $message) ?? $message;
+
+        if (mb_strlen($message) > 180) {
+            return 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.';
+        }
+
+        return $message;
     }
 }

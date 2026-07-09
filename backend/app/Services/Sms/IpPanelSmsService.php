@@ -89,6 +89,10 @@ class IpPanelSmsService
   private function otpPatternConfig(array $config): array
   {
     $otpFrom = trim((string) ($config['otp_from_number'] ?? ''));
+    if ($otpFrom === '') {
+      $otpFrom = trim((string) env('IPPANEL_OTP_FROM_NUMBER', ''));
+    }
+
     if ($otpFrom !== '') {
       $config['from_number'] = $otpFrom;
     }
@@ -219,6 +223,21 @@ class IpPanelSmsService
 
     $lastResult = ['success' => false, 'message' => 'ارسال پترن ناموفق بود'];
 
+    if ($otpMode) {
+      $edgeResult = $this->sendPatternEdge($mobile, $patternCode, $params, $config, $auth);
+      if ($edgeResult['success']) {
+        return $edgeResult;
+      }
+      $lastResult = $edgeResult;
+
+      $jspdResult = $this->sendPatternJspd($mobile, $patternCode, $params, $config, $auth, true);
+      if ($jspdResult['success']) {
+        return $jspdResult;
+      }
+
+      return $jspdResult['message'] ? $jspdResult : $lastResult;
+    }
+
     if ($provider === 'maxsms' || $mode === 'jspd' || $mode === 'auto' || $mode === 'legacy') {
       $jspdResult = $this->sendPatternJspd($mobile, $patternCode, $params, $config, $auth, $otpMode);
       if ($jspdResult['success']) {
@@ -272,6 +291,38 @@ class IpPanelSmsService
     $legacyResult = $this->sendPatternLegacy($mobile, $patternCode, $params, $config, $auth);
 
     return $legacyResult['success'] ? $legacyResult : $lastResult;
+  }
+
+  /** @param array<string, mixed> $config */
+  private function sendPatternEdge(string $mobile, string $patternCode, array $params, array $config, array $auth): array
+  {
+    $token = $auth['token'] ?? $auth['api_key'];
+    if (! $token) {
+      return ['success' => false, 'message' => 'توکن Edge API در دسترس نیست'];
+    }
+
+    try {
+      $response = Http::timeout(15)
+        ->withHeaders([
+          'Authorization' => $token,
+          'Content-Type' => 'application/json',
+          'Accept' => 'application/json',
+        ])
+        ->post($this->apiBase($config).'/send', [
+          'sending_type' => 'pattern',
+          'from_number' => $this->normalizeSender($config['from_number']),
+          'code' => $patternCode,
+          'recipients' => [$this->toE164($mobile)],
+          'params' => $params,
+        ]);
+
+      $result = $this->parseResponse($response);
+      $result['method'] = 'edge_pattern';
+
+      return $result;
+    } catch (\Throwable $e) {
+      return ['success' => false, 'message' => 'خطای Edge pattern: '.$e->getMessage(), 'method' => 'edge_pattern'];
+    }
   }
 
   private function sendPatternJspd(string $mobile, string $patternCode, array $params, array $config, array $auth, bool $otpMode = false): array
@@ -341,8 +392,11 @@ class IpPanelSmsService
     $code = (string) ($params['code'] ?? $params['otp'] ?? $params['verification-code'] ?? array_values($params)[0] ?? '');
 
     if ($otpMode && $code !== '') {
-      // MaxSMS/IPPanel OTP patterns require %code% — send as positional JSON array only
-      return [json_encode([$code], JSON_UNESCAPED_UNICODE)];
+      // MaxSMS/IPPanel OTP patterns use %code% — must be a named object, not a bare array
+      return [
+        json_encode(['code' => $code], JSON_UNESCAPED_UNICODE),
+        json_encode([$code], JSON_UNESCAPED_UNICODE),
+      ];
     }
 
     $variants = [];

@@ -79,6 +79,16 @@ class DatabaseSeeder extends Seeder
                 'mobile_verified_at' => now(),
             ]
         );
+
+        User::updateOrCreate(
+            ['mobile' => '09170577873'],
+            [
+                'name' => 'مدیر پوشه',
+                'role' => UserRole::SuperAdmin,
+                'is_active' => true,
+                'mobile_verified_at' => now(),
+            ]
+        );
     }
 
     private function seedDemoOffice(): void

@@ -54,7 +54,7 @@ export function LoginPage() {
     try {
       const { data } = await api.post('/auth/otp/verify', {
         mobile: normalizeMobile(mobile),
-        code: toEnglishDigits(otp).replace(/\D/g, '').slice(0, 6),
+        code: toEnglishDigits(otp).replace(/\D/g, '').slice(0, 6).padStart(6, '0'),
         device_id: getDeviceId(),
         device_name: getDeviceName(),
         platform: getPlatform(),
