@@ -36,9 +36,11 @@ class SmsTestCommand extends Command
             $this->line('Has API key: '.(! empty($config['api_key']) ? 'yes' : 'no'));
 
             if ($this->option('debug')) {
-                $this->warn('Debug: OTP uses Edge API first, then JSPD (username/password only).');
+                $this->warn('OTP path order: 1) classic pattern  2) JSPD  3) Edge API (if api key set)');
                 $this->line('OTP from: '.($config['otp_from_number'] ?? $config['from_number'] ?? '—'));
                 $this->line('Base URL: '.($config['base_url'] ?? '—'));
+                $this->line('Username set: '.(! empty($config['username']) ? 'yes' : 'NO — required for OTP'));
+                $this->line('Password set: '.(! empty($config['password']) ? 'yes' : 'NO — required for OTP'));
             }
 
             $result = $sms->sendOtp($mobile, $code);
@@ -63,9 +65,17 @@ class SmsTestCommand extends Command
                 }
                 if ($this->option('debug')) {
                     $this->newLine();
-                    $this->warn('If Provider raw is "deny": whitelist server IP in MaxSMS panel (JSPD) or fix Edge API key.');
-                    $this->line('Deploy: ./scripts/deploy.sh cursor/fix-otp-edge-deny-e117');
-                    $this->line('Then: php artisan system:sms-enable --live --from-env');
+                    if (! empty($result['attempts']) && is_array($result['attempts'])) {
+                        $this->warn('Attempts:');
+                        foreach ($result['attempts'] as $i => $attempt) {
+                            $n = $i + 1;
+                            $method = $attempt['method'] ?? '—';
+                            $msg = $attempt['message'] ?? '—';
+                            $this->line("  {$n}. [{$method}] {$msg}");
+                        }
+                    }
+                    $this->warn('Classic pattern needs IPPANEL_USERNAME + IPPANEL_PASSWORD in .env');
+                    $this->line('JSPD deny = whitelist server IP in MaxSMS panel');
                 }
             }
 

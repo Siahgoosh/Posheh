@@ -137,8 +137,9 @@ cat <<EOF
 
 Next steps:
   - Set OTP pattern line in .env: IPPANEL_OTP_FROM_NUMBER=+9810008721297974
+  - OTP also needs: IPPANEL_USERNAME, IPPANEL_PASSWORD, IPPANEL_OTP_PATTERN_CODE=qhhly1nai3njev0
   - Enable SMS (if needed): docker compose exec app php artisan system:sms-enable --live --from-env
-  - Test SMS:             docker compose exec app php artisan system:sms-test 09170577873 --otp
+  - Test SMS:             docker compose exec app php artisan system:sms-test 09170577873 --otp --debug
   - Check SMS status:     docker compose exec app php artisan system:sms-enable
   - OTP logs:             docker compose exec app tail -50 storage/logs/laravel.log
   - Login super admin:    09170577873
