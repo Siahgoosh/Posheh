@@ -27,23 +27,37 @@ wait_for_mysql() {
 }
 
 ensure_env_file() {
-  if [ ! -f backend/.env ]; then
+  ENV_FILE="$ROOT/backend/.env"
+
+  if [ ! -f "$ENV_FILE" ]; then
     log "Creating backend/.env from example"
-    cp backend/.env.example backend/.env
+    cp "$ROOT/backend/.env.example" "$ENV_FILE"
   fi
 
-  $COMPOSE exec -T app sh -c '
-    grep -q "^CACHE_STORE=" .env && sed -i "s/^CACHE_STORE=.*/CACHE_STORE=file/" .env || echo "CACHE_STORE=file" >> .env
-    grep -q "^QUEUE_CONNECTION=" .env && sed -i "s/^QUEUE_CONNECTION=.*/QUEUE_CONNECTION=sync/" .env || echo "QUEUE_CONNECTION=sync" >> .env
-    grep -q "^SESSION_DRIVER=" .env && sed -i "s/^SESSION_DRIVER=.*/SESSION_DRIVER=file/" .env || echo "SESSION_DRIVER=file" >> .env
-    grep -q "^DB_HOST=" .env || echo "DB_HOST=mysql" >> .env
-    grep -q "^DB_DATABASE=" .env || echo "DB_DATABASE=posheh" >> .env
-    grep -q "^REDIS_HOST=" .env && sed -i "s/^REDIS_HOST=.*/REDIS_HOST=redis/" .env || echo "REDIS_HOST=redis" >> .env
-    grep -q "^REDIS_PORT=" .env || echo "REDIS_PORT=6379" >> .env
-    grep -q "^SMS_MODE=" .env && sed -i "s/^SMS_MODE=.*/SMS_MODE=live/" .env || echo "SMS_MODE=live" >> .env
-    grep -q "^SMS_PROVIDER=" .env || echo "SMS_PROVIDER=maxsms" >> .env
-    grep -q "^IPPANEL_API_MODE=" .env || echo "IPPANEL_API_MODE=jspd" >> .env
-  ' 2>/dev/null || true
+  # Patch on host so values exist before containers boot and artisan runs.
+  for key in CACHE_STORE QUEUE_CONNECTION SESSION_DRIVER REDIS_HOST REDIS_PORT SMS_MODE SMS_PROVIDER IPPANEL_API_MODE; do
+    sed -i "/^${key}=/d" "$ENV_FILE" 2>/dev/null || true
+  done
+
+  {
+    echo "CACHE_STORE=file"
+    echo "QUEUE_CONNECTION=sync"
+    echo "SESSION_DRIVER=file"
+    echo "REDIS_HOST=redis"
+    echo "REDIS_PORT=6379"
+    echo "SMS_MODE=live"
+    echo "SMS_PROVIDER=maxsms"
+    echo "IPPANEL_API_MODE=jspd"
+  } >> "$ENV_FILE"
+
+  grep -q '^DB_HOST=' "$ENV_FILE" || echo 'DB_HOST=mysql' >> "$ENV_FILE"
+  grep -q '^DB_DATABASE=' "$ENV_FILE" || echo 'DB_DATABASE=posheh' >> "$ENV_FILE"
+}
+
+clear_laravel_cache() {
+  $COMPOSE exec -T app sh -c 'rm -f bootstrap/cache/config.php bootstrap/cache/routes-v7.php bootstrap/cache/events.php bootstrap/cache/services.php 2>/dev/null || true'
+  $COMPOSE exec -T app php artisan config:clear --no-interaction || true
+  $COMPOSE exec -T app php artisan cache:clear --no-interaction || true
 }
 
 log "Posheh deploy — branch: $BRANCH"
@@ -71,6 +85,8 @@ sync_code() {
 log "1/9 Fetching code"
 sync_code
 
+ensure_env_file
+
 log "2/9 Starting containers"
 $COMPOSE up -d --build || fail "docker compose up failed"
 
@@ -83,12 +99,13 @@ $COMPOSE exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD:-secret}" -e \
   "CREATE DATABASE IF NOT EXISTS posheh CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" \
   || fail "Could not create database"
 
-ensure_env_file
+clear_laravel_cache
 
 log "4/9 Running migrations"
-$COMPOSE exec -T app php artisan config:clear --no-interaction || true
 $COMPOSE exec -T app php artisan migrate --force --no-interaction \
   || fail "Migration failed — check: docker compose logs app"
+
+clear_laravel_cache
 
 log "5/9 Seeding settings, blog and demo data"
 $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --no-interaction \
@@ -99,9 +116,8 @@ $COMPOSE exec -T app php artisan db:seed --class=DatabaseSeeder --force --no-int
   || log "DatabaseSeeder warning (may already be seeded)"
 
 log "6/9 Clearing caches and enabling SMS"
+clear_laravel_cache
 $COMPOSE exec -T app php artisan optimize:clear --no-interaction || true
-$COMPOSE exec -T app php artisan cache:clear --no-interaction || true
-$COMPOSE exec -T app php artisan config:clear --no-interaction || true
 $COMPOSE exec -T app php artisan system:sms-enable --live --from-env --no-interaction 2>/dev/null \
   || log "Run manually: docker compose exec app php artisan system:sms-enable --live --from-env"
 $COMPOSE exec -T app php artisan storage:link --force --no-interaction 2>/dev/null || true

@@ -25,7 +25,15 @@ class SystemSetting extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn () => Cache::forget('system_settings'));
-        static::deleted(fn () => Cache::forget('system_settings'));
+        $forget = static function (): void {
+            try {
+                Cache::forget('system_settings');
+            } catch (\Throwable) {
+                // Allow seeding/setup when cache backend is misconfigured.
+            }
+        };
+
+        static::saved($forget);
+        static::deleted($forget);
     }
 }
