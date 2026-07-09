@@ -28,9 +28,28 @@ class SmsTestCommand extends Command
         if ($this->option('otp')) {
             $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             $this->info("Sending OTP-style message with code: {$code}");
+
+            $config = $settings->ippanelConfig();
+            $this->line('Pattern: '.($config['otp_pattern_code'] ?? '—'));
+            $this->line('From: '.($config['otp_from_number'] ?? $config['from_number'] ?? '—'));
+            $this->line('API mode: '.($config['api_mode'] ?? '—'));
+            $this->line('Has API key: '.(! empty($config['api_key']) ? 'yes' : 'no'));
+
             $result = $sms->sendOtp($mobile, $code);
             $ok = (bool) ($result['success'] ?? false);
-            $this->line($ok ? '<info>OTP SMS sent successfully</info>' : '<error>OTP SMS failed — '.($result['message'] ?? 'check storage/logs/laravel.log').'</error>');
+
+            if ($ok) {
+                $this->info('OTP SMS sent successfully');
+                if (! empty($result['method'])) {
+                    $this->line("Method: {$result['method']}");
+                }
+            } else {
+                $this->error('OTP SMS failed');
+                $this->line('Reason: '.($result['message'] ?? 'check storage/logs/laravel.log'));
+                if (! empty($result['method'])) {
+                    $this->line("Last method: {$result['method']}");
+                }
+            }
 
             return $ok ? self::SUCCESS : self::FAILURE;
         }

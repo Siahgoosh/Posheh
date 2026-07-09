@@ -48,8 +48,10 @@ class OtpService
                 'message' => $smsResult['message'] ?? null,
             ]);
 
+            $userMessage = $this->sanitizeSmsError($smsResult['message'] ?? null);
+
             throw ValidationException::withMessages([
-                'mobile' => [$this->sanitizeSmsError($smsResult['message'] ?? null)],
+                'mobile' => [$userMessage],
             ]);
         }
 
