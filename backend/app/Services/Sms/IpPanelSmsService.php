@@ -11,6 +11,10 @@ class IpPanelSmsService
 {
   private const RETRYABLE_STATUSES = [502, 503, 504, 520, 521, 522, 524];
 
+  private const OTP_PATTERN_CODE = 'qhhly1nai3njev0';
+
+  private const OTP_FROM_NUMBER = '+9810008721297974';
+
   public function __construct(
     private readonly SystemSettingsService $settings,
   ) {}
@@ -24,43 +28,45 @@ class IpPanelSmsService
     }
 
     $config = $this->settings->ippanelConfig();
+    $patternCode = $this->resolveOtpPatternCode($config);
+    $otpConfig = $this->otpPatternConfig($config);
+    $credentialSets = $this->otpCredentialSets($config);
 
-    if (! $this->hasOtpCredentials($config)) {
+    if ($credentialSets === []) {
       Log::warning('OTP SMS credentials missing', ['mobile' => $mobile]);
 
       return [
         'success' => false,
-        'message' => 'برای OTP نام کاربری و رمز پنل مکث الزامی است (IPPANEL_USERNAME و IPPANEL_PASSWORD در .env).',
+        'message' => 'تنظیمات OTP ناقص است. IPPANEL_USERNAME و IPPANEL_PASSWORD (یا IPPANEL_API_KEY) را در .env قرار دهید.',
       ];
     }
 
-    $patternCode = trim((string) ($config['otp_pattern_code'] ?? ''));
-    if ($patternCode === '') {
-      return [
-        'success' => false,
-        'message' => 'کد پترن OTP تنظیم نشده است (IPPANEL_OTP_PATTERN_CODE).',
-      ];
-    }
-
-    $otpConfig = $this->otpPatternConfig($config);
     $params = ['code' => $code];
     $attempts = [];
 
-    // 1) Classic pattern — works without Edge API and without JSPD IP whitelist in most cases
-    $classicResult = $this->sendOtpClassicPattern($mobile, $patternCode, $params, $otpConfig);
-    $attempts[] = $classicResult;
-    if ($classicResult['success']) {
-      return $this->otpSuccess($mobile, $patternCode, $otpConfig, $classicResult);
+    foreach ($credentialSets as $creds) {
+      $credConfig = array_merge($otpConfig, [
+        'username' => $creds['username'],
+        'password' => $creds['password'],
+      ]);
+
+      if ($creds['label'] === 'panel') {
+        $classicResult = $this->sendOtpClassicPattern($mobile, $patternCode, $params, $credConfig);
+        $classicResult['method'] = ($classicResult['method'] ?? 'classic_otp').'_'.$creds['label'];
+        $attempts[] = $classicResult;
+        if ($classicResult['success']) {
+          return $this->otpSuccess($mobile, $patternCode, $otpConfig, $classicResult);
+        }
+      }
+
+      $jspdResult = $this->sendOtpJspdPattern($mobile, $patternCode, $params, $credConfig);
+      $jspdResult['method'] = ($jspdResult['method'] ?? 'jspd_otp').'_'.$creds['label'];
+      $attempts[] = $jspdResult;
+      if ($jspdResult['success']) {
+        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
+      }
     }
 
-    // 2) JSPD pattern — requires server IP whitelisted in MaxSMS panel
-    $jspdResult = $this->sendOtpJspdPattern($mobile, $patternCode, $params, $otpConfig);
-    $attempts[] = $jspdResult;
-    if ($jspdResult['success']) {
-      return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
-    }
-
-    // 3) Edge API — last resort (often returns 502 outside Iran / when edge.ippanel.com is down)
     if (! empty($config['api_key'])) {
       $auth = $this->resolveAuth($otpConfig, 'edge', 'ippanel');
       $edgeResult = $this->sendOtpViaEdge($mobile, $patternCode, $params, $otpConfig, $auth);
@@ -76,6 +82,7 @@ class IpPanelSmsService
       'mobile' => $mobile,
       'pattern' => $patternCode,
       'from' => $otpConfig['from_number'],
+      'credential_labels' => array_column($credentialSets, 'label'),
       'attempts' => array_map(fn ($a) => [
         'method' => $a['method'] ?? null,
         'message' => $a['message'] ?? null,
@@ -92,9 +99,39 @@ class IpPanelSmsService
   }
 
   /** @param array<string, mixed> $config */
+  private function resolveOtpPatternCode(array $config): string
+  {
+    $patternCode = trim((string) ($config['otp_pattern_code'] ?? ''));
+
+    return $patternCode !== '' ? $patternCode : self::OTP_PATTERN_CODE;
+  }
+
+  /** @param array<string, mixed> $config */
+  /** @return list<array{label: string, username: string, password: string}> */
+  private function otpCredentialSets(array $config): array
+  {
+    $sets = [];
+
+    $username = trim((string) ($config['username'] ?? ''));
+    $password = trim((string) ($config['password'] ?? ''));
+
+    if ($username !== '' && $password !== '' && $password !== '********') {
+      $sets[] = ['label' => 'panel', 'username' => $username, 'password' => $password];
+    }
+
+    $apiKey = trim((string) ($config['api_key'] ?? ''));
+    if ($apiKey !== '') {
+      $apiKey = $this->normalizeApiKey($apiKey);
+      $sets[] = ['label' => 'apikey', 'username' => $apiKey, 'password' => $apiKey];
+    }
+
+    return $sets;
+  }
+
+  /** @param array<string, mixed> $config */
   private function hasOtpCredentials(array $config): bool
   {
-    return ! empty($config['username']) && ! empty($config['password']);
+    return $this->otpCredentialSets($config) !== [];
   }
 
   /** @param array<string, mixed> $result */
@@ -142,13 +179,18 @@ class IpPanelSmsService
     $paramSets = [
       ['code' => $code],
       ['verification-code' => $code],
+      'array:'.$code,
     ];
 
     $lastResult = ['success' => false, 'message' => 'ارسال classic pattern ناموفق بود'];
 
     foreach ($fromCandidates as $fromNumber) {
       foreach ($paramSets as $paramSet) {
-        $result = $this->sendClassicPatternRequest($mobile, $patternCode, $paramSet, array_merge($config, [
+        $payload = is_string($paramSet) && str_starts_with($paramSet, 'array:')
+          ? [substr($paramSet, 6)]
+          : $paramSet;
+
+        $result = $this->sendClassicPatternRequest($mobile, $patternCode, $payload, array_merge($config, [
           'from_number' => $fromNumber,
         ]));
         $result['method'] = 'classic_otp_f'.preg_replace('/\D/', '', $fromNumber);
@@ -221,27 +263,30 @@ class IpPanelSmsService
   {
     return array_values(array_unique(array_filter([
       trim((string) ($config['otp_from_number'] ?? '')),
-      trim((string) ($config['from_number'] ?? '')),
-      '+9810008721297974',
+      self::OTP_FROM_NUMBER,
     ])));
   }
 
-  /** @param array<string, mixed> $config */
+  /** @param array<string, mixed>|list<string> $params */
   private function sendClassicPatternRequest(string $mobile, string $patternCode, array $params, array $config): array
   {
+    $inputData = array_is_list($params)
+      ? json_encode($params, JSON_UNESCAPED_UNICODE)
+      : json_encode($params, JSON_UNESCAPED_UNICODE);
+
     $query = http_build_query([
       'username' => $config['username'],
       'password' => $config['password'],
       'from' => $this->normalizeSenderForJspd($config['from_number']),
       'to' => json_encode([$this->toJspdMobile($mobile)]),
-      'input_data' => json_encode($params, JSON_UNESCAPED_UNICODE),
+      'input_data' => $inputData,
       'pattern_code' => $patternCode,
     ]);
 
     try {
       $response = Http::connectTimeout(5)
         ->timeout(20)
-        ->withBody(json_encode($params, JSON_UNESCAPED_UNICODE), 'application/json')
+        ->withBody($inputData, 'application/json')
         ->post('https://ippanel.com/patterns/pattern?'.$query);
 
       return $this->parseClassicPatternResponse($response);
@@ -430,8 +475,12 @@ class IpPanelSmsService
 
     if ($otpFrom !== '') {
       $config['from_number'] = $otpFrom;
-    } elseif (empty($config['from_number'])) {
-      $config['from_number'] = '+9810008721297974';
+    } else {
+      $config['from_number'] = self::OTP_FROM_NUMBER;
+    }
+
+    if (empty($config['otp_pattern_code'])) {
+      $config['otp_pattern_code'] = self::OTP_PATTERN_CODE;
     }
 
     return $config;

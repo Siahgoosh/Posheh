@@ -97,6 +97,7 @@ $COMPOSE exec -T app php artisan db:seed --class=DatabaseSeeder --force --no-int
   || log "DatabaseSeeder warning (may already be seeded)"
 
 log "6/9 Clearing caches and enabling SMS"
+$COMPOSE exec -T app php artisan optimize:clear --no-interaction || true
 $COMPOSE exec -T app php artisan cache:clear --no-interaction || true
 $COMPOSE exec -T app php artisan config:clear --no-interaction || true
 $COMPOSE exec -T app php artisan system:sms-enable --live --from-env --no-interaction 2>/dev/null \

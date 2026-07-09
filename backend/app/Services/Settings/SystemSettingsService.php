@@ -29,9 +29,13 @@ class SystemSettingsService
             $value = $settings[$key];
         }
 
+        if ($this->isMaskedSecret($value)) {
+            $value = null;
+        }
+
         if ($value === null || $value === '') {
             $envValue = $this->envFallback($key, null);
-            if ($envValue !== null && $envValue !== '') {
+            if ($envValue !== null && $envValue !== '' && ! $this->isMaskedSecret($envValue)) {
                 return $this->castValue($key, is_bool($envValue) ? ($envValue ? '1' : '0') : (string) $envValue);
             }
 
@@ -39,6 +43,17 @@ class SystemSettingsService
         }
 
         return $this->castValue($key, $value) ?? $default;
+    }
+
+    private function isMaskedSecret(mixed $value): bool
+    {
+        if (! is_string($value)) {
+            return false;
+        }
+
+        $value = trim($value);
+
+        return $value === self::SECRET_PLACEHOLDER || $value === '********';
     }
 
     public function hasValue(string $key): bool
@@ -94,7 +109,7 @@ class SystemSettingsService
 
     public function isSmsLive(): bool
     {
-        $envMode = strtolower(trim((string) env('SMS_MODE', '')));
+        $envMode = strtolower(trim((string) config('services.ippanel.sms_mode', env('SMS_MODE', ''))));
         if ($envMode === 'live') {
             return true;
         }
@@ -162,9 +177,17 @@ class SystemSettingsService
             'otp_pattern_code', 'invite_pattern_code', 'base_url', 'api_mode',
         ] as $key) {
             $value = $envConfig[$key] ?? null;
-            if ($value !== null && $value !== '') {
+            if ($value !== null && $value !== '' && ! $this->isMaskedSecret($value)) {
                 $config[$key] = $value;
             }
+        }
+
+        if (empty($config['otp_pattern_code'])) {
+            $config['otp_pattern_code'] = 'qhhly1nai3njev0';
+        }
+
+        if (empty($config['otp_from_number'])) {
+            $config['otp_from_number'] = '+9810008721297974';
         }
 
         return $config;
@@ -269,22 +292,24 @@ class SystemSettingsService
 
     private function envFallback(string $key, mixed $default): mixed
     {
+        $ippanel = config('services.ippanel', []);
+
         return match ($key) {
-            'ippanel_api_key' => env('IPPANEL_API_KEY', $default),
-            'ippanel_username' => env('IPPANEL_USERNAME', $default),
-            'ippanel_password' => env('IPPANEL_PASSWORD', $default),
-            'ippanel_from_number' => env('IPPANEL_FROM_NUMBER', $default),
-            'ippanel_otp_from_number' => env('IPPANEL_OTP_FROM_NUMBER', $default),
-            'ippanel_otp_pattern_code' => env('IPPANEL_OTP_PATTERN_CODE', $default),
-            'ippanel_invite_pattern_code' => env('IPPANEL_INVITE_PATTERN_CODE', $default),
-            'ippanel_base_url' => env('IPPANEL_BASE_URL', $default ?? 'https://edge.ippanel.com/v1'),
+            'ippanel_api_key' => $ippanel['api_key'] ?? $default,
+            'ippanel_username' => $ippanel['username'] ?? $default,
+            'ippanel_password' => $ippanel['password'] ?? $default,
+            'ippanel_from_number' => $ippanel['from_number'] ?? $default,
+            'ippanel_otp_from_number' => $ippanel['otp_from_number'] ?? $default,
+            'ippanel_otp_pattern_code' => $ippanel['otp_pattern_code'] ?? $default,
+            'ippanel_invite_pattern_code' => $ippanel['invite_pattern_code'] ?? $default,
+            'ippanel_base_url' => $ippanel['base_url'] ?? $default ?? 'https://edge.ippanel.com/v1',
+            'ippanel_api_mode' => $ippanel['api_mode'] ?? $default,
             'aqayepardakht_pin' => env('AQAYEPARDAKHT_PIN', $default),
             'aqayepardakht_sandbox' => env('AQAYEPARDAKHT_SANDBOX', $default ?? true),
             'zarinpal_merchant_id' => env('ZARINPAL_MERCHANT_ID', $default),
             'zarinpal_sandbox' => env('ZARINPAL_SANDBOX', $default ?? true),
             'sms_mode' => env('SMS_MODE', $default),
             'sms_provider' => env('SMS_PROVIDER', $default),
-            'ippanel_api_mode' => env('IPPANEL_API_MODE', $default),
             default => $default,
         };
     }

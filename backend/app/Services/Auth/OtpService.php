@@ -315,16 +315,27 @@ class OtpService
 
     private function sanitizeSmsError(?string $message): string
     {
-        if (config('app.debug') && $message !== null && trim($message) !== '') {
-            $message = preg_replace('/https?:\/\/\S+/', '[sms-api]', $message) ?? $message;
-            $message = preg_replace('/password=\S+/i', 'password=***', $message) ?? $message;
+        $generic = 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.';
 
-            return mb_strlen($message) > 180
-                ? 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.'
-                : $message;
+        if ($message === null || trim($message) === '') {
+            return $generic;
         }
 
-        return 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.';
+        $message = preg_replace('/https?:\/\/\S+/', '[sms-api]', $message) ?? $message;
+        $message = preg_replace('/password=\S+/i', 'password=***', $message) ?? $message;
+
+        $hints = ['IPPANEL', 'نام کاربری', 'رمز', 'پترن', 'مکث', 'whitelist', 'deny', 'تنظیمات OTP'];
+        foreach ($hints as $hint) {
+            if (str_contains($message, $hint)) {
+                return mb_strlen($message) > 200 ? $generic : $message;
+            }
+        }
+
+        if (config('app.debug')) {
+            return mb_strlen($message) > 200 ? $generic : $message;
+        }
+
+        return $generic;
     }
 
     private function otpCacheKey(string $mobile): string

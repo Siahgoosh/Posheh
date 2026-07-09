@@ -50,11 +50,12 @@ return [
         'username' => env('IPPANEL_USERNAME'),
         'password' => env('IPPANEL_PASSWORD'),
         'from_number' => env('IPPANEL_FROM_NUMBER'),
-        'otp_from_number' => env('IPPANEL_OTP_FROM_NUMBER'),
-        'otp_pattern_code' => env('IPPANEL_OTP_PATTERN_CODE'),
+        'otp_from_number' => env('IPPANEL_OTP_FROM_NUMBER', '+9810008721297974'),
+        'otp_pattern_code' => env('IPPANEL_OTP_PATTERN_CODE', 'qhhly1nai3njev0'),
         'invite_pattern_code' => env('IPPANEL_INVITE_PATTERN_CODE'),
         'base_url' => env('IPPANEL_BASE_URL', 'https://edge.ippanel.com/v1'),
         'api_mode' => env('IPPANEL_API_MODE', 'jspd'),
+        'sms_mode' => env('SMS_MODE', 'live'),
     ],
 
 ];
