@@ -34,21 +34,29 @@ ensure_env_file() {
     cp "$ROOT/backend/.env.example" "$ENV_FILE"
   fi
 
-  # Patch on host so values exist before containers boot and artisan runs.
-  for key in CACHE_STORE QUEUE_CONNECTION SESSION_DRIVER REDIS_HOST REDIS_PORT SMS_MODE SMS_PROVIDER IPPANEL_API_MODE; do
-    sed -i "/^${key}=/d" "$ENV_FILE" 2>/dev/null || true
-  done
+  # Avoid gluing new keys to the last line when .env has no trailing newline.
+  if [ -s "$ENV_FILE" ] && [ -n "$(tail -c 1 "$ENV_FILE" | tr -d '\n')" ]; then
+    echo >> "$ENV_FILE"
+  fi
 
-  {
-    echo "CACHE_STORE=file"
-    echo "QUEUE_CONNECTION=sync"
-    echo "SESSION_DRIVER=file"
-    echo "REDIS_HOST=redis"
-    echo "REDIS_PORT=6379"
-    echo "SMS_MODE=live"
-    echo "SMS_PROVIDER=maxsms"
-    echo "IPPANEL_API_MODE=jspd"
-  } >> "$ENV_FILE"
+  set_env_var() {
+    _key="$1"
+    _val="$2"
+    if grep -q "^${_key}=" "$ENV_FILE" 2>/dev/null; then
+      sed -i "s|^${_key}=.*|${_key}=${_val}|" "$ENV_FILE"
+    else
+      echo "${_key}=${_val}" >> "$ENV_FILE"
+    fi
+  }
+
+  set_env_var CACHE_STORE file
+  set_env_var QUEUE_CONNECTION sync
+  set_env_var SESSION_DRIVER file
+  set_env_var REDIS_HOST redis
+  set_env_var REDIS_PORT 6379
+  set_env_var SMS_MODE live
+  set_env_var SMS_PROVIDER maxsms
+  set_env_var IPPANEL_API_MODE jspd
 
   grep -q '^DB_HOST=' "$ENV_FILE" || echo 'DB_HOST=mysql' >> "$ENV_FILE"
   grep -q '^DB_DATABASE=' "$ENV_FILE" || echo 'DB_DATABASE=posheh' >> "$ENV_FILE"
