@@ -12,6 +12,7 @@ class AppRelease extends Model
         'title',
         'description',
         'download_url',
+        'file_path',
         'file_size',
         'is_published',
         'published_at',

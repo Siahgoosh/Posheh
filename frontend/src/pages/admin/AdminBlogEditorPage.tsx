@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RichTextEditor } from '@/components/admin/RichTextEditor'
 import { SeoScorePanel, type SeoAnalysis } from '@/components/admin/SeoScorePanel'
+import { ImageUploadField } from '@/components/admin/ImageUploadField'
 
 const emptyForm = {
   title: '',
@@ -106,6 +107,15 @@ export function AdminBlogEditorPage() {
     return res.data.data.html as string
   }
 
+  const uploadCover = async (file: File) => {
+    const body = new FormData()
+    body.append('image', file)
+    const res = await api.post('/admin/blog/upload-cover', body, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return res.data.data.url as string
+  }
+
   const update = (key: keyof typeof form, value: string | number | boolean) =>
     setForm((f) => ({ ...f, [key]: value }))
 
@@ -183,10 +193,13 @@ export function AdminBlogEditorPage() {
                 <label className="text-sm text-muted mb-1 block">کلمات کلیدی (با ویرگول)</label>
                 <Input value={form.keywords} onChange={(e) => update('keywords', e.target.value)} />
               </div>
-              <div>
-                <label className="text-sm text-muted mb-1 block">تصویر شاخص (URL)</label>
-                <Input value={form.cover_image} onChange={(e) => update('cover_image', e.target.value)} dir="ltr" />
-              </div>
+              <ImageUploadField
+                label="تصویر شاخص"
+                value={form.cover_image}
+                onChange={(url) => update('cover_image', url)}
+                onUpload={uploadCover}
+                hint="تصویر از سیستم انتخاب و روی سرور ذخیره می‌شود."
+              />
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"

@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AppReleaseAdminController;
 use App\Http\Controllers\Api\Admin\BlogAdminController;
+use App\Http\Controllers\Api\Admin\MarketingDashboardController;
+use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\Blog\BlogController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
@@ -23,6 +25,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/blog/sitemap', [BlogController::class, 'sitemap']);
     Route::get('/blog/{slug}', [BlogController::class, 'show']);
     Route::get('/downloads', [DownloadController::class, 'index']);
+    Route::post('/analytics/track', [AnalyticsController::class, 'track'])->middleware('throttle:120,1');
     Route::get('/payments/zarinpal/callback', [SubscriptionController::class, 'zarinpalCallback'])
         ->middleware('throttle:30,1');
 
@@ -54,6 +57,7 @@ Route::prefix('v1')->group(function () {
 
         // Super Admin routes
         Route::prefix('admin')->middleware(EnsureUserHasRole::class.':super_admin')->group(function () {
+            Route::get('/marketing', [MarketingDashboardController::class, 'index']);
             Route::get('/offices', [AdminController::class, 'offices']);
             Route::get('/analytics', [AdminController::class, 'analytics']);
             Route::get('/tickets', [AdminController::class, 'tickets']);
@@ -63,12 +67,14 @@ Route::prefix('v1')->group(function () {
             Route::get('/blog', [BlogAdminController::class, 'index']);
             Route::post('/blog/analyze-seo', [BlogAdminController::class, 'analyzeSeo']);
             Route::post('/blog/upload-image', [BlogAdminController::class, 'uploadImage']);
+            Route::post('/blog/upload-cover', [BlogAdminController::class, 'uploadCover']);
             Route::get('/blog/{id}', [BlogAdminController::class, 'show']);
             Route::post('/blog', [BlogAdminController::class, 'store']);
             Route::put('/blog/{id}', [BlogAdminController::class, 'update']);
             Route::delete('/blog/{id}', [BlogAdminController::class, 'destroy']);
 
             Route::get('/releases', [AppReleaseAdminController::class, 'index']);
+            Route::post('/releases/upload', [AppReleaseAdminController::class, 'uploadFile']);
             Route::post('/releases', [AppReleaseAdminController::class, 'store']);
             Route::put('/releases/{id}', [AppReleaseAdminController::class, 'update']);
             Route::delete('/releases/{id}', [AppReleaseAdminController::class, 'destroy']);

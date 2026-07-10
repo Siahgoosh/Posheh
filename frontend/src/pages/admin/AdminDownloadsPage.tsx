@@ -6,6 +6,7 @@ import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { FileUploadField } from '@/components/admin/FileUploadField'
 
 interface Release {
   id: number
@@ -14,6 +15,7 @@ interface Release {
   title: string
   description?: string
   download_url: string
+  file_path?: string
   file_size?: string
   is_published: boolean
 }
@@ -24,6 +26,7 @@ const emptyRelease = {
   title: '',
   description: '',
   download_url: '',
+  file_path: '',
   file_size: '',
   is_published: true,
 }
@@ -66,15 +69,26 @@ export function AdminDownloadsPage() {
       title: release.title,
       description: release.description ?? '',
       download_url: release.download_url,
+      file_path: release.file_path ?? '',
       file_size: release.file_size ?? '',
       is_published: release.is_published,
     })
   }
 
+  const uploadReleaseFile = async (file: File) => {
+    const body = new FormData()
+    body.append('file', file)
+    body.append('platform', form.platform)
+    const res = await api.post('/admin/releases/upload', body, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return res.data.data as { download_url: string; file_size: string; file_path: string }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in max-w-3xl mx-auto">
       <div className="flex items-center gap-3">
-        <Link to="/admin/blog">
+        <Link to="/admin">
           <Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button>
         </Link>
         <div>
@@ -105,7 +119,26 @@ export function AdminDownloadsPage() {
             value={form.description}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           />
-          <Input placeholder="لینک دانلود" value={form.download_url} onChange={(e) => setForm((f) => ({ ...f, download_url: e.target.value }))} dir="ltr" />
+          <FileUploadField
+            label="فایل نرم‌افزار"
+            platform={form.platform}
+            fileName={form.file_path ? form.download_url.split('/').pop() : undefined}
+            onUpload={uploadReleaseFile}
+            onUploaded={(data) =>
+              setForm((f) => ({
+                ...f,
+                download_url: data.download_url,
+                file_path: data.file_path ?? f.file_path,
+                file_size: data.file_size,
+              }))
+            }
+          />
+          <Input
+            placeholder="یا لینک دانلود خارجی"
+            value={form.download_url}
+            onChange={(e) => setForm((f) => ({ ...f, download_url: e.target.value }))}
+            dir="ltr"
+          />
           <Input placeholder="حجم فایل" value={form.file_size} onChange={(e) => setForm((f) => ({ ...f, file_size: e.target.value }))} />
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={form.is_published} onChange={(e) => setForm((f) => ({ ...f, is_published: e.target.checked }))} />

@@ -96,19 +96,40 @@ class BlogAdminController extends Controller
             'alt' => ['nullable', 'string', 'max:200'],
         ]);
 
-        $path = $request->file('image')->store('blog', 'public');
-        $url = Storage::disk('public')->url($path);
-        $alt = $request->input('alt', '');
+        return response()->json([
+            'data' => $this->storeUploadedImage($request->file('image'), $request->input('alt', '')),
+        ], 201);
+    }
+
+    public function uploadCover(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => ['required', 'image', 'max:8192'],
+        ]);
+
+        $data = $this->storeUploadedImage($request->file('image'), 'cover');
 
         return response()->json([
             'data' => [
-                'url' => $url,
-                'path' => $path,
-                'html' => $alt !== ''
-                    ? '<img src="'.e($url).'" alt="'.e($alt).'" loading="lazy" />'
-                    : '<img src="'.e($url).'" alt="" loading="lazy" />',
+                'url' => $data['url'],
+                'path' => $data['path'],
             ],
         ], 201);
+    }
+
+    /** @return array{url: string, path: string, html: string} */
+    private function storeUploadedImage($file, string $alt): array
+    {
+        $path = $file->store('blog', 'public');
+        $url = Storage::disk('public')->url($path);
+
+        return [
+            'url' => $url,
+            'path' => $path,
+            'html' => $alt !== '' && $alt !== 'cover'
+                ? '<img src="'.e($url).'" alt="'.e($alt).'" loading="lazy" />'
+                : '<img src="'.e($url).'" alt="" loading="lazy" />',
+        ];
     }
 
     /** @return array<string, mixed> */

@@ -15,6 +15,7 @@ import {
   BookOpen,
   Download,
   Shield,
+  BarChart3,
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -39,6 +40,7 @@ export function Sidebar() {
   const adminItems =
     user?.role === 'super_admin'
       ? [
+          { to: '/admin', icon: BarChart3, label: 'پنل مدیر کل' },
           { to: '/admin/blog', icon: BookOpen, label: 'مدیریت وبلاگ' },
           { to: '/admin/downloads', icon: Download, label: 'مدیریت دانلودها' },
         ]

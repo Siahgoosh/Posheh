@@ -21,6 +21,8 @@ import { SuperAdminRoute } from '@/components/SuperAdminRoute'
 import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
+import { AdminSuperPanelPage } from '@/pages/admin/AdminSuperPanelPage'
+import { AnalyticsTracker } from '@/components/AnalyticsTracker'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -43,6 +45,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthBootstrap>
+        <AnalyticsTracker />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/blog" element={<BlogListPage />} />
@@ -66,6 +69,14 @@ export default function App() {
             <Route path="/team" element={<TeamPage />} />
             <Route path="/subscription" element={<SubscriptionPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route
+              path="/admin"
+              element={
+                <SuperAdminRoute>
+                  <AdminSuperPanelPage />
+                </SuperAdminRoute>
+              }
+            />
             <Route
               path="/admin/blog"
               element={

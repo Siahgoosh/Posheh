@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SeoHead } from '@/components/seo/SeoHead'
+import { trackDownloadClick } from '@/lib/analytics'
 
 interface Release {
   id: number
@@ -78,7 +79,12 @@ export function DownloadPage() {
                         <p className="font-medium">{release.title}</p>
                         <p className="text-sm text-muted leading-relaxed">{release.description}</p>
                         <p className="text-xs text-muted">نسخه {release.version} · {release.file_size || '—'}</p>
-                        <a href={release.download_url} target="_blank" rel="noreferrer">
+                        <a
+                          href={release.download_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={() => trackDownloadClick(platform, release.version)}
+                        >
                           <Button className="w-full">
                             <Download className="h-4 w-4" />
                             دانلود
