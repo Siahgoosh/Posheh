@@ -96,6 +96,8 @@ export function AdminSuperPanelPage() {
           <p className="text-sm text-muted mt-1">آمار کاربران، بازدید، وبلاگ، دانلود و درآمد</p>
         </div>
         <div className="flex gap-2">
+          <Link to="/admin/plans"><Button variant="outline" size="sm">پلن‌ها</Button></Link>
+          <Link to="/admin/offices"><Button variant="outline" size="sm">دفاتر</Button></Link>
           <Link to="/admin/blog"><Button variant="outline" size="sm">وبلاگ</Button></Link>
           <Link to="/admin/downloads"><Button variant="outline" size="sm">دانلودها</Button></Link>
         </div>

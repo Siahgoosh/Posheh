@@ -23,10 +23,12 @@ class AuthController extends Controller
 
         $request->validate([
             'mobile' => ['required', 'string', 'regex:/^09\d{9}$/'],
+            'purpose' => ['nullable', 'string', 'in:login,register'],
         ]);
 
         $result = $this->otpService->send(new SendOtpDTO(
             mobile: $request->input('mobile'),
+            purpose: $request->input('purpose', 'login'),
         ));
 
         return response()->json($result);
@@ -42,6 +44,7 @@ class AuthController extends Controller
         $request->validate([
             'mobile' => ['required', 'string', 'regex:/^09\d{9}$/'],
             'code' => ['required', 'string', 'size:6'],
+            'purpose' => ['nullable', 'string', 'in:login,register'],
             'device_id' => ['nullable', 'string'],
             'device_name' => ['nullable', 'string'],
             'platform' => ['nullable', 'string'],
@@ -53,20 +56,27 @@ class AuthController extends Controller
             deviceId: $request->input('device_id'),
             deviceName: $request->input('device_name'),
             platform: $request->input('platform'),
+            purpose: $request->input('purpose', 'login'),
         ));
+
+        if (! empty($result['needs_registration'])) {
+            return response()->json($result);
+        }
 
         return response()->json([
             'user' => new UserResource($result['user']),
             'token' => $result['token'],
             'token_type' => $result['token_type'],
             'expires_at' => $result['expires_at'],
+            'subscription_expired' => $result['subscription_expired'] ?? false,
+            'access' => $result['access'] ?? null,
         ]);
     }
 
     public function me(Request $request): JsonResponse
     {
         return response()->json([
-            'user' => new UserResource($request->user()->load('office.subscription.plan')),
+            'user' => new UserResource($request->user()->load(['office.plan', 'office.subscription.plan'])),
         ]);
     }
 

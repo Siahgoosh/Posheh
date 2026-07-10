@@ -4,52 +4,38 @@ namespace App\Enums;
 
 enum SubscriptionPlan: string
 {
+    case Solo = 'solo';
+    case Office = 'office';
+    case Premium = 'premium';
+
+    /** @deprecated use Solo */
     case Basic = 'basic';
+    /** @deprecated use Office */
     case Professional = 'professional';
+    /** @deprecated use Premium */
     case Unlimited = 'unlimited';
 
     public function label(): string
     {
         return match ($this) {
+            self::Solo => 'مشاور مستقل',
+            self::Office => 'دفتر املاک',
+            self::Premium => 'دفتر حرفه‌ای',
             self::Basic => 'پایه',
             self::Professional => 'حرفه‌ای',
             self::Unlimited => 'نامحدود',
         };
     }
 
-    public function maxUsers(): int
+    public function panelType(): PanelType
     {
         return match ($this) {
-            self::Basic => 3,
-            self::Professional => 10,
-            self::Unlimited => PHP_INT_MAX,
-        };
-    }
-
-    public function maxProperties(): int
-    {
-        return match ($this) {
-            self::Basic => 100,
-            self::Professional => 1000,
-            self::Unlimited => PHP_INT_MAX,
-        };
-    }
-
-    public function storageGb(): int
-    {
-        return match ($this) {
-            self::Basic => 5,
-            self::Professional => 25,
-            self::Unlimited => 100,
-        };
-    }
-
-    public function monthlyPrice(): int
-    {
-        return match ($this) {
-            self::Basic => 990_000,
-            self::Professional => 2_490_000,
-            self::Unlimited => 4_990_000,
+            self::Solo => PanelType::Solo,
+            self::Office => PanelType::Office,
+            self::Premium => PanelType::Premium,
+            self::Basic => PanelType::Office,
+            self::Professional => PanelType::Office,
+            self::Unlimited => PanelType::Premium,
         };
     }
 }

@@ -5,6 +5,8 @@ import { AuthBootstrap } from '@/components/AuthBootstrap'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { LandingPage } from '@/pages/LandingPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { RegisterPage } from '@/pages/RegisterPage'
+import { RenewSubscriptionPage } from '@/pages/RenewSubscriptionPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { PropertiesPage } from '@/pages/PropertiesPage'
 import { PropertyDetailPage } from '@/pages/PropertyDetailPage'
@@ -23,6 +25,9 @@ import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
 import { AdminSuperPanelPage } from '@/pages/admin/AdminSuperPanelPage'
 import { AnalyticsTracker } from '@/components/AnalyticsTracker'
+import { SubscriptionGuard } from '@/components/SubscriptionGuard'
+import { AdminPlansPage } from '@/pages/admin/AdminPlansPage'
+import { AdminOfficesPage } from '@/pages/admin/AdminOfficesPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -52,10 +57,13 @@ export default function App() {
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route
             element={
               <ProtectedRoute>
-                <AppLayout />
+                <SubscriptionGuard>
+                  <AppLayout />
+                </SubscriptionGuard>
               </ProtectedRoute>
             }
           >
@@ -68,7 +76,24 @@ export default function App() {
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/team" element={<TeamPage />} />
             <Route path="/subscription" element={<SubscriptionPage />} />
+            <Route path="/renew" element={<RenewSubscriptionPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route
+              path="/admin/plans"
+              element={
+                <SuperAdminRoute>
+                  <AdminPlansPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/offices"
+              element={
+                <SuperAdminRoute>
+                  <AdminOfficesPage />
+                </SuperAdminRoute>
+              }
+            />
             <Route
               path="/admin"
               element={

@@ -25,6 +25,11 @@ api.interceptors.response.use(
         window.location.href = '/login'
       }
     }
+    if (error.response?.status === 402 && error.response?.data?.subscription_expired) {
+      if (!window.location.pathname.startsWith('/renew') && !window.location.pathname.startsWith('/subscription')) {
+        window.location.href = '/renew'
+      }
+    }
     return Promise.reject(error)
   }
 )

@@ -8,8 +8,10 @@ use App\Models\Device;
 use App\Models\OtpCode;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Services\Auth\RegistrationService;
 use App\Services\Settings\SystemSettingsService;
 use App\Services\Sms\IpPanelSmsService;
+use App\Services\Subscription\SubscriptionAccessService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
@@ -24,6 +26,8 @@ class OtpService
         private readonly UserRepositoryInterface $userRepository,
         private readonly SystemSettingsService $settings,
         private readonly IpPanelSmsService $sms,
+        private readonly RegistrationService $registrationService,
+        private readonly SubscriptionAccessService $subscriptionAccess,
     ) {}
 
     public function send(SendOtpDTO $dto): array
@@ -227,8 +231,18 @@ class OtpService
         $user = $this->userRepository->findByMobile($mobile);
 
         if (! $user) {
+            if ($dto->purpose === 'register') {
+                $registrationToken = $this->registrationService->createRegistrationToken($mobile);
+
+                return [
+                    'needs_registration' => true,
+                    'registration_token' => $registrationToken,
+                    'mobile' => $mobile,
+                ];
+            }
+
             throw ValidationException::withMessages([
-                'mobile' => ['کاربری با این شماره موبایل یافت نشد. لطفاً از مدیر دفتر دعوتنامه دریافت کنید.'],
+                'mobile' => ['کاربری با این شماره موبایل یافت نشد. ابتدا ثبت‌نام کنید.'],
             ]);
         }
 
@@ -247,6 +261,9 @@ class OtpService
             $this->registerDevice($user, $dto);
         }
 
+        $subscriptionExpired = ! $user->isSuperAdmin()
+            && ! $this->subscriptionAccess->userHasAccess($user);
+
         $token = $user->createToken(
             $dto->deviceName ?? 'web',
             ['*'],
@@ -254,10 +271,12 @@ class OtpService
         );
 
         return [
-            'user' => $user->load('office'),
+            'user' => $user->load(['office.plan', 'office.subscription.plan']),
             'token' => $token->plainTextToken,
             'token_type' => 'Bearer',
             'expires_at' => $token->accessToken->expires_at?->toIso8601String(),
+            'subscription_expired' => $subscriptionExpired,
+            'access' => $this->subscriptionAccess->accessStatus($user->office),
         ];
     }
 

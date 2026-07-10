@@ -15,8 +15,19 @@ export interface User {
     name: string
     slug: string
     city?: string
+    panel_type?: string
     has_access?: boolean
     on_trial?: boolean
+    trial_days_remaining?: number
+    subscription_expired?: boolean
+    is_verified?: boolean
+    plan?: {
+      id: number
+      slug: string
+      name: string
+      panel_type: string
+      features: string[]
+    }
     subscription?: {
       status: string
       ends_at: string

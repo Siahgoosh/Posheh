@@ -4,15 +4,19 @@ use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AppReleaseAdminController;
 use App\Http\Controllers\Api\Admin\BlogAdminController;
 use App\Http\Controllers\Api\Admin\MarketingDashboardController;
+use App\Http\Controllers\Api\Admin\PlanAdminController;
 use App\Http\Controllers\Api\AnalyticsController;
+use App\Http\Controllers\Api\Auth\RegistrationController;
 use App\Http\Controllers\Api\Blog\BlogController;
 use App\Http\Controllers\Api\Auth\AuthController;
+use App\Http\Controllers\Api\ConsultantDirectoryController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\DownloadController;
 use App\Http\Controllers\Api\Office\OfficeController;
 use App\Http\Controllers\Api\Property\PropertyController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
 use App\Http\Middleware\EnsureOfficeIsActive;
+use App\Http\Middleware\EnsureSubscriptionAccess;
 use App\Http\Middleware\EnsureUserHasRole;
 use Illuminate\Support\Facades\Route;
 
@@ -25,12 +29,14 @@ Route::prefix('v1')->group(function () {
     Route::get('/blog/sitemap', [BlogController::class, 'sitemap']);
     Route::get('/blog/{slug}', [BlogController::class, 'show']);
     Route::get('/downloads', [DownloadController::class, 'index']);
+    Route::get('/consultants', [ConsultantDirectoryController::class, 'index']);
     Route::post('/analytics/track', [AnalyticsController::class, 'track'])->middleware('throttle:120,1');
+    Route::post('/auth/register', [RegistrationController::class, 'register'])->middleware('throttle:10,1');
     Route::get('/payments/zarinpal/callback', [SubscriptionController::class, 'zarinpalCallback'])
         ->middleware('throttle:30,1');
 
     // Authenticated routes
-    Route::middleware(['auth:sanctum', EnsureOfficeIsActive::class])->group(function () {
+    Route::middleware(['auth:sanctum', EnsureOfficeIsActive::class, EnsureSubscriptionAccess::class])->group(function () {
         Route::prefix('auth')->group(function () {
             Route::get('/me', [AuthController::class, 'me']);
             Route::post('/logout', [AuthController::class, 'logout']);
@@ -58,6 +64,10 @@ Route::prefix('v1')->group(function () {
         // Super Admin routes
         Route::prefix('admin')->middleware(EnsureUserHasRole::class.':super_admin')->group(function () {
             Route::get('/marketing', [MarketingDashboardController::class, 'index']);
+            Route::get('/plans', [PlanAdminController::class, 'index']);
+            Route::post('/plans', [PlanAdminController::class, 'store']);
+            Route::put('/plans/{id}', [PlanAdminController::class, 'update']);
+            Route::delete('/plans/{id}', [PlanAdminController::class, 'destroy']);
             Route::get('/offices', [AdminController::class, 'offices']);
             Route::get('/analytics', [AdminController::class, 'analytics']);
             Route::get('/tickets', [AdminController::class, 'tickets']);

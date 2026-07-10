@@ -142,7 +142,7 @@ class SubscriptionService
             ->where('status', 'active')
             ->update(['status' => 'expired']);
 
-        return Subscription::create([
+        $subscription = Subscription::create([
             'office_id' => $payment->office_id,
             'subscription_plan_id' => $plan->id,
             'status' => 'active',
@@ -150,5 +150,12 @@ class SubscriptionService
             'ends_at' => now()->addMonth(),
             'auto_renew' => true,
         ]);
+
+        Office::where('id', $payment->office_id)->update([
+            'subscription_plan_id' => $plan->id,
+            'panel_type' => $plan->panel_type,
+        ]);
+
+        return $subscription;
     }
 }

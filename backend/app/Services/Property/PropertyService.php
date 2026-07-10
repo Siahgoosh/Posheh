@@ -9,6 +9,7 @@ use App\Models\PropertyFavorite;
 use App\Models\User;
 use App\Repositories\Contracts\PropertyRepositoryInterface;
 use App\Services\Activity\ActivityLogger;
+use App\Services\Subscription\SubscriptionAccessService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Validation\ValidationException;
@@ -18,6 +19,7 @@ class PropertyService
     public function __construct(
         private readonly PropertyRepositoryInterface $propertyRepository,
         private readonly ActivityLogger $activityLogger,
+        private readonly SubscriptionAccessService $subscriptionAccess,
     ) {}
 
     public function list(User $user, PropertySearchDTO $dto): LengthAwarePaginator
@@ -152,15 +154,15 @@ class PropertyService
     private function ensurePropertyLimit(User $user): void
     {
         $office = $user->office;
-        $subscription = $office?->subscription;
 
-        if (! $subscription?->isActive()) {
+        if (! $this->subscriptionAccess->userHasAccess($user)) {
             throw ValidationException::withMessages([
-                'subscription' => ['اشتراک دفتر منقضی شده است.'],
+                'subscription' => ['دوره آزمایشی یا اشتراک شما به پایان رسیده است.'],
             ]);
         }
 
-        $maxProperties = $subscription->plan->max_properties;
+        $plan = $office?->plan ?? $office?->subscription?->plan;
+        $maxProperties = $plan?->max_properties ?? 100;
         $currentCount = $this->propertyRepository->countByOffice($user->office_id);
 
         if ($currentCount >= $maxProperties) {

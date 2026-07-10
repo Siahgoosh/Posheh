@@ -8,6 +8,7 @@ use App\Models\OfficeInvitation;
 use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Activity\ActivityLogger;
+use App\Services\Subscription\SubscriptionAccessService;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -16,6 +17,7 @@ class OfficeService
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly ActivityLogger $activityLogger,
+        private readonly SubscriptionAccessService $subscriptionAccess,
     ) {}
 
     public function createOffice(array $data, User $manager): Office
@@ -43,6 +45,17 @@ class OfficeService
         if (! $manager->canManageOffice()) {
             throw ValidationException::withMessages([
                 'permission' => ['شما مجاز به دعوت کاربر نیستید.'],
+            ]);
+        }
+
+        $office = $manager->office;
+        $plan = $office?->plan ?? $office?->subscription?->plan;
+        $maxUsers = $plan?->max_users ?? 3;
+        $currentUsers = User::where('office_id', $manager->office_id)->where('is_active', true)->count();
+
+        if ($currentUsers >= $maxUsers) {
+            throw ValidationException::withMessages([
+                'mobile' => ["حداکثر {$maxUsers} کاربر برای پلن شما مجاز است."],
             ]);
         }
 

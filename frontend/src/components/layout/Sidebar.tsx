@@ -16,31 +16,37 @@ import {
   Download,
   Shield,
   BarChart3,
+  Building,
 } from 'lucide-react'
+import { usePlanFeature } from '@/components/SubscriptionGuard'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore, useThemeStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 
-const navItems = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'داشبورد' },
-  { to: '/properties', icon: Building2, label: 'املاک' },
-  { to: '/search', icon: Search, label: 'جستجو' },
-  { to: '/favorites', icon: Star, label: 'علاقه‌مندی‌ها' },
-  { to: '/team', icon: Users, label: 'تیم' },
-  { to: '/subscription', icon: CreditCard, label: 'اشتراک' },
-  { to: '/settings', icon: Settings, label: 'تنظیمات' },
-]
-
 export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { user, logout } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
+  const hasTeam = usePlanFeature('team')
+  const onTrial = user?.office?.on_trial
+
+  const navItems = [
+    { to: '/dashboard', icon: LayoutDashboard, label: 'داشبورد' },
+    { to: '/properties', icon: Building2, label: 'املاک' },
+    { to: '/search', icon: Search, label: 'جستجو' },
+    { to: '/favorites', icon: Star, label: 'علاقه‌مندی‌ها' },
+    ...(hasTeam ? [{ to: '/team', icon: Users, label: 'تیم' }] : []),
+    { to: '/subscription', icon: CreditCard, label: 'اشتراک' },
+    { to: '/settings', icon: Settings, label: 'تنظیمات' },
+  ]
 
   const adminItems =
     user?.role === 'super_admin'
       ? [
           { to: '/admin', icon: BarChart3, label: 'پنل مدیر کل' },
+          { to: '/admin/plans', icon: CreditCard, label: 'پلن‌ها و قیمت‌ها' },
+          { to: '/admin/offices', icon: Building, label: 'دفاتر و کاربران' },
           { to: '/admin/blog', icon: BookOpen, label: 'مدیریت وبلاگ' },
           { to: '/admin/downloads', icon: Download, label: 'مدیریت دانلودها' },
         ]
@@ -55,6 +61,9 @@ export function Sidebar() {
         <div>
           <h1 className="text-lg font-bold gradient-text">پوشه</h1>
           <p className="text-xs text-muted">{user?.office?.name || 'سامانه املاک'}</p>
+          {onTrial && user?.office?.trial_days_remaining !== undefined && (
+            <p className="text-xs text-warning">{user.office.trial_days_remaining} روز آزمایشی</p>
+          )}
         </div>
       </div>
 

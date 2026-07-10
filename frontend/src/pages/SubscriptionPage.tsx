@@ -9,10 +9,13 @@ import { Badge } from '@/components/ui/badge'
 interface Plan {
   id: number
   name: string
+  slug: string
   monthly_price: number
   max_properties: number
   max_users: number
+  trial_days: number
   description?: string
+  features?: string[]
 }
 
 interface CurrentSub {
@@ -74,6 +77,14 @@ export function SubscriptionPage() {
         </Card>
       )}
 
+      {!current && (
+        <Card className="border-warning/30 bg-warning/5">
+          <CardContent className="p-4 text-sm text-muted">
+            در دوره آزمایشی یا بدون اشتراک فعال هستید. برای ادامه استفاده پس از پایان آزمایشی، یکی از پلن‌ها را انتخاب کنید.
+          </CardContent>
+        </Card>
+      )}
+
       {plansLoading ? (
         <div className="flex justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -91,6 +102,7 @@ export function SubscriptionPage() {
                 <ul className="text-sm text-muted space-y-1 mb-6 flex-1">
                   <li>تا {plan.max_properties} ملک</li>
                   <li>تا {plan.max_users} کاربر</li>
+                  <li>{plan.trial_days} روز آزمایشی رایگان</li>
                   {plan.description && <li>{plan.description}</li>}
                 </ul>
                 <div className="space-y-2">

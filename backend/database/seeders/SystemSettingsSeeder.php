@@ -26,7 +26,7 @@ class SystemSettingsSeeder extends Seeder
             ['group' => 'payment', 'key' => 'zarinpal_merchant_id', 'value' => env('ZARINPAL_MERCHANT_ID', ''), 'label' => 'مرچنت زرین‌پال', 'type' => 'text', 'is_secret' => true],
             ['group' => 'payment', 'key' => 'zarinpal_sandbox', 'value' => env('ZARINPAL_SANDBOX', '1') ? '1' : '0', 'label' => 'حالت تست زرین‌پال', 'type' => 'boolean'],
             ['group' => 'general', 'key' => 'app_public_name', 'value' => 'پوشه', 'label' => 'نام نرم‌افزار', 'type' => 'text'],
-            ['group' => 'general', 'key' => 'trial_days', 'value' => '14', 'label' => 'روزهای دوره آزمایشی', 'type' => 'number'],
+            ['group' => 'general', 'key' => 'trial_days', 'value' => '3', 'label' => 'روزهای دوره آزمایشی', 'type' => 'number'],
             ['group' => 'general', 'key' => 'frontend_url', 'value' => env('FRONTEND_URL', env('APP_URL', 'http://localhost:8000')), 'label' => 'آدرس فرانت‌اند', 'type' => 'text'],
             ['group' => 'general', 'key' => 'invite_sms_template', 'value' => 'شما به دفتر {office} در پوشه دعوت شدید. با شماره موبایل خود وارد شوید.', 'label' => 'متن پیامک دعوت', 'type' => 'textarea'],
         ];

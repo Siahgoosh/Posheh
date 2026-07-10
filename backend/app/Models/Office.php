@@ -18,12 +18,19 @@ class Office extends Model
         'uuid',
         'name',
         'slug',
+        'subscription_plan_id',
+        'panel_type',
         'phone',
         'address',
         'city',
         'logo_path',
         'settings',
         'is_active',
+        'is_verified',
+        'show_on_website',
+        'telegram_bot_token',
+        'whatsapp_config',
+        'description',
         'trial_ends_at',
     ];
 
@@ -31,7 +38,10 @@ class Office extends Model
     {
         return [
             'settings' => 'array',
+            'whatsapp_config' => 'array',
             'is_active' => 'boolean',
+            'is_verified' => 'boolean',
+            'show_on_website' => 'boolean',
             'trial_ends_at' => 'datetime',
         ];
     }
@@ -63,6 +73,11 @@ class Office extends Model
         return $this->hasOne(Subscription::class)->latestOfMany();
     }
 
+    public function plan(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
+    }
+
     public function wallet(): HasOne
     {
         return $this->hasOne(Wallet::class);
@@ -79,6 +94,11 @@ class Office extends Model
             ->where('status', 'active')
             ->where('ends_at', '>', now())
             ->exists();
+    }
+
+    public function onTrial(): bool
+    {
+        return $this->trial_ends_at !== null && $this->trial_ends_at->isFuture();
     }
 
     public function getSetting(string $key, mixed $default = null): mixed

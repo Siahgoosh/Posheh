@@ -10,6 +10,7 @@ class SubscriptionPlan extends Model
 {
     protected $fillable = [
         'slug',
+        'panel_type',
         'name',
         'description',
         'max_users',
@@ -20,6 +21,7 @@ class SubscriptionPlan extends Model
         'features',
         'is_active',
         'sort_order',
+        'trial_days',
     ];
 
     protected function casts(): array

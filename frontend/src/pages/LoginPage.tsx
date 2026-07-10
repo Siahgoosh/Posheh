@@ -61,7 +61,7 @@ export function LoginPage() {
       }
       const { data } = await api.post('/auth/otp/verify', payload)
       setAuth(data.user, data.token)
-      navigate('/dashboard')
+      navigate(data.subscription_expired ? '/renew' : '/dashboard')
     } catch (err: unknown) {
       const axiosErr = err as {
         response?: {
@@ -141,6 +141,9 @@ export function LoginPage() {
                 <Button type="submit" className="w-full" disabled={loading || mobile.length < 11}>
                   {loading ? 'در حال ارسال...' : 'دریافت کد تأیید'}
                 </Button>
+                <p className="text-center text-sm text-muted">
+                  حساب ندارید؟ <Link to="/register" className="text-primary hover:underline">ثبت‌نام</Link>
+                </p>
               </form>
             ) : (
               <form onSubmit={handleVerifyOtp} className="space-y-4">

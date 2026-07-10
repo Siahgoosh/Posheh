@@ -10,5 +10,6 @@ readonly class VerifyOtpDTO
         public ?string $deviceId = null,
         public ?string $deviceName = null,
         public ?string $platform = null,
+        public string $purpose = 'login',
     ) {}
 }

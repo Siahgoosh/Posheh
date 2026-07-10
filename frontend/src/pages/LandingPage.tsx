@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useQuery } from '@tanstack/react-query'
 import {
   Building2,
   Smartphone,
@@ -14,7 +15,10 @@ import {
   CheckCircle2,
   Sparkles,
   BookOpen,
+  BadgeCheck,
 } from 'lucide-react'
+import api from '@/lib/api'
+import { formatPrice } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { SeoHead } from '@/components/seo/SeoHead'
@@ -35,13 +39,53 @@ const platforms = [
   { icon: Monitor, label: 'ویندوز', desc: 'دسکتاپ برای دفتر', badge: 'desktop' },
 ]
 
-const plans = [
-  { name: 'پایه', price: 'رایگان', period: '۱۴ روز آزمایشی', features: ['تا ۵۰ ملک', '۲ کاربر', 'پشتیبانی ایمیل'] },
-  { name: 'حرفه‌ای', price: '۴۹۹', period: 'هزار تومان / ماه', features: ['تا ۵۰۰ ملک', '۱۰ کاربر', 'CRM و حسابداری', 'پشتیبانی تلفنی'], highlight: true },
-  { name: 'سازمانی', price: 'تماس', period: 'قیمت اختصاصی', features: ['ملک نامحدود', 'کاربر نامحدود', 'API اختصاصی', 'مدیر اختصاصی'] },
-]
+const featureLabels: Record<string, string> = {
+  filing: 'فایلینگ حرفه‌ای',
+  accounting: 'حسابداری دفتر',
+  team: 'مدیریت تیم',
+  telegram_bot: 'ربات تلگرام',
+  whatsapp_bot: 'ربات واتساپ',
+  website_listing: 'نمایش در وبسایت',
+  verified_badge: 'تیک وریفای',
+  crm: 'CRM',
+}
 
 export function LandingPage() {
+  const { data: apiPlans } = useQuery({
+    queryKey: ['plans'],
+    queryFn: async () => {
+      const res = await api.get('/plans')
+      return res.data.data as {
+        id: number
+        slug: string
+        name: string
+        description?: string
+        monthly_price: number
+        trial_days: number
+        max_users: number
+        max_properties: number
+        features: string[]
+        panel_type: string
+      }[]
+    },
+  })
+
+  const { data: consultants } = useQuery({
+    queryKey: ['consultants'],
+    queryFn: async () => {
+      const res = await api.get('/consultants')
+      return res.data.data as {
+        id: number
+        name: string
+        city?: string
+        logo_url?: string
+        is_verified: boolean
+        description?: string
+      }[]
+    },
+  })
+
+  const displayPlans = apiPlans ?? []
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <SeoHead
@@ -75,7 +119,7 @@ export function LandingPage() {
             <Link to="/login">
               <Button variant="ghost" size="sm">ورود</Button>
             </Link>
-            <Link to="/login">
+            <Link to="/register">
               <Button size="sm">
                 شروع رایگان
                 <ArrowLeft className="h-4 w-4" />
@@ -101,9 +145,9 @@ export function LandingPage() {
             برای مشاوران املاک، مدیران دفتر و آژانس‌های حرفه‌ای.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/login">
+            <Link to="/register">
               <Button size="lg" className="min-w-[200px]">
-                ورود / ثبت‌نام
+                ثبت‌نام رایگان
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
@@ -203,40 +247,73 @@ export function LandingPage() {
 
       <section id="pricing" className="container mx-auto max-w-6xl px-4 py-20">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-3">تعرفه شفاف</h2>
-          <p className="text-muted">از آزمایشی رایگان تا پلن سازمانی</p>
+          <h2 className="text-3xl font-bold mb-3">سه پنل، یک سامانه</h2>
+          <p className="text-muted">۳ روز تست رایگان برای همه پلن‌ها</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
-          {plans.map((plan) => (
+          {displayPlans.map((plan, idx) => (
             <Card
-              key={plan.name}
-              className={`p-6 flex flex-col ${plan.highlight ? 'border-primary/50 ring-1 ring-primary/30' : ''}`}
+              key={plan.id}
+              className={`p-6 flex flex-col ${idx === 1 ? 'border-primary/50 ring-1 ring-primary/30' : ''}`}
             >
-              {plan.highlight && (
+              {idx === 1 && (
                 <span className="self-start text-xs font-medium text-primary bg-primary/15 px-2 py-1 rounded-full mb-3">
                   پرطرفدار
                 </span>
               )}
               <h3 className="text-xl font-bold">{plan.name}</h3>
-              <p className="text-3xl font-bold mt-2 gradient-text">{plan.price}</p>
-              <p className="text-sm text-muted mb-6">{plan.period}</p>
+              <p className="text-2xl font-bold mt-2 gradient-text">{formatPrice(plan.monthly_price)}</p>
+              <p className="text-sm text-muted mb-2">ماهانه · {plan.trial_days} روز رایگان</p>
+              <p className="text-sm text-muted mb-4">{plan.description}</p>
               <ul className="space-y-2 flex-1">
-                {plan.features.map((f) => (
+                <li className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
+                  تا {plan.max_users} کاربر · {plan.max_properties} ملک
+                </li>
+                {plan.features.slice(0, 4).map((f) => (
                   <li key={f} className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                    {f}
+                    {featureLabels[f] || f}
                   </li>
                 ))}
               </ul>
-              <Link to="/login" className="mt-6">
-                <Button className="w-full" variant={plan.highlight ? 'default' : 'outline'}>
-                  شروع کنید
+              <Link to="/register" className="mt-6">
+                <Button className="w-full" variant={idx === 1 ? 'default' : 'outline'}>
+                  شروع رایگان
                 </Button>
               </Link>
             </Card>
           ))}
         </div>
       </section>
+
+      {consultants && consultants.length > 0 && (
+        <section id="consultants" className="container mx-auto max-w-6xl px-4 py-20">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-3">مشاورین املاک ما</h2>
+            <p className="text-muted">دفاتر حرفه‌ای با تیک وریفای در پوشه</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {consultants.map((c) => (
+              <Card key={c.id} className="p-5 text-center glass-hover">
+                {c.logo_url ? (
+                  <img src={c.logo_url} alt="" className="h-14 w-14 rounded-xl mx-auto mb-3 object-cover" />
+                ) : (
+                  <div className="h-14 w-14 rounded-xl bg-primary/15 mx-auto mb-3 flex items-center justify-center">
+                    <Building2 className="h-6 w-6 text-primary" />
+                  </div>
+                )}
+                <h3 className="font-semibold flex items-center justify-center gap-1">
+                  {c.name}
+                  {c.is_verified && <BadgeCheck className="h-4 w-4 text-primary" />}
+                </h3>
+                <p className="text-xs text-muted mt-1">{c.city}</p>
+                {c.description && <p className="text-xs text-muted mt-2 line-clamp-2">{c.description}</p>}
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="container mx-auto max-w-6xl px-4 py-16">
         <div className="flex items-center justify-between mb-8">
@@ -272,9 +349,9 @@ export function LandingPage() {
           <p className="text-muted max-w-xl mx-auto mb-8">
             همین حالا وارد شوید و در کمتر از ۵ دقیقه اولین ملک خود را ثبت کنید.
           </p>
-          <Link to="/login">
+          <Link to="/register">
             <Button size="lg">
-              ورود به پوشه
+              ثبت‌نام رایگان
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
