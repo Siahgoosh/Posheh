@@ -57,13 +57,19 @@ class SubscriptionController extends Controller
         return response()->json($result);
     }
 
-    public function zarinpalCallback(Request $request): JsonResponse
+    public function zarinpalCallback(Request $request)
     {
-        $result = $this->subscriptionService->verifyZarinPal(
-            $request->input('Authority'),
-            $request->input('Status')
-        );
+        $frontend = rtrim(config('app.frontend_url', config('app.url')), '/');
 
-        return response()->json($result);
+        try {
+            $result = $this->subscriptionService->verifyZarinPal(
+                (string) $request->input('Authority'),
+                (string) $request->input('Status', 'NOK')
+            );
+
+            return redirect($frontend.'/payment/callback?status=success&ref='.($result['payment']->ref_id ?? ''));
+        } catch (\Throwable $e) {
+            return redirect($frontend.'/payment/callback?status=failed&message='.urlencode($e->getMessage()));
+        }
     }
 }

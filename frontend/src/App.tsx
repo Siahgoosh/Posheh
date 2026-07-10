@@ -28,6 +28,14 @@ import { AnalyticsTracker } from '@/components/AnalyticsTracker'
 import { SubscriptionGuard } from '@/components/SubscriptionGuard'
 import { AdminPlansPage } from '@/pages/admin/AdminPlansPage'
 import { AdminOfficesPage } from '@/pages/admin/AdminOfficesPage'
+import { PaymentCallbackPage } from '@/pages/PaymentCallbackPage'
+import { OfficeLandingPage } from '@/pages/OfficeLandingPage'
+import { TicketsPage } from '@/pages/TicketsPage'
+import { AccountingPage } from '@/pages/AccountingPage'
+import { CrmPage } from '@/pages/CrmPage'
+import { ReportsPage } from '@/pages/ReportsPage'
+import { ContractsPage } from '@/pages/ContractsPage'
+import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -58,6 +66,8 @@ export default function App() {
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/payment/callback" element={<PaymentCallbackPage />} />
+          <Route path="/o/:slug" element={<OfficeLandingPage />} />
           <Route
             element={
               <ProtectedRoute>
@@ -77,7 +87,20 @@ export default function App() {
             <Route path="/team" element={<TeamPage />} />
             <Route path="/subscription" element={<SubscriptionPage />} />
             <Route path="/renew" element={<RenewSubscriptionPage />} />
+            <Route path="/tickets" element={<TicketsPage />} />
+            <Route path="/accounting" element={<AccountingPage />} />
+            <Route path="/crm" element={<CrmPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/contracts" element={<ContractsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route
+              path="/admin/tickets"
+              element={
+                <SuperAdminRoute>
+                  <AdminTicketsPage />
+                </SuperAdminRoute>
+              }
+            />
             <Route
               path="/admin/plans"
               element={

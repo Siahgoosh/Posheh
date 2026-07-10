@@ -8,11 +8,16 @@ use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\Wallet;
+use App\Services\Payment\ZarinPalService;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SubscriptionService
 {
+    public function __construct(
+        private readonly ZarinPalService $zarinPal,
+    ) {}
+
     public function getPlans()
     {
         return SubscriptionPlan::where('is_active', true)
@@ -29,7 +34,7 @@ class SubscriptionService
             'gateway' => $gateway,
             'status' => 'pending',
             'amount' => $plan->monthly_price,
-            'authority' => Str::uuid()->toString(),
+            'authority' => 'pending',
             'metadata' => ['plan_id' => $plan->id],
         ]);
 
@@ -38,7 +43,7 @@ class SubscriptionService
         }
 
         if ($gateway === PaymentGateway::ZarinPal) {
-            return $this->initiateZarinPal($payment);
+            return $this->initiateZarinPal($payment, $plan);
         }
 
         return [
@@ -54,7 +59,7 @@ class SubscriptionService
         $payment = Payment::where('authority', $authority)->firstOrFail();
 
         if ($payment->status === 'paid') {
-            return ['message' => 'این پرداخت قبلاً تأیید شده است.', 'payment' => $payment];
+            return ['message' => 'این پرداخت قبلاً تأیید شده است.', 'payment' => $payment, 'success' => true];
         }
 
         if ($status !== 'OK') {
@@ -65,21 +70,24 @@ class SubscriptionService
             ]);
         }
 
-        $merchantId = config('services.zarinpal.merchant_id');
-        if ($merchantId && $merchantId !== 'sandbox') {
-            // Production: verify with ZarinPal API before marking paid
-            // Placeholder until gateway credentials are configured
+        $verify = $this->zarinPal->verify($authority, (int) $payment->amount);
+
+        if (! $verify['success']) {
+            $payment->update(['status' => 'failed']);
+            throw ValidationException::withMessages([
+                'payment' => [$verify['message'] ?? 'تأیید پرداخت ناموفق بود.'],
+            ]);
         }
 
         $payment->update([
             'status' => 'paid',
-            'ref_id' => $payment->ref_id ?? Str::random(10),
+            'ref_id' => $verify['ref_id'] ?: Str::random(10),
             'paid_at' => now(),
         ]);
 
         $this->activateSubscription($payment);
 
-        return ['message' => 'پرداخت با موفقیت انجام شد.', 'payment' => $payment];
+        return ['message' => 'پرداخت با موفقیت انجام شد.', 'payment' => $payment, 'success' => true];
     }
 
     public function getCurrentSubscription(Office $office): ?Subscription
@@ -111,23 +119,31 @@ class SubscriptionService
             'reference_id' => $payment->id,
         ]);
 
-        $payment->update(['status' => 'paid', 'paid_at' => now()]);
+        $payment->update(['status' => 'paid', 'paid_at' => now(), 'authority' => 'wallet-'.$payment->id]);
         $this->activateSubscription($payment);
 
         return ['message' => 'اشتراک با موفقیت فعال شد.', 'payment' => $payment];
     }
 
-    private function initiateZarinPal(Payment $payment): array
+    private function initiateZarinPal(Payment $payment, SubscriptionPlan $plan): array
     {
-        $merchantId = config('services.zarinpal.merchant_id');
-        $callbackUrl = config('app.url').'/api/v1/payments/zarinpal/callback';
+        $frontendUrl = rtrim(config('app.frontend_url', config('app.url')), '/');
+        $callbackUrl = $frontendUrl.'/payment/callback';
+
+        $result = $this->zarinPal->request(
+            (int) $payment->amount,
+            "خرید اشتراک {$plan->name} — پوشه",
+            $callbackUrl,
+        );
+
+        $payment->update(['authority' => $result['authority']]);
 
         return [
             'payment_id' => $payment->id,
             'gateway' => 'zarinpal',
             'amount' => $payment->amount,
-            'redirect_url' => "https://www.zarinpal.com/pg/StartPay/{$payment->authority}",
-            'authority' => $payment->authority,
+            'redirect_url' => $result['redirect_url'],
+            'authority' => $result['authority'],
         ];
     }
 

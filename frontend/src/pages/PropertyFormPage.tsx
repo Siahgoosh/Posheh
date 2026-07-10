@@ -16,8 +16,13 @@ export function PropertyFormPage() {
     owner_name: '',
     owner_mobile: '',
     price: '',
+    deposit: '',
+    rent: '',
     area: '',
     rooms: '',
+    latitude: '',
+    longitude: '',
+    expires_at: '',
     city: '',
     district: '',
     address: '',
@@ -48,8 +53,13 @@ export function PropertyFormPage() {
     mutation.mutate({
       ...form,
       price: form.price ? parseInt(form.price) : null,
+      deposit: form.deposit ? parseInt(form.deposit) : null,
+      rent: form.rent ? parseInt(form.rent) : null,
       area: form.area ? parseFloat(form.area) : null,
       rooms: form.rooms ? parseInt(form.rooms) : null,
+      latitude: form.latitude ? parseFloat(form.latitude) : null,
+      longitude: form.longitude ? parseFloat(form.longitude) : null,
+      expires_at: form.expires_at || null,
     })
   }
 
@@ -108,6 +118,18 @@ export function PropertyFormPage() {
               <label className="text-sm text-muted mb-1 block">قیمت (تومان)</label>
               <Input type="number" value={form.price} onChange={(e) => update('price', e.target.value)} dir="ltr" />
             </div>
+            <div>
+              <label className="text-sm text-muted mb-1 block">رهن (تومان)</label>
+              <Input type="number" value={form.deposit} onChange={(e) => update('deposit', e.target.value)} dir="ltr" />
+            </div>
+            <div>
+              <label className="text-sm text-muted mb-1 block">اجاره (تومان)</label>
+              <Input type="number" value={form.rent} onChange={(e) => update('rent', e.target.value)} dir="ltr" />
+            </div>
+            <div>
+              <label className="text-sm text-muted mb-1 block">انقضای آگهی</label>
+              <Input type="date" value={form.expires_at} onChange={(e) => update('expires_at', e.target.value)} dir="ltr" />
+            </div>
           </CardContent>
         </Card>
 
@@ -134,6 +156,23 @@ export function PropertyFormPage() {
               <label className="text-sm text-muted mb-1 block">آدرس</label>
               <Input value={form.address} onChange={(e) => update('address', e.target.value)} />
             </div>
+            <div>
+              <label className="text-sm text-muted mb-1 block">عرض جغرافیایی</label>
+              <Input value={form.latitude} onChange={(e) => update('latitude', e.target.value)} dir="ltr" placeholder="35.6892" />
+            </div>
+            <div>
+              <label className="text-sm text-muted mb-1 block">طول جغرافیایی</label>
+              <Input value={form.longitude} onChange={(e) => update('longitude', e.target.value)} dir="ltr" placeholder="51.3890" />
+            </div>
+            {form.latitude && form.longitude && (
+              <div className="sm:col-span-2 rounded-xl overflow-hidden border border-card-border h-48">
+                <iframe
+                  title="map"
+                  className="w-full h-full"
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(form.longitude) - 0.01}%2C${parseFloat(form.latitude) - 0.01}%2C${parseFloat(form.longitude) + 0.01}%2C${parseFloat(form.latitude) + 0.01}&layer=mapnik&marker=${form.latitude}%2C${form.longitude}`}
+                />
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label className="text-sm text-muted mb-1 block">توضیحات</label>
               <textarea

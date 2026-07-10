@@ -58,4 +58,41 @@ class OfficeController extends Controller
             'message' => 'دعوتنامه با موفقیت ارسال شد.',
         ], 201);
     }
+
+    public function updateSettings(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->canManageOffice(), 403);
+
+        $data = $request->validate([
+            'telegram_bot_token' => ['nullable', 'string', 'max:255'],
+            'whatsapp_phone' => ['nullable', 'string', 'max:20'],
+            'whatsapp_auto_reply' => ['nullable', 'string', 'max:500'],
+            'brand_color' => ['nullable', 'string', 'max:20'],
+            'brand_name' => ['nullable', 'string', 'max:100'],
+            'show_on_website' => ['sometimes', 'boolean'],
+        ]);
+
+        $office = $user->office;
+        $settings = $office->settings ?? [];
+
+        if (isset($data['brand_color'])) {
+            $settings['brand_color'] = $data['brand_color'];
+        }
+        if (isset($data['brand_name'])) {
+            $settings['brand_name'] = $data['brand_name'];
+        }
+
+        $office->update([
+            'telegram_bot_token' => $data['telegram_bot_token'] ?? $office->telegram_bot_token,
+            'whatsapp_config' => array_merge($office->whatsapp_config ?? [], array_filter([
+                'phone' => $data['whatsapp_phone'] ?? null,
+                'auto_reply' => $data['whatsapp_auto_reply'] ?? null,
+            ])),
+            'settings' => $settings,
+            'show_on_website' => $data['show_on_website'] ?? $office->show_on_website,
+        ]);
+
+        return response()->json(['data' => $office->fresh(), 'message' => 'تنظیمات ذخیره شد.']);
+    }
 }

@@ -582,6 +582,13 @@ class IpPanelSmsService
     return $config;
   }
 
+  public function sendPlain(string $mobile, string $message): array
+  {
+    $config = $this->settings->ippanelConfig();
+
+    return $this->sendWebservice($mobile, $message, $config);
+  }
+
   public function sendInvite(string $mobile, string $officeName, string $inviterName): bool
   {
     $template = $this->settings->get(

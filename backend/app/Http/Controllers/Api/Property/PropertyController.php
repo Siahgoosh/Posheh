@@ -6,14 +6,17 @@ use App\DTOs\Property\CreatePropertyDTO;
 use App\DTOs\Property\PropertySearchDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PropertyResource;
+use App\Services\Property\PropertyExportService;
 use App\Services\Property\PropertyService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use App\Http\Requests\Property\UpdatePropertyRequest;
 
 class PropertyController extends Controller
 {
     public function __construct(
         private readonly PropertyService $propertyService,
+        private readonly PropertyExportService $exportService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -100,5 +103,30 @@ class PropertyController extends Controller
         $result = $this->propertyService->toggleFavorite($request->user(), $id);
 
         return response()->json($result);
+    }
+
+    public function uploadMedia(Request $request, int $id): JsonResponse
+    {
+        $request->validate(['image' => ['required', 'image', 'max:10240'], 'is_cover' => ['nullable', 'boolean']]);
+        $media = $this->propertyService->uploadMedia(
+            $request->user(),
+            $id,
+            $request->file('image'),
+            (bool) $request->boolean('is_cover')
+        );
+
+        return response()->json(['data' => $media, 'url' => url('storage/'.$media->path)], 201);
+    }
+
+    public function export(Request $request)
+    {
+        return $this->exportService->export($request->user());
+    }
+
+    public function import(Request $request): JsonResponse
+    {
+        $request->validate(['file' => ['required', 'file', 'mimes:xlsx,xls,csv']]);
+
+        return response()->json($this->exportService->import($request->user(), $request->file('file')));
     }
 }

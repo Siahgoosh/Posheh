@@ -165,7 +165,9 @@ fi
 cat <<EOF
 
 Next steps:
-  - Set OTP pattern line in .env: IPPANEL_OTP_FROM_NUMBER=+9810008721297974
+  - Set ZarinPal: ZARINPAL_MERCHANT_ID=... ZARINPAL_SANDBOX=false FRONTEND_URL=http://YOUR_IP:8000
+  - Run scheduler: docker compose up -d scheduler
+  - Seed contracts: docker compose exec app php artisan db:seed --class=ContractTemplateSeeder --force
   - OTP also needs: IPPANEL_USERNAME, IPPANEL_PASSWORD, IPPANEL_OTP_PATTERN_CODE=qhhly1nai3njev0
   - Enable SMS (if needed): docker compose exec app php artisan system:sms-enable --live --from-env
   - Test SMS:             docker compose exec app php artisan system:sms-test 09170577873 --otp --debug

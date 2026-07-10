@@ -59,12 +59,33 @@ export function PropertiesPage() {
             {formatNumber(data?.meta?.total ?? 0)} ملک ثبت شده
           </p>
         </div>
-        <Link to="/properties/new">
-          <Button>
-            <Plus className="h-4 w-4" />
-            ثبت ملک
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={async () => {
+            const res = await api.get('/properties-export', { responseType: 'blob' })
+            const url = URL.createObjectURL(res.data)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = 'properties.xlsx'
+            a.click()
+          }}>اکسل</Button>
+          <label className="cursor-pointer">
+            <Button variant="outline" size="sm" asChild><span>ایمپورت</span></Button>
+            <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              const body = new FormData()
+              body.append('file', file)
+              await api.post('/properties-import', body, { headers: { 'Content-Type': 'multipart/form-data' } })
+              window.location.reload()
+            }} />
+          </label>
+          <Link to="/properties/new">
+            <Button>
+              <Plus className="h-4 w-4" />
+              ثبت ملک
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">

@@ -12,6 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         apiPrefix: 'api',
     )
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule): void {
+        $schedule->command('properties:expire')->dailyAt('00:30');
+        $schedule->command('subscriptions:remind')->dailyAt('09:00');
+    })
     ->withMiddleware(function (Middleware $middleware): void {
         //
     })

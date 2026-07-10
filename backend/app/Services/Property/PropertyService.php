@@ -124,6 +124,31 @@ class PropertyService
         return ['is_favorite' => true];
     }
 
+    public function uploadMedia(User $user, int $id, $file, bool $isCover = false): \App\Models\PropertyMedia
+    {
+        $property = $this->find($user, $id);
+
+        if (! $this->canEdit($user, $property)) {
+            throw ValidationException::withMessages(['property' => ['مجاز به ویرایش نیستید.']]);
+        }
+
+        $path = $file->store("properties/{$property->id}", 'public');
+
+        if ($isCover) {
+            $property->media()->update(['is_cover' => false]);
+        }
+
+        return $property->media()->create([
+            'type' => \App\Enums\MediaType::Image,
+            'path' => $path,
+            'original_name' => $file->getClientOriginalName(),
+            'mime_type' => $file->getMimeType(),
+            'size' => $file->getSize(),
+            'sort_order' => $property->media()->count(),
+            'is_cover' => $isCover || $property->media()->count() === 0,
+        ]);
+    }
+
     public function canView(User $user, Property $property): bool
     {
         if ($user->canManageOffice() && $user->office_id === $property->office_id) {

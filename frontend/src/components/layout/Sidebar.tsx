@@ -17,6 +17,10 @@ import {
   Shield,
   BarChart3,
   Building,
+  Kanban,
+  Wallet,
+  FileText,
+  LifeBuoy,
 } from 'lucide-react'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
 import { useState } from 'react'
@@ -29,6 +33,8 @@ export function Sidebar() {
   const { user, logout } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
   const hasTeam = usePlanFeature('team')
+  const hasAccounting = usePlanFeature('accounting')
+  const hasCrm = usePlanFeature('crm')
   const onTrial = user?.office?.on_trial
 
   const navItems = [
@@ -36,7 +42,12 @@ export function Sidebar() {
     { to: '/properties', icon: Building2, label: 'املاک' },
     { to: '/search', icon: Search, label: 'جستجو' },
     { to: '/favorites', icon: Star, label: 'علاقه‌مندی‌ها' },
+    ...(hasCrm ? [{ to: '/crm', icon: Kanban, label: 'CRM' }] : []),
+    ...(hasAccounting ? [{ to: '/accounting', icon: Wallet, label: 'حسابداری' }] : []),
+    { to: '/reports', icon: BarChart3, label: 'گزارش‌ها' },
+    { to: '/contracts', icon: FileText, label: 'قراردادها' },
     ...(hasTeam ? [{ to: '/team', icon: Users, label: 'تیم' }] : []),
+    { to: '/tickets', icon: LifeBuoy, label: 'پشتیبانی' },
     { to: '/subscription', icon: CreditCard, label: 'اشتراک' },
     { to: '/settings', icon: Settings, label: 'تنظیمات' },
   ]
@@ -47,6 +58,7 @@ export function Sidebar() {
           { to: '/admin', icon: BarChart3, label: 'پنل مدیر کل' },
           { to: '/admin/plans', icon: CreditCard, label: 'پلن‌ها و قیمت‌ها' },
           { to: '/admin/offices', icon: Building, label: 'دفاتر و کاربران' },
+          { to: '/admin/tickets', icon: LifeBuoy, label: 'تیکت‌ها' },
           { to: '/admin/blog', icon: BookOpen, label: 'مدیریت وبلاگ' },
           { to: '/admin/downloads', icon: Download, label: 'مدیریت دانلودها' },
         ]
