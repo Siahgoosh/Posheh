@@ -52,13 +52,14 @@ export function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const { data } = await api.post('/auth/otp/verify', {
+      const payload = {
         mobile: normalizeMobile(mobile),
         code: toEnglishDigits(otp).replace(/\D/g, '').slice(0, 6).padStart(6, '0'),
         device_id: getDeviceId(),
         device_name: getDeviceName(),
         platform: getPlatform(),
-      })
+      }
+      const { data } = await api.post('/auth/otp/verify', payload)
       setAuth(data.user, data.token)
       navigate('/dashboard')
     } catch (err: unknown) {
@@ -81,6 +82,8 @@ export function LoginPage() {
         setError(apiMessage)
       } else if (axiosErr.response?.status === 429) {
         setError('تعداد درخواست‌ها زیاد است. چند دقیقه صبر کنید.')
+      } else if (err instanceof Error && err.message) {
+        setError(`خطا: ${err.message}`)
       } else {
         setError('خطا در تأیید کد. دوباره تلاش کنید.')
       }
