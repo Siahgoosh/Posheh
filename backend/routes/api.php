@@ -1,9 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\AdminController;
+use App\Http\Controllers\Api\Admin\AppReleaseAdminController;
+use App\Http\Controllers\Api\Admin\BlogAdminController;
 use App\Http\Controllers\Api\Blog\BlogController;
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
+use App\Http\Controllers\Api\DownloadController;
 use App\Http\Controllers\Api\Office\OfficeController;
 use App\Http\Controllers\Api\Property\PropertyController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
@@ -19,6 +22,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/blog', [BlogController::class, 'index']);
     Route::get('/blog/sitemap', [BlogController::class, 'sitemap']);
     Route::get('/blog/{slug}', [BlogController::class, 'show']);
+    Route::get('/downloads', [DownloadController::class, 'index']);
     Route::get('/payments/zarinpal/callback', [SubscriptionController::class, 'zarinpalCallback'])
         ->middleware('throttle:30,1');
 
@@ -55,6 +59,19 @@ Route::prefix('v1')->group(function () {
             Route::get('/tickets', [AdminController::class, 'tickets']);
             Route::get('/announcements', [AdminController::class, 'announcements']);
             Route::post('/announcements', [AdminController::class, 'createAnnouncement']);
+
+            Route::get('/blog', [BlogAdminController::class, 'index']);
+            Route::post('/blog/analyze-seo', [BlogAdminController::class, 'analyzeSeo']);
+            Route::post('/blog/upload-image', [BlogAdminController::class, 'uploadImage']);
+            Route::get('/blog/{id}', [BlogAdminController::class, 'show']);
+            Route::post('/blog', [BlogAdminController::class, 'store']);
+            Route::put('/blog/{id}', [BlogAdminController::class, 'update']);
+            Route::delete('/blog/{id}', [BlogAdminController::class, 'destroy']);
+
+            Route::get('/releases', [AppReleaseAdminController::class, 'index']);
+            Route::post('/releases', [AppReleaseAdminController::class, 'store']);
+            Route::put('/releases/{id}', [AppReleaseAdminController::class, 'update']);
+            Route::delete('/releases/{id}', [AppReleaseAdminController::class, 'destroy']);
         });
     });
 });

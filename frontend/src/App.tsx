@@ -15,7 +15,12 @@ import { TeamPage } from '@/pages/TeamPage'
 import { SubscriptionPage } from '@/pages/SubscriptionPage'
 import { BlogListPage } from '@/pages/BlogListPage'
 import { BlogPostPage } from '@/pages/BlogPostPage'
+import { DownloadPage } from '@/pages/DownloadPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { SuperAdminRoute } from '@/components/SuperAdminRoute'
+import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
+import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
+import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -42,6 +47,7 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/blog" element={<BlogListPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/download" element={<DownloadPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route
             element={
@@ -60,6 +66,38 @@ export default function App() {
             <Route path="/team" element={<TeamPage />} />
             <Route path="/subscription" element={<SubscriptionPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route
+              path="/admin/blog"
+              element={
+                <SuperAdminRoute>
+                  <AdminBlogListPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/blog/new"
+              element={
+                <SuperAdminRoute>
+                  <AdminBlogEditorPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/blog/:id/edit"
+              element={
+                <SuperAdminRoute>
+                  <AdminBlogEditorPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/downloads"
+              element={
+                <SuperAdminRoute>
+                  <AdminDownloadsPage />
+                </SuperAdminRoute>
+              }
+            />
           </Route>
         </Routes>
       </AuthBootstrap>

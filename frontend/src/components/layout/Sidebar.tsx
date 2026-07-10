@@ -12,6 +12,9 @@ import {
   Sun,
   Menu,
   X,
+  BookOpen,
+  Download,
+  Shield,
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -32,6 +35,14 @@ export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { user, logout } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
+
+  const adminItems =
+    user?.role === 'super_admin'
+      ? [
+          { to: '/admin/blog', icon: BookOpen, label: 'مدیریت وبلاگ' },
+          { to: '/admin/downloads', icon: Download, label: 'مدیریت دانلودها' },
+        ]
+      : []
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -64,6 +75,32 @@ export function Sidebar() {
             {item.label}
           </NavLink>
         ))}
+        {adminItems.length > 0 && (
+          <>
+            <div className="flex items-center gap-2 px-4 pt-4 pb-1 text-xs text-muted">
+              <Shield className="h-3 w-3" />
+              مدیر کل
+            </div>
+            {adminItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200',
+                    isActive
+                      ? 'bg-accent/15 text-accent'
+                      : 'text-muted hover:bg-white/5 hover:text-foreground'
+                  )
+                }
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </NavLink>
+            ))}
+          </>
+        )}
       </nav>
 
       <div className="border-t border-card-border p-4 space-y-2">

@@ -69,6 +69,7 @@ export function LandingPage() {
             <a href="#platforms" className="hover:text-foreground transition-colors">پلتفرم‌ها</a>
             <a href="#pricing" className="hover:text-foreground transition-colors">تعرفه</a>
             <Link to="/blog" className="hover:text-foreground transition-colors">وبلاگ</Link>
+            <Link to="/download" className="hover:text-foreground transition-colors">دانلود</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/login">
@@ -185,8 +186,18 @@ export function LandingPage() {
               </div>
               <h3 className="font-semibold text-lg">{p.label}</h3>
               <p className="text-sm text-muted mt-1">{p.desc}</p>
+              {p.badge !== 'web' && (
+                <Link to="/download" className="inline-block mt-4 text-sm text-primary hover:underline">
+                  دانلود
+                </Link>
+              )}
             </Card>
           ))}
+        </div>
+        <div className="text-center mt-8">
+          <Link to="/download">
+            <Button variant="outline">صفحه دانلود همه نسخه‌ها</Button>
+          </Link>
         </div>
       </section>
 

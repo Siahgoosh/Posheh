@@ -112,6 +112,8 @@ $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --
   || fail "SystemSettingsSeeder failed"
 $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
   || log "BlogSeeder warning (may already be seeded)"
+$COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \
+  || log "AppReleaseSeeder warning (may already be seeded)"
 $COMPOSE exec -T app php artisan db:seed --class=DatabaseSeeder --force --no-interaction \
   || log "DatabaseSeeder warning (may already be seeded)"
 
