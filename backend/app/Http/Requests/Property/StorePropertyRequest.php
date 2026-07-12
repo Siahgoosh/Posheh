@@ -4,12 +4,11 @@ namespace App\Http\Requests\Property;
 
 use App\Enums\PropertyCategory;
 use App\Enums\PropertyPermission;
-use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdatePropertyRequest extends FormRequest
+class StorePropertyRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,11 +18,10 @@ class UpdatePropertyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code' => ['sometimes', 'string', 'max:50'],
-            'type' => ['sometimes', 'string', Rule::enum(PropertyType::class)],
+            'code' => ['required', 'string', 'max:50'],
+            'type' => ['required', 'string', Rule::enum(PropertyType::class)],
             'property_category' => ['nullable', 'string', Rule::enum(PropertyCategory::class)],
-            'permission' => ['sometimes', 'string', Rule::enum(PropertyPermission::class)],
-            'status' => ['sometimes', 'string', Rule::enum(PropertyStatus::class)],
+            'permission' => ['nullable', 'string', Rule::enum(PropertyPermission::class)],
             'owner_name' => ['nullable', 'string', 'max:255'],
             'owner_mobile' => ['nullable', 'string', 'max:20'],
             'price' => ['nullable', 'integer', 'min:0'],
@@ -46,6 +44,7 @@ class UpdatePropertyRequest extends FormRequest
             'latitude' => ['nullable', 'numeric'],
             'longitude' => ['nullable', 'numeric'],
             'features' => ['nullable', 'array'],
+            'features.*' => ['string', 'max:50'],
             'expires_at' => ['nullable', 'date'],
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
         ];

@@ -10,6 +10,7 @@ use App\Services\Property\PropertyExportService;
 use App\Services\Property\PropertyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Http\Requests\Property\StorePropertyRequest;
 use App\Http\Requests\Property\UpdatePropertyRequest;
 
 class PropertyController extends Controller
@@ -35,26 +36,11 @@ class PropertyController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StorePropertyRequest $request): JsonResponse
     {
-        $request->validate([
-            'code' => ['required', 'string', 'max:50'],
-            'type' => ['required', 'string'],
-            'permission' => ['nullable', 'string'],
-            'owner_name' => ['nullable', 'string', 'max:255'],
-            'owner_mobile' => ['nullable', 'string'],
-            'price' => ['nullable', 'integer', 'min:0'],
-            'area' => ['nullable', 'numeric', 'min:0'],
-            'rooms' => ['nullable', 'integer', 'min:0'],
-            'description' => ['nullable', 'string'],
-            'city' => ['nullable', 'string'],
-            'district' => ['nullable', 'string'],
-            'address' => ['nullable', 'string'],
-        ]);
-
         $property = $this->propertyService->create(
             $request->user(),
-            CreatePropertyDTO::fromArray($request->all())
+            CreatePropertyDTO::fromArray($request->validated())
         );
 
         return response()->json([
@@ -116,6 +102,20 @@ class PropertyController extends Controller
         );
 
         return response()->json(['data' => $media, 'url' => url('storage/'.$media->path)], 201);
+    }
+
+    public function deleteMedia(Request $request, int $id, int $mediaId): JsonResponse
+    {
+        $this->propertyService->deleteMedia($request->user(), $id, $mediaId);
+
+        return response()->json(['message' => 'تصویر حذف شد.']);
+    }
+
+    public function setCoverMedia(Request $request, int $id, int $mediaId): JsonResponse
+    {
+        $this->propertyService->setCoverMedia($request->user(), $id, $mediaId);
+
+        return response()->json(['message' => 'کاور تنظیم شد.']);
     }
 
     public function export(Request $request)

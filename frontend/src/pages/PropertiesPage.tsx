@@ -14,15 +14,18 @@ interface Property {
   code: string
   type: string
   type_label: string
+  property_category_label?: string
   status_label: string
   price?: number
   rent?: number
+  deposit?: number
   area?: number
   rooms?: number
   city?: string
   district?: string
   permission_label: string
   created_at_jalali: string
+  cover_image?: { url: string }
 }
 
 export function PropertiesPage() {
@@ -121,17 +124,32 @@ export function PropertiesPage() {
           {data?.data?.map((property: Property) => (
             <Link key={property.id} to={`/properties/${property.id}`}>
               <Card className="!p-0 overflow-hidden glass-hover cursor-pointer h-full">
-                <div className="h-40 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                  <Building2Placeholder />
+                <div className="h-40 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
+                  {property.cover_image?.url ? (
+                    <img src={property.cover_image.url} alt={property.code} className="w-full h-full object-cover" />
+                  ) : (
+                    <Building2Placeholder />
+                  )}
                 </div>
                 <div className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="font-bold text-lg">{property.code}</span>
-                    <Badge>{property.type_label}</Badge>
+                    <div className="flex gap-1 shrink-0">
+                      {property.property_category_label && (
+                        <Badge variant="outline" className="text-[10px]">{property.property_category_label}</Badge>
+                      )}
+                      <Badge>{property.type_label}</Badge>
+                    </div>
                   </div>
-                  {(property.price || property.rent) && (
+                  {(property.price || property.rent || property.deposit) && (
                     <p className="text-primary font-semibold">
-                      {formatPrice(property.price || property.rent || 0)}
+                      {property.price
+                        ? formatPrice(property.price)
+                        : property.rent
+                          ? `اجاره ${formatPrice(property.rent)}`
+                          : property.deposit
+                            ? `رهن ${formatPrice(property.deposit)}`
+                            : ''}
                     </p>
                   )}
                   <div className="flex items-center gap-4 text-sm text-muted">

@@ -364,6 +364,10 @@ export function LandingPage() {
             <Building2 className="h-5 w-5 text-primary" />
             <span>پوشه — سامانه ابری ثبت و مدیریت املاک</span>
           </div>
+          <div className="flex items-center gap-4">
+            <Link to="/terms" className="hover:text-foreground transition-colors">قوانین</Link>
+            <Link to="/privacy" className="hover:text-foreground transition-colors">حریم خصوصی</Link>
+          </div>
           <p>© {new Date().getFullYear()} تمامی حقوق محفوظ است.</p>
         </div>
       </footer>

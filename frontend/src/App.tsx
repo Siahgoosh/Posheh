@@ -36,6 +36,8 @@ import { CrmPage } from '@/pages/CrmPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { ContractsPage } from '@/pages/ContractsPage'
 import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage'
+import { TermsPage } from '@/pages/TermsPage'
+import { PrivacyPage } from '@/pages/PrivacyPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -66,6 +68,8 @@ export default function App() {
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/payment/callback" element={<PaymentCallbackPage />} />
           <Route path="/o/:slug" element={<OfficeLandingPage />} />
           <Route

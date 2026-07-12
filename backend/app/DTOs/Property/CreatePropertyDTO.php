@@ -2,6 +2,7 @@
 
 namespace App\DTOs\Property;
 
+use App\Enums\PropertyCategory;
 use App\Enums\PropertyPermission;
 use App\Enums\PropertyType;
 
@@ -10,6 +11,7 @@ readonly class CreatePropertyDTO
     public function __construct(
         public string $code,
         public PropertyType $type,
+        public ?PropertyCategory $propertyCategory = null,
         public PropertyPermission $permission,
         public ?string $ownerName = null,
         public ?string $ownerMobile = null,
@@ -42,6 +44,7 @@ readonly class CreatePropertyDTO
         return new self(
             code: $data['code'],
             type: PropertyType::from($data['type']),
+            propertyCategory: isset($data['property_category']) ? PropertyCategory::from($data['property_category']) : null,
             permission: PropertyPermission::from($data['permission'] ?? 'office'),
             ownerName: $data['owner_name'] ?? null,
             ownerMobile: $data['owner_mobile'] ?? null,
@@ -75,6 +78,7 @@ readonly class CreatePropertyDTO
         return array_filter([
             'code' => $this->code,
             'type' => $this->type->value,
+            'property_category' => $this->propertyCategory?->value,
             'permission' => $this->permission->value,
             'owner_name' => $this->ownerName,
             'owner_mobile' => $this->ownerMobile,

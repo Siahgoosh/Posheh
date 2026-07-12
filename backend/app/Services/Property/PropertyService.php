@@ -149,6 +149,43 @@ class PropertyService
         ]);
     }
 
+    public function deleteMedia(User $user, int $id, int $mediaId): void
+    {
+        $property = $this->find($user, $id);
+
+        if (! $this->canEdit($user, $property)) {
+            throw ValidationException::withMessages(['property' => ['مجاز به ویرایش نیستید.']]);
+        }
+
+        $media = $property->media()->findOrFail($mediaId);
+
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($media->path)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($media->path);
+        }
+
+        $wasCover = $media->is_cover;
+        $media->delete();
+
+        if ($wasCover) {
+            $next = $property->media()->first();
+            if ($next) {
+                $next->update(['is_cover' => true]);
+            }
+        }
+    }
+
+    public function setCoverMedia(User $user, int $id, int $mediaId): void
+    {
+        $property = $this->find($user, $id);
+
+        if (! $this->canEdit($user, $property)) {
+            throw ValidationException::withMessages(['property' => ['مجاز به ویرایش نیستید.']]);
+        }
+
+        $property->media()->update(['is_cover' => false]);
+        $property->media()->where('id', $mediaId)->update(['is_cover' => true]);
+    }
+
     public function canView(User $user, Property $property): bool
     {
         if ($user->canManageOffice() && $user->office_id === $property->office_id) {

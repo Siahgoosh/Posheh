@@ -15,6 +15,8 @@ class PropertyResource extends JsonResource
             'code' => $this->code,
             'type' => $this->type?->value,
             'type_label' => $this->type?->label(),
+            'property_category' => $this->property_category?->value,
+            'property_category_label' => $this->property_category?->label(),
             'permission' => $this->permission?->value,
             'permission_label' => $this->permission?->label(),
             'status' => $this->status?->value,

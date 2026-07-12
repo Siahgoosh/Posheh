@@ -65,6 +65,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/properties/{id}/similar', [PropertyController::class, 'similar']);
         Route::post('/properties/{id}/favorite', [PropertyController::class, 'toggleFavorite']);
         Route::post('/properties/{id}/media', [PropertyController::class, 'uploadMedia']);
+        Route::delete('/properties/{id}/media/{mediaId}', [PropertyController::class, 'deleteMedia']);
+        Route::post('/properties/{id}/media/{mediaId}/cover', [PropertyController::class, 'setCoverMedia']);
 
         Route::get('/tickets', [TicketController::class, 'index']);
         Route::post('/tickets', [TicketController::class, 'store']);

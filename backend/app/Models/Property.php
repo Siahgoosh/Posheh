@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PropertyCategory;
 use App\Enums\PropertyPermission;
 use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
@@ -22,6 +23,7 @@ class Property extends Model
         'assigned_to',
         'code',
         'type',
+        'property_category',
         'permission',
         'status',
         'owner_name',
@@ -54,6 +56,7 @@ class Property extends Model
     {
         return [
             'type' => PropertyType::class,
+            'property_category' => PropertyCategory::class,
             'permission' => PropertyPermission::class,
             'status' => PropertyStatus::class,
             'has_parking' => 'boolean',

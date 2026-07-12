@@ -303,6 +303,12 @@ export function RegisterPage() {
                     </>
                   )}
                   {error && <p className="text-sm text-danger">{error}</p>}
+                  <p className="text-xs text-muted text-center">
+                    با ثبت‌نام، <Link to="/terms" className="text-primary hover:underline">قوانین</Link>
+                    {' '}و{' '}
+                    <Link to="/privacy" className="text-primary hover:underline">حریم خصوصی</Link>
+                    {' '}را می‌پذیرید.
+                  </p>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? 'ثبت‌نام…' : `شروع ${toPersianDigits(String(selectedPlan.trial_days))} روز رایگان`}
                   </Button>

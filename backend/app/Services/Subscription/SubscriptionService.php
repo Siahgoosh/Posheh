@@ -127,8 +127,8 @@ class SubscriptionService
 
     private function initiateZarinPal(Payment $payment, SubscriptionPlan $plan): array
     {
-        $frontendUrl = rtrim(config('app.frontend_url', config('app.url')), '/');
-        $callbackUrl = $frontendUrl.'/payment/callback';
+        $appUrl = rtrim(config('app.url'), '/');
+        $callbackUrl = $appUrl.'/api/v1/payments/zarinpal/callback';
 
         $result = $this->zarinPal->request(
             (int) $payment->amount,
