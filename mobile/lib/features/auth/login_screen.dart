@@ -1,10 +1,17 @@
-import 'package:dio/dio.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
+import '../../core/auth/auth_controller.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/utils/formatters.dart';
 import '../../core/utils/input_normalizers.dart';
+import '../../core/widgets/app_background.dart';
+import '../../core/widgets/app_logo.dart';
+import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/gradient_text.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -13,24 +20,39 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
+enum _Step { mobile, otp }
+
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _mobileController = TextEditingController();
   final _otpController = TextEditingController();
-  bool _otpSent = false;
+
+  _Step _step = _Step.mobile;
   bool _loading = false;
   String? _error;
+  String? _devHint;
   String _normalizedMobile = '';
+  int _countdown = 0;
+  Timer? _timer;
 
   @override
   void dispose() {
+    _timer?.cancel();
     _mobileController.dispose();
     _otpController.dispose();
     super.dispose();
   }
 
-  void _clearOtpInput() {
-    _otpController.clear();
-    setState(() {});
+  void _startCountdown() {
+    _timer?.cancel();
+    setState(() => _countdown = 120);
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_countdown <= 1) {
+        t.cancel();
+        setState(() => _countdown = 0);
+      } else {
+        setState(() => _countdown--);
+      }
+    });
   }
 
   Future<void> _sendOtp() async {
@@ -39,24 +61,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _error = 'شماره موبایل معتبر نیست');
       return;
     }
-
     setState(() {
       _loading = true;
       _error = null;
+      _devHint = null;
     });
-
     try {
-      final api = ref.read(apiClientProvider);
-      await api.sendOtp(mobile);
+      final res = await ref.read(apiClientProvider).sendOtp(mobile);
+      _otpController.clear();
       setState(() {
-        _otpSent = true;
         _normalizedMobile = mobile;
+        _step = _Step.otp;
+        final hint = res['dev_hint'];
+        _devHint = hint is String && hint.isNotEmpty ? hint : null;
       });
-      _clearOtpInput();
-    } catch (e) {
-      setState(() => _error = _extractErrorMessage(e, fallback: 'خطا در ارسال کد'));
+      _startCountdown();
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
+      setState(() => _error = 'خطا در ارسال کد');
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -66,141 +91,261 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _error = 'کد ۶ رقمی را کامل وارد کنید');
       return;
     }
-
     setState(() {
       _loading = true;
       _error = null;
     });
-
     try {
-      final api = ref.read(apiClientProvider);
-      final result = await api.verifyOtp(_normalizedMobile, code);
-      const storage = FlutterSecureStorage();
-      await storage.write(key: 'token', value: result['token']);
-      if (mounted) context.go('/dashboard');
-    } catch (e) {
-      _clearOtpInput();
-      setState(() => _error = _extractErrorMessage(e, fallback: 'کد نامعتبر است'));
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
+      final res =
+          await ref.read(apiClientProvider).verifyOtp(_normalizedMobile, code);
 
-  String _extractErrorMessage(Object error, {required String fallback}) {
-    if (error is DioException) {
-      final data = error.response?.data;
-      if (data is Map<String, dynamic>) {
-        final errors = data['errors'];
-        if (errors is Map<String, dynamic>) {
-          for (final field in ['code', 'mobile']) {
-            final messages = errors[field];
-            if (messages is List && messages.isNotEmpty) {
-              return messages.first.toString();
-            }
-          }
-        }
-        final message = data['message'];
-        if (message is String && message.isNotEmpty) {
-          return message;
-        }
+      if (res['needs_registration'] == true) {
+        _otpController.clear();
+        setState(() => _error =
+            'این شماره ثبت‌نام نشده است. ابتدا در وب‌سایت posheapp.ir ثبت‌نام کنید.');
+        return;
       }
-    }
 
-    return fallback;
+      final token = res['token']?.toString();
+      final user = res['user'];
+      if (token == null || user is! Map) {
+        setState(() => _error = 'پاسخ نامعتبر از سرور');
+        return;
+      }
+      await ref
+          .read(authControllerProvider.notifier)
+          .onLoggedIn(token, Map<String, dynamic>.from(user));
+      if (mounted) context.go('/dashboard');
+    } on ApiException catch (e) {
+      _otpController.clear();
+      setState(() => _error = e.message);
+    } catch (_) {
+      _otpController.clear();
+      setState(() => _error = 'خطا در تأیید کد. دوباره تلاش کنید.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
+      body: AppBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const AppLogo(size: 64),
+                    const SizedBox(height: 16),
+                    GradientText(
+                      'پوشه',
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'سامانه ابری ثبت و مدیریت املاک',
+                      style: TextStyle(color: AppColors.muted),
+                    ),
+                    const SizedBox(height: 28),
+                    GlassCard(
+                      padding: const EdgeInsets.all(20),
+                      child: _step == _Step.mobile
+                          ? _buildMobileForm()
+                          : _buildOtpForm(),
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.apartment, color: Colors.white, size: 40),
               ),
-              const SizedBox(height: 24),
-              Text('پوشه', style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              )),
-              const SizedBox(height: 8),
-              Text('سامانه ابری ثبت املاک', style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey,
-              )),
-              const SizedBox(height: 48),
-              if (!_otpSent) ...[
-                TextField(
-                  controller: _mobileController,
-                  keyboardType: TextInputType.phone,
-                  textDirection: TextDirection.ltr,
-                  textAlign: TextAlign.center,
-                  decoration: const InputDecoration(
-                    labelText: 'شماره موبایل',
-                    hintText: '09121234567',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _sendOtp,
-                    child: Text(_loading ? 'در حال ارسال...' : 'دریافت کد تأیید'),
-                  ),
-                ),
-              ] else ...[
-                Text('کد به $_normalizedMobile ارسال شد'),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _otpController,
-                  keyboardType: TextInputType.number,
-                  textDirection: TextDirection.ltr,
-                  textAlign: TextAlign.center,
-                  maxLength: 6,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'کد تأیید',
-                    counterText: '',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _verifyOtp,
-                    child: Text(_loading ? 'در حال بررسی...' : 'ورود'),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: _loading
-                      ? null
-                      : () {
-                          setState(() {
-                            _otpSent = false;
-                            _error = null;
-                          });
-                          _clearOtpInput();
-                        },
-                  child: const Text('تغییر شماره'),
-                ),
-              ],
-              if (_error != null) ...[
-                const SizedBox(height: 16),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-              ],
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String text) {
+    return Row(
+      children: [
+        const Icon(Icons.smartphone_rounded,
+            size: 20, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Text(text,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+
+  Widget _buildMobileForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionTitle('ورود با موبایل'),
+        const SizedBox(height: 18),
+        const Text('شماره موبایل',
+            style: TextStyle(color: AppColors.muted, fontSize: 13)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _mobileController,
+          keyboardType: TextInputType.phone,
+          textDirection: TextDirection.ltr,
+          textAlign: TextAlign.center,
+          maxLength: 11,
+          style: const TextStyle(fontSize: 18, letterSpacing: 3),
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(
+            counterText: '',
+            hintText: '09121234567',
+          ),
+          onSubmitted: (_) => _loading ? null : _sendOtp(),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          _ErrorText(_error!),
+        ],
+        const SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: _loading ? null : _sendOtp,
+          child: _loading
+              ? const _BtnSpinner()
+              : const Text('دریافت کد تأیید'),
+        ),
+        const SizedBox(height: 14),
+        const Center(
+          child: Text(
+            'برای ثبت‌نام به posheapp.ir مراجعه کنید',
+            style: TextStyle(color: AppColors.muted, fontSize: 12),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOtpForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionTitle('تأیید کد'),
+        const SizedBox(height: 18),
+        Text(
+          'کد تأیید به ${toPersianDigits(_normalizedMobile)} ارسال شد',
+          style: const TextStyle(color: AppColors.muted, fontSize: 13),
+        ),
+        if (_devHint != null) ...[
+          const SizedBox(height: 10),
+          Center(
+            child: Text(_devHint!,
+                style: const TextStyle(
+                    color: AppColors.warning, fontWeight: FontWeight.w600)),
+          ),
+        ],
+        const SizedBox(height: 14),
+        TextField(
+          controller: _otpController,
+          keyboardType: TextInputType.number,
+          textDirection: TextDirection.ltr,
+          textAlign: TextAlign.center,
+          maxLength: 6,
+          autofocus: true,
+          style: const TextStyle(
+              fontSize: 26, letterSpacing: 8, fontWeight: FontWeight.bold),
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(
+            counterText: '',
+            hintText: '––––––',
+          ),
+          onSubmitted: (_) => _loading ? null : _verifyOtp(),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          _ErrorText(_error!),
+        ],
+        const SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: _loading ? null : _verifyOtp,
+          child: _loading ? const _BtnSpinner() : const Text('ورود'),
+        ),
+        const SizedBox(height: 14),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextButton(
+              onPressed: _loading
+                  ? null
+                  : () {
+                      _otpController.clear();
+                      setState(() {
+                        _step = _Step.mobile;
+                        _error = null;
+                        _devHint = null;
+                      });
+                    },
+              style: TextButton.styleFrom(foregroundColor: AppColors.muted),
+              child: const Text('تغییر شماره'),
+            ),
+            if (_countdown > 0)
+              Text(
+                'ارسال مجدد (${toPersianDigits(_countdown.toString())})',
+                style: const TextStyle(color: AppColors.muted, fontSize: 13),
+              )
+            else
+              TextButton(
+                onPressed: _loading ? null : _sendOtp,
+                child: const Text('ارسال مجدد'),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ErrorText extends StatelessWidget {
+  final String text;
+  const _ErrorText(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.danger.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded,
+              size: 18, color: AppColors.danger),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(text,
+                style: const TextStyle(
+                    color: AppColors.danger, fontSize: 13, height: 1.5)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BtnSpinner extends StatelessWidget {
+  const _BtnSpinner();
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      height: 20,
+      width: 20,
+      child: CircularProgressIndicator(
+        strokeWidth: 2.4,
+        color: AppColors.primaryFg,
       ),
     );
   }

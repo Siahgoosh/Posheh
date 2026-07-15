@@ -1,38 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../auth/auth_controller.dart';
+import '../theme/app_theme.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/properties/properties_screen.dart';
+import '../../features/properties/property_form_screen.dart';
 import '../../features/settings/settings_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final auth = ref.watch(authControllerProvider);
+
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/dashboard',
+    redirect: (context, state) {
+      if (auth.loading) return null;
+      final loggingIn = state.matchedLocation == '/login';
+      if (!auth.isAuthenticated) return loggingIn ? null : '/login';
+      if (loggingIn) return '/dashboard';
+      return null;
+    },
     routes: [
+      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        path: '/properties/new',
+        builder: (_, __) => const PropertyFormScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
           GoRoute(
-            path: '/dashboard',
-            builder: (context, state) => const DashboardScreen(),
-          ),
+              path: '/dashboard', builder: (_, __) => const DashboardScreen()),
           GoRoute(
-            path: '/properties',
-            builder: (context, state) => const PropertiesScreen(),
-          ),
+              path: '/properties',
+              builder: (_, __) => const PropertiesScreen()),
           GoRoute(
-            path: '/properties/new',
-            builder: (context, state) => const PropertyFormScreen(),
-          ),
-          GoRoute(
-            path: '/settings',
-            builder: (context, state) => const SettingsScreen(),
-          ),
+              path: '/settings', builder: (_, __) => const SettingsScreen()),
         ],
       ),
     ],
@@ -41,54 +45,76 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
 class MainShell extends StatelessWidget {
   final Widget child;
-
   const MainShell({super.key, required this.child});
+
+  static const _tabs = ['/dashboard', '/properties', '/settings'];
+
+  int _indexFor(BuildContext context) {
+    final loc = GoRouterState.of(context).uri.path;
+    if (loc.startsWith('/properties')) return 1;
+    if (loc.startsWith('/settings')) return 2;
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _getSelectedIndex(context),
-        onDestinationSelected: (index) {
-          switch (index) {
-            case 0:
-              context.go('/dashboard');
-            case 1:
-              context.go('/properties');
-            case 2:
-              context.go('/settings');
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'داشبورد',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          border: Border(
+            top: BorderSide(color: AppColors.cardBorder(dark)),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.apartment_outlined),
-            selectedIcon: Icon(Icons.apartment),
-            label: 'املاک',
+        ),
+        child: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            backgroundColor: Colors.transparent,
+            indicatorColor: AppColors.primary.withValues(alpha: 0.15),
+            labelTextStyle: WidgetStateProperty.resolveWith(
+              (states) => TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: states.contains(WidgetState.selected)
+                    ? AppColors.primary
+                    : AppColors.muted,
+              ),
+            ),
+            iconTheme: WidgetStateProperty.resolveWith(
+              (states) => IconThemeData(
+                color: states.contains(WidgetState.selected)
+                    ? AppColors.primary
+                    : AppColors.muted,
+              ),
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'تنظیمات',
+          child: NavigationBar(
+            selectedIndex: _indexFor(context),
+            height: 66,
+            labelBehavior:
+                NavigationDestinationLabelBehavior.alwaysShow,
+            onDestinationSelected: (i) => context.go(_tabs[i]),
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.dashboard_outlined),
+                selectedIcon: Icon(Icons.dashboard_rounded),
+                label: 'داشبورد',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.apartment_outlined),
+                selectedIcon: Icon(Icons.apartment_rounded),
+                label: 'املاک',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings_rounded),
+                label: 'تنظیمات',
+              ),
+            ],
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.go('/properties/new'),
-        child: const Icon(Icons.add),
+        ),
       ),
     );
-  }
-
-  int _getSelectedIndex(BuildContext context) {
-    final location = GoRouterState.of(context).uri.path;
-    if (location.startsWith('/properties')) return 1;
-    if (location.startsWith('/settings')) return 2;
-    return 0;
   }
 }
