@@ -21,6 +21,10 @@ use App\Http\Controllers\Api\DownloadController;
 use App\Http\Controllers\Api\Office\OfficeController;
 use App\Http\Controllers\Api\OfficePublicController;
 use App\Http\Controllers\Api\Property\PropertyController;
+use App\Http\Controllers\Api\Property\PropertyPublicController;
+use App\Http\Controllers\Api\Owner\OwnerController;
+use App\Http\Controllers\Api\Customer\CustomerController;
+use App\Http\Controllers\Api\Visit\VisitController;
 use App\Http\Controllers\Api\PublicApiController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
@@ -48,6 +52,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/bots/whatsapp/{officeSlug}', [BotWebhookController::class, 'whatsapp']);
 
     Route::get('/public/properties', [PublicApiController::class, 'properties'])->middleware('throttle:60,1');
+    Route::get('/p/qr/{token}', [PropertyPublicController::class, 'byQr']);
 
     Route::middleware(['auth:sanctum', EnsureOfficeIsActive::class, EnsureSubscriptionAccess::class])->group(function () {
         Route::prefix('auth')->group(function () {
@@ -67,6 +72,15 @@ Route::prefix('v1')->group(function () {
         Route::post('/properties/{id}/media', [PropertyController::class, 'uploadMedia']);
         Route::delete('/properties/{id}/media/{mediaId}', [PropertyController::class, 'deleteMedia']);
         Route::post('/properties/{id}/media/{mediaId}/cover', [PropertyController::class, 'setCoverMedia']);
+
+        Route::apiResource('owners', OwnerController::class);
+        Route::apiResource('customers', CustomerController::class);
+        Route::get('/customers/{id}/matches', [CustomerController::class, 'matches']);
+        Route::get('/visits', [VisitController::class, 'index']);
+        Route::get('/visits/upcoming', [VisitController::class, 'upcoming']);
+        Route::post('/visits', [VisitController::class, 'store']);
+        Route::put('/visits/{id}', [VisitController::class, 'update']);
+        Route::delete('/visits/{id}', [VisitController::class, 'destroy']);
 
         Route::get('/tickets', [TicketController::class, 'index']);
         Route::post('/tickets', [TicketController::class, 'store']);

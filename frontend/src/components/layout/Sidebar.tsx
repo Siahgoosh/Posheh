@@ -21,6 +21,9 @@ import {
   Wallet,
   FileText,
   LifeBuoy,
+  UserCircle,
+  CalendarDays,
+  Contact,
 } from 'lucide-react'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
 import { useState } from 'react'
@@ -40,6 +43,9 @@ export function Sidebar() {
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'داشبورد' },
     { to: '/properties', icon: Building2, label: 'املاک' },
+    { to: '/owners', icon: UserCircle, label: 'مالکین' },
+    { to: '/customers', icon: Contact, label: 'مشتریان' },
+    { to: '/visits', icon: CalendarDays, label: 'بازدیدها' },
     { to: '/search', icon: Search, label: 'جستجو' },
     { to: '/favorites', icon: Star, label: 'علاقه‌مندی‌ها' },
     ...(hasCrm ? [{ to: '/crm', icon: Kanban, label: 'CRM' }] : []),

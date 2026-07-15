@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, Edit, Heart, MapPin, Phone, User, Eye, EyeOff, Building2 } from 'lucide-react'
+import { ArrowRight, Edit, Heart, MapPin, Phone, User, Eye, EyeOff, Building2, QrCode } from 'lucide-react'
 import api from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import { categoryLabel } from '@/constants/property'
@@ -48,6 +48,7 @@ interface PropertyDetail {
   features?: string[]
   created_at_jalali?: string
   expires_at_jalali?: string
+  qr_url?: string
   creator?: { name: string }
   media?: PropertyMedia[]
   cover_image?: PropertyMedia
@@ -253,6 +254,24 @@ export function PropertyDetailPage() {
                     </button>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {property.qr_url && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <QrCode className="h-4 w-4" /> کد QR رهگیری
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center gap-3">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(property.qr_url)}`}
+                  alt="QR"
+                  className="rounded-xl border border-card-border bg-white p-2"
+                />
+                <p className="text-xs text-muted text-center break-all">{property.qr_url}</p>
               </CardContent>
             </Card>
           )}

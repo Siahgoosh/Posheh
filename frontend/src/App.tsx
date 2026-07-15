@@ -36,6 +36,12 @@ import { CrmPage } from '@/pages/CrmPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { ContractsPage } from '@/pages/ContractsPage'
 import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage'
+import { VisitsPage } from '@/pages/VisitsPage'
+import { OwnersPage } from '@/pages/OwnersPage'
+import { OwnerDetailPage } from '@/pages/OwnerDetailPage'
+import { CustomersPage } from '@/pages/CustomersPage'
+import { CustomerDetailPage } from '@/pages/CustomerDetailPage'
+import { PropertyPublicPage } from '@/pages/PropertyPublicPage'
 import { TermsPage } from '@/pages/TermsPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
 
@@ -71,6 +77,7 @@ export default function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/payment/callback" element={<PaymentCallbackPage />} />
+          <Route path="/p/:token" element={<PropertyPublicPage />} />
           <Route path="/o/:slug" element={<OfficeLandingPage />} />
           <Route
             element={
@@ -96,6 +103,11 @@ export default function App() {
             <Route path="/crm" element={<CrmPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/contracts" element={<ContractsPage />} />
+            <Route path="/owners" element={<OwnersPage />} />
+            <Route path="/owners/:id" element={<OwnerDetailPage />} />
+            <Route path="/customers" element={<CustomersPage />} />
+            <Route path="/customers/:id" element={<CustomerDetailPage />} />
+            <Route path="/visits" element={<VisitsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route
               path="/admin/tickets"

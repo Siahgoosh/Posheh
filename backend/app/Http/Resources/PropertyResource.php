@@ -13,6 +13,11 @@ class PropertyResource extends JsonResource
         return [
             'id' => $this->id,
             'code' => $this->code,
+            'qr_token' => $this->qr_token,
+            'qr_url' => $this->qr_token
+                ? rtrim(config('app.frontend_url', config('app.url')), '/').'/p/'.$this->qr_token
+                : null,
+            'owner_id' => $this->owner_id,
             'type' => $this->type?->value,
             'type_label' => $this->type?->label(),
             'property_category' => $this->property_category?->value,

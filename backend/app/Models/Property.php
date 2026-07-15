@@ -21,7 +21,9 @@ class Property extends Model
         'office_id',
         'created_by',
         'assigned_to',
+        'owner_id',
         'code',
+        'qr_token',
         'type',
         'property_category',
         'permission',
@@ -79,6 +81,11 @@ class Property extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(Owner::class);
     }
 
     public function media(): HasMany

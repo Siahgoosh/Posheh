@@ -37,6 +37,11 @@ class PropertyService
             ]);
         }
 
+        if (! $property->qr_token) {
+            $property->update(['qr_token' => bin2hex(random_bytes(16))]);
+            $property->refresh();
+        }
+
         return $property;
     }
 
@@ -55,6 +60,7 @@ class PropertyService
             'created_by' => $user->id,
             'assigned_to' => $dto->assignedTo ?? $user->id,
             'published_at' => now(),
+            'qr_token' => bin2hex(random_bytes(16)),
         ]);
 
         $property = $this->propertyRepository->create($data);

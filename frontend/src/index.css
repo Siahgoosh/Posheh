@@ -2,17 +2,17 @@
 
 @theme {
   --font-sans: "Vazirmatn", system-ui, sans-serif;
-  --color-background: #0a0a0f;
-  --color-foreground: #fafafa;
-  --color-card: rgba(255, 255, 255, 0.03);
-  --color-card-border: rgba(255, 255, 255, 0.08);
-  --color-primary: #6366f1;
-  --color-primary-foreground: #ffffff;
-  --color-muted: #71717a;
-  --color-accent: #8b5cf6;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
+  --color-background: #0b1419;
+  --color-foreground: #f0fdf4;
+  --color-card: rgba(16, 185, 129, 0.04);
+  --color-card-border: rgba(16, 185, 129, 0.12);
+  --color-primary: #10b981;
+  --color-primary-foreground: #052e1f;
+  --color-muted: #94a3b8;
+  --color-accent: #f59e0b;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
   --radius-lg: 12px;
   --radius-xl: 16px;
 }
@@ -32,15 +32,15 @@
   }
 
   select option {
-    background-color: #0a0a0f;
-    color: #fafafa;
+    background-color: #0b1419;
+    color: #f0fdf4;
   }
 
   .light {
-    --color-background: #fafafa;
-    --color-foreground: #09090b;
-    --color-card: rgba(0, 0, 0, 0.02);
-    --color-card-border: rgba(0, 0, 0, 0.08);
+    --color-background: #f8fafc;
+    --color-foreground: #0f172a;
+    --color-card: rgba(16, 185, 129, 0.05);
+    --color-card-border: rgba(16, 185, 129, 0.15);
   }
 }
 
@@ -50,11 +50,15 @@
   }
 
   .glass-hover {
-    @apply transition-all duration-300 hover:bg-white/5 hover:border-white/15;
+    @apply transition-all duration-300 hover:bg-emerald-500/5 hover:border-emerald-500/20;
   }
 
   .gradient-text {
     @apply bg-gradient-to-l from-primary to-accent bg-clip-text text-transparent;
+  }
+
+  .landing-glow {
+    background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.25), transparent);
   }
 
   .animate-fade-in {
