@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Office;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Services\Office\OfficeService;
+use App\Services\Office\OfficeSiteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,7 @@ class OfficeController extends Controller
 {
     public function __construct(
         private readonly OfficeService $officeService,
+        private readonly OfficeSiteService $siteService,
     ) {}
 
     public function store(Request $request): JsonResponse
@@ -94,5 +96,49 @@ class OfficeController extends Controller
         ]);
 
         return response()->json(['data' => $office->fresh(), 'message' => 'تنظیمات ذخیره شد.']);
+    }
+
+    public function requestWebsite(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'subdomain' => ['required', 'string', 'min:3', 'max:63', 'regex:/^[a-z0-9-]+$/'],
+            'description' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $office = $this->siteService->requestWebsite($request->user(), $data);
+
+        return response()->json([
+            'data' => $office,
+            'message' => 'درخواست وبسایت ثبت شد. پس از تأیید مدیر کل در آدرس '.$data['subdomain'].'.posheapp.ir منتشر می‌شود.',
+        ]);
+    }
+
+    public function websiteStatus(Request $request): JsonResponse
+    {
+        $office = $request->user()->office;
+
+        return response()->json([
+            'data' => [
+                'subdomain' => $office->subdomain,
+                'website_status' => $office->website_status,
+                'website_description' => $office->website_description,
+                'website_published_at' => $office->website_published_at?->toIso8601String(),
+                'url' => $office->subdomain ? 'https://'.$office->subdomain.'.posheapp.ir' : null,
+            ],
+        ]);
+    }
+
+    public function createSitePost(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'excerpt' => ['nullable', 'string'],
+            'body' => ['nullable', 'string'],
+            'property_id' => ['nullable', 'integer'],
+        ]);
+
+        $post = $this->siteService->publishPost($request->user(), $data);
+
+        return response()->json(['data' => $post, 'message' => 'پست وبسایت منتشر شد.'], 201);
     }
 }

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CreditCard, CheckCircle2 } from 'lucide-react'
 import api from '@/lib/api'
-import { formatPrice } from '@/lib/utils'
+import { formatPrice, formatJalaliDate } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -70,7 +70,7 @@ export function SubscriptionPage() {
             <CheckCircle2 className="h-6 w-6 text-success" />
             <div>
               <p className="font-medium">اشتراک فعال: {current.plan?.name}</p>
-              <p className="text-sm text-muted">تا {new Date(current.ends_at).toLocaleDateString('fa-IR')}</p>
+              <p className="text-sm text-muted">تا {formatJalaliDate(current.ends_at)}</p>
             </div>
             <Badge className="mr-auto">{current.status}</Badge>
           </CardContent>

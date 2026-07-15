@@ -12,8 +12,14 @@ class Contract extends Model
 
     protected $fillable = [
         'office_id', 'property_id', 'created_by', 'template_id',
-        'title', 'content', 'party_a_name', 'party_b_name', 'status', 'pdf_path',
+        'title', 'content', 'field_values', 'party_a_name', 'party_b_name',
+        'status', 'pdf_path', 'docx_path',
     ];
+
+    protected function casts(): array
+    {
+        return ['field_values' => 'array'];
+    }
 
     public function template(): BelongsTo
     {

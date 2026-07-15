@@ -30,6 +30,8 @@ import { AdminPlansPage } from '@/pages/admin/AdminPlansPage'
 import { AdminOfficesPage } from '@/pages/admin/AdminOfficesPage'
 import { PaymentCallbackPage } from '@/pages/PaymentCallbackPage'
 import { OfficeLandingPage } from '@/pages/OfficeLandingPage'
+import { OfficeSitePage } from '@/pages/OfficeSitePage'
+import { OfficeWebsitePage } from '@/pages/OfficeWebsitePage'
 import { TicketsPage } from '@/pages/TicketsPage'
 import { AccountingPage } from '@/pages/AccountingPage'
 import { CrmPage } from '@/pages/CrmPage'
@@ -80,6 +82,7 @@ export default function App() {
           <Route path="/payment/callback" element={<PaymentCallbackPage />} />
           <Route path="/p/:token" element={<PropertyPublicPage />} />
           <Route path="/o/:slug" element={<OfficeLandingPage />} />
+          <Route path="/site/:subdomain" element={<OfficeSitePage />} />
           <Route
             element={
               <ProtectedRoute>
@@ -105,6 +108,7 @@ export default function App() {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/commissions" element={<CommissionsPage />} />
             <Route path="/contracts" element={<ContractsPage />} />
+            <Route path="/office-website" element={<OfficeWebsitePage />} />
             <Route path="/owners" element={<OwnersPage />} />
             <Route path="/owners/:id" element={<OwnerDetailPage />} />
             <Route path="/customers" element={<CustomersPage />} />

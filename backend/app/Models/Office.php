@@ -18,7 +18,9 @@ class Office extends Model
         'uuid',
         'name',
         'slug',
+        'subdomain',
         'subscription_plan_id',
+        'plan_active',
         'panel_type',
         'phone',
         'address',
@@ -28,6 +30,9 @@ class Office extends Model
         'is_active',
         'is_verified',
         'show_on_website',
+        'website_status',
+        'website_description',
+        'website_published_at',
         'telegram_bot_token',
         'whatsapp_config',
         'description',
@@ -42,6 +47,8 @@ class Office extends Model
             'is_active' => 'boolean',
             'is_verified' => 'boolean',
             'show_on_website' => 'boolean',
+            'plan_active' => 'boolean',
+            'website_published_at' => 'datetime',
             'trial_ends_at' => 'datetime',
         ];
     }

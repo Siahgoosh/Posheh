@@ -258,7 +258,9 @@ export function LandingPage() {
                 <li key={t} className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" />{t}</li>
               ))}
             </ul>
-            <Link to="/download" className="inline-block mt-6"><Button>دانلود اندروید</Button></Link>
+            <div className="flex flex-wrap gap-3 mt-6">
+              <Link to="/download"><Button><Smartphone className="h-4 w-4 ml-1" /> دانلود اندروید و ویندوز</Button></Link>
+            </div>
           </div>
           <Card className="p-6 max-w-xs mx-auto glass border-primary/20">
             <div className="text-center space-y-4">

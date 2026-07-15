@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AccountingController;
 use App\Http\Controllers\Api\Admin\AdminController;
+use App\Http\Controllers\Api\Admin\AdminOfficeController;
 use App\Http\Controllers\Api\Admin\AppReleaseAdminController;
 use App\Http\Controllers\Api\Admin\BlogAdminController;
 use App\Http\Controllers\Api\Admin\MarketingDashboardController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\DownloadController;
 use App\Http\Controllers\Api\Office\OfficeController;
 use App\Http\Controllers\Api\OfficePublicController;
+use App\Http\Controllers\Api\OfficeSiteController;
 use App\Http\Controllers\Api\Property\PropertyController;
 use App\Http\Controllers\Api\Property\PropertyPublicController;
 use App\Http\Controllers\Api\Owner\OwnerController;
@@ -45,6 +47,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/downloads', [DownloadController::class, 'index']);
     Route::get('/consultants', [ConsultantDirectoryController::class, 'index']);
     Route::get('/offices/{slug}', [OfficePublicController::class, 'show']);
+    Route::get('/sites/{subdomain}', [OfficeSiteController::class, 'show']);
+    Route::post('/sites/{subdomain}/visit-request', [OfficeSiteController::class, 'visitRequest'])->middleware('throttle:20,1');
     Route::post('/analytics/track', [AnalyticsController::class, 'track'])->middleware('throttle:120,1');
     Route::post('/auth/register', [RegistrationController::class, 'register'])->middleware('throttle:10,1');
     Route::get('/payments/zarinpal/callback', [SubscriptionController::class, 'zarinpalCallback'])->middleware('throttle:30,1');
@@ -108,8 +112,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/commissions/{id}/pay', [CommissionController::class, 'markPaid']);
 
         Route::get('/contracts/templates', [ContractController::class, 'templates']);
+        Route::get('/contracts/fields', [ContractController::class, 'fields']);
         Route::get('/contracts', [ContractController::class, 'index']);
         Route::post('/contracts', [ContractController::class, 'store']);
+        Route::get('/contracts/{id}/download/{format}', [ContractController::class, 'download']);
 
         Route::get('/reports/dashboard', [ReportController::class, 'dashboard']);
 
@@ -123,6 +129,11 @@ Route::prefix('v1')->group(function () {
             Route::put('/settings', [OfficeController::class, 'updateSettings'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/invite', [OfficeController::class, 'invite'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::get('/website', [OfficeController::class, 'websiteStatus']);
+            Route::post('/website/request', [OfficeController::class, 'requestWebsite'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::post('/website/posts', [OfficeController::class, 'createSitePost'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
         });
 
@@ -138,6 +149,8 @@ Route::prefix('v1')->group(function () {
             Route::put('/plans/{id}', [PlanAdminController::class, 'update']);
             Route::delete('/plans/{id}', [PlanAdminController::class, 'destroy']);
             Route::get('/offices', [AdminController::class, 'offices']);
+            Route::put('/offices/{id}/plan-status', [AdminOfficeController::class, 'updatePlanStatus']);
+            Route::put('/offices/{id}/website-status', [AdminOfficeController::class, 'updateWebsiteStatus']);
             Route::get('/analytics', [AdminController::class, 'analytics']);
             Route::get('/tickets', [TicketAdminController::class, 'index']);
             Route::post('/tickets/{id}/reply', [TicketAdminController::class, 'reply']);
