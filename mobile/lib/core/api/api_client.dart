@@ -1,12 +1,24 @@
+import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../utils/input_normalizers.dart';
 
 const String baseUrl = String.fromEnvironment(
   'API_URL',
-  defaultValue: 'http://localhost:8000/api/v1',
+  defaultValue: 'https://posheapp.ir/api/v1',
 );
+
+String get clientPlatform {
+  if (kIsWeb) return 'web';
+  if (Platform.isAndroid) return 'android';
+  if (Platform.isIOS) return 'ios';
+  if (Platform.isWindows) return 'windows';
+  if (Platform.isMacOS) return 'macos';
+  if (Platform.isLinux) return 'linux';
+  return 'mobile';
+}
 
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(BaseOptions(
@@ -60,8 +72,9 @@ class ApiClient {
     final response = await _dio.post('/auth/otp/verify', data: {
       'mobile': normalizeMobile(mobile),
       'code': normalizeOtpCode(code),
-      'device_id': 'flutter-mobile',
-      'platform': 'android',
+      'device_id': 'posheh-$clientPlatform',
+      'device_name': 'Posheh $clientPlatform',
+      'platform': clientPlatform,
     });
     return response.data;
   }

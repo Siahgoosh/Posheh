@@ -5,9 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
 
 class AppTheme {
-  static const Color primary = Color(0xFF6366F1);
-  static const Color accent = Color(0xFF8B5CF6);
-  static const Color background = Color(0xFF0A0A0F);
+  static const Color primary = Color(0xFF22D3EE);
+  static const Color accent = Color(0xFFA78BFA);
+  static const Color background = Color(0xFF080C14);
   static const Color surface = Color(0xFF141419);
   static const Color cardBorder = Color(0x14FFFFFF);
 
@@ -24,7 +24,7 @@ class AppTheme {
       textTheme: GoogleFonts.vazirmatnTextTheme(
         ThemeData.dark().textTheme,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surface,
         elevation: 0,
         shape: RoundedRectangleBorder(

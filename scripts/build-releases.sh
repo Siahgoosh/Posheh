@@ -1,5 +1,7 @@
 #!/bin/bash
 # Build release artifacts for Posheh
+# CI: GitHub Actions workflow .github/workflows/build-releases.yml builds APK + Windows zip.
+# Local: requires Flutter SDK.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/frontend/public/downloads"

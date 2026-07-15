@@ -110,7 +110,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _type,
+              initialValue: _type,
               decoration: const InputDecoration(labelText: 'نوع'),
               items: const [
                 DropdownMenuItem(value: 'sale', child: Text('فروش')),
