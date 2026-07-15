@@ -12,7 +12,7 @@ class CrmDeal extends Model
 
     protected $fillable = [
         'office_id', 'assigned_to', 'property_id', 'title',
-        'contact_name', 'contact_mobile', 'stage', 'value', 'notes', 'expected_close_at',
+        'contact_name', 'contact_mobile', 'stage', 'value', 'offer_amount', 'notes', 'expected_close_at',
     ];
 
     protected function casts(): array

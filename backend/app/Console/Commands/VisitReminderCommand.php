@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\PropertyVisit;
+use App\Services\Sms\IpPanelSmsService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class VisitReminderCommand extends Command
 {
@@ -12,24 +12,36 @@ class VisitReminderCommand extends Command
 
     protected $description = 'Send SMS reminders for upcoming property visits';
 
-    public function handle(): int
+    public function handle(IpPanelSmsService $sms): int
     {
         $visits = PropertyVisit::where('status', 'scheduled')
             ->where('sms_reminder_sent', false)
-            ->whereBetween('visit_at', [now(), now()->addHours(24)])
+            ->whereBetween('visit_at', [now()->addHours(1), now()->addHours(24)])
             ->with(['property', 'customer', 'assignee'])
             ->get();
 
+        $sent = 0;
         foreach ($visits as $visit) {
-            Log::info('visit.reminder', [
-                'visit_id' => $visit->id,
-                'property' => $visit->property?->code,
-                'at' => $visit->visit_at?->toIso8601String(),
-            ]);
-            $visit->update(['sms_reminder_sent' => true]);
+            $mobile = $visit->assignee?->mobile;
+            if (! $mobile) {
+                continue;
+            }
+
+            $code = $visit->property?->code ?? 'ملک';
+            $time = $visit->visit_at?->format('H:i') ?? '';
+            $customer = $visit->customer?->name ?? '';
+            $message = "پوشه: یادآور بازدید — {$code}".($customer ? " ({$customer})" : '')." ساعت {$time}";
+
+            try {
+                $sms->sendPlain($mobile, $message);
+                $visit->update(['sms_reminder_sent' => true]);
+                $sent++;
+            } catch (\Throwable) {
+                // logged in SMS service
+            }
         }
 
-        $this->info("Processed {$visits->count()} visit reminders.");
+        $this->info("Sent {$sent} visit reminders.");
 
         return self::SUCCESS;
     }

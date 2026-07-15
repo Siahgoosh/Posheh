@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\BotWebhookController;
 use App\Http\Controllers\Api\ConsultantDirectoryController;
 use App\Http\Controllers\Api\ContractController;
+use App\Http\Controllers\Api\CommissionController;
 use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\DownloadController;
@@ -94,6 +95,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/crm/pipeline', [CrmController::class, 'pipeline']);
         Route::post('/crm/deals', [CrmController::class, 'store']);
         Route::put('/crm/deals/{id}', [CrmController::class, 'update']);
+
+        Route::get('/commissions', [CommissionController::class, 'index']);
+        Route::get('/commissions/settings', [CommissionController::class, 'settings']);
+        Route::put('/commissions/settings', [CommissionController::class, 'updateSettings']);
+        Route::post('/commissions', [CommissionController::class, 'store']);
+        Route::post('/commissions/{id}/pay', [CommissionController::class, 'markPaid']);
 
         Route::get('/contracts/templates', [ContractController::class, 'templates']);
         Route::get('/contracts', [ContractController::class, 'index']);

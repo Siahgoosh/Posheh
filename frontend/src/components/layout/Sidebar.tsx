@@ -51,6 +51,7 @@ export function Sidebar() {
     ...(hasCrm ? [{ to: '/crm', icon: Kanban, label: 'CRM' }] : []),
     ...(hasAccounting ? [{ to: '/accounting', icon: Wallet, label: 'حسابداری' }] : []),
     { to: '/reports', icon: BarChart3, label: 'گزارش‌ها' },
+    { to: '/commissions', icon: Wallet, label: 'کمیسیون' },
     { to: '/contracts', icon: FileText, label: 'قراردادها' },
     ...(hasTeam ? [{ to: '/team', icon: Users, label: 'تیم' }] : []),
     { to: '/tickets', icon: LifeBuoy, label: 'پشتیبانی' },

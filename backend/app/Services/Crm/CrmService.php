@@ -4,10 +4,15 @@ namespace App\Services\Crm;
 
 use App\Models\CrmDeal;
 use App\Models\User;
+use App\Services\Commission\CommissionService;
 
 class CrmService
 {
     public const STAGES = ['lead', 'contact', 'visit', 'negotiation', 'closed_won', 'closed_lost'];
+
+    public function __construct(
+        private readonly CommissionService $commissionService,
+    ) {}
 
     public function list(User $user)
     {
@@ -29,8 +34,13 @@ class CrmService
     {
         $deal = CrmDeal::where('office_id', $user->office_id)->findOrFail($id);
         $deal->update($data);
+        $deal = $deal->fresh(['assignee', 'property']);
 
-        return $deal->fresh(['assignee', 'property']);
+        if ($deal->stage === 'closed_won') {
+            $this->commissionService->createFromDeal($user, $deal);
+        }
+
+        return $deal;
     }
 
     public function pipelineSummary(User $user): array

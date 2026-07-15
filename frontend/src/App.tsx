@@ -35,6 +35,7 @@ import { AccountingPage } from '@/pages/AccountingPage'
 import { CrmPage } from '@/pages/CrmPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { ContractsPage } from '@/pages/ContractsPage'
+import { CommissionsPage } from '@/pages/CommissionsPage'
 import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage'
 import { VisitsPage } from '@/pages/VisitsPage'
 import { OwnersPage } from '@/pages/OwnersPage'
@@ -102,6 +103,7 @@ export default function App() {
             <Route path="/accounting" element={<AccountingPage />} />
             <Route path="/crm" element={<CrmPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/commissions" element={<CommissionsPage />} />
             <Route path="/contracts" element={<ContractsPage />} />
             <Route path="/owners" element={<OwnersPage />} />
             <Route path="/owners/:id" element={<OwnerDetailPage />} />
