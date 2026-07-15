@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, Edit, Heart, MapPin, Phone, User, Eye, EyeOff, Building2, QrCode } from 'lucide-react'
+import { ArrowRight, Edit, Heart, MapPin, Phone, User, Eye, EyeOff, Building2, QrCode, Send, Copy, Star } from 'lucide-react'
 import api from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import { categoryLabel } from '@/constants/property'
@@ -9,6 +9,7 @@ import { EXTRA_FEATURES } from '@/constants/property'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { PropertyShareModal } from '@/components/property/PropertyShareModal'
 
 interface PropertyMedia {
   id: number
@@ -49,6 +50,7 @@ interface PropertyDetail {
   created_at_jalali?: string
   expires_at_jalali?: string
   qr_url?: string
+  quality_score?: number
   creator?: { name: string }
   media?: PropertyMedia[]
   cover_image?: PropertyMedia
@@ -69,6 +71,8 @@ export function PropertyDetailPage() {
   const queryClient = useQueryClient()
   const [activeImage, setActiveImage] = useState(0)
   const [showMobile, setShowMobile] = useState(false)
+  const [showShare, setShowShare] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const { data: property, isLoading, error } = useQuery<PropertyDetail>({
     queryKey: ['property', id],
@@ -92,6 +96,15 @@ export function PropertyDetailPage() {
     mutationFn: () => api.post(`/properties/${id}/favorite`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['property', id] }),
   })
+
+  const loadAdCopy = async () => {
+    try {
+      const { data } = await api.get(`/properties/${id}/share-message`)
+      await navigator.clipboard.writeText(data.data.ad_copy)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } catch { /* ignore */ }
+  }
 
   if (isLoading) {
     return (
@@ -132,6 +145,12 @@ export function PropertyDetailPage() {
             {' · '}{property.permission_label}
           </p>
         </div>
+        <Button variant="outline" size="icon" onClick={() => setShowShare(true)} title="ارسال در واتساپ/تلگرام">
+          <Send className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="icon" onClick={loadAdCopy} title="کپی متن آگهی">
+          <Copy className="h-4 w-4" />
+        </Button>
         <Button variant="outline" size="icon" onClick={() => favoriteMutation.mutate()}>
           <Heart className="h-4 w-4" />
         </Button>
@@ -210,6 +229,25 @@ export function PropertyDetailPage() {
         </div>
 
         <div className="space-y-4">
+          {property.quality_score != null && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Star className="h-4 w-4 text-warning" /> امتیاز کیفیت فایل
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl font-bold text-primary">{property.quality_score}</div>
+                  <div className="flex-1 h-2 rounded-full bg-card-border overflow-hidden">
+                    <div className="h-full bg-gradient-to-l from-primary to-accent rounded-full" style={{ width: `${property.quality_score}%` }} />
+                  </div>
+                </div>
+                <p className="text-xs text-muted mt-2">بر اساس تصاویر، توضیحات، موقعیت و اطلاعات تماس</p>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader><CardTitle className="text-base">مشخصات</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
@@ -290,6 +328,16 @@ export function PropertyDetailPage() {
             ))}
           </CardContent>
         </Card>
+      )}
+
+      {copied && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-success/90 text-white px-4 py-2 rounded-full text-sm shadow-lg z-40">
+          متن آگهی کپی شد
+        </div>
+      )}
+
+      {showShare && id && (
+        <PropertyShareModal propertyId={Number(id)} onClose={() => setShowShare(false)} />
       )}
     </div>
   )

@@ -95,17 +95,23 @@ class OtpService
             'method' => $smsResult['method'] ?? null,
         ]);
 
-        return [
+        $response = [
             'message' => 'کد تأیید ارسال شد.',
             'expires_in' => 300,
             'sms_sent' => true,
             'sms_debug' => config('app.debug') ? ($smsResult['method'] ?? null) : null,
         ];
+
+        if (! $this->settings->isSmsLive()) {
+            $response['dev_hint'] = 'حالت تست: کد ۱۲۳۴۵۶';
+        }
+
+        return $response;
     }
 
     private function generateOtpCode(): string
     {
-        if (! $this->settings->isSmsLive() && ! app()->environment('production')) {
+        if (! $this->settings->isSmsLive()) {
             return '123456';
         }
 

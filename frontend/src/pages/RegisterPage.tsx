@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Building2, User, Users, Crown, CheckCircle2, Smartphone } from 'lucide-react'
+import { Building2, User, Users, Crown, CheckCircle2, Smartphone, RefreshCw, AlertCircle } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -10,35 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getDeviceId, getDeviceName, getPlatform } from '@/lib/device'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice, normalizeMobile, toEnglishDigits, toPersianDigits } from '@/lib/utils'
-
-interface Plan {
-  id: number
-  slug: string
-  name: string
-  description?: string
-  monthly_price: number
-  trial_days: number
-  max_users: number
-  max_properties: number
-  features: string[]
-  panel_type: string
-}
+import { FALLBACK_PLANS, PLAN_FEATURE_LABELS, type PlanOption } from '@/constants/plans'
 
 const planIcons: Record<string, typeof User> = {
   solo: User,
   office: Users,
   premium: Crown,
-}
-
-const featureLabels: Record<string, string> = {
-  filing: 'فایلینگ حرفه‌ای',
-  accounting: 'حسابداری دفتر',
-  team: 'مدیریت تیم',
-  telegram_bot: 'ربات تلگرام',
-  whatsapp_bot: 'ربات واتساپ',
-  website_listing: 'نمایش در وبسایت',
-  verified_badge: 'تیک وریفای',
-  crm: 'CRM و قیف فروش',
 }
 
 type Step = 'plan' | 'mobile' | 'otp' | 'details'
@@ -47,13 +24,14 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const { setAuth } = useAuthStore()
   const [step, setStep] = useState<Step>('plan')
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
+  const [selectedPlan, setSelectedPlan] = useState<PlanOption | null>(null)
   const [mobile, setMobile] = useState('')
   const [otp, setOtp] = useState('')
   const [registrationToken, setRegistrationToken] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [countdown, setCountdown] = useState(0)
+  const [devHint, setDevHint] = useState('')
   const logoRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
@@ -69,19 +47,27 @@ export function RegisterPage() {
     whatsapp_phone: '',
   })
 
-  const { data: plans } = useQuery({
+  const { data: plans, isLoading: plansLoading, isError: plansError, refetch } = useQuery({
     queryKey: ['plans'],
     queryFn: async () => {
       const res = await api.get('/plans')
-      return res.data.data as Plan[]
+      const list = res.data.data as PlanOption[]
+      if (!list?.length) return FALLBACK_PLANS
+      return list
     },
+    retry: 2,
+    staleTime: 60000,
   })
+
+  const displayPlans = plans?.length ? plans : FALLBACK_PLANS
 
   const sendOtp = async () => {
     setError('')
+    setDevHint('')
     setLoading(true)
     try {
-      await api.post('/auth/otp/send', { mobile: normalizeMobile(mobile), purpose: 'register' })
+      const res = await api.post('/auth/otp/send', { mobile: normalizeMobile(mobile), purpose: 'register' })
+      if (res.data.dev_hint) setDevHint(res.data.dev_hint)
       setMobile(normalizeMobile(mobile))
       setStep('otp')
       setCountdown(120)
@@ -157,52 +143,90 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-background p-4 py-10">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-1/4 h-96 w-96 rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 h-80 w-80 rounded-full bg-accent/10 blur-[100px]" />
+      </div>
+
+      <div className="max-w-4xl mx-auto space-y-6 relative">
         <div className="text-center">
           <Link to="/" className="text-sm text-muted hover:text-primary">← بازگشت</Link>
-          <h1 className="text-3xl font-bold gradient-text mt-4">ثبت‌نام در پوشه</h1>
+          <div className="mx-auto mt-4 mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/20">
+            <Building2 className="h-7 w-7 text-primary-foreground" />
+          </div>
+          <h1 className="text-3xl font-bold gradient-text">ثبت‌نام در پوشه</h1>
           <p className="text-muted mt-2">پلن مناسب خود را انتخاب کنید — {toPersianDigits('3')} روز تست رایگان</p>
         </div>
 
         {step === 'plan' && (
-          <div className="grid md:grid-cols-3 gap-4">
-            {plans?.map((plan) => {
-              const Icon = planIcons[plan.panel_type] ?? Building2
-              return (
-                <Card
-                  key={plan.id}
-                  className={`cursor-pointer transition-all hover:border-primary/50 ${selectedPlan?.id === plan.id ? 'border-primary ring-2 ring-primary/30' : ''}`}
-                  onClick={() => setSelectedPlan(plan)}
-                >
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Icon className="h-5 w-5 text-primary" />
-                      {plan.name}
-                    </CardTitle>
-                    <p className="text-2xl font-bold text-primary">{formatPrice(plan.monthly_price)}</p>
-                    <p className="text-xs text-muted">ماهانه · {toPersianDigits(String(plan.trial_days))} روز رایگان</p>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm text-muted">
-                    <p>{plan.description}</p>
-                    <p>تا {toPersianDigits(String(plan.max_users))} کاربر · {toPersianDigits(String(plan.max_properties))} ملک</p>
-                    <ul className="space-y-1 pt-2">
-                      {plan.features.slice(0, 5).map((f) => (
-                        <li key={f} className="flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
-                          {featureLabels[f] || f}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              )
-            })}
-            <div className="md:col-span-3 flex justify-center">
-              <Button disabled={!selectedPlan} onClick={() => setStep('mobile')}>
-                ادامه با {selectedPlan?.name}
-              </Button>
-            </div>
-          </div>
+          <>
+            {plansLoading && (
+              <div className="grid md:grid-cols-3 gap-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse h-64" />
+                ))}
+              </div>
+            )}
+
+            {!plansLoading && (
+              <>
+                {plansError && (
+                  <div className="flex items-center justify-center gap-2 text-sm text-warning">
+                    <AlertCircle className="h-4 w-4" />
+                    اتصال به سرور برقرار نشد — نمایش تعرفه پیش‌فرض
+                    <button type="button" onClick={() => refetch()} className="text-primary hover:underline flex items-center gap-1">
+                      <RefreshCw className="h-3 w-3" /> تلاش مجدد
+                    </button>
+                  </div>
+                )}
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  {displayPlans.map((plan) => {
+                    const Icon = planIcons[plan.panel_type] ?? Building2
+                    const isPopular = plan.slug === 'office'
+                    return (
+                      <Card
+                        key={plan.slug}
+                        className={`cursor-pointer transition-all hover:border-primary/50 relative ${selectedPlan?.slug === plan.slug ? 'border-primary ring-2 ring-primary/30' : ''}`}
+                        onClick={() => setSelectedPlan(plan)}
+                      >
+                        {isPopular && (
+                          <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs bg-accent text-accent-foreground px-3 py-0.5 rounded-full font-medium">
+                            پرفروش
+                          </span>
+                        )}
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2 text-lg">
+                            <Icon className="h-5 w-5 text-primary" />
+                            {plan.name}
+                          </CardTitle>
+                          <p className="text-2xl font-bold text-primary">{formatPrice(plan.monthly_price)}</p>
+                          <p className="text-xs text-muted">ماهانه · {toPersianDigits(String(plan.trial_days))} روز رایگان</p>
+                        </CardHeader>
+                        <CardContent className="space-y-2 text-sm text-muted">
+                          <p>{plan.description}</p>
+                          <p>تا {toPersianDigits(String(plan.max_users))} کاربر · {toPersianDigits(String(plan.max_properties))} ملک</p>
+                          <ul className="space-y-1 pt-2">
+                            {plan.features.slice(0, 6).map((f) => (
+                              <li key={f} className="flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3 text-success shrink-0" />
+                                {PLAN_FEATURE_LABELS[f] || f}
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+                <div className="md:col-span-3 flex justify-center">
+                  <Button size="lg" disabled={!selectedPlan} onClick={() => setStep('mobile')}>
+                    ادامه با {selectedPlan?.name ?? 'پلن انتخابی'}
+                  </Button>
+                </div>
+              </>
+            )}
+          </>
         )}
 
         {step === 'mobile' && (
@@ -238,6 +262,7 @@ export function RegisterPage() {
           <Card className="max-w-md mx-auto">
             <CardHeader><CardTitle>تأیید کد</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              {devHint && <p className="text-sm text-warning text-center">{devHint}</p>}
               <Input
                 placeholder="کد ۶ رقمی"
                 value={otp}
@@ -295,7 +320,7 @@ export function RegisterPage() {
                         <input ref={logoRef} type="file" accept="image/*" className="text-sm" />
                       </div>
                       {(selectedPlan.slug === 'office' || selectedPlan.slug === 'premium') && (
-                        <Input placeholder="توکن ربات تلگرام (اختیاری — بعداً هم قابل تنظیم)" value={form.telegram_bot_token} onChange={(e) => setForm((f) => ({ ...f, telegram_bot_token: e.target.value }))} dir="ltr" />
+                        <Input placeholder="توکن ربات تلگرام (اختیاری)" value={form.telegram_bot_token} onChange={(e) => setForm((f) => ({ ...f, telegram_bot_token: e.target.value }))} dir="ltr" />
                       )}
                       {selectedPlan.slug === 'premium' && (
                         <Input placeholder="شماره واتساپ پاسخگو (اختیاری)" value={form.whatsapp_phone} onChange={(e) => setForm((f) => ({ ...f, whatsapp_phone: e.target.value }))} dir="ltr" />

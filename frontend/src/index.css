@@ -2,17 +2,17 @@
 
 @theme {
   --font-sans: "Vazirmatn", system-ui, sans-serif;
-  --color-background: #0b1419;
-  --color-foreground: #f0fdf4;
-  --color-card: rgba(16, 185, 129, 0.04);
-  --color-card-border: rgba(16, 185, 129, 0.12);
-  --color-primary: #10b981;
-  --color-primary-foreground: #052e1f;
-  --color-muted: #94a3b8;
-  --color-accent: #f59e0b;
-  --color-success: #34d399;
+  --color-background: #080c14;
+  --color-foreground: #e8f4ff;
+  --color-card: rgba(34, 211, 238, 0.04);
+  --color-card-border: rgba(34, 211, 238, 0.14);
+  --color-primary: #22d3ee;
+  --color-primary-foreground: #042f3a;
+  --color-muted: #8ba3b8;
+  --color-accent: #a78bfa;
+  --color-success: #4ade80;
   --color-warning: #fbbf24;
-  --color-danger: #f87171;
+  --color-danger: #fb7185;
   --radius-lg: 12px;
   --radius-xl: 16px;
 }
@@ -32,15 +32,15 @@
   }
 
   select option {
-    background-color: #0b1419;
-    color: #f0fdf4;
+    background-color: #080c14;
+    color: #e8f4ff;
   }
 
   .light {
-    --color-background: #f8fafc;
-    --color-foreground: #0f172a;
-    --color-card: rgba(16, 185, 129, 0.05);
-    --color-card-border: rgba(16, 185, 129, 0.15);
+    --color-background: #f0f9ff;
+    --color-foreground: #0c1929;
+    --color-card: rgba(34, 211, 238, 0.06);
+    --color-card-border: rgba(34, 211, 238, 0.18);
   }
 }
 
@@ -50,15 +50,15 @@
   }
 
   .glass-hover {
-    @apply transition-all duration-300 hover:bg-emerald-500/5 hover:border-emerald-500/20;
+    @apply transition-all duration-300 hover:bg-cyan-500/5 hover:border-cyan-500/20;
   }
 
   .gradient-text {
-    @apply bg-gradient-to-l from-primary to-accent bg-clip-text text-transparent;
+    @apply bg-gradient-to-l from-primary via-cyan-300 to-accent bg-clip-text text-transparent;
   }
 
   .landing-glow {
-    background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.25), transparent);
+    background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(34, 211, 238, 0.22), transparent);
   }
 
   .animate-fade-in {

@@ -6,7 +6,7 @@ import {
   Building2, Smartphone, Shield, Users, Search, BarChart3, Kanban, Calculator,
   ArrowLeft, CheckCircle2, Sparkles, Calendar, QrCode, UserCircle, Target,
   FileText, MessageSquare, Zap, Cloud, Headphones, ChevronDown,
-  Wallet, Bot, Globe,
+  Wallet, Bot, Globe, Star,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { SeoHead } from '@/components/seo/SeoHead'
 import { getOrganizationJsonLd, getSoftwareJsonLd } from '@/lib/seo'
+import { PLAN_FEATURE_LABELS } from '@/constants/plans'
 
 const stats = [
   { value: '+۸۰', label: 'دفتر فعال' },
@@ -39,7 +40,9 @@ const allFeatures = [
   { icon: FileText, title: 'قرارداد PDF فارسی', desc: 'مبایعه‌نامه و اجاره‌نامه با تاریخ شمسی' },
   { icon: Calculator, title: 'حسابداری دفتر', desc: 'درآمد، هزینه و گزارش مالی' },
   { icon: QrCode, title: 'کد QR رهگیری', desc: 'QR اختصاصی برای هر فایل ملک' },
-  { icon: MessageSquare, title: 'پیامک خودکار', desc: 'یادآور بازدید و انقضای فایل' },
+  { icon: MessageSquare, title: 'اشتراک واتساپ/تلگرام', desc: 'ارسال فایل ملک برای شماره مشخص با یک کلیک' },
+  { icon: Sparkles, title: 'کپی آگهی هوشمند', desc: 'تولید متن آماده انتشار برای دیوار و شبکه‌ها' },
+  { icon: Star, title: 'امتیاز کیفیت فایل', desc: 'نمره‌دهی خودکار کامل بودن اطلاعات ملک' },
   { icon: Bot, title: 'ربات تلگرام/واتساپ', desc: 'پاسخگویی خودکار به مشتریان' },
   { icon: Globe, title: 'سایت اختصاصی دفتر', desc: 'صفحه عمومی املاک با URL اختصاصی' },
   { icon: BarChart3, title: 'گزارش KPI', desc: 'نمودار درآمد و عملکرد مشاوران' },
@@ -64,14 +67,8 @@ const faqs = [
   { q: 'بعد از دوره آزمایشی خودکار پول کم می‌شود؟', a: 'خیر. تا زمانی که خودتان پلن بخرید، هیچ پرداختی انجام نمی‌شود.' },
   { q: 'چقدر طول می‌کشد پنل آماده شود؟', a: 'معمولاً کمتر از ۳ دقیقه پس از ثبت‌نام.' },
   { q: 'نیاز به نصب دارد؟', a: 'خیر. کاملاً ابری و تحت‌وب — از مرورگر و موبایل.' },
-  { q: 'چند مشاور هم‌زمان کار می‌کنند؟', a: 'بسته به پلن: ۱، ۳ یا نامحدود با امکانات پریمیوم.' },
+  { q: 'چند مشاور هم‌زمان کار می‌کنند؟', a: 'بسته به پلن: ۱، ۵ یا ۱۰ مشاور با امکانات متفاوت.' },
 ]
-
-const featureLabels: Record<string, string> = {
-  filing: 'فایلینگ حرفه‌ای', accounting: 'حسابداری', team: 'مدیریت تیم',
-  telegram_bot: 'ربات تلگرام', whatsapp_bot: 'واتساپ', website_listing: 'سایت اختصاصی',
-  verified_badge: 'تیک وریفای', crm: 'CRM',
-}
 
 export function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
@@ -300,7 +297,7 @@ export function LandingPage() {
               <ul className="space-y-2 flex-1 text-sm">
                 <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" />تا {plan.max_users} کاربر · {plan.max_properties} ملک</li>
                 {plan.features.slice(0, 4).map((f) => (
-                  <li key={f} className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" />{featureLabels[f] || f}</li>
+                  <li key={f} className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" />{PLAN_FEATURE_LABELS[f] || f}</li>
                 ))}
               </ul>
               <Link to="/register" className="mt-6"><Button className="w-full" variant={idx === 1 ? 'default' : 'outline'}>شروع رایگان</Button></Link>

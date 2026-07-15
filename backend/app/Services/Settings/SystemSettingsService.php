@@ -121,15 +121,11 @@ class SystemSettingsService
             return true;
         }
 
-        // Production: credentials configured → send real SMS even if DB still says log
-        if (app()->environment('production')) {
-            $config = $this->ippanelConfig();
-            if ($this->hasIppanelCredentials($config) && ! empty($config['from_number'])) {
-                return true;
-            }
+        if ($this->get('sms_mode') === 'log') {
+            return false;
         }
 
-        return $this->get('sms_mode', app()->environment('production') ? 'live' : 'log') === 'live';
+        return false;
     }
 
     public function smsStatus(): array

@@ -54,9 +54,9 @@ ensure_env_file() {
   set_env_var SESSION_DRIVER file
   set_env_var REDIS_HOST redis
   set_env_var REDIS_PORT 6379
-  set_env_var SMS_MODE live
-  set_env_var SMS_PROVIDER maxsms
-  set_env_var IPPANEL_API_MODE jspd
+  grep -q '^SMS_MODE=' "$ENV_FILE" || set_env_var SMS_MODE log
+  grep -q '^SMS_PROVIDER=' "$ENV_FILE" || set_env_var SMS_PROVIDER maxsms
+  grep -q '^IPPANEL_API_MODE=' "$ENV_FILE" || set_env_var IPPANEL_API_MODE jspd
 
   grep -q '^DB_HOST=' "$ENV_FILE" || echo 'DB_HOST=mysql' >> "$ENV_FILE"
   grep -q '^DB_DATABASE=' "$ENV_FILE" || echo 'DB_DATABASE=posheh' >> "$ENV_FILE"

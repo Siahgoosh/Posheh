@@ -18,18 +18,21 @@ export function LoginPage() {
   const [error, setError] = useState('')
   const [countdown, setCountdown] = useState(0)
   const [otpInputKey, setOtpInputKey] = useState(0)
+  const [devHint, setDevHint] = useState('')
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
 
   const handleSendOtp = async (e?: React.FormEvent) => {
     e?.preventDefault()
     setError('')
+    setDevHint('')
     setOtp('')
     setOtpInputKey((key) => key + 1)
     setLoading(true)
     const normalizedMobile = normalizeMobile(mobile)
     try {
-      await api.post('/auth/otp/send', { mobile: normalizedMobile })
+      const res = await api.post('/auth/otp/send', { mobile: normalizedMobile })
+      if (res.data.dev_hint) setDevHint(res.data.dev_hint)
       setMobile(normalizedMobile)
       setStep('otp')
       setCountdown(120)
@@ -150,6 +153,7 @@ export function LoginPage() {
                 <p className="text-sm text-muted">
                   کد تأیید به {toPersianDigits(mobile)} ارسال شد
                 </p>
+                {devHint && <p className="text-sm text-warning text-center">{devHint}</p>}
                 <Input
                   key={`otp-input-${otpInputKey}`}
                   type="text"

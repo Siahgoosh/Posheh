@@ -69,6 +69,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/properties-import', [PropertyController::class, 'import']);
         Route::apiResource('properties', PropertyController::class);
         Route::get('/properties/{id}/similar', [PropertyController::class, 'similar']);
+        Route::get('/properties/{id}/share-message', [PropertyController::class, 'shareMessage']);
+        Route::post('/properties/{id}/share', [PropertyController::class, 'share']);
         Route::post('/properties/{id}/favorite', [PropertyController::class, 'toggleFavorite']);
         Route::post('/properties/{id}/media', [PropertyController::class, 'uploadMedia']);
         Route::delete('/properties/{id}/media/{mediaId}', [PropertyController::class, 'deleteMedia']);
@@ -93,8 +95,11 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/crm/deals', [CrmController::class, 'index']);
         Route::get('/crm/pipeline', [CrmController::class, 'pipeline']);
+        Route::get('/crm/follow-ups', [CrmController::class, 'followUps']);
         Route::post('/crm/deals', [CrmController::class, 'store']);
         Route::put('/crm/deals/{id}', [CrmController::class, 'update']);
+        Route::get('/crm/deals/{id}/activities', [CrmController::class, 'activities']);
+        Route::post('/crm/deals/{id}/activities', [CrmController::class, 'addActivity']);
 
         Route::get('/commissions', [CommissionController::class, 'index']);
         Route::get('/commissions/settings', [CommissionController::class, 'settings']);
@@ -127,6 +132,7 @@ Route::prefix('v1')->group(function () {
 
         Route::prefix('admin')->middleware(EnsureUserHasRole::class.':super_admin')->group(function () {
             Route::get('/marketing', [MarketingDashboardController::class, 'index']);
+            Route::get('/system/sms', [MarketingDashboardController::class, 'smsStatus']);
             Route::get('/plans', [PlanAdminController::class, 'index']);
             Route::post('/plans', [PlanAdminController::class, 'store']);
             Route::put('/plans/{id}', [PlanAdminController::class, 'update']);

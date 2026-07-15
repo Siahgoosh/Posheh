@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PropertyResource;
 use App\Services\Property\PropertyExportService;
 use App\Services\Property\PropertyService;
+use App\Services\Property\PropertyShareService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Http\Requests\Property\StorePropertyRequest;
@@ -18,6 +19,7 @@ class PropertyController extends Controller
     public function __construct(
         private readonly PropertyService $propertyService,
         private readonly PropertyExportService $exportService,
+        private readonly PropertyShareService $shareService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -128,5 +130,47 @@ class PropertyController extends Controller
         $request->validate(['file' => ['required', 'file', 'mimes:xlsx,xls,csv']]);
 
         return response()->json($this->exportService->import($request->user(), $request->file('file')));
+    }
+
+    public function shareMessage(Request $request, int $id): JsonResponse
+    {
+        $property = $this->propertyService->find($request->user(), $id);
+        $property->load(['media', 'type', 'property_category']);
+        $officeName = $request->user()->office?->name;
+
+        return response()->json([
+            'data' => [
+                'message' => $this->shareService->buildMessage($property, $officeName),
+                'ad_copy' => $this->shareService->buildAdCopy($property),
+                'quality_score' => $this->shareService->qualityScore($property),
+            ],
+        ]);
+    }
+
+    public function share(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'recipient_mobile' => ['required', 'string', 'regex:/^09\d{9}$/'],
+            'channel' => ['required', 'string', 'in:whatsapp,telegram,sms'],
+        ]);
+
+        $property = $this->propertyService->find($request->user(), $id);
+        $property->load(['media', 'type', 'property_category']);
+        $message = $this->shareService->buildMessage($property, $request->user()->office?->name);
+        $links = $this->shareService->shareLinks($message, $data['recipient_mobile']);
+
+        $this->shareService->logShare(
+            $request->user(),
+            $property,
+            $data['channel'],
+            $data['recipient_mobile']
+        );
+
+        return response()->json([
+            'data' => [
+                'url' => $links[$data['channel']] ?? null,
+                'message' => $message,
+            ],
+        ]);
     }
 }

@@ -64,6 +64,10 @@ class PropertyResource extends JsonResource
 
                 return $cover ? new PropertyMediaResource($cover) : null;
             }),
+            'quality_score' => $this->when(
+                $this->relationLoaded('media') || $this->media,
+                fn () => app(\App\Services\Property\PropertyShareService::class)->qualityScore($this->resource)
+            ),
         ];
     }
 }
