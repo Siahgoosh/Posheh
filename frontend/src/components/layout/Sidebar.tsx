@@ -73,8 +73,8 @@ export function Sidebar() {
         <div className="min-w-0 flex-1">
           <h1 className="text-base font-bold gradient-text truncate">پوشه</h1>
           <p className="text-xs text-muted truncate">{user?.office?.name || 'سامانه املاک'}</p>
-          {onTrial && user?.office?.trial_days_remaining !== undefined && (
-            <p className="text-[10px] text-warning">{user.office.trial_days_remaining} روز آزمایشی</p>
+          {onTrial && user?.office?.trial_label && (
+            <p className="text-[10px] text-warning">{user.office.trial_label}</p>
           )}
         </div>
         <button type="button" className="lg:hidden text-muted p-1" onClick={() => setMobileOpen(false)}>

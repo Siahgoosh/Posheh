@@ -1,13 +1,13 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../auth/auth_controller.dart';
-import '../theme/app_theme.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/properties/properties_screen.dart';
 import '../../features/properties/property_form_screen.dart';
+import '../../features/properties/property_detail_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../../features/modules/module_screens.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authControllerProvider);
@@ -23,98 +23,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+      GoRoute(path: '/properties/new', builder: (_, __) => const PropertyFormScreen()),
       GoRoute(
-        path: '/properties/new',
-        builder: (_, __) => const PropertyFormScreen(),
+        path: '/properties/:id',
+        builder: (_, state) => PropertyDetailScreen(
+          id: int.parse(state.pathParameters['id']!),
+        ),
       ),
-      ShellRoute(
-        builder: (context, state, child) => MainShell(child: child),
-        routes: [
-          GoRoute(
-              path: '/dashboard', builder: (_, __) => const DashboardScreen()),
-          GoRoute(
-              path: '/properties',
-              builder: (_, __) => const PropertiesScreen()),
-          GoRoute(
-              path: '/settings', builder: (_, __) => const SettingsScreen()),
-        ],
-      ),
+      GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
+      GoRoute(path: '/properties', builder: (_, __) => const PropertiesScreen()),
+      GoRoute(path: '/owners', builder: (_, __) => const OwnersScreen()),
+      GoRoute(path: '/customers', builder: (_, __) => const CustomersScreen()),
+      GoRoute(path: '/visits', builder: (_, __) => const VisitsScreen()),
+      GoRoute(path: '/search', builder: (_, __) => const SearchScreen()),
+      GoRoute(path: '/favorites', builder: (_, __) => const FavoritesScreen()),
+      GoRoute(path: '/crm', builder: (_, __) => const CrmScreen()),
+      GoRoute(path: '/accounting', builder: (_, __) => const AccountingScreen()),
+      GoRoute(path: '/reports', builder: (_, __) => const ReportsScreen()),
+      GoRoute(path: '/commissions', builder: (_, __) => const CommissionsScreen()),
+      GoRoute(path: '/contracts', builder: (_, __) => const ContractsScreen()),
+      GoRoute(path: '/team', builder: (_, __) => const TeamScreen()),
+      GoRoute(path: '/tickets', builder: (_, __) => const TicketsScreen()),
+      GoRoute(path: '/subscription', builder: (_, __) => const SubscriptionScreen()),
+      GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
     ],
   );
 });
-
-class MainShell extends StatelessWidget {
-  final Widget child;
-  const MainShell({super.key, required this.child});
-
-  static const _tabs = ['/dashboard', '/properties', '/settings'];
-
-  int _indexFor(BuildContext context) {
-    final loc = GoRouterState.of(context).uri.path;
-    if (loc.startsWith('/properties')) return 1;
-    if (loc.startsWith('/settings')) return 2;
-    return 0;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          border: Border(
-            top: BorderSide(color: AppColors.cardBorder(dark)),
-          ),
-        ),
-        child: NavigationBarTheme(
-          data: NavigationBarThemeData(
-            backgroundColor: Colors.transparent,
-            indicatorColor: AppColors.primary.withValues(alpha: 0.15),
-            labelTextStyle: WidgetStateProperty.resolveWith(
-              (states) => TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: states.contains(WidgetState.selected)
-                    ? AppColors.primary
-                    : AppColors.muted,
-              ),
-            ),
-            iconTheme: WidgetStateProperty.resolveWith(
-              (states) => IconThemeData(
-                color: states.contains(WidgetState.selected)
-                    ? AppColors.primary
-                    : AppColors.muted,
-              ),
-            ),
-          ),
-          child: NavigationBar(
-            selectedIndex: _indexFor(context),
-            height: 66,
-            labelBehavior:
-                NavigationDestinationLabelBehavior.alwaysShow,
-            onDestinationSelected: (i) => context.go(_tabs[i]),
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard_rounded),
-                label: 'داشبورد',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.apartment_outlined),
-                selectedIcon: Icon(Icons.apartment_rounded),
-                label: 'املاک',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings_rounded),
-                label: 'تنظیمات',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

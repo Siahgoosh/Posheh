@@ -7,6 +7,9 @@ class AppUser {
   final String? roleLabel;
   final String role;
   final String? officeName;
+  final List<String> features;
+  final bool onTrial;
+  final String? trialLabel;
 
   const AppUser({
     required this.name,
@@ -14,20 +17,34 @@ class AppUser {
     this.roleLabel,
     this.role = '',
     this.officeName,
+    this.features = const [],
+    this.onTrial = false,
+    this.trialLabel,
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
     final office = json['office'];
+    final plan = office is Map ? office['plan'] : null;
+    final features = plan is Map
+        ? (plan['features'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[]
+        : const <String>[];
+
     return AppUser(
       name: (json['name'] ?? '').toString(),
       mobile: (json['mobile'] ?? '').toString(),
       roleLabel: json['role_label']?.toString(),
       role: (json['role'] ?? '').toString(),
       officeName: office is Map ? office['name']?.toString() : null,
+      features: features,
+      onTrial: office is Map && office['on_trial'] == true,
+      trialLabel: office is Map ? office['trial_label']?.toString() : null,
     );
   }
 
   bool get canManage => role == 'office_manager' || role == 'super_admin';
+
+  bool hasFeature(String feature) => features.contains(feature);
+
   String get initial => name.trim().isNotEmpty ? name.trim()[0] : '؟';
 }
 

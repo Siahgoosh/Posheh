@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getDeviceId, getDeviceName, getPlatform } from '@/lib/device'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice, normalizeMobile, toEnglishDigits, toPersianDigits } from '@/lib/utils'
-import { FALLBACK_PLANS, PLAN_FEATURE_LABELS, type PlanOption } from '@/constants/plans'
+import { FALLBACK_PLANS, PLAN_FEATURE_LABELS, trialBadgeForPlan, type PlanOption } from '@/constants/plans'
 
 const planIcons: Record<string, typeof User> = {
   solo: User,
@@ -201,7 +201,10 @@ export function RegisterPage() {
                             {plan.name}
                           </CardTitle>
                           <p className="text-2xl font-bold text-primary">{formatPrice(plan.monthly_price)}</p>
-                          <p className="text-xs text-muted">ماهانه · {toPersianDigits(String(plan.trial_days))} روز رایگان</p>
+                          <p className="text-xs text-muted">
+                            ماهانه
+                            {trialBadgeForPlan(plan.slug) ? ` · ${trialBadgeForPlan(plan.slug)}` : ''}
+                          </p>
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm text-muted">
                           <p>{plan.description}</p>
@@ -335,7 +338,7 @@ export function RegisterPage() {
                     {' '}را می‌پذیرید.
                   </p>
                   <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'ثبت‌نام…' : `شروع ${toPersianDigits(String(selectedPlan.trial_days))} روز رایگان`}
+                    {loading ? 'ثبت‌نام…' : selectedPlan?.slug === 'solo' ? 'شروع ۴۸ ساعت رایگان' : 'ادامه ثبت‌نام'}
                   </Button>
                 </form>
               </CardContent>

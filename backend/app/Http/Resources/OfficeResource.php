@@ -30,6 +30,8 @@ class OfficeResource extends JsonResource
             'has_access' => $access['has_access'],
             'on_trial' => $access['on_trial'],
             'trial_days_remaining' => $access['trial_days_remaining'],
+            'trial_hours_remaining' => $access['trial_hours_remaining'],
+            'trial_label' => $access['trial_label'],
             'subscription_expired' => $access['subscription_expired'],
             'plan' => $this->whenLoaded('plan', fn () => [
                 'id' => $this->plan?->id,

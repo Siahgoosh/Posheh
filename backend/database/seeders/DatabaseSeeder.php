@@ -36,7 +36,7 @@ class DatabaseSeeder extends Seeder
                 'storage_gb' => 5,
                 'monthly_price' => 590_000,
                 'yearly_price' => 5_900_000,
-                'trial_days' => 3,
+                'trial_days' => 0,
                 'features' => [
                     'filing', 'properties', 'search', 'favorites', 'crm',
                     'excel_export', 'pdf_export', 'jalali_calendar', 'saved_searches',
@@ -55,7 +55,7 @@ class DatabaseSeeder extends Seeder
                 'storage_gb' => 20,
                 'monthly_price' => 990_000,
                 'yearly_price' => 9_900_000,
-                'trial_days' => 3,
+                'trial_days' => 0,
                 'features' => [
                     'filing', 'properties', 'search', 'favorites', 'crm',
                     'excel_export', 'pdf_export', 'jalali_calendar', 'saved_searches',
@@ -76,7 +76,7 @@ class DatabaseSeeder extends Seeder
                 'storage_gb' => 50,
                 'monthly_price' => 1_690_000,
                 'yearly_price' => 16_900_000,
-                'trial_days' => 3,
+                'trial_days' => 0,
                 'features' => [
                     'filing', 'properties', 'search', 'favorites', 'crm',
                     'excel_export', 'pdf_export', 'jalali_calendar', 'saved_searches',

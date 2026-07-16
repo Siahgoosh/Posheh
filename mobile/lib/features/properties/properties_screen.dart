@@ -6,6 +6,7 @@ import '../../core/api/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/page_shell.dart';
 
 const _propertyTypes = [
   ('', 'همه'),
@@ -81,8 +82,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('املاک')),
+    return PageShell(
+      title: 'املاک',
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           await context.push('/properties/new');
@@ -224,7 +225,7 @@ class _PropertyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassCard(
       padding: EdgeInsets.zero,
-      onTap: () {},
+      onTap: () => context.push('/properties/${p['id']}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

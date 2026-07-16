@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/page_shell.dart';
 
 const _types = [
   ('sale', 'فروش'),
@@ -126,8 +127,8 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('ثبت ملک جدید')),
+    return PageShell(
+      title: 'ثبت ملک جدید',
       body: Form(
         key: _formKey,
         child: ListView(

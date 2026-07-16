@@ -64,7 +64,7 @@ export function RenewSubscriptionPage() {
                 برای ادامه استفاده از پوشه، لطفاً حساب خود را شارژ و تمدید کنید.
                 تا زمان تمدید، دسترسی به امکانات محدود است.
               </p>
-              {office?.trial_days_remaining === 0 && office?.on_trial === false && (
+              {!office?.on_trial && !office?.has_access && (
                 <Badge variant="outline" className="mt-3">نیاز به پرداخت</Badge>
               )}
             </div>

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CreditCard, CheckCircle2 } from 'lucide-react'
 import api from '@/lib/api'
 import { formatJalaliDate, formatPrice } from '@/lib/utils'
-import { PLAN_FEATURE_LABELS, subscriptionStatusLabel } from '@/constants/plans'
+import { PLAN_FEATURE_LABELS, subscriptionStatusLabel, trialBadgeForPlan } from '@/constants/plans'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -103,7 +103,7 @@ export function SubscriptionPage() {
                 <ul className="text-sm text-muted space-y-1 mb-6 flex-1">
                   <li>تا {plan.max_properties} ملک</li>
                   <li>تا {plan.max_users} کاربر</li>
-                  <li>{plan.trial_days} روز آزمایشی رایگان</li>
+                  {trialBadgeForPlan(plan.slug) && <li>{trialBadgeForPlan(plan.slug)}</li>}
                   {plan.description && <li>{plan.description}</li>}
                   {plan.features?.slice(0, 5).map((f) => (
                     <li key={f}>{PLAN_FEATURE_LABELS[f] || f}</li>

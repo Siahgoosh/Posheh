@@ -29,6 +29,36 @@ class SubscriptionAccessService
         return $office->trial_ends_at !== null && $office->trial_ends_at->isFuture();
     }
 
+    public function trialHoursRemaining(Office $office): int
+    {
+        if (! $this->onTrial($office)) {
+            return 0;
+        }
+
+        return max(0, (int) ceil(now()->diffInMinutes($office->trial_ends_at, false) / 60));
+    }
+
+    public function trialLabel(Office $office): ?string
+    {
+        if (! $this->onTrial($office)) {
+            return null;
+        }
+
+        $hours = $this->trialHoursRemaining($office);
+
+        if ($hours <= 0) {
+            return 'کمتر از یک ساعت باقیمانده';
+        }
+
+        if ($hours < 24) {
+            return $hours.' ساعت باقیمانده';
+        }
+
+        $days = (int) ceil($hours / 24);
+
+        return $days.' روز باقیمانده';
+    }
+
     public function trialDaysRemaining(Office $office): int
     {
         if (! $this->onTrial($office)) {
@@ -58,6 +88,8 @@ class SubscriptionAccessService
             'has_access' => $hasAccess,
             'on_trial' => $onTrial,
             'trial_days_remaining' => $this->trialDaysRemaining($office),
+            'trial_hours_remaining' => $this->trialHoursRemaining($office),
+            'trial_label' => $this->trialLabel($office),
             'trial_ends_at' => $office->trial_ends_at?->toIso8601String(),
             'subscription_expired' => ! $hasAccess,
             'has_active_subscription' => $hasSubscription,

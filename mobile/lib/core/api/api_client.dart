@@ -13,7 +13,7 @@ import '../utils/input_normalizers.dart';
 /// enabled via network_security_config for posheapp.ir.
 const String baseUrl = String.fromEnvironment(
   'API_URL',
-  defaultValue: 'http://posheapp.ir/api/v1',
+  defaultValue: 'https://posheapp.ir/api/v1',
 );
 
 const storage = FlutterSecureStorage(
@@ -205,4 +205,46 @@ class ApiClient {
       ok: (res) => Map<String, dynamic>.from(res.data as Map),
     );
   }
+
+  Future<List<dynamic>> getList(String path, {Map<String, dynamic>? params}) {
+    return _guard(
+      () => _dio.get(path, queryParameters: params),
+      'خطا در دریافت اطلاعات',
+      ok: (res) {
+        final data = res.data;
+        if (data is Map && data['data'] is List) return data['data'] as List;
+        if (data is List) return data;
+        return const [];
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> getData(String path, {Map<String, dynamic>? params}) {
+    return _guard(
+      () => _dio.get(path, queryParameters: params),
+      'خطا در دریافت اطلاعات',
+      ok: (res) {
+        final data = res.data;
+        if (data is Map && data['data'] is Map) {
+          return Map<String, dynamic>.from(data['data'] as Map);
+        }
+        if (data is Map) return Map<String, dynamic>.from(data);
+        return const {};
+      },
+    );
+  }
+
+  Future<List<dynamic>> getOwners() => getList('/owners');
+  Future<List<dynamic>> getCustomers() => getList('/customers');
+  Future<List<dynamic>> getVisits() => getList('/visits');
+  Future<List<dynamic>> getFavorites() => getList('/properties', params: {'favorites_only': true});
+  Future<List<dynamic>> getCrmDeals() => getList('/crm/deals');
+  Future<List<dynamic>> getAccounting() => getList('/accounting');
+  Future<List<dynamic>> getCommissions() => getList('/commissions');
+  Future<List<dynamic>> getContracts() => getList('/contracts');
+  Future<List<dynamic>> getTeam() => getList('/office/team');
+  Future<List<dynamic>> getTickets() => getList('/tickets');
+  Future<Map<String, dynamic>> getReports() => getData('/reports/dashboard');
+  Future<Map<String, dynamic>> getSubscription() => getData('/subscription/current');
+  Future<List<dynamic>> getPlans() => getList('/plans');
 }

@@ -18,7 +18,7 @@ concurrency:
 
 env:
   # Server currently serves the API over HTTP only; switch to https once TLS is configured.
-  API_URL: http://posheapp.ir/api/v1
+  API_URL: https://posheapp.ir/api/v1
 
 jobs:
   analyze:

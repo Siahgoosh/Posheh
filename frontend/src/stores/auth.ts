@@ -18,7 +18,8 @@ export interface User {
     panel_type?: string
     has_access?: boolean
     on_trial?: boolean
-    trial_days_remaining?: number
+    trial_label?: string
+    trial_hours_remaining?: number
     subscription_expired?: boolean
     is_verified?: boolean
     plan?: {

@@ -6,6 +6,7 @@ import '../../core/auth/auth_controller.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/page_shell.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -43,8 +44,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final user = ref.watch(authControllerProvider).user;
     final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('تنظیمات')),
+    return PageShell(
+      title: 'تنظیمات',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [

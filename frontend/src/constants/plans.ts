@@ -18,7 +18,7 @@ export const FALLBACK_PLANS: PlanOption[] = [
     name: 'مشاور مستقل',
     description: 'پنل تک‌نفره — فایلینگ، CRM پایه و خروجی PDF/اکسل',
     monthly_price: 590_000,
-    trial_days: 3,
+    trial_days: 0,
     max_users: 1,
     max_properties: 150,
     panel_type: 'solo',
@@ -30,7 +30,7 @@ export const FALLBACK_PLANS: PlanOption[] = [
     name: 'دفتر املاک',
     description: 'تا ۵ مشاور — حسابداری، تیم، ربات تلگرام و گزارش KPI',
     monthly_price: 990_000,
-    trial_days: 3,
+    trial_days: 0,
     max_users: 5,
     max_properties: 600,
     panel_type: 'office',
@@ -42,7 +42,7 @@ export const FALLBACK_PLANS: PlanOption[] = [
     name: 'دفتر حرفه‌ای',
     description: 'سایت اختصاصی، واتساپ، تیک وریفای و CRM پیشرفته',
     monthly_price: 1_690_000,
-    trial_days: 3,
+    trial_days: 0,
     max_users: 10,
     max_properties: 1500,
     panel_type: 'premium',
@@ -110,6 +110,11 @@ export function panelTypeLabel(key?: string): string {
 export function subscriptionStatusLabel(key?: string): string {
   if (!key) return '—'
   return SUBSCRIPTION_STATUS_LABELS[key] || key
+}
+
+export function trialBadgeForPlan(slug: string): string | null {
+  if (slug === 'solo') return '۴۸ ساعت رایگان'
+  return null
 }
 
 export function taskStatusLabel(key?: string): string {

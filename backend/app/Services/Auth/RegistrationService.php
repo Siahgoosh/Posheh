@@ -57,10 +57,10 @@ class RegistrationService
             ->firstOrFail();
 
         $panelType = PanelType::from($plan->panel_type);
-        $trialDays = $plan->trial_days ?: (int) $this->settings->get('trial_days', 3);
+        $soloTrialHours = (int) $this->settings->get('trial_hours_solo', 48);
 
-        return DB::transaction(function () use ($mobile, $data, $plan, $panelType, $trialDays, $device, $registrationToken) {
-            $officeData = $this->buildOfficeData($data, $plan, $panelType, $trialDays);
+        return DB::transaction(function () use ($mobile, $data, $plan, $panelType, $device, $registrationToken, $soloTrialHours) {
+            $officeData = $this->buildOfficeData($data, $plan, $panelType, $soloTrialHours);
             $office = Office::create($officeData);
 
             if (! empty($data['logo']) && $data['logo'] instanceof \Illuminate\Http\UploadedFile) {
@@ -103,8 +103,10 @@ class RegistrationService
     }
 
     /** @return array<string, mixed> */
-    private function buildOfficeData(array $data, SubscriptionPlan $plan, PanelType $panelType, int $trialDays): array
+    private function buildOfficeData(array $data, SubscriptionPlan $plan, PanelType $panelType, int $soloTrialHours): array
     {
+        $trialEndsAt = $panelType->isSolo() ? now()->addHours($soloTrialHours) : null;
+
         if ($panelType->isSolo()) {
             $name = trim(($data['first_name'] ?? '').' '.($data['last_name'] ?? ''));
 
@@ -114,7 +116,7 @@ class RegistrationService
                 'subscription_plan_id' => $plan->id,
                 'panel_type' => $panelType->value,
                 'is_active' => true,
-                'trial_ends_at' => now()->addDays($trialDays),
+                'trial_ends_at' => $trialEndsAt,
                 'show_on_website' => false,
                 'is_verified' => false,
             ];
@@ -129,7 +131,7 @@ class RegistrationService
             'subscription_plan_id' => $plan->id,
             'panel_type' => $panelType->value,
             'is_active' => true,
-            'trial_ends_at' => now()->addDays($trialDays),
+            'trial_ends_at' => $trialEndsAt,
             'show_on_website' => $panelType === PanelType::Premium,
             'is_verified' => $panelType === PanelType::Premium,
             'telegram_bot_token' => $data['telegram_bot_token'] ?? null,

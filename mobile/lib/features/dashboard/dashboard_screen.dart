@@ -6,6 +6,7 @@ import '../../core/auth/auth_controller.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/glass_card.dart';
+import '../../core/widgets/page_shell.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -43,16 +44,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).user;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('داشبورد'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: _load,
-          ),
-        ],
-      ),
+    return PageShell(
+      title: 'داشبورد',
+      actions: [
+        IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load),
+      ],
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/properties/new'),
         backgroundColor: AppColors.primary,
@@ -190,7 +186,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           else
             for (final p in items)
               InkWell(
-                onTap: () {},
+                onTap: () => context.push('/properties/${p['id']}'),
                 borderRadius: BorderRadius.circular(12),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),

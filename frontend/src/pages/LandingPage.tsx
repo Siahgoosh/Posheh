@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { SeoHead } from '@/components/seo/SeoHead'
 import { getOrganizationJsonLd, getSoftwareJsonLd } from '@/lib/seo'
-import { PLAN_FEATURE_LABELS } from '@/constants/plans'
+import { PLAN_FEATURE_LABELS, trialBadgeForPlan } from '@/constants/plans'
 
 const stats = [
   { value: '+۸۰', label: 'دفتر فعال' },
@@ -52,7 +52,7 @@ const allFeatures = [
 ]
 
 const steps = [
-  { n: '۱', title: 'ثبت‌نام و انتخاب پلن', desc: 'با موبایل وارد شوید — ۳ روز رایگان بدون کارت بانکی' },
+  { n: '۱', title: 'ثبت‌نام و انتخاب پلن', desc: 'پنل فردی: ۴۸ ساعت رایگان — بدون کارت بانکی' },
   { n: '۲', title: 'راه‌اندازی خودکار', desc: 'پنل اختصاصی دفتر شما در کمتر از ۳ دقیقه آماده می‌شود' },
   { n: '۳', title: 'شروع فایلینگ', desc: 'مشاوران را دعوت کنید و اولین ملک را ثبت کنید' },
 ]
@@ -144,7 +144,7 @@ export function LandingPage() {
             </p>
             <div className="flex flex-wrap gap-3 mb-6">
               <Link to="/register">
-                <Button size="lg" className="shadow-lg shadow-primary/30">شروع {apiPlans?.[0]?.trial_days ?? 3} روز رایگان</Button>
+                <Button size="lg" className="shadow-lg shadow-primary/30">شروع ۴۸ ساعت رایگان</Button>
               </Link>
               <a href="#pricing"><Button variant="outline" size="lg">مشاهده پلن‌ها</Button></a>
             </div>
@@ -287,7 +287,7 @@ export function LandingPage() {
       <section id="pricing" className="container mx-auto max-w-6xl px-4 py-20">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-2">پلن مناسب خود را انتخاب کنید</h2>
-          <p className="text-muted">{apiPlans?.[0]?.trial_days ?? 3} روز رایگان — بدون کارت بانکی</p>
+          <p className="text-muted">پنل مشاور مستقل: ۴۸ ساعت رایگان — پلن‌های دفتر از ابتدا پرداختی</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {(apiPlans ?? []).map((plan, idx) => (
@@ -298,6 +298,9 @@ export function LandingPage() {
               <p className="text-sm text-muted mb-4">{plan.description}</p>
               <ul className="space-y-2 flex-1 text-sm">
                 <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" />تا {plan.max_users} کاربر · {plan.max_properties} ملک</li>
+                {trialBadgeForPlan(plan.slug) && (
+                  <li className="flex gap-2 text-warning"><CheckCircle2 className="h-4 w-4 shrink-0" />{trialBadgeForPlan(plan.slug)}</li>
+                )}
                 {plan.features.slice(0, 4).map((f) => (
                   <li key={f} className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" />{PLAN_FEATURE_LABELS[f] || f}</li>
                 ))}
