@@ -42,7 +42,9 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/otp/verify', [AuthController::class, 'verifyOtp'])->middleware('throttle:15,1');
     Route::get('/plans', [SubscriptionController::class, 'plans']);
     Route::get('/blog', [BlogController::class, 'index']);
+    Route::get('/blog/categories', [BlogController::class, 'categories']);
     Route::get('/blog/sitemap', [BlogController::class, 'sitemap']);
+    Route::get('/sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'xml']);
     Route::get('/blog/{slug}', [BlogController::class, 'show']);
     Route::get('/downloads', [DownloadController::class, 'index']);
     Route::get('/consultants', [ConsultantDirectoryController::class, 'index']);
@@ -164,6 +166,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/announcements', [AdminController::class, 'createAnnouncement']);
 
             Route::get('/blog', [BlogAdminController::class, 'index']);
+            Route::get('/blog/categories', [BlogAdminController::class, 'categories']);
             Route::post('/blog/analyze-seo', [BlogAdminController::class, 'analyzeSeo']);
             Route::post('/blog/upload-image', [BlogAdminController::class, 'uploadImage']);
             Route::post('/blog/upload-cover', [BlogAdminController::class, 'uploadCover']);

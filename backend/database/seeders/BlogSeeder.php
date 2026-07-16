@@ -10,93 +10,344 @@ class BlogSeeder extends Seeder
     public function run(): void
     {
         $posts = [
-            [
-                'slug' => 'best-real-estate-crm-software-iran',
-                'title' => 'بهترین نرم‌افزار CRM املاک در ایران — راهنمای انتخاب ۱۴۰۴',
-                'excerpt' => 'چگونه سامانه مدیریت املاک مناسب دفتر خود را انتخاب کنیم؟ مقایسه امکانات CRM، ثبت ملک، و مدیریت تیم.',
-                'meta_title' => 'بهترین نرم افزار CRM املاک ایران | پوشه',
-                'meta_description' => 'راهنمای جامع انتخاب نرم افزار مدیریت املاک و CRM برای مشاوران و آژانس‌های املاک در ایران. ثبت ملک، قیف فروش، حسابداری.',
-                'keywords' => 'نرم افزار املاک, CRM املاک, سامانه ثبت ملک, مدیریت دفتر املاک',
-                'reading_time' => 8,
-                'content' => $this->content1(),
-            ],
-            [
-                'slug' => 'property-filing-tips-for-agents',
-                'title' => '۱۰ نکته طلایی برای ثبت حرفه‌ای ملک در سامانه',
-                'excerpt' => 'ثبت دقیق اطلاعات ملک باعث فروش سریع‌تر و جستجوی بهتر می‌شود. این نکات را از دست ندهید.',
-                'meta_title' => 'نکات ثبت ملک حرفه‌ای | وبلاگ پوشه',
-                'meta_description' => '۱۰ نکته کاربردی برای ثبت حرفه‌ای املاک در سامانه ابری. کد ملک، عکس، موقعیت و توضیحات مؤثر.',
-                'keywords' => 'ثبت ملک, فایلینگ املاک, مشاور املاک, سامانه املاک',
-                'reading_time' => 6,
-                'content' => $this->content2(),
-            ],
-            [
-                'slug' => 'cloud-vs-excel-real-estate-management',
-                'title' => 'چرا دفتر املاک به جای اکسل به سامانه ابری نیاز دارد؟',
-                'excerpt' => 'اکسل برای شروع خوب است، اما محدودیت‌های جدی در تیم، امنیت و جستجو دارد. مقایسه عملی با پوشه.',
-                'meta_title' => 'سامانه ابری املاک در مقابل اکسل | پوشه',
-                'meta_description' => 'مقایسه مدیریت املاک با اکسل و نرم افزار ابری. مزایای CRM، دسترسی تیم، OTP و پشتیبان‌گیری.',
-                'keywords' => 'سامانه ابری املاک, اکسل املاک, نرم افزار مشاور املاک',
-                'reading_time' => 7,
-                'content' => $this->content3(),
-            ],
+            $this->post(
+                'best-real-estate-crm-software-iran',
+                'بهترین نرم‌افزار CRM املاک در ایران — راهنمای انتخاب ۱۴۰۴',
+                'crm',
+                'pillar-crm',
+                'چگونه سامانه مدیریت املاک مناسب دفتر خود را انتخاب کنیم؟',
+                'نرم افزار املاک, CRM املاک, سامانه ثبت ملک',
+                8,
+                $this->crmContent(),
+                $this->crmFaq(),
+                ['property-filing-tips-for-agents', 'cloud-vs-excel-real-estate-management'],
+            ),
+            $this->post(
+                'property-filing-tips-for-agents',
+                '۱۰ نکته طلایی برای ثبت حرفه‌ای ملک در سامانه',
+                'filing',
+                'pillar-filing',
+                'ثبت دقیق اطلاعات ملک باعث فروش سریع‌تر می‌شود.',
+                'ثبت ملک, فایلینگ املاک, مشاور املاک',
+                6,
+                $this->filingContent(),
+                $this->filingFaq(),
+                ['best-real-estate-crm-software-iran', 'property-qr-code-marketing'],
+            ),
+            $this->post(
+                'cloud-vs-excel-real-estate-management',
+                'چرا دفتر املاک به جای اکسل به سامانه ابری نیاز دارد؟',
+                'software',
+                'pillar-excel',
+                'مقایسه عملی اکسل با سامانه ابری پوشه.',
+                'سامانه ابری املاک, اکسل املاک',
+                7,
+                $this->excelContent(),
+                [],
+                ['best-real-estate-crm-software-iran'],
+            ),
+            $this->post(
+                'real-estate-accounting-commission-guide',
+                'حسابداری و کمیسیون دفتر املاک — راهنمای عملی',
+                'accounting',
+                'pillar-accounting',
+                'مدیریت درآمد، هزینه و کمیسیون مشاوران در یک پنل.',
+                'حسابداری دفتر املاک, کمیسیون مشاور',
+                9,
+                $this->accountingContent(),
+                $this->accountingFaq(),
+                ['best-real-estate-crm-software-iran'],
+            ),
+            $this->post(
+                'mubayaeh-contract-form-125-guide',
+                'مبایعه‌نامه فرم ۱۲۵ اتحادیه — راهنمای تنظیم دیجیتال',
+                'contracts',
+                'pillar-contracts',
+                'تنظیم قرارداد رسمی با خروجی PDF و Word در پوشه.',
+                'مبایعه نامه, قرارداد املاک, فرم 125',
+                10,
+                $this->contractContent(),
+                $this->contractFaq(),
+                [],
+            ),
+            $this->post(
+                'property-customer-matching-system',
+                'تطبیق هوشمند ملک و مشتری چگونه فروش را افزایش می‌دهد؟',
+                'crm',
+                'pillar-matching',
+                'سیستم Match در CRM پوشه و امتیازدهی تطبیق.',
+                'تطبیق ملک مشتری, CRM املاک',
+                7,
+                $this->matchingContent(),
+                [],
+                ['best-real-estate-crm-software-iran'],
+            ),
+            $this->post(
+                'real-estate-website-subdomain-guide',
+                'ساخت وبسایت اختصاصی دفتر املاک با ساب‌دامین',
+                'website',
+                'pillar-website',
+                'راه‌اندازی سایت name.posheapp.ir با فایلینگ و درخواست بازدید.',
+                'وبسایت املاک, سایت دفتر املاک',
+                8,
+                $this->websiteContent(),
+                [],
+                [],
+            ),
+            $this->post(
+                'telegram-whatsapp-bot-real-estate',
+                'ربات تلگرام و واتساپ برای دفتر املاک',
+                'bots',
+                'pillar-bots',
+                'اتوماسیون پاسخگویی و ارسال فایل ملک.',
+                'ربات تلگرام املاک, واتساپ املاک',
+                6,
+                $this->botsContent(),
+                [],
+                [],
+            ),
+            $this->post(
+                'property-qr-code-marketing',
+                'QR کد ملک — بازاریابی آفلاین برای مشاوران',
+                'filing',
+                'pillar-qr',
+                'چاپ QR روی بنر و کارت ویزیت برای دسترسی سریع به فایل.',
+                'QR کد ملک, بازاریابی املاک',
+                5,
+                $this->qrContent(),
+                [],
+                ['property-filing-tips-for-agents'],
+            ),
+            $this->post(
+                'digital-transformation-real-estate-agency',
+                'تحول دیجیتال دفتر املاک در ۹۰ روز',
+                'digital',
+                'pillar-digital',
+                'نقشه راه عملی دیجیتال‌سازی از اکسل تا CRM ابری.',
+                'تحول دیجیتال املاک, نرم افزار املاک',
+                12,
+                $this->digitalContent(),
+                $this->digitalFaq(),
+                ['cloud-vs-excel-real-estate-management', 'best-real-estate-crm-software-iran'],
+            ),
+            $this->post(
+                'solo-agent-software-iran',
+                'بهترین نرم‌افزار برای مشاور املاک مستقل',
+                'software',
+                'pillar-solo',
+                'پنل تک‌نفره با ۴۸ ساعت رایگان — فایلینگ و CRM پایه.',
+                'نرم افزار مشاور مستقل, مشاور املاک',
+                6,
+                $this->soloContent(),
+                $this->soloFaq(),
+                ['best-real-estate-crm-software-iran'],
+            ),
+            $this->post(
+                'real-estate-kpi-reports-dashboard',
+                'گزارش KPI دفتر املاک — شاخص‌هایی که باید بسنجید',
+                'reports',
+                'pillar-reports',
+                'درآمد، تبدیل، عملکرد مشاوران و قیف فروش.',
+                'گزارش KPI املاک, عملکرد مشاور',
+                8,
+                $this->kpiContent(),
+                [],
+                ['real-estate-accounting-commission-guide'],
+            ),
         ];
 
-        foreach ($posts as $post) {
+        foreach ($posts as $i => $post) {
             BlogPost::updateOrCreate(
                 ['slug' => $post['slug']],
                 [
                     ...$post,
                     'author_name' => 'تیم پوشه',
                     'is_published' => true,
-                    'published_at' => now()->subDays(rand(1, 30)),
+                    'published_at' => now()->subDays($i * 3 + 1),
+                    'cta_text' => 'شروع ۴۸ ساعت رایگان با پوشه',
+                    'cta_url' => '/register',
                 ]
             );
         }
     }
 
-    private function content1(): string
+    private function post(
+        string $slug,
+        string $title,
+        string $categorySlug,
+        string $pillarSlug,
+        string $excerpt,
+        string $keywords,
+        int $readingTime,
+        string $content,
+        array $faq = [],
+        array $related = [],
+    ): array {
+        $categories = [
+            'software' => 'نرم‌افزار و سامانه املاک',
+            'crm' => 'CRM و فروش املاک',
+            'filing' => 'فایلینگ و ثبت ملک',
+            'accounting' => 'حسابداری و کمیسیون',
+            'contracts' => 'قرارداد و حقوقی',
+            'website' => 'وبسایت اختصاصی',
+            'bots' => 'ربات تلگرام و واتساپ',
+            'digital' => 'تحول دیجیتال',
+            'reports' => 'گزارش و KPI',
+        ];
+
+        return [
+            'slug' => $slug,
+            'title' => $title,
+            'category_slug' => $categorySlug,
+            'category_label' => $categories[$categorySlug] ?? $categorySlug,
+            'pillar_slug' => $pillarSlug,
+            'excerpt' => $excerpt,
+            'meta_title' => $title.' | پوشه',
+            'meta_description' => $excerpt.' — راهنمای تخصصی پوشه برای مشاوران املاک ایران.',
+            'keywords' => $keywords,
+            'reading_time' => $readingTime,
+            'content' => $content,
+            'faq' => $faq,
+            'related_slugs' => $related,
+        ];
+    }
+
+    private function crmContent(): string
     {
         return <<<'HTML'
 <h2>چرا CRM املاک اهمیت دارد؟</h2>
-<p>دفاتر املاک مدرن به ابزاری بیش از فایل اکسل نیاز دارند. سامانه <strong>پوشه</strong> ثبت ملک، مدیریت مخاطبین، قیف فروش و حسابداری را در یک پلتفرم ابری یکپارچه می‌کند.</p>
+<p>دفاتر املاک مدرن به ابزاری فراتر از اکسل نیاز دارند. <strong>پوشه</strong> ثبت ملک، مدیریت مخاطبین، قیف فروش کانبان و حسابداری را در یک پلتفرم ابری یکپارچه می‌کند.</p>
 <h2>معیارهای انتخاب نرم‌افزار</h2>
 <ul>
-<li>ثبت سریع ملک با کد یکتا و فیلتر پیشرفته</li>
-<li>مدیریت تیم و سطح دسترسی مشاوران</li>
-<li>ورود امن با OTP و پشتیبان‌گیری ابری</li>
+<li>ثبت سریع ملک با کد یکتا و جستجوی پیشرفته</li>
+<li>قیف فروش از سرنخ تا بستن معامله</li>
+<li>تطبیق هوشمند ملک و مشتری</li>
+<li>ورود OTP و پشتیبان‌گیری ابری</li>
 <li>نسخه وب، اندروید و ویندوز</li>
 </ul>
+<h2>مقایسه با روش سنتی</h2>
+<p>در روش سنتی، اطلاعات پراکنده در واتساپ، دفترچه و اکسل است. CRM متمرکز باعث کاهش از دست رفتن سرنخ و افزایش نرخ تبدیل می‌شود.</p>
 <h2>نتیجه‌گیری</h2>
-<p>اگر به دنبال <strong>بهترین نرم افزار CRM املاک در ایران</strong> هستید، پوشه را رایگان امتحان کنید.</p>
+<p>برای <strong>بهترین CRM املاک در ایران</strong>، پوشه را با ۴۸ ساعت رایگان (پنل فردی) امتحان کنید.</p>
 HTML;
     }
 
-    private function content2(): string
+    private function crmFaq(): array
+    {
+        return [
+            ['question' => 'CRM املاک چیست؟', 'answer' => 'سیستم مدیریت ارتباط با مشتری و قیف فروش اختصاص صنعت املاک است.'],
+            ['question' => 'آیا پوشه برای مشاور مستقل مناسب است؟', 'answer' => 'بله، پلن solo با ۴۸ ساعت رایگان برای مشاوران مستقل طراحی شده.'],
+        ];
+    }
+
+    private function filingContent(): string
     {
         return <<<'HTML'
 <h2>کد ملک و نوع معامله</h2>
-<p>همیشه کد یکتا و نوع دقیق (فروش، اجاره، رهن) را مشخص کنید تا جستجو و گزارش‌گیری درست باشد.</p>
-<h2>موقعیت و توضیحات</h2>
-<p>شهر، منطقه، محله و آدرس دقیق را وارد کنید. توضیحات باید شفاف و بدون اغراق باشد.</p>
-<h2>اطلاعات مالک</h2>
-<p>شماره مالک را محرمانه نگه دارید و فقط در سطح دسترسی مناسب نمایش دهید.</p>
+<p>کد یکتا و نوع دقیق (فروش، اجاره، رهن) را مشخص کنید.</p>
+<h2>عکس و موقعیت</h2>
+<p>حداقل ۳ تصویر باکیفیت و موقعیت دقیق روی نقشه ثبت کنید.</p>
+<h2>سطح دسترسی</h2>
+<p>فایل دفتری، انحصاری یا مشارکتی را درست تعیین کنید.</p>
 HTML;
     }
 
-    private function content3(): string
+    private function filingFaq(): array
+    {
+        return [
+            ['question' => 'چند فیلد برای ثبت ملک لازم است؟', 'answer' => 'پوشه بیش از ۳۰ فیلد تخصصی شامل قیمت، متراژ، امکانات و مالک دارد.'],
+        ];
+    }
+
+    private function excelContent(): string
     {
         return <<<'HTML'
 <h2>محدودیت اکسل</h2>
-<p>فایل اکسل روی یک سیستم است، نسخه‌بندی ندارد و برای تیم چندنفره مناسب نیست.</p>
-<h2>مزیت سامانه ابری پوشه</h2>
-<ul>
-<li>دسترسی همه مشاوران به فایل‌های به‌روز</li>
-<li>جستجوی لحظه‌ای بین هزاران ملک</li>
-<li>فعالیت و تاریخچه تغییرات</li>
-<li>امنیت با ورود OTP</li>
-</ul>
-<p>مهاجرت از اکسل به پوشه ساده است — همین امروز شروع کنید.</p>
+<p>نسخه‌بندی ندارد، برای تیم چندنفره مناسب نیست و جستجوی لحظه‌ای ندارد.</p>
+<h2>مزیت سامانه ابری</h2>
+<ul><li>دسترسی همه مشاوران</li><li>جستجوی سریع</li><li>OTP و امنیت</li></ul>
 HTML;
+    }
+
+    private function accountingContent(): string
+    {
+        return <<<'HTML'
+<h2>حسابداری دفتر</h2>
+<p>ثبت درآمد و هزینه با تاریخ شمسی و گزارش ماهانه.</p>
+<h2>کمیسیون خودکار</h2>
+<p>محاسبه سهم مشاور از معاملات بسته‌شده و تأیید مدیر.</p>
+HTML;
+    }
+
+    private function accountingFaq(): array
+    {
+        return [['question' => 'آیا حسابداری در همه پلن‌ها هست؟', 'answer' => 'حسابداری در پلن دفتر املاک و حرفه‌ای فعال است.']];
+    }
+
+    private function contractContent(): string
+    {
+        return <<<'HTML'
+<h2>فرم ۱۲۵ اتحادیه</h2>
+<p>پوشه قالب رسمی مبایعه‌نامه با فیلدهای استاندارد و خروجی PDF/Word ارائه می‌دهد.</p>
+<h2>پر کردن خودکار</h2>
+<p>نام دفتر، کد ملک و تاریخ شمسی خودکار پر می‌شود.</p>
+HTML;
+    }
+
+    private function contractFaq(): array
+    {
+        return [['question' => 'آیا قرارداد قانونی است؟', 'answer' => 'قالب بر اساس فرم ۱۲۵ اتحادیه است؛ بازبینی حقوقی توصیه می‌شود.']];
+    }
+
+    private function matchingContent(): string
+    {
+        return '<h2>تطبیق هوشمند</h2><p>بر اساس بودجه، منطقه و نوع ملک، بهترین فایل‌ها برای هر مشتری پیشنهاد می‌شود.</p>';
+    }
+
+    private function websiteContent(): string
+    {
+        return '<h2>وبسایت اختصاصی</h2><p>هر دفتر در پلن حرفه‌ای آدرس name.posheapp.ir با فایلینگ و درخواست بازدید دارد.</p>';
+    }
+
+    private function botsContent(): string
+    {
+        return '<h2>ربات‌ها</h2><p>تلگرام در پلن دفتر و واتساپ در پلن حرفه‌ای برای پاسخگویی سریع.</p>';
+    }
+
+    private function qrContent(): string
+    {
+        return '<h2>QR کد</h2><p>هر ملک QR اختصاصی دارد — روی بنر چاپ کنید تا مشتری مستقیم جزئیات را ببیند.</p>';
+    }
+
+    private function digitalContent(): string
+    {
+        return <<<'HTML'
+<h2>فاز ۱: دیجیتال‌سازی فایلینگ</h2>
+<p>مهاجرت از اکسل به پوشه و آموزش تیم.</p>
+<h2>فاز ۲: CRM و بازدید</h2>
+<p>قیف فروش و تقویم بازدید شمسی.</p>
+<h2>فاز ۳: گزارش و اتوماسیون</h2>
+<p>KPI، ربات و وبسایت.</p>
+HTML;
+    }
+
+    private function digitalFaq(): array
+    {
+        return [['question' => 'مهاجرت از اکسل سخت است؟', 'answer' => 'خیر — import اکسل و پشتیبانی پوشه مهاجرت را ساده می‌کند.']];
+    }
+
+    private function soloContent(): string
+    {
+        return '<h2>مشاور مستقل</h2><p>پلن solo با ۴۸ ساعت رایگان — فایلینگ، CRM پایه و اپ موبایل.</p>';
+    }
+
+    private function soloFaq(): array
+    {
+        return [['question' => '۴۸ ساعت رایگان چگونه فعال می‌شود؟', 'answer' => 'با ثبت‌نام پلن مشاور مستقل، بدون کارت بانکی.']];
+    }
+
+    private function kpiContent(): string
+    {
+        return '<h2>شاخص‌های کلیدی</h2><p>تعداد فایل فعال، نرخ تبدیل، درآمد ماهانه و عملکرد هر مشاور.</p>';
     }
 }

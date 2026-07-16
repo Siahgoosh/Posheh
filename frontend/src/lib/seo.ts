@@ -105,11 +105,26 @@ export function getSoftwareJsonLd() {
     operatingSystem: 'Web, Android, Windows',
     offers: {
       '@type': 'Offer',
-      price: '0',
+      price: '590000',
       priceCurrency: 'IRR',
-      description: 'دوره آزمایشی رایگان',
+      description: 'پنل مشاور مستقل — ۴۸ ساعت رایگان',
     },
     description: DEFAULT_DESCRIPTION,
     inLanguage: 'fa-IR',
+  }
+}
+
+export function getWebSiteJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: SITE_NAME,
+    url: getSiteUrl(),
+    inLanguage: 'fa-IR',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${getSiteUrl()}/blog?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
   }
 }

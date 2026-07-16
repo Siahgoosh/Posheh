@@ -71,6 +71,15 @@ class BlogAdminController extends Controller
         return response()->json(['message' => 'مقاله حذف شد.']);
     }
 
+    public function categories(): JsonResponse
+    {
+        return response()->json([
+            'data' => collect(\App\Http\Controllers\Api\Blog\BlogController::CATEGORIES)
+                ->map(fn ($label, $slug) => ['slug' => $slug, 'label' => $label])
+                ->values(),
+        ]);
+    }
+
     public function analyzeSeo(Request $request): JsonResponse
     {
         $request->validate([
@@ -82,6 +91,10 @@ class BlogAdminController extends Controller
             'meta_description' => ['nullable', 'string'],
             'keywords' => ['nullable', 'string'],
             'cover_image' => ['nullable', 'string'],
+            'category_slug' => ['nullable', 'string'],
+            'pillar_slug' => ['nullable', 'string'],
+            'faq' => ['nullable', 'array'],
+            'related_slugs' => ['nullable', 'array'],
         ]);
 
         return response()->json([
@@ -154,7 +167,21 @@ class BlogAdminController extends Controller
             'reading_time' => ['nullable', 'integer', 'min:1', 'max:120'],
             'is_published' => ['sometimes', 'boolean'],
             'published_at' => ['nullable', 'date'],
+            'category_slug' => ['nullable', 'string', 'max:50'],
+            'category_label' => ['nullable', 'string', 'max:100'],
+            'pillar_slug' => ['nullable', 'string', 'max:100'],
+            'faq' => ['nullable', 'array'],
+            'faq.*.question' => ['required_with:faq', 'string', 'max:300'],
+            'faq.*.answer' => ['required_with:faq', 'string', 'max:2000'],
+            'related_slugs' => ['nullable', 'array'],
+            'related_slugs.*' => ['string', 'max:255'],
+            'cta_text' => ['nullable', 'string', 'max:200'],
+            'cta_url' => ['nullable', 'string', 'max:500'],
         ]);
+
+        if (! empty($data['category_slug']) && empty($data['category_label'])) {
+            $data['category_label'] = \App\Http\Controllers\Api\Blog\BlogController::CATEGORIES[$data['category_slug']] ?? null;
+        }
 
         if (empty($data['slug'])) {
             $data['slug'] = BlogPost::makeSlug($data['title']);
@@ -176,17 +203,24 @@ class BlogAdminController extends Controller
         return $data;
     }
 
-  private function adminItem(BlogPost $post, bool $includeContent = false): array
+    private function adminItem(BlogPost $post, bool $includeContent = false): array
     {
         $item = [
             'id' => $post->id,
             'slug' => $post->slug,
+            'category_slug' => $post->category_slug,
+            'category_label' => $post->category_label,
+            'pillar_slug' => $post->pillar_slug,
             'title' => $post->title,
             'excerpt' => $post->excerpt,
             'cover_image' => $post->cover_image,
             'meta_title' => $post->meta_title,
             'meta_description' => $post->meta_description,
             'keywords' => $post->keywords,
+            'faq' => $post->faq ?? [],
+            'related_slugs' => $post->related_slugs ?? [],
+            'cta_text' => $post->cta_text,
+            'cta_url' => $post->cta_url,
             'author_name' => $post->author_name,
             'reading_time' => $post->reading_time,
             'views' => $post->views,

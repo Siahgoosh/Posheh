@@ -1,9 +1,13 @@
 User-agent: *
 Allow: /
+Allow: /blog
+Allow: /blog/
+Allow: /register
+Allow: /download
 Disallow: /dashboard
 Disallow: /properties
-Disallow: /login
 Disallow: /settings
+Disallow: /admin
 Disallow: /api/
 
-Sitemap: /sitemap.xml
+Sitemap: https://posheapp.ir/api/v1/sitemap.xml

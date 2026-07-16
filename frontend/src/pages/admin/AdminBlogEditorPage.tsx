@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { ArrowRight, Save } from 'lucide-react'
+import { ArrowRight, Plus, Save, Trash2 } from 'lucide-react'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RichTextEditor } from '@/components/admin/RichTextEditor'
 import { SeoScorePanel, type SeoAnalysis } from '@/components/admin/SeoScorePanel'
 import { ImageUploadField } from '@/components/admin/ImageUploadField'
+
+interface FaqItem {
+  question: string
+  answer: string
+}
+
+interface CategoryOption {
+  slug: string
+  label: string
+}
 
 const emptyForm = {
   title: '',
@@ -19,6 +29,14 @@ const emptyForm = {
   meta_title: '',
   meta_description: '',
   keywords: '',
+  category_slug: '',
+  category_label: '',
+  pillar_slug: '',
+  faq: [] as FaqItem[],
+  related_slugs: [] as string[],
+  related_slugs_text: '',
+  cta_text: 'شروع ۴۸ ساعت رایگان',
+  cta_url: '/register',
   author_name: 'تیم پوشه',
   reading_time: 5,
   is_published: false,
@@ -33,6 +51,11 @@ export function AdminBlogEditorPage() {
   const [seoLoading, setSeoLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const { data: categories } = useQuery({
+    queryKey: ['admin-blog-categories'],
+    queryFn: async () => (await api.get('/admin/blog/categories')).data.data as CategoryOption[],
+  })
+
   const { data: post, isLoading } = useQuery({
     queryKey: ['admin-blog', id],
     queryFn: async () => {
@@ -44,6 +67,7 @@ export function AdminBlogEditorPage() {
 
   useEffect(() => {
     if (post) {
+      const related = post.related_slugs ?? []
       setForm({
         title: post.title ?? '',
         slug: post.slug ?? '',
@@ -53,6 +77,14 @@ export function AdminBlogEditorPage() {
         meta_title: post.meta_title ?? '',
         meta_description: post.meta_description ?? '',
         keywords: post.keywords ?? '',
+        category_slug: post.category_slug ?? '',
+        category_label: post.category_label ?? '',
+        pillar_slug: post.pillar_slug ?? '',
+        faq: post.faq ?? [],
+        related_slugs: related,
+        related_slugs_text: related.join(', '),
+        cta_text: post.cta_text ?? 'شروع ۴۸ ساعت رایگان',
+        cta_url: post.cta_url ?? '/register',
         author_name: post.author_name ?? 'تیم پوشه',
         reading_time: post.reading_time ?? 5,
         is_published: !!post.is_published,
@@ -60,7 +92,16 @@ export function AdminBlogEditorPage() {
     }
   }, [post])
 
-  const seoPayload = useMemo(() => form, [form])
+  const seoPayload = useMemo(() => {
+    const { related_slugs_text: _, ...rest } = form
+    return {
+      ...rest,
+      related_slugs: form.related_slugs_text
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    }
+  }, [form])
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -80,8 +121,12 @@ export function AdminBlogEditorPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (isNew) return api.post('/admin/blog', form)
-      return api.put(`/admin/blog/${id}`, form)
+      const payload = {
+        ...seoPayload,
+        category_label: categories?.find((c) => c.slug === form.category_slug)?.label ?? form.category_label,
+      }
+      if (isNew) return api.post('/admin/blog', payload)
+      return api.put(`/admin/blog/${id}`, payload)
     },
     onSuccess: (res) => {
       setSeo(res.data.seo as SeoAnalysis)
@@ -116,8 +161,21 @@ export function AdminBlogEditorPage() {
     return res.data.data.url as string
   }
 
-  const update = (key: keyof typeof form, value: string | number | boolean) =>
+  const update = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [key]: value }))
+
+  const updateFaq = (index: number, field: keyof FaqItem, value: string) => {
+    setForm((f) => {
+      const faq = [...f.faq]
+      faq[index] = { ...faq[index], [field]: value }
+      return { ...f, faq }
+    })
+  }
+
+  const addFaq = () => update('faq', [...form.faq, { question: '', answer: '' }])
+
+  const removeFaq = (index: number) =>
+    update('faq', form.faq.filter((_, i) => i !== index))
 
   if (!isNew && isLoading) {
     return <div className="p-8 text-center text-muted">در حال بارگذاری…</div>
@@ -175,6 +233,79 @@ export function AdminBlogEditorPage() {
           </Card>
 
           <Card>
+            <CardHeader><CardTitle>دسته‌بندی و خوشه محتوا</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm text-muted mb-1 block">دسته وبلاگ</label>
+                <select
+                  className="w-full rounded-xl border border-card-border bg-background/50 p-3 text-sm"
+                  value={form.category_slug}
+                  onChange={(e) => update('category_slug', e.target.value)}
+                >
+                  <option value="">— انتخاب دسته —</option>
+                  {categories?.map((c) => (
+                    <option key={c.slug} value={c.slug}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-muted mb-1 block">صفحه پیلار (slug انگلیسی)</label>
+                <Input
+                  value={form.pillar_slug}
+                  onChange={(e) => update('pillar_slug', e.target.value)}
+                  dir="ltr"
+                  placeholder="pillar-crm"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-muted mb-1 block">مقالات مرتبط (slug با ویرگول)</label>
+                <Input
+                  value={form.related_slugs_text}
+                  onChange={(e) => update('related_slugs_text', e.target.value)}
+                  dir="ltr"
+                  placeholder="property-filing-tips, real-estate-crm-guide"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>سوالات متداول (FAQ Schema)</CardTitle>
+              <Button type="button" variant="outline" size="sm" onClick={addFaq}>
+                <Plus className="h-4 w-4" />
+                افزودن
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {form.faq.length === 0 && (
+                <p className="text-sm text-muted">برای نمایش FAQ در گوگل، حداقل یک سوال اضافه کنید.</p>
+              )}
+              {form.faq.map((item, index) => (
+                <div key={index} className="rounded-xl border border-card-border p-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">سوال {index + 1}</span>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeFaq(index)}>
+                      <Trash2 className="h-4 w-4 text-danger" />
+                    </Button>
+                  </div>
+                  <Input
+                    value={item.question}
+                    onChange={(e) => updateFaq(index, 'question', e.target.value)}
+                    placeholder="سوال"
+                  />
+                  <textarea
+                    className="w-full min-h-[72px] rounded-xl border border-card-border bg-background/50 p-3 text-sm"
+                    value={item.answer}
+                    onChange={(e) => updateFaq(index, 'answer', e.target.value)}
+                    placeholder="پاسخ"
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardHeader><CardTitle>سئو و انتشار</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -192,6 +323,16 @@ export function AdminBlogEditorPage() {
               <div>
                 <label className="text-sm text-muted mb-1 block">کلمات کلیدی (با ویرگول)</label>
                 <Input value={form.keywords} onChange={(e) => update('keywords', e.target.value)} />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-muted mb-1 block">متن CTA</label>
+                  <Input value={form.cta_text} onChange={(e) => update('cta_text', e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-sm text-muted mb-1 block">لینک CTA</label>
+                  <Input value={form.cta_url} onChange={(e) => update('cta_url', e.target.value)} dir="ltr" />
+                </div>
               </div>
               <ImageUploadField
                 label="تصویر شاخص"

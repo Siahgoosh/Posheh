@@ -16,6 +16,7 @@ import { FavoritesPage } from '@/pages/FavoritesPage'
 import { TeamPage } from '@/pages/TeamPage'
 import { SubscriptionPage } from '@/pages/SubscriptionPage'
 import { BlogListPage } from '@/pages/BlogListPage'
+import { BlogCategoryPage } from '@/pages/BlogCategoryPage'
 import { BlogPostPage } from '@/pages/BlogPostPage'
 import { DownloadPage } from '@/pages/DownloadPage'
 import { SettingsPage } from '@/pages/SettingsPage'
@@ -85,6 +86,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/blog" element={<BlogListPage />} />
+          <Route path="/blog/category/:category" element={<BlogCategoryPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/login" element={<LoginPage />} />

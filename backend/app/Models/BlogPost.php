@@ -9,6 +9,9 @@ class BlogPost extends Model
 {
     protected $fillable = [
         'slug',
+        'category_slug',
+        'category_label',
+        'pillar_slug',
         'title',
         'excerpt',
         'content',
@@ -16,6 +19,10 @@ class BlogPost extends Model
         'meta_title',
         'meta_description',
         'keywords',
+        'faq',
+        'related_slugs',
+        'cta_text',
+        'cta_url',
         'author_name',
         'reading_time',
         'views',
@@ -28,6 +35,8 @@ class BlogPost extends Model
         return [
             'is_published' => 'boolean',
             'published_at' => 'datetime',
+            'faq' => 'array',
+            'related_slugs' => 'array',
         ];
     }
 

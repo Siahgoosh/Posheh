@@ -13,7 +13,7 @@ import { formatPrice } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { SeoHead } from '@/components/seo/SeoHead'
-import { getOrganizationJsonLd, getSoftwareJsonLd } from '@/lib/seo'
+import { getOrganizationJsonLd, getSoftwareJsonLd, getWebSiteJsonLd } from '@/lib/seo'
 import { PLAN_FEATURE_LABELS, trialBadgeForPlan } from '@/constants/plans'
 
 const stats = [
@@ -92,7 +92,7 @@ export function LandingPage() {
         description="فایلینگ، CRM، تطبیق هوشمند، تقویم بازدید، QR و حسابداری — همه در یک پنل ابری برای مشاوران املاک ایران."
         keywords="نرم افزار املاک, CRM املاک, فایلینگ املاک, پوشه, سامانه مشاور املاک"
         path="/"
-        jsonLd={[getOrganizationJsonLd(), getSoftwareJsonLd()]}
+        jsonLd={[getOrganizationJsonLd(), getSoftwareJsonLd(), getWebSiteJsonLd()]}
       />
 
       <div className="landing-glow pointer-events-none fixed inset-0 -z-10" />
