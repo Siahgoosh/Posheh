@@ -93,10 +93,10 @@ export function RenewSubscriptionPage() {
                 <Button
                   className="w-full"
                   disabled={subscribeMutation.isPending}
-                  onClick={() => subscribeMutation.mutate({ planId: plan.id, gateway: 'zarinpal' })}
+                  onClick={() => subscribeMutation.mutate({ planId: plan.id, gateway: 'zibal' })}
                 >
                   <CreditCard className="h-4 w-4" />
-                  پرداخت با زرین‌پال
+                  پرداخت با زیبال
                 </Button>
                 <Button
                   variant="outline"

@@ -8,14 +8,14 @@ use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\Wallet;
-use App\Services\Payment\ZarinPalService;
+use App\Services\Payment\ZibalService;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SubscriptionService
 {
     public function __construct(
-        private readonly ZarinPalService $zarinPal,
+        private readonly ZibalService $zibal,
     ) {}
 
     public function getPlans()
@@ -42,8 +42,8 @@ class SubscriptionService
             return $this->payWithWallet($office, $plan, $payment);
         }
 
-        if ($gateway === PaymentGateway::ZarinPal) {
-            return $this->initiateZarinPal($payment, $plan);
+        if ($gateway === PaymentGateway::Zibal) {
+            return $this->initiateZibal($payment, $plan);
         }
 
         return [
@@ -54,23 +54,23 @@ class SubscriptionService
         ];
     }
 
-    public function verifyZarinPal(string $authority, string $status): array
+    public function verifyZibal(string $trackId, bool $success): array
     {
-        $payment = Payment::where('authority', $authority)->firstOrFail();
+        $payment = Payment::where('authority', $trackId)->firstOrFail();
 
         if ($payment->status === 'paid') {
             return ['message' => 'این پرداخت قبلاً تأیید شده است.', 'payment' => $payment, 'success' => true];
         }
 
-        if ($status !== 'OK') {
+        if (! $success) {
             $payment->update(['status' => 'failed']);
 
             throw ValidationException::withMessages([
-                'payment' => ['پرداخت ناموفق بود.'],
+                'payment' => ['پرداخت ناموفق بود یا توسط کاربر لغو شد.'],
             ]);
         }
 
-        $verify = $this->zarinPal->verify($authority, (int) $payment->amount);
+        $verify = $this->zibal->verify($trackId, (int) $payment->amount);
 
         if (! $verify['success']) {
             $payment->update(['status' => 'failed']);
@@ -125,25 +125,26 @@ class SubscriptionService
         return ['message' => 'اشتراک با موفقیت فعال شد.', 'payment' => $payment];
     }
 
-    private function initiateZarinPal(Payment $payment, SubscriptionPlan $plan): array
+    private function initiateZibal(Payment $payment, SubscriptionPlan $plan): array
     {
         $appUrl = rtrim(config('app.url'), '/');
-        $callbackUrl = $appUrl.'/api/v1/payments/zarinpal/callback';
+        $callbackUrl = $appUrl.'/api/v1/payments/zibal/callback';
 
-        $result = $this->zarinPal->request(
+        $result = $this->zibal->request(
             (int) $payment->amount,
             "خرید اشتراک {$plan->name} — پوشه",
             $callbackUrl,
+            $payment->id,
         );
 
-        $payment->update(['authority' => $result['authority']]);
+        $payment->update(['authority' => $result['track_id']]);
 
         return [
             'payment_id' => $payment->id,
-            'gateway' => 'zarinpal',
+            'gateway' => 'zibal',
             'amount' => $payment->amount,
             'redirect_url' => $result['redirect_url'],
-            'authority' => $result['authority'],
+            'track_id' => $result['track_id'],
         ];
     }
 

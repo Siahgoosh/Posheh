@@ -51,7 +51,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/sites/{subdomain}/visit-request', [OfficeSiteController::class, 'visitRequest'])->middleware('throttle:20,1');
     Route::post('/analytics/track', [AnalyticsController::class, 'track'])->middleware('throttle:120,1');
     Route::post('/auth/register', [RegistrationController::class, 'register'])->middleware('throttle:10,1');
-    Route::get('/payments/zarinpal/callback', [SubscriptionController::class, 'zarinpalCallback'])->middleware('throttle:30,1');
+    Route::get('/payments/zibal/callback', [SubscriptionController::class, 'zibalCallback'])->middleware('throttle:30,1');
 
     Route::post('/bots/telegram/{officeSlug}', [BotWebhookController::class, 'telegram']);
     Route::post('/bots/whatsapp/{officeSlug}', [BotWebhookController::class, 'whatsapp']);

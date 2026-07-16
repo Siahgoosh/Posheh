@@ -2,11 +2,20 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Wallet, Plus, TrendingUp, TrendingDown } from 'lucide-react'
 import { useState } from 'react'
 import api from '@/lib/api'
-import { formatPrice } from '@/lib/utils'
+import { formatJalaliDate, formatPrice } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
+
+interface AccountingTx {
+  id: number
+  type: string
+  type_label: string
+  title: string
+  amount: number
+  transaction_date_jalali?: string
+}
 
 export function AccountingPage() {
   const hasAccounting = usePlanFeature('accounting')
@@ -23,7 +32,7 @@ export function AccountingPage() {
     queryKey: ['accounting'],
     queryFn: async () => {
       const res = await api.get('/accounting')
-      return (res.data.data ?? []) as { id: number; type: string; title: string; amount: number; transaction_date: string }[]
+      return (res.data.data ?? []) as AccountingTx[]
     },
     enabled: hasAccounting,
   })
@@ -58,9 +67,12 @@ export function AccountingPage() {
             <option value="income">درآمد</option>
             <option value="expense">هزینه</option>
           </select>
-          <Input placeholder="مبلغ" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} dir="ltr" />
+          <Input placeholder="مبلغ (تومان)" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} dir="ltr" />
           <Input placeholder="عنوان" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
-          <Input type="date" value={form.transaction_date} onChange={(e) => setForm((f) => ({ ...f, transaction_date: e.target.value }))} dir="ltr" />
+          <div>
+            <Input type="date" value={form.transaction_date} onChange={(e) => setForm((f) => ({ ...f, transaction_date: e.target.value }))} dir="ltr" />
+            <p className="text-xs text-muted mt-1">تاریخ شمسی: {formatJalaliDate(form.transaction_date)}</p>
+          </div>
           <Button className="sm:col-span-2" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>ثبت</Button>
         </CardContent>
       </Card>
@@ -69,11 +81,18 @@ export function AccountingPage() {
         <CardHeader><CardTitle>تراکنش‌ها</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           {txs?.map((t) => (
-            <div key={t.id} className="flex justify-between text-sm border-b border-card-border pb-2">
-              <span>{t.title} <span className="text-xs text-muted">({t.type === 'income' ? 'درآمد' : 'هزینه'})</span></span>
-              <span className={t.type === 'income' ? 'text-success' : 'text-danger'}>{formatPrice(t.amount)}</span>
+            <div key={t.id} className="flex justify-between gap-3 text-sm border-b border-card-border pb-2">
+              <div>
+                <span>{t.title}</span>
+                <span className="text-xs text-muted mr-2">({t.type_label})</span>
+                {t.transaction_date_jalali && (
+                  <p className="text-xs text-muted mt-0.5">{t.transaction_date_jalali}</p>
+                )}
+              </div>
+              <span className={t.type === 'income' ? 'text-success shrink-0' : 'text-danger shrink-0'}>{formatPrice(t.amount)}</span>
             </div>
           ))}
+          {!txs?.length && <p className="text-sm text-muted text-center py-4">تراکنشی ثبت نشده</p>}
         </CardContent>
       </Card>
     </div>

@@ -4,6 +4,7 @@ import { CheckCircle2, Building2, Clock, Users, AlertTriangle, Plus, TrendingUp 
 import { Link } from 'react-router-dom'
 import api from '@/lib/api'
 import { formatNumber } from '@/lib/utils'
+import { taskStatusLabel } from '@/constants/plans'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -176,10 +177,16 @@ export function DashboardPage() {
         <CardContent className="space-y-2">
           {data?.tasks?.map((task) => (
             <div key={task.id} className="flex items-center gap-3 p-3 rounded-xl glass-hover">
-              <div className={`h-2 w-2 rounded-full ${task.status === 'completed' ? 'bg-success' : 'bg-muted'}`} />
-              <span className={`text-sm ${task.status === 'completed' ? 'line-through text-muted' : ''}`}>
-                {task.title}
-              </span>
+              <div className={`h-2 w-2 rounded-full ${task.status === 'completed' ? 'bg-success' : task.status === 'in_progress' ? 'bg-accent' : 'bg-muted'}`} />
+              <div className="flex-1 min-w-0">
+                <span className={`text-sm ${task.status === 'completed' ? 'line-through text-muted' : ''}`}>
+                  {task.title}
+                </span>
+                <div className="flex items-center gap-2 text-xs text-muted mt-0.5">
+                  <span>{taskStatusLabel(task.status)}</span>
+                  {task.due_at_jalali && <span>· موعد: {task.due_at_jalali}</span>}
+                </div>
+              </div>
             </div>
           ))}
           {!data?.tasks?.length && (

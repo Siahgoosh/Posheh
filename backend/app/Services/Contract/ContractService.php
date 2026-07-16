@@ -145,11 +145,32 @@ class ContractService
     {
         $meta = $forWord
             ? '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">'
-            : '';
+            : '<meta charset="utf-8">';
+
+        $css = 'body{font-family:Tahoma,"B Nazanin","DejaVu Sans",sans-serif;font-size:11pt;line-height:1.9;direction:rtl;text-align:justify;color:#111;margin:24px}'
+            .'.contract-header{text-align:center;border:2px solid #222;padding:14px 10px;margin-bottom:18px}'
+            .'.union-title{font-size:10pt;font-weight:bold;margin-bottom:6px}'
+            .'.form-title{font-size:15pt;margin:8px 0 4px}'
+            .'.office-line,.meta-line{font-size:10pt;margin:3px 0}'
+            .'.article{margin-bottom:14px;page-break-inside:avoid}'
+            .'.article h3{font-size:11.5pt;border-bottom:1px solid #666;padding-bottom:4px;margin:0 0 8px}'
+            .'.clause{margin:5px 0;text-align:justify}'
+            .'.field{border-bottom:1px dotted #444;display:inline-block;min-width:70px;padding:0 4px 1px}'
+            .'.field.wide{min-width:180px}'
+            .'.party-table,.sign-table{width:100%;border-collapse:collapse;margin:8px 0 14px}'
+            .'.party-table td,.party-table th,.sign-table td{border:1px solid #666;padding:6px 8px;vertical-align:top}'
+            .'.party-table th{background:#f3f3f3;font-size:10.5pt}'
+            .'.party-table td:first-child{width:32%;font-weight:bold;background:#fafafa}'
+            .'.sign-box{min-height:88px;text-align:center}'
+            .'.sign-title{font-weight:bold;margin-bottom:6px}'
+            .'.sign-name{margin:8px 0;font-size:10.5pt}'
+            .'.sign-line{margin-top:28px;font-size:9pt;color:#555}'
+            .'.stamp-area{height:56px;margin-top:10px;border:1px dashed #999}'
+            .'.register-note{font-size:10pt;background:#f8f8f8;border:1px solid #ddd;padding:8px;margin-top:8px}'
+            .'@page{margin:18mm}';
 
         return '<!DOCTYPE html><html dir="rtl" lang="fa"><head>'.$meta
-            .'<style>body{font-family:Tahoma,B Nazanin,DejaVu Sans,sans-serif;font-size:12pt;line-height:1.8;direction:rtl;text-align:justify}'
-            .'h2{text-align:center}p{margin:6px 0}.field{border-bottom:1px dotted #333;display:inline-block;min-width:80px}</style></head><body>'
+            .'<style>'.$css.'</style></head><body>'
             .$content.'</body></html>';
     }
 }

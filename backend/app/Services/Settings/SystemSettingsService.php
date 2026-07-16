@@ -218,11 +218,11 @@ class SystemSettingsService
         ];
     }
 
-    public function zarinpalConfig(): array
+    public function zibalConfig(): array
     {
         return [
-            'merchant_id' => $this->get('zarinpal_merchant_id') ?: env('ZARINPAL_MERCHANT_ID'),
-            'sandbox' => (bool) $this->get('zarinpal_sandbox', env('ZARINPAL_SANDBOX', true)),
+            'merchant' => $this->get('zibal_merchant') ?: env('ZIBAL_MERCHANT'),
+            'sandbox' => (bool) $this->get('zibal_sandbox', env('ZIBAL_SANDBOX', false)),
         ];
     }
 
@@ -302,8 +302,8 @@ class SystemSettingsService
             'ippanel_api_mode' => $ippanel['api_mode'] ?? $default,
             'aqayepardakht_pin' => env('AQAYEPARDAKHT_PIN', $default),
             'aqayepardakht_sandbox' => env('AQAYEPARDAKHT_SANDBOX', $default ?? true),
-            'zarinpal_merchant_id' => env('ZARINPAL_MERCHANT_ID', $default),
-            'zarinpal_sandbox' => env('ZARINPAL_SANDBOX', $default ?? true),
+            'zibal_merchant' => env('ZIBAL_MERCHANT', $default),
+            'zibal_sandbox' => env('ZIBAL_SANDBOX', $default ?? false),
             'sms_mode' => env('SMS_MODE', $default),
             'sms_provider' => env('SMS_PROVIDER', $default),
             default => $default,

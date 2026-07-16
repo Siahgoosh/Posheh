@@ -45,7 +45,7 @@ class SubscriptionController extends Controller
     {
         $request->validate([
             'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
-            'gateway' => ['required', 'string', 'in:zarinpal,cafe_bazaar,wallet'],
+            'gateway' => ['required', 'string', 'in:zibal,cafe_bazaar,wallet'],
         ]);
 
         $result = $this->subscriptionService->subscribe(
@@ -57,14 +57,14 @@ class SubscriptionController extends Controller
         return response()->json($result);
     }
 
-    public function zarinpalCallback(Request $request)
+    public function zibalCallback(Request $request)
     {
         $frontend = rtrim(config('app.frontend_url', config('app.url')), '/');
 
         try {
-            $result = $this->subscriptionService->verifyZarinPal(
-                (string) $request->input('Authority'),
-                (string) $request->input('Status', 'NOK')
+            $result = $this->subscriptionService->verifyZibal(
+                (string) $request->input('trackId'),
+                (string) $request->input('success') === '1'
             );
 
             return redirect($frontend.'/payment/callback?status=success&ref='.($result['payment']->ref_id ?? ''));

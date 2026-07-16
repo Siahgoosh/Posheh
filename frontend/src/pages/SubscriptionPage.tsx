@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CreditCard, CheckCircle2 } from 'lucide-react'
 import api from '@/lib/api'
-import { formatPrice, formatJalaliDate } from '@/lib/utils'
+import { formatJalaliDate, formatPrice } from '@/lib/utils'
+import { PLAN_FEATURE_LABELS, subscriptionStatusLabel } from '@/constants/plans'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -72,7 +73,7 @@ export function SubscriptionPage() {
               <p className="font-medium">اشتراک فعال: {current.plan?.name}</p>
               <p className="text-sm text-muted">تا {formatJalaliDate(current.ends_at)}</p>
             </div>
-            <Badge className="mr-auto">{current.status}</Badge>
+            <Badge className="mr-auto">{subscriptionStatusLabel(current.status)}</Badge>
           </CardContent>
         </Card>
       )}
@@ -104,14 +105,17 @@ export function SubscriptionPage() {
                   <li>تا {plan.max_users} کاربر</li>
                   <li>{plan.trial_days} روز آزمایشی رایگان</li>
                   {plan.description && <li>{plan.description}</li>}
+                  {plan.features?.slice(0, 5).map((f) => (
+                    <li key={f}>{PLAN_FEATURE_LABELS[f] || f}</li>
+                  ))}
                 </ul>
                 <div className="space-y-2">
                   <Button
                     className="w-full"
                     disabled={subscribeMutation.isPending}
-                    onClick={() => subscribeMutation.mutate({ planId: plan.id, gateway: 'zarinpal' })}
+                    onClick={() => subscribeMutation.mutate({ planId: plan.id, gateway: 'zibal' })}
                   >
-                    پرداخت با زرین‌پال
+                    پرداخت با زیبال
                   </Button>
                   <Button
                     variant="outline"

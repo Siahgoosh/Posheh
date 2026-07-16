@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Building2, BadgeCheck, Globe, Power, CheckCircle, XCircle } from 'lucide-react'
 import api from '@/lib/api'
 import { formatJalaliDate, formatNumber } from '@/lib/utils'
+import { panelTypeLabel, subscriptionStatusLabel } from '@/constants/plans'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -76,7 +77,7 @@ export function AdminOfficesPage() {
                   <Building2 className="h-4 w-4 text-primary" />
                   <span className="font-medium">{office.name}</span>
                   {office.is_verified && <BadgeCheck className="h-4 w-4 text-primary" />}
-                  <Badge variant="outline">{office.panel_type || '—'}</Badge>
+                  <Badge variant="outline">{panelTypeLabel(office.panel_type)}</Badge>
                   {office.plan_active === false && <Badge variant="outline" className="text-danger">پلن غیرفعال</Badge>}
                   {!office.is_active && <Badge variant="outline" className="text-danger">دفتر غیرفعال</Badge>}
                 </div>
@@ -84,7 +85,7 @@ export function AdminOfficesPage() {
               </div>
 
               <p className="text-xs text-muted">
-                اشتراک: {office.subscription?.plan?.name ?? '—'} ({office.subscription?.status ?? 'بدون اشتراک'})
+                اشتراک: {office.subscription?.plan?.name ?? '—'} ({subscriptionStatusLabel(office.subscription?.status) || 'بدون اشتراک'})
                 {office.trial_ends_at && ` · آزمایشی تا ${formatJalaliDate(office.trial_ends_at)}`}
               </p>
 

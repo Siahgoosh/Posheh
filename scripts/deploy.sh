@@ -165,7 +165,7 @@ fi
 cat <<EOF
 
 Next steps:
-  - Set ZarinPal: ZARINPAL_MERCHANT_ID=... ZARINPAL_SANDBOX=false FRONTEND_URL=http://YOUR_IP:8000
+  - Set Zibal: ZIBAL_MERCHANT=... ZIBAL_SANDBOX=false FRONTEND_URL=https://posheapp.ir
   - Run scheduler: docker compose up -d scheduler
   - Seed contracts: docker compose exec app php artisan db:seed --class=ContractTemplateSeeder --force
   - OTP also needs: IPPANEL_USERNAME, IPPANEL_PASSWORD, IPPANEL_OTP_PATTERN_CODE=qhhly1nai3njev0

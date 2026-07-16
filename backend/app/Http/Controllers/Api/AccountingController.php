@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AccountingTransactionResource;
 use App\Services\Accounting\AccountingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,9 @@ class AccountingController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        return response()->json($this->accounting->list($request->user(), $request->input('type')));
+        $paginator = $this->accounting->list($request->user(), $request->input('type'));
+
+        return AccountingTransactionResource::collection($paginator)->response();
     }
 
     public function summary(Request $request): JsonResponse
@@ -36,6 +39,6 @@ class AccountingController extends Controller
 
         $tx = $this->accounting->create($request->user(), $data);
 
-        return response()->json(['data' => $tx], 201);
+        return response()->json(['data' => new AccountingTransactionResource($tx)], 201);
     }
 }
