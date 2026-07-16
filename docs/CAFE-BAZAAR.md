@@ -97,6 +97,17 @@
 
 ---
 
+## دارایی‌های گرافیکی آماده
+
+پک کامل در [`docs/store-assets/`](../store-assets/):
+
+- `icon-512.png` — آیکون
+- `feature-graphic-1024x500.png` — بنر
+- `png/01` … `08` — اسکرین‌شات‌ها
+- [`CAFE-BAZAAR-LISTING-PACK.md`](../store-assets/CAFE-BAZAAR-LISTING-PACK.md) — همه متن‌های copy-paste
+
+---
+
 ## ۴. دارایی‌های گرافیکی مورد نیاز
 
 | فایل | ابعاد | توضیح |
