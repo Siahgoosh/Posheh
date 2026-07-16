@@ -78,7 +78,7 @@ class CommissionsScreen extends StatelessWidget {
         emptyText: 'کمیسیونی ثبت نشده',
         itemBuilder: (_, c) => simpleListTile(
           title: '${c['user']?['name'] ?? c['title'] ?? 'کمیسیون'}',
-          subtitle: '${c['status'] == 'paid' ? 'پرداخت‌شده' : 'در انتظار'}',
+          subtitle: c['status'] == 'paid' ? 'پرداخت‌شده' : 'در انتظار',
           trailing: c['commission_amount'] != null ? formatPrice(c['commission_amount'] as num) : null,
         ),
       );
