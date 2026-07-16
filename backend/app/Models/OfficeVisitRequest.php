@@ -11,7 +11,8 @@ class OfficeVisitRequest extends Model
     use BelongsToOffice;
 
     protected $fillable = [
-        'office_id', 'property_id', 'name', 'mobile', 'message', 'status',
+        'office_id', 'property_id', 'name', 'mobile', 'email',
+        'preferred_date', 'preferred_time', 'message', 'status',
     ];
 
     public function property(): BelongsTo

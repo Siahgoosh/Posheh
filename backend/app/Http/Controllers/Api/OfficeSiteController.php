@@ -21,7 +21,10 @@ class OfficeSiteController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'mobile' => ['required', 'string', 'regex:/^09\d{9}$/'],
+            'email' => ['nullable', 'email', 'max:150'],
             'property_id' => ['nullable', 'integer'],
+            'preferred_date' => ['nullable', 'string', 'max:60'],
+            'preferred_time' => ['nullable', 'string', 'max:20'],
             'message' => ['nullable', 'string', 'max:1000'],
         ]);
 

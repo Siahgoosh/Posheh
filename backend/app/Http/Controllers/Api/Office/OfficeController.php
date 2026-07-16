@@ -128,6 +128,31 @@ class OfficeController extends Controller
         ]);
     }
 
+    public function visitRequests(Request $request): JsonResponse
+    {
+        $office = $request->user()->office;
+
+        $requests = \App\Models\OfficeVisitRequest::with('property:id,code')
+            ->where('office_id', $office->id)
+            ->latest()
+            ->limit(100)
+            ->get()
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'name' => $r->name,
+                'mobile' => $r->mobile,
+                'email' => $r->email,
+                'property_code' => $r->property?->code,
+                'preferred_date' => $r->preferred_date,
+                'preferred_time' => $r->preferred_time,
+                'message' => $r->message,
+                'status' => $r->status,
+                'created_at' => $r->created_at?->toIso8601String(),
+            ]);
+
+        return response()->json(['data' => $requests]);
+    }
+
     public function createSitePost(Request $request): JsonResponse
     {
         $data = $request->validate([

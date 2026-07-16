@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Globe, Plus, ExternalLink } from 'lucide-react'
+import { Globe, Plus, ExternalLink, CalendarClock, Phone } from 'lucide-react'
 import { useState } from 'react'
 import api from '@/lib/api'
-import { formatJalaliDate } from '@/lib/utils'
+import { formatJalaliDate, toPersianDigits } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -41,6 +41,15 @@ export function OfficeWebsitePage() {
   const postMutation = useMutation({
     mutationFn: () => api.post('/office/website/posts', { title: postTitle, body: postBody }),
     onSuccess: () => { setPostTitle(''); setPostBody('') },
+  })
+
+  const { data: visitRequests } = useQuery({
+    queryKey: ['office-visit-requests'],
+    queryFn: async () => (await api.get('/office/website/visit-requests')).data.data as {
+      id: number; name: string; mobile: string; email?: string; property_code?: string
+      preferred_date?: string; preferred_time?: string; message?: string; status: string; created_at?: string
+    }[],
+    enabled: hasWebsite && status?.website_status === 'published',
   })
 
   if (!hasWebsite) {
@@ -89,6 +98,40 @@ export function OfficeWebsitePage() {
             <Input placeholder="عنوان پست" value={postTitle} onChange={(e) => setPostTitle(e.target.value)} />
             <textarea className="w-full min-h-[100px] rounded-xl border border-card-border bg-background/50 p-3 text-sm" placeholder="متن معرفی ملک یا خدمات" value={postBody} onChange={(e) => setPostBody(e.target.value)} />
             <Button onClick={() => postMutation.mutate()} disabled={!postTitle}>انتشار در وبسایت</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {status?.website_status === 'published' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-primary" /> درخواست‌های بازدید
+              {visitRequests?.length ? <span className="text-xs text-muted">({toPersianDigits(String(visitRequests.length))})</span> : null}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {!visitRequests?.length ? (
+              <p className="text-sm text-muted">هنوز درخواست بازدیدی ثبت نشده است.</p>
+            ) : (
+              visitRequests.map((v) => (
+                <div key={v.id} className="rounded-xl border border-card-border p-3 space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{v.name}</span>
+                    <a href={`tel:${v.mobile}`} className="text-sm text-primary flex items-center gap-1" dir="ltr">
+                      <Phone className="h-3 w-3" /> {toPersianDigits(v.mobile)}
+                    </a>
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+                    {v.property_code && <span>ملک: کد {toPersianDigits(v.property_code)}</span>}
+                    {v.preferred_date && <span>روز: {v.preferred_date}</span>}
+                    {v.preferred_time && <span>ساعت: {v.preferred_time}</span>}
+                    {v.created_at && <span>ثبت: {formatJalaliDate(v.created_at)}</span>}
+                  </div>
+                  {v.message && <p className="text-sm text-muted">{v.message}</p>}
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       )}

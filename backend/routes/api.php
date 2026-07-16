@@ -131,6 +131,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/invite', [OfficeController::class, 'invite'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::get('/website', [OfficeController::class, 'websiteStatus']);
+            Route::get('/website/visit-requests', [OfficeController::class, 'visitRequests']);
             Route::post('/website/request', [OfficeController::class, 'requestWebsite'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/website/posts', [OfficeController::class, 'createSitePost'])

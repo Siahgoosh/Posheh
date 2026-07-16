@@ -69,32 +69,110 @@ class OfficeSiteService
             ->where('is_active', true)
             ->firstOrFail();
 
-        $properties = Property::where('office_id', $office->id)
+        $properties = Property::with('media')
+            ->where('office_id', $office->id)
+            ->where('status', \App\Enums\PropertyStatus::Active)
             ->latest()
-            ->limit(24)
-            ->get(['id', 'code', 'type', 'property_category', 'price', 'deposit', 'rent', 'area', 'city', 'district', 'neighborhood', 'description']);
+            ->limit(48)
+            ->get()
+            ->map(fn (Property $p) => $this->mapProperty($p))
+            ->all();
 
         $posts = OfficeSitePost::where('office_id', $office->id)
             ->where('is_published', true)
             ->latest()
             ->limit(12)
-            ->get();
+            ->get()
+            ->map(fn (OfficeSitePost $post) => [
+                'id' => $post->id,
+                'title' => $post->title,
+                'slug' => $post->slug,
+                'excerpt' => $post->excerpt,
+                'body' => $post->body,
+                'views' => $post->views,
+                'created_at' => optional($post->created_at)->toIso8601String(),
+            ])
+            ->all();
+
+        $agents = $office->users()
+            ->where('is_active', true)
+            ->get()
+            ->sortBy(fn (User $u) => match ((string) ($u->role->value ?? $u->role)) {
+                'office_manager' => 0,
+                'consultant' => 1,
+                default => 2,
+            })
+            ->values()
+            ->map(fn (User $u) => [
+                'name' => $u->name,
+                'role_label' => $this->roleLabel((string) ($u->role->value ?? $u->role)),
+                'mobile' => $u->mobile,
+                'avatar_url' => $u->avatar_path ? url('storage/'.$u->avatar_path) : null,
+            ])
+            ->all();
 
         return [
             'office' => [
                 'name' => $office->name,
+                'brand_name' => $office->getSetting('brand_name') ?: $office->name,
+                'brand_color' => $office->getSetting('brand_color') ?: '#0f766e',
                 'subdomain' => $office->subdomain,
                 'city' => $office->city,
                 'address' => $office->address,
                 'phone' => $office->phone,
+                'whatsapp' => data_get($office->whatsapp_config, 'phone'),
                 'description' => $office->website_description ?? $office->description,
                 'is_verified' => $office->is_verified,
                 'logo_url' => $office->logo_path ? url('storage/'.$office->logo_path) : null,
                 'url' => 'https://'.$office->subdomain.'.posheapp.ir',
+                'stats' => [
+                    'properties' => count($properties),
+                    'posts' => count($posts),
+                    'agents' => count($agents),
+                ],
             ],
             'properties' => $properties,
             'posts' => $posts,
+            'agents' => $agents,
         ];
+    }
+
+    private function mapProperty(Property $p): array
+    {
+        $cover = $p->coverImage();
+
+        return [
+            'id' => $p->id,
+            'code' => $p->code,
+            'type' => $p->type?->value,
+            'type_label' => $p->type?->label(),
+            'category_label' => $p->property_category?->label(),
+            'price' => $p->price,
+            'deposit' => $p->deposit,
+            'rent' => $p->rent,
+            'area' => $p->area !== null ? (float) $p->area : null,
+            'rooms' => $p->rooms,
+            'floor' => $p->floor,
+            'has_parking' => $p->has_parking,
+            'has_elevator' => $p->has_elevator,
+            'has_storage' => $p->has_storage,
+            'city' => $p->city,
+            'district' => $p->district,
+            'neighborhood' => $p->neighborhood,
+            'description' => $p->description,
+            'cover_url' => $cover ? url('storage/'.$cover->path) : null,
+            'created_at' => optional($p->created_at)->toIso8601String(),
+        ];
+    }
+
+    private function roleLabel(string $role): string
+    {
+        return match ($role) {
+            'super_admin' => 'مدیر ارشد',
+            'office_manager' => 'مدیر دفتر',
+            'consultant' => 'مشاور املاک',
+            default => 'مشاور',
+        };
     }
 
     public function submitVisitRequest(string $subdomain, array $data): OfficeVisitRequest
@@ -108,6 +186,9 @@ class OfficeSiteService
             'property_id' => $data['property_id'] ?? null,
             'name' => $data['name'],
             'mobile' => $data['mobile'],
+            'email' => $data['email'] ?? null,
+            'preferred_date' => $data['preferred_date'] ?? null,
+            'preferred_time' => $data['preferred_time'] ?? null,
             'message' => $data['message'] ?? null,
             'status' => 'new',
         ]);
