@@ -1,28 +1,35 @@
 #!/bin/bash
-# Build release artifacts for Posheh
-# CI: GitHub Actions workflow .github/workflows/build-releases.yml builds APK + Windows zip.
-# Local: requires Flutter SDK.
+# Build release artifacts for Posheh (Android APK + Windows ZIP when possible)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/frontend/public/downloads"
+API_URL="${API_URL:-https://posheapp.ir/api/v1}"
 mkdir -p "$OUT"
 
-echo "Packaging Windows release..."
-cd "$ROOT/frontend/public/downloads/posheh-windows"
-zip -r "$OUT/posheh-windows.zip" . -x "*.DS_Store"
-
-echo "Android: Flutter SDK required. Run: cd mobile && flutter build apk --release"
-echo "Copy mobile/build/app/outputs/flutter-apk/app-release.apk to $OUT/posheh-android.apk"
-
-if command -v flutter >/dev/null 2>&1; then
-  cd "$ROOT/mobile"
-  flutter pub get
-  flutter build apk --release
-  cp build/app/outputs/flutter-apk/app-release.apk "$OUT/posheh-android.apk"
-  echo "Android APK built."
-else
-  echo "Flutter not found — skipping APK build. Placeholder README created."
-  echo "Posheh Android 1.0.0 — build with: cd mobile && flutter build apk" > "$OUT/posheh-android.apk.txt"
+if ! command -v flutter >/dev/null 2>&1; then
+  echo "Flutter not found. Install Flutter SDK first."
+  exit 1
 fi
 
-echo "Done. Files in $OUT"
+cd "$ROOT/mobile"
+flutter pub get
+
+echo "Building Android APK..."
+flutter build apk --release --dart-define=API_URL="$API_URL"
+cp build/app/outputs/flutter-apk/app-release.apk "$OUT/posheh-android.apk"
+echo "Android: $OUT/posheh-android.apk ($(du -h "$OUT/posheh-android.apk" | cut -f1))"
+
+if [[ "$(uname -s)" == "MINGW"* || "$(uname -s)" == "MSYS"* || "$(uname -s)" == "Windows_NT" ]]; then
+  echo "Building Windows release..."
+  flutter build windows --release --dart-define=API_URL="$API_URL"
+  WIN_SRC="build/windows/x64/runner/Release"
+  rm -f "$OUT/posheh-windows.zip"
+  (cd "$WIN_SRC" && zip -r "$OUT/posheh-windows.zip" . -x "*.DS_Store")
+  echo "Windows: $OUT/posheh-windows.zip"
+else
+  echo "Windows build skipped (requires Windows host). CI builds posheh-windows.zip on windows-latest."
+fi
+
+echo "Done. Publish URLs:"
+echo "  https://posheapp.ir/download"
+echo "  https://posheapp.ir/downloads/posheh-android.apk"

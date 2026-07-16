@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
 import '../../core/auth/auth_controller.dart';
+import '../../core/constants/app_urls.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_launcher.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/input_normalizers.dart';
 import '../../core/widgets/app_background.dart';
@@ -102,7 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (res['needs_registration'] == true) {
         _otpController.clear();
         setState(() => _error =
-            'این شماره ثبت‌نام نشده است. ابتدا در وب‌سایت posheapp.ir ثبت‌نام کنید.');
+            'این شماره ثبت‌نام نشده. روی «ثبت‌نام رایگان» بزنید یا به ${AppUrls.register} بروید.');
         return;
       }
 
@@ -218,10 +220,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               : const Text('دریافت کد تأیید'),
         ),
         const SizedBox(height: 14),
-        const Center(
-          child: Text(
-            'برای ثبت‌نام به posheapp.ir مراجعه کنید',
-            style: TextStyle(color: AppColors.muted, fontSize: 12),
+        Center(
+          child: TextButton(
+            onPressed: _loading ? null : () => openRegister(),
+            child: const Text('ثبت‌نام رایگان ۴۸ ساعته — posheapp.ir'),
           ),
         ),
       ],

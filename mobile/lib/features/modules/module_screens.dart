@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
+import '../../core/auth/auth_controller.dart';
+import '../../core/utils/app_launcher.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/glass_card.dart';
@@ -303,6 +305,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authControllerProvider).user;
     return PageShell(
       title: 'اشتراک',
       body: _loading
@@ -310,6 +313,29 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                if (user?.onTrial == true && user?.trialLabel != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(user!.trialLabel!,
+                              style: const TextStyle(
+                                  color: AppColors.warning,
+                                  fontWeight: FontWeight.bold)),
+                          if (user.trialHoursRemaining != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                '${toPersianDigits('${user.trialHoursRemaining}')} ساعت باقی‌مانده',
+                                style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
                 if (_current != null && _current!.isNotEmpty)
                   GlassCard(
                     child: Text(
@@ -332,12 +358,32 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           if (p['slug'] == 'solo')
                             const Padding(
                               padding: EdgeInsets.only(top: 6),
-                              child: Text('۴۸ ساعت رایگان', style: TextStyle(color: AppColors.warning, fontSize: 12)),
+                              child: Text('۴۸ ساعت رایگان — فقط پنل فردی', style: TextStyle(color: AppColors.warning, fontSize: 12)),
                             ),
                         ],
                       ),
                     ),
                   ),
+                const SizedBox(height: 8),
+                GlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text('تمدید و پرداخت',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'خرید و تمدید اشتراک از وب‌سایت پوشه انجام می‌شود.',
+                        style: TextStyle(color: AppColors.muted, fontSize: 13, height: 1.5),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: () => openRenewSubscription(),
+                        child: const Text('رفتن به صفحه اشتراک در وب'),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
     );

@@ -52,8 +52,7 @@ export function DownloadPage() {
         <div className="text-center space-y-3">
           <h1 className="text-3xl font-bold gradient-text">دانلود پوشه</h1>
           <p className="text-muted max-w-xl mx-auto">
-            نسخه‌های اندروید، ویندوز و PWA پس از همگام‌سازی با نسخه وب از اینجا در دسترس قرار می‌گیرند.
-            مدیریت وبلاگ فقط در نسخه وب است.
+            نسخه ۱.۰.۱ — اندروید و ویندوز همگام با وب. پنل فردی: ۴۸ ساعت رایگان.
           </p>
         </div>
 

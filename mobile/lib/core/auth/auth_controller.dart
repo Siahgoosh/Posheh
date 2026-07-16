@@ -10,6 +10,7 @@ class AppUser {
   final List<String> features;
   final bool onTrial;
   final String? trialLabel;
+  final int? trialHoursRemaining;
 
   const AppUser({
     required this.name,
@@ -20,6 +21,7 @@ class AppUser {
     this.features = const [],
     this.onTrial = false,
     this.trialLabel,
+    this.trialHoursRemaining,
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,9 @@ class AppUser {
       features: features,
       onTrial: office is Map && office['on_trial'] == true,
       trialLabel: office is Map ? office['trial_label']?.toString() : null,
+      trialHoursRemaining: office is Map && office['trial_hours_remaining'] != null
+          ? (office['trial_hours_remaining'] as num).toInt()
+          : null,
     );
   }
 

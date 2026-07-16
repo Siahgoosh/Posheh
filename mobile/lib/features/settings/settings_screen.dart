@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_launcher.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/constants/app_urls.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/page_shell.dart';
 
@@ -18,11 +21,20 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   List<dynamic> _devices = [];
   bool _loadingDevices = true;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     _loadDevices();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) setState(() => _appVersion = '${info.version} (${info.buildNumber})');
+    } catch (_) {}
   }
 
   Future<void> _loadDevices() async {
@@ -204,6 +216,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.link_rounded, size: 18, color: AppColors.primary),
+                    SizedBox(width: 8),
+                    Text('لینک‌های مفید',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _linkTile('وب‌سایت پوشه', AppUrls.site, Icons.language_rounded),
+                _linkTile('ثبت‌نام ۴۸ ساعت رایگان', AppUrls.register, Icons.person_add_outlined),
+                _linkTile('دانلود ویندوز', AppUrls.download, Icons.download_rounded),
+                _linkTile('وبلاگ آموزشی', AppUrls.blog, Icons.article_outlined),
+                _linkTile('حریم خصوصی', AppUrls.privacy, Icons.privacy_tip_outlined),
+              ],
+            ),
+          ),
+          if (_appVersion.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Center(
+              child: Text('نسخه اپلیکیشن $_appVersion',
+                  style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+            ),
+          ],
           const SizedBox(height: 20),
           OutlinedButton.icon(
             onPressed: () => _logout(),
@@ -224,6 +265,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _linkTile(String label, String url, IconData icon) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, size: 20, color: AppColors.muted),
+      title: Text(label, style: const TextStyle(fontSize: 14)),
+      trailing: const Icon(Icons.open_in_new_rounded, size: 16, color: AppColors.muted),
+      onTap: () => openAppUrl(url),
     );
   }
 }
