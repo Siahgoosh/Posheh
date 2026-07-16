@@ -108,8 +108,9 @@ const TYPE_FILTERS = [
 
 const TIME_SLOTS = ['۹:۰۰', '۱۰:۰۰', '۱۱:۰۰', '۱۲:۰۰', '۱۴:۰۰', '۱۵:۰۰', '۱۶:۰۰', '۱۷:۰۰', '۱۸:۰۰']
 
-export function OfficeSitePage() {
-  const { subdomain } = useParams<{ subdomain: string }>()
+export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: string } = {}) {
+  const params = useParams<{ subdomain: string }>()
+  const subdomain = subdomainProp ?? params.subdomain
   const [typeFilter, setTypeFilter] = useState('')
   const [booking, setBooking] = useState<SiteProperty | null>(null)
   const [reading, setReading] = useState<Post | null>(null)
