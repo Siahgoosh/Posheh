@@ -4,7 +4,9 @@ namespace App\Http\Requests\Property;
 
 use App\Enums\PropertyCategory;
 use App\Enums\PropertyPermission;
+use App\Enums\PropertyStatus;
 use App\Enums\PropertyType;
+use App\Services\Filing\FilingSchemaRegistry;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,13 +19,16 @@ class StorePropertyRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $base = [
             'code' => ['required', 'string', 'max:50'],
+            'title' => ['required', 'string', 'max:255'],
             'type' => ['required', 'string', Rule::enum(PropertyType::class)],
-            'property_category' => ['nullable', 'string', Rule::enum(PropertyCategory::class)],
+            'property_category' => ['required', 'string', Rule::enum(PropertyCategory::class)],
             'permission' => ['nullable', 'string', Rule::enum(PropertyPermission::class)],
+            'status' => ['nullable', 'string', Rule::enum(PropertyStatus::class)],
             'owner_name' => ['nullable', 'string', 'max:255'],
-            'owner_mobile' => ['nullable', 'string', 'max:20'],
+            'owner_mobile' => ['required', 'string', 'max:20'],
+            'contact_phone_2' => ['nullable', 'string', 'max:20'],
             'price' => ['nullable', 'integer', 'min:0'],
             'deposit' => ['nullable', 'integer', 'min:0'],
             'rent' => ['nullable', 'integer', 'min:0'],
@@ -35,8 +40,8 @@ class StorePropertyRequest extends FormRequest
             'has_parking' => ['nullable', 'boolean'],
             'has_elevator' => ['nullable', 'boolean'],
             'has_storage' => ['nullable', 'boolean'],
-            'province' => ['nullable', 'string', 'max:100'],
-            'city' => ['nullable', 'string', 'max:100'],
+            'province' => ['required', 'string', 'max:100'],
+            'city' => ['required', 'string', 'max:100'],
             'district' => ['nullable', 'string', 'max:100'],
             'neighborhood' => ['nullable', 'string', 'max:100'],
             'address' => ['nullable', 'string', 'max:500'],
@@ -45,9 +50,22 @@ class StorePropertyRequest extends FormRequest
             'longitude' => ['nullable', 'numeric'],
             'features' => ['nullable', 'array'],
             'features.*' => ['string', 'max:50'],
+            'tags' => ['nullable', 'array'],
+            'tags.*' => ['string', 'max:50'],
+            'filing_data' => ['nullable', 'array'],
+            'document_status' => ['nullable', 'string', 'max:50'],
             'expires_at' => ['nullable', 'date'],
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
             'show_on_website' => ['nullable', 'boolean'],
         ];
+
+        $category = $this->input('property_category');
+        $type = $this->input('type');
+        if ($category && $type) {
+            $dynamic = app(FilingSchemaRegistry::class)->validationRules($category, $type);
+            $base = array_merge($base, $dynamic);
+        }
+
+        return $base;
     }
 }

@@ -47,6 +47,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'xml']);
     Route::get('/blog/{slug}', [BlogController::class, 'show']);
     Route::get('/downloads', [DownloadController::class, 'index']);
+    Route::get('/downloads/file/{filename}', [DownloadController::class, 'file'])->where('filename', '.*');
     Route::get('/consultants', [ConsultantDirectoryController::class, 'index']);
     Route::get('/offices/{slug}', [OfficePublicController::class, 'show']);
     Route::get('/sites/{subdomain}', [OfficeSiteController::class, 'show']);
@@ -71,6 +72,8 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/dashboard', [DashboardController::class, 'index']);
 
+        Route::get('/filing/schema', [\App\Http\Controllers\Api\Property\FilingSchemaController::class, 'index']);
+        Route::get('/filing/fields', [\App\Http\Controllers\Api\Property\FilingSchemaController::class, 'fields']);
         Route::get('/properties-export', [PropertyController::class, 'export']);
         Route::post('/properties-import', [PropertyController::class, 'import']);
         Route::apiResource('properties', PropertyController::class);

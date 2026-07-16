@@ -1,35 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/page_shell.dart';
-
-const _types = [
-  ('sale', 'فروش'),
-  ('rent', 'اجاره'),
-  ('mortgage', 'رهن'),
-  ('pre_sale', 'پیش‌فروش'),
-  ('land', 'زمین'),
-  ('commercial', 'تجاری'),
-];
-
-const _categories = [
-  ('apartment', 'آپارتمان'),
-  ('villa', 'ویلایی'),
-  ('land', 'زمین'),
-  ('commercial', 'تجاری'),
-  ('office', 'اداری'),
-  ('store', 'مغازه'),
-];
-
-const _permissions = [
-  ('office', 'دفتری'),
-  ('exclusive', 'انحصاری'),
-  ('shared', 'مشارکتی'),
-];
 
 class PropertyFormScreen extends ConsumerStatefulWidget {
   const PropertyFormScreen({super.key});
@@ -41,13 +15,16 @@ class PropertyFormScreen extends ConsumerStatefulWidget {
 class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _code = TextEditingController();
+  final _title = TextEditingController();
   final _ownerName = TextEditingController();
   final _ownerMobile = TextEditingController();
+  final _contact2 = TextEditingController();
   final _price = TextEditingController();
   final _deposit = TextEditingController();
   final _rent = TextEditingController();
   final _area = TextEditingController();
   final _rooms = TextEditingController();
+  final _province = TextEditingController(text: 'تهران');
   final _city = TextEditingController();
   final _district = TextEditingController();
   final _address = TextEditingController();
@@ -60,20 +37,54 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
   bool _elevator = false;
   bool _storage = false;
   bool _loading = false;
+  bool _schemaLoading = true;
 
-  bool get _showsSale => _type == 'sale' || _type == 'pre_sale';
-  bool get _showsRent => _type == 'rent' || _type == 'mortgage';
+  List<(String, String)> _types = [('sale', 'فروش')];
+  List<(String, String)> _categories = [('apartment', 'آپارتمان')];
+
+  static const _permissions = [
+    ('office', 'دفتری'),
+    ('team', 'تیمی'),
+    ('private', 'خصوصی'),
+    ('manager_only', 'فقط مدیر'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSchema();
+  }
+
+  Future<void> _loadSchema() async {
+    try {
+      final schema = await ref.read(apiClientProvider).getFilingSchema();
+      final pt = (schema['property_types'] as List?) ?? [];
+      final tt = (schema['transaction_types'] as List?) ?? [];
+      setState(() {
+        _categories = pt.map((e) => (e['value'].toString(), e['label'].toString())).toList();
+        _types = tt.map((e) => (e['value'].toString(), e['label'].toString())).toList();
+        if (_categories.isNotEmpty) _category = _categories.first.$1;
+        if (_types.isNotEmpty) _type = _types.first.$1;
+        _schemaLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _schemaLoading = false);
+    }
+  }
 
   @override
   void dispose() {
     for (final c in [
-      _code, _ownerName, _ownerMobile, _price, _deposit, _rent,
-      _area, _rooms, _city, _district, _address, _description,
+      _code, _title, _ownerName, _ownerMobile, _contact2, _price, _deposit, _rent,
+      _area, _rooms, _province, _city, _district, _address, _description,
     ]) {
       c.dispose();
     }
     super.dispose();
   }
+
+  bool get _showsSale => ['sale', 'pre_sale', 'installment_sale', 'auction', 'exchange', 'barter', 'construction_partnership'].contains(_type);
+  bool get _showsRent => ['rent', 'mortgage_rent', 'full_mortgage', 'mortgage'].contains(_type);
 
   int? _int(TextEditingController c) {
     final v = c.text.trim().replaceAll('٬', '').replaceAll(',', '');
@@ -82,21 +93,30 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_ownerMobile.text.trim().length < 11) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('شماره موبایل مالک الزامی است')),
+      );
+      return;
+    }
     setState(() => _loading = true);
     try {
       final data = <String, dynamic>{
         'code': _code.text.trim(),
+        'title': _title.text.trim().isNotEmpty ? _title.text.trim() : _code.text.trim(),
         'type': _type,
         'property_category': _category,
         'permission': _permission,
-        if (_ownerName.text.trim().isNotEmpty) 'owner_name': _ownerName.text.trim(),
-        if (_ownerMobile.text.trim().isNotEmpty) 'owner_mobile': _ownerMobile.text.trim(),
+        'owner_name': _ownerName.text.trim(),
+        'owner_mobile': _ownerMobile.text.trim(),
+        if (_contact2.text.trim().isNotEmpty) 'contact_phone_2': _contact2.text.trim(),
         if (_showsSale && _int(_price) != null) 'price': _int(_price),
         if (_showsRent && _int(_deposit) != null) 'deposit': _int(_deposit),
         if (_showsRent && _int(_rent) != null) 'rent': _int(_rent),
         if (_int(_area) != null) 'area': _int(_area),
         if (_int(_rooms) != null) 'rooms': _int(_rooms),
-        if (_city.text.trim().isNotEmpty) 'city': _city.text.trim(),
+        'province': _province.text.trim(),
+        'city': _city.text.trim(),
         if (_district.text.trim().isNotEmpty) 'district': _district.text.trim(),
         if (_address.text.trim().isNotEmpty) 'address': _address.text.trim(),
         if (_description.text.trim().isNotEmpty) 'description': _description.text.trim(),
@@ -104,21 +124,12 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
         'has_elevator': _elevator,
         'has_storage': _storage,
       };
-      await ref.read(apiClientProvider).createProperty(data);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ملک با موفقیت ثبت شد')),
-      );
-      context.pop();
+      final res = await ref.read(apiClientProvider).createProperty(data);
+      final id = res['data']?['id'];
+      if (mounted && id != null) context.go('/properties/$id');
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('خطا در ثبت ملک')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -127,160 +138,141 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_schemaLoading) {
+      return const PageShell(
+        title: 'ثبت فایل',
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return PageShell(
-      title: 'ثبت ملک جدید',
+      title: 'ثبت فایل جدید',
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          padding: const EdgeInsets.all(16),
           children: [
-            _section('اطلاعات پایه', [
-              TextFormField(
-                controller: _code,
-                decoration: const InputDecoration(labelText: 'کد ملک *'),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'کد ملک الزامی است' : null,
-              ),
-              const SizedBox(height: 12),
-              _dropdown('نوع معامله', _type, _types,
-                  (v) => setState(() => _type = v)),
-              const SizedBox(height: 12),
-              _dropdown('نوع ملک', _category, _categories,
-                  (v) => setState(() => _category = v)),
-              const SizedBox(height: 12),
-              _dropdown('سطح دسترسی', _permission, _permissions,
-                  (v) => setState(() => _permission = v)),
-            ]),
-            _section('قیمت', [
-              if (_showsSale)
-                _numField(_price, 'قیمت فروش (تومان)'),
-              if (_showsRent) ...[
-                _numField(_deposit, 'ودیعه/رهن (تومان)'),
-                const SizedBox(height: 12),
-                _numField(_rent, 'اجاره ماهانه (تومان)'),
-              ],
-              if (!_showsSale && !_showsRent)
-                _numField(_price, 'قیمت (تومان)'),
-            ]),
-            _section('مشخصات', [
-              Row(
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(child: _numField(_area, 'متراژ')),
-                  const SizedBox(width: 12),
-                  Expanded(child: _numField(_rooms, 'تعداد خواب')),
+                  const Text('اطلاعات عمومی', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _code,
+                    decoration: const InputDecoration(labelText: 'کد فایل *'),
+                    validator: (v) => v == null || v.trim().isEmpty ? 'الزامی' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _title,
+                    decoration: const InputDecoration(labelText: 'عنوان فایل *'),
+                    validator: (v) => v == null || v.trim().isEmpty ? 'الزامی' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _type,
+                    decoration: const InputDecoration(labelText: 'نوع معامله'),
+                    items: _types.map((t) => DropdownMenuItem(value: t.$1, child: Text(t.$2))).toList(),
+                    onChanged: (v) => setState(() => _type = v ?? _type),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _category,
+                    decoration: const InputDecoration(labelText: 'نوع ملک'),
+                    items: _categories.map((c) => DropdownMenuItem(value: c.$1, child: Text(c.$2))).toList(),
+                    onChanged: (v) => setState(() => _category = v ?? _category),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _permission,
+                    decoration: const InputDecoration(labelText: 'سطح دسترسی'),
+                    items: _permissions.map((p) => DropdownMenuItem(value: p.$1, child: Text(p.$2))).toList(),
+                    onChanged: (v) => setState(() => _permission = v ?? _permission),
+                  ),
                 ],
               ),
-              const SizedBox(height: 6),
-              _switch('پارکینگ', _parking, (v) => setState(() => _parking = v)),
-              _switch('آسانسور', _elevator, (v) => setState(() => _elevator = v)),
-              _switch('انباری', _storage, (v) => setState(() => _storage = v)),
-            ]),
-            _section('موقعیت', [
-              Row(
+            ),
+            const SizedBox(height: 12),
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(child: _textField(_city, 'شهر')),
-                  const SizedBox(width: 12),
-                  Expanded(child: _textField(_district, 'منطقه')),
+                  const Text('مالک', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  TextFormField(controller: _ownerName, decoration: const InputDecoration(labelText: 'نام مالک')),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _ownerMobile,
+                    decoration: const InputDecoration(labelText: 'موبایل مالک *'),
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _contact2,
+                    decoration: const InputDecoration(labelText: 'شماره دوم'),
+                    keyboardType: TextInputType.phone,
+                  ),
                 ],
               ),
-              const SizedBox(height: 12),
-              _textField(_address, 'آدرس'),
-            ]),
-            _section('مالک', [
-              _textField(_ownerName, 'نام مالک'),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _ownerMobile,
-                keyboardType: TextInputType.phone,
-                textDirection: TextDirection.ltr,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(labelText: 'موبایل مالک'),
+            ),
+            const SizedBox(height: 12),
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('موقعیت', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  TextFormField(controller: _province, decoration: const InputDecoration(labelText: 'استان *')),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _city,
+                    decoration: const InputDecoration(labelText: 'شهر *'),
+                    validator: (v) => v == null || v.trim().isEmpty ? 'الزامی' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(controller: _district, decoration: const InputDecoration(labelText: 'منطقه')),
+                  const SizedBox(height: 12),
+                  TextFormField(controller: _address, decoration: const InputDecoration(labelText: 'آدرس')),
+                ],
               ),
-            ]),
-            _section('توضیحات', [
-              TextFormField(
-                controller: _description,
-                maxLines: 4,
-                decoration:
-                    const InputDecoration(labelText: 'توضیحات تکمیلی'),
+            ),
+            const SizedBox(height: 12),
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('معامله و مشخصات', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  if (_showsSale)
+                    TextFormField(controller: _price, decoration: const InputDecoration(labelText: 'قیمت کل (تومان)'), keyboardType: TextInputType.number),
+                  if (_showsRent) ...[
+                    TextFormField(controller: _deposit, decoration: const InputDecoration(labelText: 'رهن / ودیعه'), keyboardType: TextInputType.number),
+                    const SizedBox(height: 12),
+                    TextFormField(controller: _rent, decoration: const InputDecoration(labelText: 'اجاره ماهانه'), keyboardType: TextInputType.number),
+                  ],
+                  const SizedBox(height: 12),
+                  TextFormField(controller: _area, decoration: const InputDecoration(labelText: 'متراژ بنا'), keyboardType: TextInputType.number),
+                  const SizedBox(height: 12),
+                  TextFormField(controller: _rooms, decoration: const InputDecoration(labelText: 'تعداد خواب'), keyboardType: TextInputType.number),
+                  SwitchListTile(title: const Text('پارکینگ'), value: _parking, onChanged: (v) => setState(() => _parking = v)),
+                  SwitchListTile(title: const Text('آسانسور'), value: _elevator, onChanged: (v) => setState(() => _elevator = v)),
+                  SwitchListTile(title: const Text('انباری'), value: _storage, onChanged: (v) => setState(() => _storage = v)),
+                  const SizedBox(height: 12),
+                  TextFormField(controller: _description, decoration: const InputDecoration(labelText: 'توضیحات'), maxLines: 4),
+                ],
               ),
-            ]),
-            const SizedBox(height: 8),
+            ),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _loading ? null : _submit,
               child: _loading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2.4, color: AppColors.primaryFg),
-                    )
-                  : const Text('ثبت ملک'),
+                  ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('ثبت فایل'),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _section(String title, List<Widget> children) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: GlassCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700, fontSize: 15)),
-            const SizedBox(height: 14),
-            ...children,
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _textField(TextEditingController c, String label) {
-    return TextFormField(
-      controller: c,
-      decoration: InputDecoration(labelText: label),
-    );
-  }
-
-  Widget _numField(TextEditingController c, String label) {
-    return TextFormField(
-      controller: c,
-      keyboardType: TextInputType.number,
-      textDirection: TextDirection.ltr,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      decoration: InputDecoration(labelText: label),
-    );
-  }
-
-  Widget _dropdown(String label, String value,
-      List<(String, String)> options, ValueChanged<String> onChanged) {
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      isExpanded: true,
-      decoration: InputDecoration(labelText: label),
-      dropdownColor: const Color(0xFF141B26),
-      items: [
-        for (final o in options)
-          DropdownMenuItem(value: o.$1, child: Text(o.$2)),
-      ],
-      onChanged: (v) => onChanged(v ?? value),
-    );
-  }
-
-  Widget _switch(String label, bool value, ValueChanged<bool> onChanged) {
-    return SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-      title: Text(label, style: const TextStyle(fontSize: 14)),
-      value: value,
-      activeThumbColor: AppColors.primary,
-      onChanged: onChanged,
     );
   }
 }

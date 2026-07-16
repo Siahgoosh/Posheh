@@ -5,19 +5,23 @@ namespace App\Enums;
 enum PropertyStatus: string
 {
     case Active = 'active';
-    case Expired = 'expired';
+    case Reserved = 'reserved';
     case Sold = 'sold';
     case Rented = 'rented';
     case Archived = 'archived';
+    case Cancelled = 'cancelled';
+    case Expired = 'expired';
 
     public function label(): string
     {
         return match ($this) {
             self::Active => 'فعال',
-            self::Expired => 'منقضی',
+            self::Reserved => 'رزرو',
             self::Sold => 'فروخته شده',
             self::Rented => 'اجاره رفته',
-            self::Archived => 'بایگانی',
+            self::Archived => 'آرشیو',
+            self::Cancelled => 'باطل',
+            self::Expired => 'منقضی',
         };
     }
 }

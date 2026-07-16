@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../auth/auth_controller.dart';
 import '../../features/auth/login_screen.dart';
+import '../../features/auth/register_screen.dart';
 import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/properties/properties_screen.dart';
 import '../../features/properties/property_form_screen.dart';
@@ -17,12 +18,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       if (auth.loading) return null;
       final loggingIn = state.matchedLocation == '/login';
-      if (!auth.isAuthenticated) return loggingIn ? null : '/login';
-      if (loggingIn) return '/dashboard';
+      final registering = state.matchedLocation == '/register';
+      if (!auth.isAuthenticated) return (loggingIn || registering) ? null : '/login';
+      if (loggingIn || registering) return '/dashboard';
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+      GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(path: '/properties/new', builder: (_, __) => const PropertyFormScreen()),
       GoRoute(
         path: '/properties/:id',

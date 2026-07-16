@@ -13,6 +13,7 @@ class PropertyResource extends JsonResource
         return [
             'id' => $this->id,
             'code' => $this->code,
+            'title' => $this->title,
             'qr_token' => $this->qr_token,
             'qr_url' => $this->qr_token
                 ? rtrim(config('app.frontend_url', config('app.url')), '/').'/p/'.$this->qr_token
@@ -28,6 +29,7 @@ class PropertyResource extends JsonResource
             'status_label' => $this->status?->label(),
             'owner_name' => $this->owner_name,
             'owner_mobile' => $this->owner_mobile,
+            'contact_phone_2' => $this->contact_phone_2,
             'price' => $this->price,
             'deposit' => $this->deposit,
             'rent' => $this->rent,
@@ -53,6 +55,9 @@ class PropertyResource extends JsonResource
             'longitude' => $this->longitude,
             'description' => $this->description,
             'features' => $this->features,
+            'tags' => $this->tags,
+            'filing_data' => $this->filing_data,
+            'document_status' => $this->document_status,
             'expires_at' => $this->expires_at?->toIso8601String(),
             'expires_at_jalali' => $this->expires_at
                 ? Jalalian::fromDateTime($this->expires_at)->format('Y/m/d')

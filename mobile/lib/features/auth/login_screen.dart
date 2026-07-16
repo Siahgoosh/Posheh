@@ -7,7 +7,6 @@ import '../../core/api/api_client.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/constants/app_urls.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/utils/app_launcher.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/input_normalizers.dart';
 import '../../core/widgets/app_background.dart';
@@ -222,8 +221,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         const SizedBox(height: 14),
         Center(
           child: TextButton(
-            onPressed: _loading ? null : () => openRegister(),
-            child: const Text('ثبت‌نام رایگان ۴۸ ساعته — posheapp.ir'),
+            onPressed: _loading ? null : () => context.go('/register'),
+            child: const Text('ثبت‌نام رایگان ۴۸ ساعته'),
           ),
         ),
       ],

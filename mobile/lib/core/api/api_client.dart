@@ -247,4 +247,42 @@ class ApiClient {
   Future<Map<String, dynamic>> getReports() => getData('/reports/dashboard');
   Future<Map<String, dynamic>> getSubscription() => getData('/subscription/current');
   Future<List<dynamic>> getPlans() => getList('/plans');
+
+  Future<Map<String, dynamic>> getFilingSchema() => getData('/filing/schema');
+
+  Future<Map<String, dynamic>> getFilingFields(String category, String transaction) {
+    return getData('/filing/fields', params: {
+      'property_category': category,
+      'transaction_type': transaction,
+    });
+  }
+
+  Future<Map<String, dynamic>> sendRegisterOtp(String mobile) {
+    return _guard(
+      () => _dio.post('/auth/otp/send',
+          data: {'mobile': normalizeMobile(mobile), 'purpose': 'register'}),
+      'خطا در ارسال کد',
+      ok: (res) => Map<String, dynamic>.from(res.data as Map),
+    );
+  }
+
+  Future<Map<String, dynamic>> verifyRegisterOtp(String mobile, String code) {
+    return _guard(
+      () => _dio.post('/auth/otp/verify', data: {
+        'mobile': normalizeMobile(mobile),
+        'code': normalizeOtpCode(code),
+        'purpose': 'register',
+      }),
+      'کد نامعتبر است',
+      ok: (res) => Map<String, dynamic>.from(res.data as Map),
+    );
+  }
+
+  Future<Map<String, dynamic>> register(Map<String, dynamic> data) {
+    return _guard(
+      () => _dio.post('/auth/register', data: data),
+      'خطا در ثبت‌نام',
+      ok: (res) => Map<String, dynamic>.from(res.data as Map),
+    );
+  }
 }

@@ -147,6 +147,10 @@ fi
   npm run build
 ) || fail "Frontend build failed — try: cd frontend && npm install && npm run build"
 
+if [ ! -f frontend/dist/downloads/posheh-android.apk ] || [ "$(wc -c < frontend/dist/downloads/posheh-android.apk)" -lt 1000000 ]; then
+  log "WARNING: posheh-android.apk missing or too small in dist — run ./scripts/build-releases.sh"
+fi
+
 log "8/9 Restarting services"
 $COMPOSE restart app queue nginx scheduler 2>/dev/null || $COMPOSE restart app queue nginx
 

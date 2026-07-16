@@ -1,22 +1,38 @@
 export const TRANSACTION_TYPES = [
   { value: 'sale', label: 'فروش' },
+  { value: 'full_mortgage', label: 'رهن کامل' },
   { value: 'rent', label: 'اجاره' },
-  { value: 'mortgage', label: 'رهن' },
+  { value: 'mortgage_rent', label: 'رهن و اجاره' },
   { value: 'pre_sale', label: 'پیش‌فروش' },
-  { value: 'land', label: 'زمین' },
-  { value: 'garden', label: 'باغ' },
-  { value: 'commercial', label: 'تجاری' },
-  { value: 'warehouse', label: 'انبار' },
-  { value: 'partnership', label: 'مشارکت' },
+  { value: 'construction_partnership', label: 'مشارکت در ساخت' },
+  { value: 'exchange', label: 'معاوضه' },
+  { value: 'barter', label: 'تهاتر' },
+  { value: 'installment_sale', label: 'فروش اقساطی' },
+  { value: 'auction', label: 'مزایده' },
 ] as const
 
 export const PROPERTY_CATEGORIES = [
+  { value: 'land', label: 'زمین' },
   { value: 'apartment', label: 'آپارتمان' },
   { value: 'villa', label: 'ویلا' },
-  { value: 'land', label: 'زمین / کلنگی' },
+  { value: 'old_house', label: 'خانه کلنگی' },
   { value: 'shop', label: 'مغازه' },
   { value: 'office', label: 'دفتر اداری' },
-  { value: 'warehouse', label: 'انبار' },
+  { value: 'commercial_unit', label: 'واحد تجاری' },
+  { value: 'warehouse', label: 'سوله' },
+  { value: 'factory', label: 'کارخانه' },
+  { value: 'garden', label: 'باغ' },
+  { value: 'garden_villa', label: 'باغ ویلا' },
+  { value: 'agricultural_land', label: 'زمین کشاورزی' },
+  { value: 'greenhouse', label: 'گلخانه' },
+  { value: 'livestock', label: 'دامداری' },
+  { value: 'storage', label: 'انبار' },
+  { value: 'construction_project', label: 'پروژه مشارکتی' },
+  { value: 'pre_sale_unit', label: 'پیش‌فروش' },
+  { value: 'residential_complex', label: 'مجتمع مسکونی' },
+  { value: 'commercial_complex', label: 'مجتمع تجاری' },
+  { value: 'hotel', label: 'هتل' },
+  { value: 'parking', label: 'پارکینگ' },
   { value: 'suite', label: 'سوئیت' },
   { value: 'townhouse', label: 'تاون‌هاوس' },
   { value: 'other', label: 'سایر' },
@@ -29,16 +45,21 @@ export const PERMISSION_LEVELS = [
   { value: 'manager_only', label: 'فقط مدیر' },
 ] as const
 
-export const EXTRA_FEATURES = [
-  { value: 'balcony', label: 'بالکن' },
-  { value: 'renovated', label: 'بازسازی‌شده' },
-  { value: 'furnished', label: 'مبله' },
-  { value: 'yard', label: 'حیاط' },
-  { value: 'pool', label: 'استخر' },
-  { value: 'security', label: 'نگهبانی' },
-  { value: 'gas', label: 'گاز رومیزی' },
-  { value: 'cooler', label: 'کولر' },
+export const FILE_STATUSES = [
+  { value: 'active', label: 'فعال' },
+  { value: 'reserved', label: 'رزرو' },
+  { value: 'sold', label: 'فروخته شده' },
+  { value: 'rented', label: 'اجاره رفته' },
+  { value: 'archived', label: 'آرشیو' },
+  { value: 'cancelled', label: 'باطل' },
 ] as const
+
+export const EXTRA_FEATURES = [
+  'آب', 'برق', 'گاز', 'تلفن', 'فیبر نوری', 'اینترنت',
+  'سرمایش', 'گرمایش', 'کابینت', 'کفپوش', 'نما',
+  'استخر', 'سونا', 'جکوزی', 'لابی', 'نگهبانی', 'دوربین', 'سرایدار',
+  'بالکن', 'مبله', 'انباری', 'پارکینگ',
+].map((label) => ({ value: label, label }))
 
 export const IRAN_PROVINCES = [
   'تهران', 'البرز', 'اصفهان', 'فارس', 'خراسان رضوی', 'آذربایجان شرقی', 'آذربایجان غربی',
@@ -53,9 +74,13 @@ export function categoryLabel(value?: string | null): string {
 }
 
 export function showsSalePrice(type: string) {
-  return ['sale', 'pre_sale', 'land', 'commercial', 'warehouse', 'partnership'].includes(type)
+  return ['sale', 'pre_sale', 'construction_partnership', 'exchange', 'barter', 'installment_sale', 'auction'].includes(type)
 }
 
 export function showsRentFields(type: string) {
-  return ['rent', 'mortgage'].includes(type)
+  return ['rent', 'full_mortgage', 'mortgage_rent', 'mortgage'].includes(type)
+}
+
+export function showsMortgageOnly(type: string) {
+  return ['full_mortgage', 'mortgage_rent', 'mortgage'].includes(type)
 }
