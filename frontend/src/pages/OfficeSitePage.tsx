@@ -117,8 +117,9 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
 
   const { data, isLoading, isError } = useQuery<SiteData>({
     queryKey: ['office-site', subdomain],
-    queryFn: async () => (await api.get(`/sites/${subdomain}`)).data.data,
+    queryFn: async () => (await api.get(`/sites/${subdomain}`, { timeout: 15000 })).data.data,
     enabled: !!subdomain,
+    retry: 1,
   })
 
   const brand = data?.office.brand_color || '#0f766e'
@@ -131,8 +132,9 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-500">
-        در حال بارگذاری…
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-500 gap-3">
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
+        <span className="text-sm">در حال بارگذاری…</span>
       </div>
     )
   }

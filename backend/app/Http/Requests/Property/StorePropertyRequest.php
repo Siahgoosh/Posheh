@@ -47,6 +47,7 @@ class StorePropertyRequest extends FormRequest
             'features.*' => ['string', 'max:50'],
             'expires_at' => ['nullable', 'date'],
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
+            'show_on_website' => ['nullable', 'boolean'],
         ];
     }
 }

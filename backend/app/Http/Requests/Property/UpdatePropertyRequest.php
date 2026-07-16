@@ -48,6 +48,7 @@ class UpdatePropertyRequest extends FormRequest
             'features' => ['nullable', 'array'],
             'expires_at' => ['nullable', 'date'],
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
+            'show_on_website' => ['nullable', 'boolean'],
         ];
     }
 }

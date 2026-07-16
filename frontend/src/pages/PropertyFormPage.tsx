@@ -22,6 +22,9 @@ import {
   uploadPendingImages,
   type PropertyMediaItem,
 } from '@/components/property/PropertyMediaUploader'
+import { usePlanFeature } from '@/components/SubscriptionGuard'
+import { useAuthStore } from '@/stores/auth'
+import { Globe } from 'lucide-react'
 
 const defaultForm = {
   code: '',
@@ -50,6 +53,7 @@ const defaultForm = {
   has_parking: false,
   has_elevator: false,
   has_storage: false,
+  show_on_website: false,
   features: [] as string[],
 }
 
@@ -83,6 +87,8 @@ interface PropertyData {
   has_parking?: boolean
   has_elevator?: boolean
   has_storage?: boolean
+  show_on_website?: boolean
+  website_status?: string
   features?: string[]
   media?: PropertyMediaItem[]
 }
@@ -115,6 +121,7 @@ function toForm(data: PropertyData): FormState {
     has_parking: !!data.has_parking,
     has_elevator: !!data.has_elevator,
     has_storage: !!data.has_storage,
+    show_on_website: !!data.show_on_website,
     features: data.features || [],
   }
 }
@@ -147,6 +154,9 @@ export function PropertyFormPage() {
   const [media, setMedia] = useState<PropertyMediaItem[]>([])
   const [pendingImages, setPendingImages] = useState<File[]>([])
   const [error, setError] = useState('')
+  const hasWebsite = usePlanFeature('website_listing')
+  const { user } = useAuthStore()
+  const isManager = user?.role === 'office_manager' || user?.role === 'super_admin'
 
   const { data: property, isLoading } = useQuery<PropertyData>({
     queryKey: ['property', id],
@@ -447,6 +457,39 @@ export function PropertyFormPage() {
             <p className="sm:col-span-2 text-xs text-muted">شماره مالک فقط برای اعضای دفتر نمایش داده می‌شود.</p>
           </CardContent>
         </Card>
+
+        {hasWebsite && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-primary" /> نمایش در وبسایت دفتر
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.show_on_website}
+                  onChange={(e) => update('show_on_website', e.target.checked)}
+                  className="mt-1 rounded border-card-border accent-primary"
+                />
+                <span className="text-sm">
+                  این فایل در وبسایت اختصاصی دفتر ({'name.posheapp.ir'}) نمایش داده شود.
+                </span>
+              </label>
+              {form.show_on_website && !isManager && (
+                <p className="text-xs text-warning">
+                  این فایل پس از تأیید مدیر دفتر در وبسایت منتشر می‌شود.
+                </p>
+              )}
+              {form.show_on_website && isManager && (
+                <p className="text-xs text-success">
+                  به‌عنوان مدیر، این فایل بلافاصله در وبسایت منتشر می‌شود.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {error && <p className="text-danger text-sm">{error}</p>}
 

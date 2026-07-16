@@ -76,6 +76,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/properties/{id}/share-message', [PropertyController::class, 'shareMessage']);
         Route::post('/properties/{id}/share', [PropertyController::class, 'share']);
         Route::post('/properties/{id}/favorite', [PropertyController::class, 'toggleFavorite']);
+        Route::post('/properties/{id}/website-approval', [PropertyController::class, 'approveWebsite'])
+            ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
         Route::post('/properties/{id}/media', [PropertyController::class, 'uploadMedia']);
         Route::delete('/properties/{id}/media/{mediaId}', [PropertyController::class, 'deleteMedia']);
         Route::post('/properties/{id}/media/{mediaId}/cover', [PropertyController::class, 'setCoverMedia']);
@@ -132,6 +134,8 @@ Route::prefix('v1')->group(function () {
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::get('/website', [OfficeController::class, 'websiteStatus']);
             Route::get('/website/visit-requests', [OfficeController::class, 'visitRequests']);
+            Route::get('/website/pending-properties', [OfficeController::class, 'pendingWebsiteProperties'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/website/request', [OfficeController::class, 'requestWebsite'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/website/posts', [OfficeController::class, 'createSitePost'])

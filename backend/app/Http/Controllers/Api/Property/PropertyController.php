@@ -77,6 +77,22 @@ class PropertyController extends Controller
         return response()->json(['message' => 'ملک با موفقیت حذف شد.']);
     }
 
+    public function approveWebsite(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate(['approved' => ['required', 'boolean']]);
+
+        $property = $this->propertyService->setWebsiteApproval(
+            $request->user(),
+            $id,
+            (bool) $data['approved']
+        );
+
+        return response()->json([
+            'data' => new PropertyResource($property),
+            'message' => $data['approved'] ? 'فایل در وبسایت منتشر شد.' : 'فایل از وبسایت حذف شد.',
+        ]);
+    }
+
     public function similar(Request $request, int $id): JsonResponse
     {
         $properties = $this->propertyService->getSimilar($request->user(), $id);

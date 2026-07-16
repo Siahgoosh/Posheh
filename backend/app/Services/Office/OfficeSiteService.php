@@ -72,6 +72,8 @@ class OfficeSiteService
         $properties = Property::with('media')
             ->where('office_id', $office->id)
             ->where('status', \App\Enums\PropertyStatus::Active)
+            ->where('show_on_website', true)
+            ->where('website_approved', true)
             ->latest()
             ->limit(48)
             ->get()

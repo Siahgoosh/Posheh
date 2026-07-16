@@ -39,6 +39,11 @@ class PropertyResource extends JsonResource
             'has_parking' => $this->has_parking,
             'has_elevator' => $this->has_elevator,
             'has_storage' => $this->has_storage,
+            'show_on_website' => (bool) $this->show_on_website,
+            'website_approved' => (bool) $this->website_approved,
+            'website_status' => $this->show_on_website
+                ? ($this->website_approved ? 'published' : 'pending')
+                : 'hidden',
             'province' => $this->province,
             'city' => $this->city,
             'district' => $this->district,

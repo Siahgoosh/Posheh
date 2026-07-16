@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\Office;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PropertyResource;
 use App\Http\Resources\UserResource;
 use App\Services\Office\OfficeService;
 use App\Services\Office\OfficeSiteService;
+use App\Services\Property\PropertyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,6 +16,7 @@ class OfficeController extends Controller
     public function __construct(
         private readonly OfficeService $officeService,
         private readonly OfficeSiteService $siteService,
+        private readonly PropertyService $propertyService,
     ) {}
 
     public function store(Request $request): JsonResponse
@@ -151,6 +154,17 @@ class OfficeController extends Controller
             ]);
 
         return response()->json(['data' => $requests]);
+    }
+
+    public function pendingWebsiteProperties(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->canManageOffice(), 403);
+
+        $properties = $this->propertyService->pendingWebsiteProperties($request->user());
+
+        return response()->json([
+            'data' => PropertyResource::collection($properties),
+        ]);
     }
 
     public function createSitePost(Request $request): JsonResponse

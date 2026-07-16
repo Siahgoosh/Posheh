@@ -37,6 +37,7 @@ readonly class CreatePropertyDTO
         public ?array $features = null,
         public ?string $expiresAt = null,
         public ?int $assignedTo = null,
+        public bool $showOnWebsite = false,
     ) {}
 
     public static function fromArray(array $data): self
@@ -70,6 +71,7 @@ readonly class CreatePropertyDTO
             features: $data['features'] ?? null,
             expiresAt: $data['expires_at'] ?? null,
             assignedTo: $data['assigned_to'] ?? null,
+            showOnWebsite: (bool) ($data['show_on_website'] ?? false),
         );
     }
 

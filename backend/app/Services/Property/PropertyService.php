@@ -55,12 +55,17 @@ class PropertyService
             ]);
         }
 
+        $wantsWebsite = $dto->showOnWebsite && $this->officeHasWebsite($user);
+
         $data = array_merge($dto->toArray(), [
             'office_id' => $user->office_id,
             'created_by' => $user->id,
             'assigned_to' => $dto->assignedTo ?? $user->id,
             'published_at' => now(),
             'qr_token' => bin2hex(random_bytes(16)),
+            'show_on_website' => $wantsWebsite,
+            // Managers publish directly; consultants need manager approval.
+            'website_approved' => $wantsWebsite && $user->canManageOffice(),
         ]);
 
         $property = $this->propertyRepository->create($data);
@@ -80,11 +85,70 @@ class PropertyService
             ]);
         }
 
+        if (array_key_exists('show_on_website', $data)) {
+            $wantsWebsite = (bool) $data['show_on_website'] && $this->officeHasWebsite($user);
+            $data['show_on_website'] = $wantsWebsite;
+
+            if ($user->canManageOffice()) {
+                // Manager toggling directly (re)publishes or hides.
+                $data['website_approved'] = $wantsWebsite;
+            } else {
+                // Consultant changes always require (re)approval.
+                $data['website_approved'] = false;
+            }
+        }
+
         $updated = $this->propertyRepository->update($property, $data);
 
         $this->activityLogger->log($user, 'property.updated', $updated, 'ملک ویرایش شد');
 
         return $updated;
+    }
+
+    /**
+     * List office files that a consultant asked to publish but still await
+     * the manager's approval.
+     */
+    public function pendingWebsiteProperties(User $user): Collection
+    {
+        abort_unless($user->canManageOffice(), 403);
+
+        return Property::with(['media', 'creator'])
+            ->where('office_id', $user->office_id)
+            ->where('show_on_website', true)
+            ->where('website_approved', false)
+            ->latest()
+            ->get();
+    }
+
+    public function setWebsiteApproval(User $user, int $id, bool $approved): Property
+    {
+        abort_unless($user->canManageOffice(), 403);
+
+        $property = $this->find($user, $id);
+
+        if ($approved) {
+            $property->update(['show_on_website' => true, 'website_approved' => true]);
+            $this->activityLogger->log($user, 'property.website_approved', $property, 'فایل در وبسایت تأیید شد');
+        } else {
+            $property->update(['show_on_website' => false, 'website_approved' => false]);
+            $this->activityLogger->log($user, 'property.website_rejected', $property, 'انتشار فایل در وبسایت رد شد');
+        }
+
+        return $property->fresh(['media', 'creator']);
+    }
+
+    private function officeHasWebsite(User $user): bool
+    {
+        $office = $user->office;
+        if (! $office) {
+            return false;
+        }
+
+        $plan = $office->plan ?? $office->subscription?->plan;
+        $features = $plan?->features ?? [];
+
+        return in_array('website_listing', $features, true);
     }
 
     public function delete(User $user, int $id): void

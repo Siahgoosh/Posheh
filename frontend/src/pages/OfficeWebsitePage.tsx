@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Globe, Plus, ExternalLink, CalendarClock, Phone } from 'lucide-react'
+import { Globe, Plus, ExternalLink, CalendarClock, Phone, CheckCircle2, XCircle, FileCheck } from 'lucide-react'
 import { useState } from 'react'
 import api from '@/lib/api'
-import { formatJalaliDate, toPersianDigits } from '@/lib/utils'
+import { formatJalaliDate, toPersianDigits, formatPrice } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -52,6 +52,21 @@ export function OfficeWebsitePage() {
     enabled: hasWebsite && status?.website_status === 'published',
   })
 
+  const { data: pendingProps } = useQuery({
+    queryKey: ['office-pending-properties'],
+    queryFn: async () => (await api.get('/office/website/pending-properties')).data.data as {
+      id: number; code: string; type_label?: string; price?: number; city?: string; district?: string
+      area?: number; creator?: { name?: string }
+    }[],
+    enabled: hasWebsite && status?.website_status === 'published',
+  })
+
+  const approveMutation = useMutation({
+    mutationFn: ({ id, approved }: { id: number; approved: boolean }) =>
+      api.post(`/properties/${id}/website-approval`, { approved }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['office-pending-properties'] }),
+  })
+
   if (!hasWebsite) {
     return <div className="p-8 text-center text-muted">وبسایت اختصاصی در پلن حرفه‌ای فعال است.</div>
   }
@@ -98,6 +113,43 @@ export function OfficeWebsitePage() {
             <Input placeholder="عنوان پست" value={postTitle} onChange={(e) => setPostTitle(e.target.value)} />
             <textarea className="w-full min-h-[100px] rounded-xl border border-card-border bg-background/50 p-3 text-sm" placeholder="متن معرفی ملک یا خدمات" value={postBody} onChange={(e) => setPostBody(e.target.value)} />
             <Button onClick={() => postMutation.mutate()} disabled={!postTitle}>انتشار در وبسایت</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {status?.website_status === 'published' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileCheck className="h-4 w-4 text-primary" /> فایل‌های در انتظار تأیید انتشار
+              {pendingProps?.length ? <span className="text-xs text-muted">({toPersianDigits(String(pendingProps.length))})</span> : null}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {!pendingProps?.length ? (
+              <p className="text-sm text-muted">فایلی در انتظار تأیید نیست. فایل‌هایی که مشاوران برای نمایش در وبسایت ثبت کنند اینجا نمایش داده می‌شوند.</p>
+            ) : (
+              pendingProps.map((p) => (
+                <div key={p.id} className="rounded-xl border border-card-border p-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium">کد {toPersianDigits(p.code)} {p.type_label ? `· ${p.type_label}` : ''}</p>
+                    <p className="text-xs text-muted truncate">
+                      {[p.city, p.district].filter(Boolean).join('، ')}
+                      {p.price ? ` · ${formatPrice(p.price)}` : ''}
+                      {p.creator?.name ? ` · ${p.creator.name}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" onClick={() => approveMutation.mutate({ id: p.id, approved: true })} disabled={approveMutation.isPending}>
+                      <CheckCircle2 className="h-4 w-4 ml-1" /> تأیید
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-danger border-danger/30" onClick={() => approveMutation.mutate({ id: p.id, approved: false })} disabled={approveMutation.isPending}>
+                      <XCircle className="h-4 w-4 ml-1" /> رد
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       )}
