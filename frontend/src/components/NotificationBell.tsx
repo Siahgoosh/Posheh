@@ -81,7 +81,10 @@ export function NotificationBell() {
                     target="_blank"
                     rel="noreferrer"
                     className="text-xs text-primary hover:underline"
-                    onClick={() => setOpen(false)}
+                    onClick={() => {
+                      if (!n.is_read) markRead.mutate(n.id)
+                      setOpen(false)
+                    }}
                   >
                     باز کردن
                   </a>

@@ -6,7 +6,8 @@ import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/page_shell.dart';
 
 class PropertyFormScreen extends ConsumerStatefulWidget {
-  const PropertyFormScreen({super.key});
+  final int? editId;
+  const PropertyFormScreen({super.key, this.editId});
 
   @override
   ConsumerState<PropertyFormScreen> createState() => _PropertyFormScreenState();
@@ -53,6 +54,36 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
   void initState() {
     super.initState();
     _loadSchema();
+    if (widget.editId != null) _loadProperty();
+  }
+
+  Future<void> _loadProperty() async {
+    try {
+      final res = await ref.read(apiClientProvider).getProperty(widget.editId!);
+      final p = Map<String, dynamic>.from((res['data'] ?? res) as Map);
+      _code.text = '${p['code'] ?? ''}';
+      _title.text = '${p['title'] ?? ''}';
+      _ownerName.text = '${p['owner_name'] ?? ''}';
+      _ownerMobile.text = '${p['owner_mobile'] ?? ''}';
+      _price.text = p['price'] != null ? '${p['price']}' : '';
+      _deposit.text = p['deposit'] != null ? '${p['deposit']}' : '';
+      _rent.text = p['rent'] != null ? '${p['rent']}' : '';
+      _area.text = p['area'] != null ? '${p['area']}' : '';
+      _rooms.text = p['rooms'] != null ? '${p['rooms']}' : '';
+      _province.text = '${p['province'] ?? 'تهران'}';
+      _city.text = '${p['city'] ?? ''}';
+      _district.text = '${p['district'] ?? ''}';
+      _address.text = '${p['address'] ?? ''}';
+      _description.text = '${p['description'] ?? ''}';
+      setState(() {
+        _type = '${p['type'] ?? _type}';
+        _category = '${p['property_category'] ?? _category}';
+        _permission = '${p['permission'] ?? _permission}';
+        _parking = p['has_parking'] == true;
+        _elevator = p['has_elevator'] == true;
+        _storage = p['has_storage'] == true;
+      });
+    } catch (_) {}
   }
 
   Future<void> _loadSchema() async {
@@ -124,8 +155,10 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
         'has_elevator': _elevator,
         'has_storage': _storage,
       };
-      final res = await ref.read(apiClientProvider).createProperty(data);
-      final id = res['data']?['id'];
+      final res = widget.editId != null
+          ? await ref.read(apiClientProvider).updateProperty(widget.editId!, data)
+          : await ref.read(apiClientProvider).createProperty(data);
+      final id = widget.editId ?? res['data']?['id'] ?? res['id'];
       if (mounted && id != null) context.go('/properties/$id');
     } on ApiException catch (e) {
       if (mounted) {
@@ -139,14 +172,14 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
   @override
   Widget build(BuildContext context) {
     if (_schemaLoading) {
-      return const PageShell(
-        title: 'ثبت فایل',
-        body: Center(child: CircularProgressIndicator()),
+      return PageShell(
+        title: widget.editId != null ? 'ویرایش ملک' : 'ثبت فایل',
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return PageShell(
-      title: 'ثبت فایل جدید',
+      title: widget.editId != null ? 'ویرایش ملک' : 'ثبت فایل جدید',
       body: Form(
         key: _formKey,
         child: ListView(
@@ -268,7 +301,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
               onPressed: _loading ? null : _submit,
               child: _loading
                   ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('ثبت فایل'),
+                  : Text(widget.editId != null ? 'ذخیره تغییرات' : 'ثبت فایل'),
             ),
           ],
         ),

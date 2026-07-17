@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
@@ -43,7 +44,26 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final p = _property;
     return PageShell(
       title: p?['code']?.toString() ?? 'جزئیات ملک',
-      actions: [IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load)],
+      actions: [
+        if (p != null)
+          IconButton(
+            icon: Icon(p['is_favorite'] == true ? Icons.star_rounded : Icons.star_outline_rounded),
+            color: p['is_favorite'] == true ? AppColors.warning : null,
+            onPressed: () async {
+              try {
+                await ref.read(apiClientProvider).togglePropertyFavorite(widget.id);
+                await _load();
+              } on ApiException catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+              }
+            },
+          ),
+        IconButton(
+          icon: const Icon(Icons.edit_outlined),
+          onPressed: () => context.push('/properties/${widget.id}/edit'),
+        ),
+        IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load),
+      ],
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

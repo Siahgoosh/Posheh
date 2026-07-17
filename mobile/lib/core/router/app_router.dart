@@ -9,6 +9,8 @@ import '../../features/properties/property_form_screen.dart';
 import '../../features/properties/property_detail_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/modules/module_screens.dart';
+import '../../features/owners/owners_screen.dart';
+import '../../features/customers/customers_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authControllerProvider);
@@ -33,6 +35,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(path: '/properties/new', builder: (_, __) => const PropertyFormScreen()),
       GoRoute(
+        path: '/properties/:id/edit',
+        builder: (_, state) => PropertyFormScreen(
+          editId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
         path: '/properties/:id',
         builder: (_, state) => PropertyDetailScreen(
           id: int.parse(state.pathParameters['id']!),
@@ -40,7 +48,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
       GoRoute(path: '/properties', builder: (_, __) => const PropertiesScreen()),
+      GoRoute(
+        path: '/owners/:id',
+        builder: (_, state) => OwnerDetailScreen(id: int.parse(state.pathParameters['id']!)),
+      ),
       GoRoute(path: '/owners', builder: (_, __) => const OwnersScreen()),
+      GoRoute(
+        path: '/customers/:id',
+        builder: (_, state) => CustomerDetailScreen(id: int.parse(state.pathParameters['id']!)),
+      ),
       GoRoute(path: '/customers', builder: (_, __) => const CustomersScreen()),
       GoRoute(path: '/visits', builder: (_, __) => const VisitsScreen()),
       GoRoute(path: '/search', builder: (_, __) => const SearchScreen()),

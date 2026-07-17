@@ -9,50 +9,160 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/jalali_date_field.dart';
 import '../../core/widgets/page_shell.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../common/data_list_screen.dart';
 
-class OwnersScreen extends StatelessWidget {
-  const OwnersScreen({super.key});
-  @override
-  Widget build(BuildContext context) => DataListScreen(
-        title: 'مالکین',
-        loader: (api) => api.getOwners(),
-        emptyText: 'مالکی ثبت نشده',
-        itemBuilder: (_, o) => simpleListTile(
-          title: '${o['name'] ?? '—'}',
-          subtitle: [o['mobile'], o['properties_count'] != null ? '${formatNumber(o['properties_count'] as num)} ملک' : null]
-              .where((e) => e != null && '$e'.isNotEmpty)
-              .join(' · '),
-        ),
-      );
-}
-
-class CustomersScreen extends StatelessWidget {
-  const CustomersScreen({super.key});
-  @override
-  Widget build(BuildContext context) => DataListScreen(
-        title: 'مشتریان',
-        loader: (api) => api.getCustomers(),
-        emptyText: 'مشتری ثبت نشده',
-        itemBuilder: (_, c) => simpleListTile(
-          title: '${c['name'] ?? '—'}',
-          subtitle: [c['mobile'], c['need_label']].where((e) => e != null && '$e'.isNotEmpty).join(' · '),
-        ),
-      );
-}
-
-class VisitsScreen extends StatelessWidget {
+class VisitsScreen extends ConsumerStatefulWidget {
   const VisitsScreen({super.key});
   @override
-  Widget build(BuildContext context) => DataListScreen(
-        title: 'بازدیدها',
-        loader: (api) => api.getVisits(),
-        emptyText: 'بازدیدی ثبت نشده',
-        itemBuilder: (_, v) => simpleListTile(
-          title: '${v['property']?['code'] ?? v['title'] ?? 'بازدید'}',
-          subtitle: [v['visit_at_jalali'], v['status_label']].where((e) => e != null && '$e'.isNotEmpty).join(' · '),
+  ConsumerState<VisitsScreen> createState() => _VisitsScreenState();
+}
+
+class _VisitsScreenState extends ConsumerState<VisitsScreen> {
+  final _propertyIdCtrl = TextEditingController();
+  final _customerIdCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
+  DateTime _visitAt = DateTime.now().add(const Duration(hours: 1));
+  TimeOfDay _visitTime = TimeOfDay.now();
+  List<dynamic> _visits = [];
+  List<dynamic> _upcoming = [];
+  bool _loading = true;
+  bool _saving = false;
+  bool _showForm = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _propertyIdCtrl.dispose();
+    _customerIdCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = _visits.isEmpty);
+    try {
+      final api = ref.read(apiClientProvider);
+      final visits = await api.getVisits();
+      final upcoming = await api.getVisitsUpcoming();
+      if (mounted) setState(() { _visits = visits; _upcoming = upcoming; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _create() async {
+    final propertyId = int.tryParse(_propertyIdCtrl.text.trim());
+    if (propertyId == null) return;
+    setState(() => _saving = true);
+    try {
+      final dt = DateTime(_visitAt.year, _visitAt.month, _visitAt.day, _visitTime.hour, _visitTime.minute);
+      await ref.read(apiClientProvider).createVisit({
+        'property_id': propertyId,
+        if (_customerIdCtrl.text.trim().isNotEmpty) 'customer_id': int.parse(_customerIdCtrl.text.trim()),
+        'visit_at': dt.toIso8601String(),
+        if (_notesCtrl.text.trim().isNotEmpty) 'notes': _notesCtrl.text.trim(),
+      });
+      _propertyIdCtrl.clear();
+      _customerIdCtrl.clear();
+      _notesCtrl.clear();
+      setState(() => _showForm = false);
+      await _load();
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PageShell(
+      title: 'بازدیدها',
+      actions: [
+        IconButton(
+          icon: Icon(_showForm ? Icons.close_rounded : Icons.add_rounded),
+          onPressed: () => setState(() => _showForm = !_showForm),
         ),
-      );
+        IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load),
+      ],
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (_showForm)
+                    GlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text('بازدید جدید', style: TextStyle(fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 10),
+                          TextField(controller: _propertyIdCtrl, decoration: const InputDecoration(labelText: 'شناسه ملک *'), keyboardType: TextInputType.number, textDirection: TextDirection.ltr),
+                          const SizedBox(height: 8),
+                          TextField(controller: _customerIdCtrl, decoration: const InputDecoration(labelText: 'شناسه مشتری (اختیاری)'), keyboardType: TextInputType.number, textDirection: TextDirection.ltr),
+                          const SizedBox(height: 8),
+                          JalaliDateField(label: 'تاریخ بازدید', value: _visitAt, onChanged: (d) => setState(() => _visitAt = d)),
+                          const SizedBox(height: 8),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('ساعت'),
+                            subtitle: Text(toPersianDigits('${_visitTime.hour.toString().padLeft(2, '0')}:${_visitTime.minute.toString().padLeft(2, '0')}')),
+                            trailing: const Icon(Icons.schedule_rounded),
+                            onTap: () async {
+                              final t = await showTimePicker(context: context, initialTime: _visitTime);
+                              if (t != null) setState(() => _visitTime = t);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(controller: _notesCtrl, decoration: const InputDecoration(labelText: 'یادداشت'), maxLines: 2),
+                          const SizedBox(height: 10),
+                          FilledButton(onPressed: _saving ? null : _create, child: Text(_saving ? 'در حال ثبت…' : 'ثبت بازدید')),
+                        ],
+                      ),
+                    ),
+                  if (_upcoming.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Text('۷ روز آینده', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    for (final v in _upcoming)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: simpleListTile(
+                          title: '${v['property']?['code'] ?? 'بازدید'}',
+                          subtitle: '${v['visit_at_jalali'] ?? ''} · ${v['customer']?['name'] ?? 'بدون مشتری'}',
+                        ),
+                      ),
+                  ],
+                  const SizedBox(height: 16),
+                  const Text('همه بازدیدها', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  if (_visits.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: Text('بازدیدی ثبت نشده', style: TextStyle(color: AppColors.muted))),
+                    )
+                  else
+                    for (final v in _visits)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: simpleListTile(
+                          title: '${v['property']?['code'] ?? v['title'] ?? 'بازدید'}',
+                          subtitle: [v['visit_at_jalali'], v['status_label']].where((e) => e != null && '$e'.isNotEmpty).join(' · '),
+                        ),
+                      ),
+                ],
+              ),
+            ),
+    );
+  }
 }
 
 class FavoritesScreen extends StatelessWidget {
@@ -70,33 +180,352 @@ class FavoritesScreen extends StatelessWidget {
       );
 }
 
-class CommissionsScreen extends StatelessWidget {
+class CommissionsScreen extends ConsumerStatefulWidget {
   const CommissionsScreen({super.key});
   @override
-  Widget build(BuildContext context) => DataListScreen(
-        title: 'کمیسیون',
-        loader: (api) => api.getCommissions(),
-        emptyText: 'کمیسیونی ثبت نشده',
-        itemBuilder: (_, c) => simpleListTile(
-          title: '${c['user']?['name'] ?? c['title'] ?? 'کمیسیون'}',
-          subtitle: c['status'] == 'paid' ? 'پرداخت‌شده' : 'در انتظار',
-          trailing: c['commission_amount'] != null ? formatPrice(c['commission_amount'] as num) : null,
-        ),
-      );
+  ConsumerState<CommissionsScreen> createState() => _CommissionsScreenState();
 }
 
-class ContractsScreen extends StatelessWidget {
+class _CommissionsScreenState extends ConsumerState<CommissionsScreen> {
+  Map<String, dynamic>? _data;
+  bool _loading = true;
+  bool _showForm = false;
+  bool _showSettings = false;
+  final _userIdCtrl = TextEditingController();
+  final _titleCtrl = TextEditingController();
+  final _baseCtrl = TextEditingController();
+  final _rateCtrl = TextEditingController(text: '30');
+  int _saleRate = 30;
+  int _rentRate = 50;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _userIdCtrl.dispose();
+    _titleCtrl.dispose();
+    _baseCtrl.dispose();
+    _rateCtrl.dispose();
+    super.dispose();
+  }
+
+  bool get _isManager {
+    final user = ref.read(authControllerProvider).user;
+    return user?.canManage ?? false;
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = _data == null);
+    try {
+      final api = ref.read(apiClientProvider);
+      final data = await api.getCommissionsFull();
+      Map<String, dynamic>? settings;
+      if (_isManager) {
+        try { settings = await api.getCommissionSettings(); } catch (_) {}
+      }
+      if (mounted) setState(() { _data = data; _loading = false;
+        if (settings != null) {
+          _saleRate = (settings['sale_rate_percent'] as num?)?.toInt() ?? 30;
+          _rentRate = (settings['rent_rate_percent'] as num?)?.toInt() ?? 50;
+        }
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _create() async {
+    try {
+      await ref.read(apiClientProvider).createCommission({
+        'user_id': int.parse(_userIdCtrl.text.trim()),
+        'title': _titleCtrl.text.trim(),
+        'base_amount': int.parse(_baseCtrl.text.trim()),
+        'rate_percent': int.parse(_rateCtrl.text.trim()),
+      });
+      setState(() => _showForm = false);
+      await _load();
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _saveSettings() async {
+    try {
+      await ref.read(apiClientProvider).updateCommissionSettings({
+        'sale_rate_percent': _saleRate,
+        'rent_rate_percent': _rentRate,
+      });
+      setState(() => _showSettings = false);
+      await _load();
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = _data?['summary'] as Map<String, dynamic>? ?? {};
+    final items = (_data?['data'] as List?) ?? const [];
+    return PageShell(
+      title: 'کمیسیون',
+      actions: [
+        if (_isManager) IconButton(icon: const Icon(Icons.settings_outlined), onPressed: () => setState(() => _showSettings = !_showSettings)),
+        if (_isManager) IconButton(icon: Icon(_showForm ? Icons.close : Icons.add), onPressed: () => setState(() => _showForm = !_showForm)),
+        IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load),
+      ],
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: _summaryTile('معوق', formatPrice(summary['pending_total'] as num? ?? 0))),
+                      const SizedBox(width: 8),
+                      Expanded(child: _summaryTile('پرداخت ماه', formatPrice(summary['paid_month'] as num? ?? 0))),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (_showSettings && _isManager)
+                    GlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text('نرخ کمیسیون', style: TextStyle(fontWeight: FontWeight.w700)),
+                          TextField(decoration: const InputDecoration(labelText: 'فروش %'), keyboardType: TextInputType.number, controller: TextEditingController(text: '$_saleRate'), onChanged: (v) => _saleRate = int.tryParse(v) ?? _saleRate),
+                          TextField(decoration: const InputDecoration(labelText: 'اجاره %'), keyboardType: TextInputType.number, controller: TextEditingController(text: '$_rentRate'), onChanged: (v) => _rentRate = int.tryParse(v) ?? _rentRate),
+                          FilledButton(onPressed: _saveSettings, child: const Text('ذخیره نرخ‌ها')),
+                        ],
+                      ),
+                    ),
+                  if (_showForm && _isManager) ...[
+                    const SizedBox(height: 12),
+                    GlassCard(
+                      child: Column(
+                        children: [
+                          TextField(controller: _userIdCtrl, decoration: const InputDecoration(labelText: 'شناسه مشاور *'), keyboardType: TextInputType.number, textDirection: TextDirection.ltr),
+                          TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: 'عنوان *')),
+                          TextField(controller: _baseCtrl, decoration: const InputDecoration(labelText: 'مبلغ پایه'), keyboardType: TextInputType.number, textDirection: TextDirection.ltr),
+                          TextField(controller: _rateCtrl, decoration: const InputDecoration(labelText: 'درصد'), keyboardType: TextInputType.number, textDirection: TextDirection.ltr),
+                          FilledButton(onPressed: _create, child: const Text('ثبت کمیسیون')),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  if (items.isEmpty)
+                    const Center(child: Text('کمیسیونی ثبت نشده', style: TextStyle(color: AppColors.muted)))
+                  else
+                    for (final c in items)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: GlassCard(
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('${c['title'] ?? 'کمیسیون'}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    Text('${c['user']?['name'] ?? ''} · ${c['status'] == 'paid' ? 'پرداخت‌شده' : 'در انتظار'}', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                                  ],
+                                ),
+                              ),
+                              Text(formatPrice(c['commission_amount'] as num?), style: const TextStyle(color: AppColors.primary)),
+                              if (_isManager && c['status'] != 'paid')
+                                IconButton(
+                                  icon: const Icon(Icons.check_circle_outline, color: AppColors.success),
+                                  onPressed: () async {
+                                    await ref.read(apiClientProvider).payCommission(c['id'] as int);
+                                    await _load();
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _summaryTile(String label, String value) {
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+class ContractsScreen extends ConsumerStatefulWidget {
   const ContractsScreen({super.key});
   @override
-  Widget build(BuildContext context) => DataListScreen(
-        title: 'قراردادها',
-        loader: (api) => api.getContracts(),
-        emptyText: 'قراردادی صادر نشده',
-        itemBuilder: (_, c) => simpleListTile(
-          title: '${c['title'] ?? 'قرارداد'}',
-          subtitle: '${c['status'] ?? ''}',
-        ),
-      );
+  ConsumerState<ContractsScreen> createState() => _ContractsScreenState();
+}
+
+class _ContractsScreenState extends ConsumerState<ContractsScreen> {
+  List<dynamic> _contracts = [];
+  List<dynamic> _templates = [];
+  String? _templateId;
+  final _propertyIdCtrl = TextEditingController();
+  final _sellerCtrl = TextEditingController();
+  final _buyerCtrl = TextEditingController();
+  bool _loading = true;
+  bool _saving = false;
+  bool _showForm = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _propertyIdCtrl.dispose();
+    _sellerCtrl.dispose();
+    _buyerCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = _contracts.isEmpty);
+    try {
+      final api = ref.read(apiClientProvider);
+      final contracts = await api.getContracts();
+      final templates = await api.getContractTemplates();
+      if (mounted) {
+        setState(() {
+          _contracts = contracts;
+          _templates = templates;
+          _loading = false;
+          if (_templateId == null && templates.isNotEmpty) {
+            _templateId = '${templates.first['id']}';
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _create() async {
+    if (_templateId == null) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(apiClientProvider).createContract({
+        'template_id': int.parse(_templateId!),
+        if (_propertyIdCtrl.text.trim().isNotEmpty) 'property_id': int.parse(_propertyIdCtrl.text.trim()),
+        'fields': {
+          if (_sellerCtrl.text.trim().isNotEmpty) 'seller_name': _sellerCtrl.text.trim(),
+          if (_buyerCtrl.text.trim().isNotEmpty) 'buyer_name': _buyerCtrl.text.trim(),
+        },
+      });
+      setState(() => _showForm = false);
+      await _load();
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final api = ref.read(apiClientProvider);
+    return PageShell(
+      title: 'قراردادها',
+      actions: [
+        IconButton(icon: Icon(_showForm ? Icons.close : Icons.add), onPressed: () => setState(() => _showForm = !_showForm)),
+        IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load),
+      ],
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (_showForm)
+                    GlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text('صدور قرارداد', style: TextStyle(fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 10),
+                          DropdownButtonFormField<String>(
+                            initialValue: _templateId,
+                            decoration: const InputDecoration(labelText: 'قالب'),
+                            items: _templates.map((t) => DropdownMenuItem(value: '${t['id']}', child: Text('${t['name'] ?? t['slug'] ?? ''}'))).toList(),
+                            onChanged: (v) => setState(() => _templateId = v),
+                          ),
+                          TextField(controller: _propertyIdCtrl, decoration: const InputDecoration(labelText: 'شناسه ملک'), keyboardType: TextInputType.number, textDirection: TextDirection.ltr),
+                          TextField(controller: _sellerCtrl, decoration: const InputDecoration(labelText: 'نام فروشنده')),
+                          TextField(controller: _buyerCtrl, decoration: const InputDecoration(labelText: 'نام خریدار')),
+                          FilledButton(onPressed: _saving ? null : _create, child: Text(_saving ? 'در حال صدور…' : 'صدور قرارداد')),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  if (_contracts.isEmpty)
+                    const Center(child: Text('قراردادی صادر نشده', style: TextStyle(color: AppColors.muted)))
+                  else
+                    for (final c in _contracts)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: GlassCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${c['title'] ?? 'قرارداد'}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                              Text('${c['status'] ?? ''}', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                              if (c['created_at_jalali'] != null) Text('${c['created_at_jalali']}', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                children: [
+                                  if (c['pdf_path'] != null)
+                                    OutlinedButton.icon(
+                                      onPressed: () => launchContractUrl(api.contractDownloadUrl(c['id'] as int, 'pdf')),
+                                      icon: const Icon(Icons.picture_as_pdf, size: 16),
+                                      label: const Text('PDF'),
+                                    ),
+                                  if (c['docx_path'] != null)
+                                    OutlinedButton.icon(
+                                      onPressed: () => launchContractUrl(api.contractDownloadUrl(c['id'] as int, 'docx')),
+                                      icon: const Icon(Icons.description_outlined, size: 16),
+                                      label: const Text('Word'),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+Future<void> launchContractUrl(String url) async {
+  final uri = Uri.parse(url);
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
 }
 
 class TeamScreen extends ConsumerStatefulWidget {
@@ -660,6 +1089,14 @@ class _CrmScreenState extends ConsumerState<CrmScreen> {
                     for (final d in _deals) ...[
                       Builder(builder: (_) {
                         final deal = Map<String, dynamic>.from(d as Map);
+                        const stages = {
+                          'lead': 'سرنخ',
+                          'contact': 'تماس',
+                          'visit': 'بازدید',
+                          'negotiation': 'مذاکره',
+                          'closed_won': 'موفق',
+                          'closed_lost': 'ناموفق',
+                        };
                         return GlassCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -667,8 +1104,24 @@ class _CrmScreenState extends ConsumerState<CrmScreen> {
                               Text('${deal['title'] ?? 'معامله'}',
                                   style: const TextStyle(fontWeight: FontWeight.bold)),
                               const SizedBox(height: 6),
-                              Text('${deal['stage_label'] ?? deal['stage'] ?? ''}',
-                                  style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                              DropdownButtonFormField<String>(
+                                initialValue: '${deal['stage'] ?? 'lead'}',
+                                decoration: const InputDecoration(labelText: 'مرحله', isDense: true),
+                                items: stages.entries
+                                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                                    .toList(),
+                                onChanged: (stage) async {
+                                  if (stage == null) return;
+                                  try {
+                                    await ref.read(apiClientProvider).updateCrmDeal(deal['id'] as int, {'stage': stage});
+                                    await _load();
+                                  } on ApiException catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+                                    }
+                                  }
+                                },
+                              ),
                               if (deal['value'] != null) ...[
                                 const SizedBox(height: 6),
                                 Text(formatPrice(deal['value'] as num),

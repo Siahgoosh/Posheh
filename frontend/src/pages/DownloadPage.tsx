@@ -53,7 +53,7 @@ export function DownloadPage() {
         <div className="text-center space-y-3">
           <h1 className="text-3xl font-bold gradient-text">دانلود پوشه</h1>
           <p className="text-muted max-w-xl mx-auto">
-            نسخه ۱.۰.۲ — اندروید همگام با وب. پنل فردی: ۳ روز رایگان.
+            نسخه ۱.۰.۳ — اندروید و ویندوز همگام با وب. پنل فردی: ۳ روز رایگان.
           </p>
         </div>
 
