@@ -114,7 +114,7 @@ export function getSoftwareJsonLd() {
       '@type': 'Offer',
       price: '590000',
       priceCurrency: 'IRR',
-      description: 'پنل مشاور مستقل — ۴۸ ساعت رایگان',
+      description: 'پنل مشاور مستقل — ۳ روز رایگان',
     },
     description: DEFAULT_DESCRIPTION,
     inLanguage: 'fa-IR',

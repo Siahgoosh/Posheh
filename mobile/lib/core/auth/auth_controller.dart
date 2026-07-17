@@ -11,6 +11,9 @@ class AppUser {
   final bool onTrial;
   final String? trialLabel;
   final int? trialHoursRemaining;
+  final int? trialDaysRemaining;
+  final bool hasAccess;
+  final bool subscriptionExpired;
 
   const AppUser({
     required this.name,
@@ -22,6 +25,9 @@ class AppUser {
     this.onTrial = false,
     this.trialLabel,
     this.trialHoursRemaining,
+    this.trialDaysRemaining,
+    this.hasAccess = true,
+    this.subscriptionExpired = false,
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
@@ -43,6 +49,11 @@ class AppUser {
       trialHoursRemaining: office is Map && office['trial_hours_remaining'] != null
           ? (office['trial_hours_remaining'] as num).toInt()
           : null,
+      trialDaysRemaining: office is Map && office['trial_days_remaining'] != null
+          ? (office['trial_days_remaining'] as num).toInt()
+          : null,
+      hasAccess: office is Map ? office['has_access'] != false : true,
+      subscriptionExpired: office is Map && office['subscription_expired'] == true,
     );
   }
 

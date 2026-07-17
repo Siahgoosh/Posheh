@@ -24,6 +24,8 @@ import { SuperAdminRoute } from '@/components/SuperAdminRoute'
 import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
+import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage'
+import { AdminBroadcastPage } from '@/pages/admin/AdminBroadcastPage'
 import { AdminSuperPanelPage } from '@/pages/admin/AdminSuperPanelPage'
 import { AnalyticsTracker } from '@/components/AnalyticsTracker'
 import { SubscriptionGuard } from '@/components/SubscriptionGuard'
@@ -192,6 +194,22 @@ export default function App() {
               element={
                 <SuperAdminRoute>
                   <AdminDownloadsPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <SuperAdminRoute>
+                  <AdminSettingsPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/broadcasts"
+              element={
+                <SuperAdminRoute>
+                  <AdminBroadcastPage />
                 </SuperAdminRoute>
               }
             />

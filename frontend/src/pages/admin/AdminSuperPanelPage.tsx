@@ -109,7 +109,17 @@ export function AdminSuperPanelPage() {
           <Link to="/admin/tickets"><Button variant="outline" size="sm">تیکت‌ها</Button></Link>
           <Link to="/admin/blog"><Button variant="outline" size="sm">وبلاگ</Button></Link>
           <Link to="/admin/downloads"><Button variant="outline" size="sm">دانلودها</Button></Link>
-          <Link to="/settings"><Button variant="outline" size="sm"><Settings className="h-3 w-3 ml-1" /> تنظیمات</Button></Link>
+          <Link to="/admin/broadcasts"><Button variant="outline" size="sm">اعلان‌ها</Button></Link>
+          <Link to="/admin/settings"><Button variant="outline" size="sm"><Settings className="h-3 w-3 ml-1" /> تنظیمات سیستم</Button></Link>
+          <Button variant="outline" size="sm" onClick={async () => {
+            const res = await api.get('/admin/users/export', { responseType: 'blob' })
+            const url = URL.createObjectURL(res.data)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `posheh-users-${new Date().toISOString().slice(0, 10)}.xlsx`
+            a.click()
+            URL.revokeObjectURL(url)
+          }}>خروجی اکسل کاربران</Button>
         </div>
       </div>
 

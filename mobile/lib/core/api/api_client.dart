@@ -278,6 +278,90 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> getAccountingSummary() => getData('/accounting/summary');
+
+  Future<Map<String, dynamic>> createAccounting(Map<String, dynamic> data) {
+    return _guard(
+      () => _dio.post('/accounting', data: data),
+      'خطا در ثبت تراکنش',
+      ok: (res) {
+        final body = res.data as Map;
+        final inner = body['data'];
+        if (inner is Map) return Map<String, dynamic>.from(inner);
+        return Map<String, dynamic>.from(body);
+      },
+    );
+  }
+
+  Future<void> inviteTeamMember(String mobile) async {
+    await _guard(
+      () => _dio.post('/office/invite', data: {'mobile': normalizeMobile(mobile)}),
+      'خطا در دعوت عضو',
+      ok: (_) => null,
+    );
+  }
+
+  Future<Map<String, dynamic>> createTicket({
+    required String subject,
+    required String message,
+  }) {
+    return _guard(
+      () => _dio.post('/tickets', data: {'subject': subject, 'message': message}),
+      'خطا در ارسال تیکت',
+      ok: (res) {
+        final body = res.data as Map;
+        final inner = body['data'];
+        if (inner is Map) return Map<String, dynamic>.from(inner);
+        return Map<String, dynamic>.from(body);
+      },
+    );
+  }
+
+  Future<void> replyTicket(int id, String message) async {
+    await _guard(
+      () => _dio.post('/tickets/$id/reply', data: {'message': message}),
+      'خطا در ارسال پاسخ',
+      ok: (_) => null,
+    );
+  }
+
+  Future<Map<String, dynamic>> createCrmDeal({required String title}) {
+    return _guard(
+      () => _dio.post('/crm/deals', data: {'title': title, 'stage': 'lead'}),
+      'خطا در ثبت معامله',
+      ok: (res) {
+        final body = res.data as Map;
+        final inner = body['data'];
+        if (inner is Map) return Map<String, dynamic>.from(inner);
+        return Map<String, dynamic>.from(body);
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> createVisit(Map<String, dynamic> data) {
+    return _guard(
+      () => _dio.post('/visits', data: data),
+      'خطا در ثبت بازدید',
+      ok: (res) {
+        final body = res.data as Map;
+        final inner = body['data'];
+        if (inner is Map) return Map<String, dynamic>.from(inner);
+        return Map<String, dynamic>.from(body);
+      },
+    );
+  }
+
+  Future<List<dynamic>> getNotifications() =>
+      getList('/notifications', params: {'platform': clientPlatform});
+
+  Future<void> markNotificationRead(int id) async {
+    await _guard(
+      () => _dio.post('/notifications/$id/read'),
+      'خطا در علامت‌گذاری اعلان',
+      ok: (_) => null,
+    );
+  }
+
   Future<Map<String, dynamic>> register(Map<String, dynamic> data) {
     return _guard(
       () => _dio.post('/auth/register', data: data),

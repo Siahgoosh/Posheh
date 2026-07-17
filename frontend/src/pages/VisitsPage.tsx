@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format as formatJalali } from 'date-fns-jalali/format'
+import { JalaliDateTimeInput } from '@/components/JalaliDateInput'
 import { Calendar, Plus, ChevronRight, ChevronLeft, Clock } from 'lucide-react'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -90,7 +91,11 @@ export function VisitsPage() {
           <div className="grid sm:grid-cols-2 gap-3">
             <Input placeholder="شناسه ملک *" value={form.property_id} onChange={(e) => setForm((f) => ({ ...f, property_id: e.target.value }))} dir="ltr" />
             <Input placeholder="شناسه مشتری (اختیاری)" value={form.customer_id} onChange={(e) => setForm((f) => ({ ...f, customer_id: e.target.value }))} dir="ltr" />
-            <Input type="datetime-local" value={form.visit_at} onChange={(e) => setForm((f) => ({ ...f, visit_at: e.target.value }))} dir="ltr" className="sm:col-span-2" />
+            <JalaliDateTimeInput
+              value={form.visit_at}
+              onChange={(visit_at) => setForm((f) => ({ ...f, visit_at }))}
+              className="sm:col-span-2"
+            />
             <Input placeholder="یادداشت" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} className="sm:col-span-2" />
           </div>
           <Button onClick={() => createMutation.mutate()} disabled={!form.property_id || !form.visit_at}>ثبت بازدید</Button>

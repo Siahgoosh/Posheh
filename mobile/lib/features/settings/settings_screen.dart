@@ -231,7 +231,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 8),
                 _linkTile('وب‌سایت پوشه', AppUrls.site, Icons.language_rounded),
-                _linkTile('ثبت‌نام ۴۸ ساعت رایگان', AppUrls.register, Icons.person_add_outlined),
+                _linkTile('ثبت‌نام ۳ روز رایگان', AppUrls.register, Icons.person_add_outlined),
                 _linkTile('دانلود ویندوز', AppUrls.download, Icons.download_rounded),
                 _linkTile('وبلاگ آموزشی', AppUrls.blog, Icons.article_outlined),
                 _linkTile('حریم خصوصی', AppUrls.privacy, Icons.privacy_tip_outlined),

@@ -12,9 +12,9 @@ class AppReleaseSeeder extends Seeder
         $releases = [
             [
                 'platform' => 'android',
-                'version' => '1.0.1',
+                'version' => '1.0.2',
                 'title' => 'اپلیکیشن اندروید پوشه',
-                'description' => 'فایلینگ، CRM، حسابداری و گزارش برای مشاوران املاک — ورود OTP، همگام با وب، ۴۸ ساعت رایگان پنل فردی.',
+                'description' => 'فایلینگ، CRM، حسابداری — ۳ روز رایگان پنل فردی، قفل اشتراک، نوتیفیکیشن.',
                 'download_url' => '/downloads/posheh-android.apk',
                 'file_size' => '~۵۵ مگابایت',
                 'is_published' => true,
@@ -22,7 +22,7 @@ class AppReleaseSeeder extends Seeder
             ],
             [
                 'platform' => 'windows',
-                'version' => '1.0.1',
+                'version' => '1.0.2',
                 'title' => 'نسخه دسکتاپ پوشه',
                 'description' => 'لانچر سبک دسکتاپ — دسترسی سریع به posheapp.ir در مرورگر. نسخه Flutter ویندوز به‌زودی.',
                 'download_url' => '/downloads/posheh-windows.zip',

@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { formatJalaliDate, formatPrice } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { JalaliDateInput } from '@/components/JalaliDateInput'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
 
@@ -70,7 +71,10 @@ export function AccountingPage() {
           <Input placeholder="مبلغ (تومان)" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} dir="ltr" />
           <Input placeholder="عنوان" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
           <div>
-            <Input type="date" value={form.transaction_date} onChange={(e) => setForm((f) => ({ ...f, transaction_date: e.target.value }))} dir="ltr" />
+            <JalaliDateInput
+              value={form.transaction_date}
+              onChange={(transaction_date) => setForm((f) => ({ ...f, transaction_date }))}
+            />
             <p className="text-xs text-muted mt-1">تاریخ شمسی: {formatJalaliDate(form.transaction_date)}</p>
           </div>
           <Button className="sm:col-span-2" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>ثبت</Button>
