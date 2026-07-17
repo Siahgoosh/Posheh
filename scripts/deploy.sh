@@ -81,12 +81,13 @@ fi
 sync_code() {
   git fetch origin "$BRANCH" || fail "Could not fetch branch $BRANCH from origin"
 
-  if ! git checkout -B "$BRANCH" "origin/$BRANCH" 2>/dev/null; then
-    log "Cleaning untracked mobile/ files that block checkout (local Flutter scaffold)"
-    git clean -fd -- mobile/ 2>/dev/null || true
-    git checkout -B "$BRANCH" "origin/$BRANCH" || fail "Could not checkout $BRANCH"
-  fi
+  # Laravel/Docker runtime edits tracked .gitignore files under storage/ and bootstrap/cache/.
+  # Local Flutter scaffolds under mobile/ can also block checkout on production servers.
+  log "Resetting local runtime edits before checkout"
+  git reset --hard HEAD 2>/dev/null || true
+  git clean -fd -- mobile/ 2>/dev/null || true
 
+  git checkout -B "$BRANCH" "origin/$BRANCH" || fail "Could not checkout $BRANCH"
   git reset --hard "origin/$BRANCH"
 }
 
