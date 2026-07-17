@@ -62,6 +62,7 @@ jobs:
       - run: flutter pub get
 
       - name: Configure Android release signing
+        working-directory: .
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -73,11 +74,11 @@ jobs:
 
       - name: Verify APK signing (Cafe Bazaar requires release keystore)
         run: |
-          APK="mobile/build/app/outputs/flutter-apk/app-release.apk"
+          APK="build/app/outputs/flutter-apk/app-release.apk"
           if keytool -printcert -jarfile "$APK" 2>/dev/null | grep -qi "Android Debug"; then
             echo "::warning::APK is debug-signed. Add ANDROID_KEYSTORE_* secrets and re-run, or use Generate Android Keystore workflow."
-            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-              echo "::error::Main branch APK must be release-signed for Cafe Bazaar. Configure GitHub Secrets."
+            if [ "${{ github.ref }}" = "refs/heads/main" ] && [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+              echo "::error::Secrets are set but APK is still debug-signed — check keystore configuration."
               exit 1
             fi
           else
@@ -165,6 +166,13 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
             exit 0
+          fi
+          if keytool -printcert -jarfile frontend/public/downloads/posheh-android.apk 2>/dev/null | grep -qi "Android Debug"; then
+            if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+              echo "::error::Refusing to publish debug-signed APK while release secrets are configured."
+              exit 1
+            fi
+            echo "::warning::Publishing debug-signed APK — configure ANDROID_KEYSTORE_* secrets for Cafe Bazaar."
           fi
           git commit -m "chore: update Android APK and Windows release [skip ci]"
           git push
