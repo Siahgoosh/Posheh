@@ -5,7 +5,6 @@ import '../../core/api/api_client.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/constants/app_urls.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/utils/formatters.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/page_shell.dart';
 import '../common/data_list_screen.dart';
