@@ -19,8 +19,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (auth.loading) return null;
       final loggingIn = state.matchedLocation == '/login';
       final registering = state.matchedLocation == '/register';
+      final onSubscription = state.matchedLocation == '/subscription';
       if (!auth.isAuthenticated) return (loggingIn || registering) ? null : '/login';
       if (loggingIn || registering) return '/dashboard';
+      final user = auth.user;
+      if (user != null && user.role != 'super_admin' && (!user.hasAccess || user.subscriptionExpired)) {
+        if (!onSubscription) return '/subscription';
+      }
       return null;
     },
     routes: [

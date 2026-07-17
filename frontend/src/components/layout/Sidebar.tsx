@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore, useThemeStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
+import { NotificationBell } from '@/components/NotificationBell'
 
 export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -20,6 +21,7 @@ export function Sidebar() {
   const hasCrm = usePlanFeature('crm')
   const hasWebsite = usePlanFeature('website_listing')
   const onTrial = user?.office?.on_trial
+  const expired = user?.office?.subscription_expired === true || user?.office?.has_access === false
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
@@ -49,6 +51,8 @@ export function Sidebar() {
   const adminItems = user?.role === 'super_admin'
     ? [
         { to: '/admin', icon: BarChart3, label: 'پنل مدیر کل' },
+        { to: '/admin/settings', icon: Settings, label: 'تنظیمات سیستم' },
+        { to: '/admin/broadcasts', icon: LifeBuoy, label: 'اعلان‌ها' },
         { to: '/admin/plans', icon: CreditCard, label: 'پلن‌ها' },
         { to: '/admin/offices', icon: Building, label: 'دفاتر' },
         { to: '/admin/tickets', icon: LifeBuoy, label: 'تیکت‌ها' },
@@ -80,7 +84,16 @@ export function Sidebar() {
         <button type="button" className="lg:hidden text-muted p-1" onClick={() => setMobileOpen(false)}>
           <X className="h-5 w-5" />
         </button>
+        <NotificationBell />
       </div>
+
+      {expired && (
+        <div className="px-3 pb-2">
+          <NavLink to="/renew" onClick={() => setMobileOpen(false)}>
+            <Button className="w-full" size="sm">تمدید اشتراک</Button>
+          </NavLink>
+        </div>
+      )}
 
       <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 py-2 space-y-0.5">
         {navItems.map((item) => (

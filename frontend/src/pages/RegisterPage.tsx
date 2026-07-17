@@ -126,7 +126,8 @@ export function RegisterPage() {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       setAuth(data.user, data.token)
-      navigate('/dashboard')
+      const hasAccess = data.access?.has_access ?? data.user?.office?.has_access
+      navigate(hasAccess === false ? '/renew' : '/dashboard')
     } catch (err: unknown) {
       const e = err as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } }
       setError(
@@ -338,7 +339,7 @@ export function RegisterPage() {
                     {' '}را می‌پذیرید.
                   </p>
                   <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'ثبت‌نام…' : selectedPlan?.slug === 'solo' ? 'شروع ۴۸ ساعت رایگان' : 'ادامه ثبت‌نام'}
+                    {loading ? 'ثبت‌نام…' : selectedPlan?.slug === 'solo' ? 'شروع ۳ روز رایگان' : 'ادامه ثبت‌نام'}
                   </Button>
                 </form>
               </CardContent>

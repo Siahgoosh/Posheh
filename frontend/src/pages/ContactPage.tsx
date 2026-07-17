@@ -95,7 +95,7 @@ export function ContactPage() {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link to="/register">
-                  <Button>شروع ۴۸ ساعت رایگان</Button>
+                  <Button>شروع ۳ روز رایگان</Button>
                 </Link>
                 <Link to="/download">
                   <Button variant="outline">

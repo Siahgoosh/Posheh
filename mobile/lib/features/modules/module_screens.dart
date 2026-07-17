@@ -358,7 +358,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                           if (p['slug'] == 'solo')
                             const Padding(
                               padding: EdgeInsets.only(top: 6),
-                              child: Text('۴۸ ساعت رایگان — فقط پنل فردی', style: TextStyle(color: AppColors.warning, fontSize: 12)),
+                              child: Text('۳ روز رایگان — فقط پنل فردی', style: TextStyle(color: AppColors.warning, fontSize: 12)),
                             ),
                         ],
                       ),

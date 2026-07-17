@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AdminOfficeController;
 use App\Http\Controllers\Api\Admin\AppReleaseAdminController;
 use App\Http\Controllers\Api\Admin\BlogAdminController;
+use App\Http\Controllers\Api\Admin\BroadcastAdminController;
+use App\Http\Controllers\Api\Admin\SystemSettingsAdminController;
 use App\Http\Controllers\Api\Admin\MarketingDashboardController;
 use App\Http\Controllers\Api\Admin\PlanAdminController;
 use App\Http\Controllers\Api\Admin\TicketAdminController;
@@ -32,6 +34,7 @@ use App\Http\Controllers\Api\PublicApiController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
 use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Middleware\EnsureOfficeIsActive;
 use App\Http\Middleware\EnsureSubscriptionAccess;
 use App\Http\Middleware\EnsureUserHasRole;
@@ -150,10 +153,17 @@ Route::prefix('v1')->group(function () {
         Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])
             ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
         Route::get('/subscription/current', [SubscriptionController::class, 'current']);
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
 
         Route::prefix('admin')->middleware(EnsureUserHasRole::class.':super_admin')->group(function () {
             Route::get('/marketing', [MarketingDashboardController::class, 'index']);
             Route::get('/system/sms', [MarketingDashboardController::class, 'smsStatus']);
+            Route::get('/system-settings', [SystemSettingsAdminController::class, 'index']);
+            Route::put('/system-settings', [SystemSettingsAdminController::class, 'update']);
+            Route::get('/users/export', [AdminController::class, 'exportUsers']);
+            Route::get('/broadcasts', [BroadcastAdminController::class, 'index']);
+            Route::post('/broadcasts', [BroadcastAdminController::class, 'store']);
             Route::get('/plans', [PlanAdminController::class, 'index']);
             Route::post('/plans', [PlanAdminController::class, 'store']);
             Route::put('/plans/{id}', [PlanAdminController::class, 'update']);
