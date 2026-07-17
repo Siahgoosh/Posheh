@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Settings,
   Shield,
+  Phone,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { formatNumber } from '@/lib/utils'
@@ -26,7 +27,7 @@ interface DashboardData {
   blog: { total_posts: number; published_posts: number; total_views: number; top_posts: { title: string; views: number; slug: string }[] }
   traffic: { views_today: number; views_week: number; views_month: number; unique_today: number; unique_week: number }
   downloads: { clicks_today: number; clicks_week: number; by_platform_week: Record<string, number> }
-  revenue: { total: number; monthly: number; paid_count: number }
+  revenue: { total: number; monthly: number; paid_count: number; pending_count?: number; failed_count?: number; incomplete_leads?: number }
   auth: { otp_sent_today: number; logins_today: number; logins_week: number }
   top_pages: { path: string; views: number }[]
   top_referrers: { referrer: string; views: number }[]
@@ -104,6 +105,8 @@ export function AdminSuperPanelPage() {
           <p className="text-sm text-muted mt-1">آمار کاربران، بازدید، وبلاگ، دانلود و درآمد</p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Link to="/admin/payment-leads"><Button variant="outline" size="sm">سرنخ پرداخت</Button></Link>
+          <Link to="/admin/discount-codes"><Button variant="outline" size="sm">کد تخفیف</Button></Link>
           <Link to="/admin/plans"><Button variant="outline" size="sm">پلن‌ها</Button></Link>
           <Link to="/admin/offices"><Button variant="outline" size="sm">دفاتر</Button></Link>
           <Link to="/admin/tickets"><Button variant="outline" size="sm">تیکت‌ها</Button></Link>
@@ -156,6 +159,7 @@ export function AdminSuperPanelPage() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Wallet} label="درآمد ماه" value={formatNumber(data.revenue.monthly)} sub={`${formatNumber(data.revenue.paid_count)} پرداخت موفق`} />
+        <StatCard icon={Phone} label="پرداخت ناتمام" value={data.revenue.incomplete_leads ?? 0} sub={`${formatNumber(data.revenue.pending_count ?? 0)} رها شده`} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

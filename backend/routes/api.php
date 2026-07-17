@@ -8,7 +8,8 @@ use App\Http\Controllers\Api\Admin\BlogAdminController;
 use App\Http\Controllers\Api\Admin\BroadcastAdminController;
 use App\Http\Controllers\Api\Admin\SystemSettingsAdminController;
 use App\Http\Controllers\Api\Admin\MarketingDashboardController;
-use App\Http\Controllers\Api\Admin\PlanAdminController;
+use App\Http\Controllers\Api\Admin\DiscountCodeAdminController;
+use App\Http\Controllers\Api\Admin\PaymentLeadAdminController;
 use App\Http\Controllers\Api\Admin\TicketAdminController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\ApiKeyController;
@@ -152,6 +153,8 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])
             ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+        Route::post('/discount-codes/preview', [SubscriptionController::class, 'previewDiscount'])
+            ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
         Route::get('/subscription/current', [SubscriptionController::class, 'current']);
         Route::get('/notifications', [NotificationController::class, 'index']);
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
@@ -162,6 +165,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/system-settings', [SystemSettingsAdminController::class, 'index']);
             Route::put('/system-settings', [SystemSettingsAdminController::class, 'update']);
             Route::get('/users/export', [AdminController::class, 'exportUsers']);
+            Route::get('/payment-leads', [PaymentLeadAdminController::class, 'index']);
+            Route::get('/payment-leads/export', [PaymentLeadAdminController::class, 'export']);
+            Route::get('/discount-codes', [DiscountCodeAdminController::class, 'index']);
+            Route::post('/discount-codes', [DiscountCodeAdminController::class, 'store']);
+            Route::put('/discount-codes/{id}', [DiscountCodeAdminController::class, 'update']);
+            Route::delete('/discount-codes/{id}', [DiscountCodeAdminController::class, 'destroy']);
             Route::get('/broadcasts', [BroadcastAdminController::class, 'index']);
             Route::post('/broadcasts', [BroadcastAdminController::class, 'store']);
             Route::get('/plans', [PlanAdminController::class, 'index']);

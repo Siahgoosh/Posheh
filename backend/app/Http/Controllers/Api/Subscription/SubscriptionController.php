@@ -46,15 +46,33 @@ class SubscriptionController extends Controller
         $request->validate([
             'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
             'gateway' => ['required', 'string', 'in:zibal,cafe_bazaar,wallet'],
+            'discount_code' => ['nullable', 'string', 'max:50'],
         ]);
 
         $result = $this->subscriptionService->subscribe(
             $request->user()->office,
+            $request->user(),
             $request->input('plan_id'),
-            PaymentGateway::from($request->input('gateway'))
+            PaymentGateway::from($request->input('gateway')),
+            $request->input('discount_code'),
         );
 
         return response()->json($result);
+    }
+
+    public function previewDiscount(Request $request): JsonResponse
+    {
+        $request->validate([
+            'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
+            'discount_code' => ['required', 'string', 'max:50'],
+        ]);
+
+        return response()->json([
+            'data' => $this->subscriptionService->previewDiscount(
+                $request->input('discount_code'),
+                (int) $request->input('plan_id'),
+            ),
+        ]);
     }
 
     public function zibalCallback(Request $request)

@@ -10,4 +10,4 @@ Disallow: /settings
 Disallow: /admin
 Disallow: /api/
 
-Sitemap: https://posheapp.ir/api/v1/sitemap.xml
+Sitemap: https://posheapp.ir/sitemap.xml

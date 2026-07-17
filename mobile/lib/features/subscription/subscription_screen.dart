@@ -17,16 +17,47 @@ class SubscriptionScreen extends ConsumerStatefulWidget {
   ConsumerState<SubscriptionScreen> createState() => _SubscriptionScreenState();
 }
 
-class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
+class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> with WidgetsBindingObserver {
   Map<String, dynamic>? _current;
   List<dynamic> _plans = [];
   bool _loading = true;
   int? _payingPlanId;
+  bool _awaitingPaymentReturn = false;
+  final _discountController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _discountController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _awaitingPaymentReturn) {
+      _awaitingPaymentReturn = false;
+      _afterPaymentReturn();
+    }
+  }
+
+  Future<void> _afterPaymentReturn() async {
+    await ref.read(authControllerProvider.notifier).refreshUser();
+    await _load();
+    if (!mounted) return;
+    final user = ref.read(authControllerProvider).user;
+    if (user?.hasAccess == true && !user!.subscriptionExpired) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('اشتراک با موفقیت فعال شد')),
+      );
+      if (widget.renewMode) context.go('/dashboard');
+    }
   }
 
   Future<void> _load() async {
@@ -44,22 +75,26 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   Future<void> _subscribe(int planId) async {
     setState(() => _payingPlanId = planId);
     try {
-      final res = await ref.read(apiClientProvider).subscribe(planId);
+      final code = _discountController.text.trim();
+      final res = await ref.read(apiClientProvider).subscribe(
+        planId,
+        discountCode: code.isEmpty ? null : code,
+      );
       final redirect = res['redirect_url'] as String?;
       if (redirect != null && redirect.isNotEmpty) {
         final uri = Uri.parse(redirect);
         if (await canLaunchUrl(uri)) {
+          _awaitingPaymentReturn = true;
           await launchUrl(uri, mode: LaunchMode.externalApplication);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('پس از پرداخت، به اپ برگردید و وضعیت به‌روز می‌شود')),
+            );
+          }
+          return;
         }
       }
-      await ref.read(authControllerProvider.notifier).refreshUser();
-      await _load();
-      if (mounted && widget.renewMode) {
-        final user = ref.read(authControllerProvider).user;
-        if (user?.hasAccess == true && !user!.subscriptionExpired) {
-          context.go('/dashboard');
-        }
-      }
+      await _afterPaymentReturn();
     } on ApiException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
@@ -91,12 +126,23 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                               style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 6),
                           const Text(
-                            'برای ادامه استفاده از پوشه، یکی از پلن‌ها را انتخاب و پرداخت کنید.',
+                            'پرداخت با درگاه زیبال — پس از بازگشت به اپ، اشتراک فعال می‌شود.',
                             style: TextStyle(color: AppColors.muted, fontSize: 13, height: 1.5),
                           ),
                         ],
                       ),
                     ),
+                  const SizedBox(height: 12),
+                  GlassCard(
+                    child: TextField(
+                      controller: _discountController,
+                      decoration: const InputDecoration(
+                        labelText: 'کد تخفیف (اختیاری)',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
+                  ),
                   if (user?.onTrial == true && user?.trialLabel != null) ...[
                     const SizedBox(height: 12),
                     GlassCard(

@@ -60,6 +60,9 @@ ensure_env_file() {
 
   grep -q '^DB_HOST=' "$ENV_FILE" || echo 'DB_HOST=mysql' >> "$ENV_FILE"
   grep -q '^DB_DATABASE=' "$ENV_FILE" || echo 'DB_DATABASE=posheh' >> "$ENV_FILE"
+  grep -q '^ZIBAL_MERCHANT=' "$ENV_FILE" || set_env_var ZIBAL_MERCHANT 6a58d65f2881deb76c48df68
+  grep -q '^ZIBAL_SANDBOX=' "$ENV_FILE" || set_env_var ZIBAL_SANDBOX false
+  grep -q '^BACKUP_EMAIL=' "$ENV_FILE" || set_env_var BACKUP_EMAIL hamidrezakeshavarziii9@gmail.com
 }
 
 clear_laravel_cache() {

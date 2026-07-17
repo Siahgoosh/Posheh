@@ -495,9 +495,13 @@ class ApiClient {
     );
   }
 
-  Future<Map<String, dynamic>> subscribe(int planId, {String gateway = 'zibal'}) {
+  Future<Map<String, dynamic>> subscribe(int planId, {String gateway = 'zibal', String? discountCode}) {
     return _guard(
-      () => _dio.post('/subscribe', data: {'plan_id': planId, 'gateway': gateway}),
+      () => _dio.post('/subscribe', data: {
+        'plan_id': planId,
+        'gateway': gateway,
+        if (discountCode != null && discountCode.isNotEmpty) 'discount_code': discountCode,
+      }),
       'خطا در شروع پرداخت',
       ok: (res) => Map<String, dynamic>.from(res.data as Map),
     );
