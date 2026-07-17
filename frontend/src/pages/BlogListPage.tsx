@@ -8,6 +8,7 @@ import { getOrganizationJsonLd, getSiteUrl, getWebSiteJsonLd } from '@/lib/seo'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { SiteFooter } from '@/components/layout/SiteFooter'
 
 interface BlogPostItem {
   slug: string
@@ -67,7 +68,7 @@ export function BlogListPage() {
         ]}
       />
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <header className="border-b border-card-border glass sticky top-0 z-50">
           <div className="container mx-auto max-w-4xl flex h-16 items-center justify-between px-4">
             <Link to="/" className="font-bold gradient-text">پوشه</Link>
@@ -129,6 +130,8 @@ export function BlogListPage() {
             <Link to="/register"><Button>شروع ۴۸ ساعت رایگان</Button></Link>
           </div>
         </main>
+
+        <SiteFooter />
       </div>
     </>
   )

@@ -8,6 +8,7 @@ import { SeoBreadcrumb, getBreadcrumbJsonLd, getFaqJsonLd } from '@/components/s
 import { getSiteUrl } from '@/lib/seo'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { SiteFooter } from '@/components/layout/SiteFooter'
 
 interface FaqItem {
   question: string
@@ -117,7 +118,7 @@ export function BlogPostPage() {
         jsonLd={jsonLd}
       />
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <header className="border-b border-card-border glass sticky top-0 z-50">
           <div className="container mx-auto max-w-3xl flex h-16 items-center gap-3 px-4">
             <Link to="/blog"><Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button></Link>
@@ -125,7 +126,7 @@ export function BlogPostPage() {
           </div>
         </header>
 
-        <article className="container mx-auto max-w-3xl px-4 py-10">
+        <article className="container mx-auto max-w-3xl px-4 py-10 flex-1">
           <SeoBreadcrumb items={breadcrumbs} />
 
           {post.category_label && (
@@ -194,6 +195,8 @@ export function BlogPostPage() {
             </Link>
           </div>
         </article>
+
+        <SiteFooter />
       </div>
     </>
   )

@@ -7,6 +7,7 @@ import { SeoBreadcrumb, getBreadcrumbJsonLd } from '@/components/seo/SeoBreadcru
 import { getSiteUrl } from '@/lib/seo'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { SiteFooter } from '@/components/layout/SiteFooter'
 
 interface BlogPostItem {
   slug: string
@@ -58,7 +59,7 @@ export function BlogCategoryPage() {
         jsonLd={getBreadcrumbJsonLd(breadcrumbs, getSiteUrl())}
       />
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background flex flex-col">
         <header className="border-b border-card-border glass sticky top-0 z-50">
           <div className="container mx-auto max-w-4xl flex h-16 items-center justify-between px-4">
             <Link to="/" className="font-bold gradient-text">پوشه</Link>
@@ -66,7 +67,7 @@ export function BlogCategoryPage() {
           </div>
         </header>
 
-        <main className="container mx-auto max-w-4xl px-4 py-12">
+        <main className="container mx-auto max-w-4xl px-4 py-12 flex-1">
           <SeoBreadcrumb items={breadcrumbs} />
           <h1 className="text-3xl font-bold mb-2">{label}</h1>
           <p className="text-muted mb-8">{catMeta?.count ?? data?.length ?? 0} مقاله</p>
@@ -93,6 +94,8 @@ export function BlogCategoryPage() {
             </div>
           )}
         </main>
+
+        <SiteFooter />
       </div>
     </>
   )

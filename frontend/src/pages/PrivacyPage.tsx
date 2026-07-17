@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { SiteFooter } from '@/components/layout/SiteFooter'
+import { SITE_CONTACT } from '@/constants/site'
 
 export function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto max-w-3xl px-4 py-12 space-y-8">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="container mx-auto max-w-3xl px-4 py-12 space-y-8 flex-1">
         <div className="flex items-center gap-4">
           <Link to="/">
             <Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button>
@@ -38,12 +40,24 @@ export function PrivacyPage() {
             </section>
             <section>
               <h2 className="text-foreground font-semibold mb-2">۶. تماس</h2>
-              <p>برای سوالات حریم خصوصی از بخش تیکت‌های پشتیبانی در پنل یا ایمیل رسمی پوشه استفاده کنید.</p>
+              <p>
+                برای سوالات حریم خصوصی از بخش تیکت‌های پشتیبانی در پنل یا ایمیل{' '}
+                <a href={`mailto:${SITE_CONTACT.supportEmail}`} className="text-primary hover:underline">
+                  {SITE_CONTACT.supportEmail}
+                </a>{' '}
+                استفاده کنید.{' '}
+                <Link to="/contact" className="text-primary hover:underline">
+                  صفحه تماس با ما
+                </Link>
+                .
+              </p>
             </section>
             <p className="text-xs pt-4 border-t border-card-border">آخرین به‌روزرسانی: تیر ۱۴۰۵</p>
           </CardContent>
         </Card>
       </div>
+
+      <SiteFooter />
     </div>
   )
 }

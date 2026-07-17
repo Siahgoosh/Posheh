@@ -1,0 +1,6 @@
+# Copy to mobile/android/key.properties and fill in for production release builds.
+# Never commit key.properties or .jks files.
+storePassword=YOUR_STORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=posheh
+storeFile=../posheh-release.jks

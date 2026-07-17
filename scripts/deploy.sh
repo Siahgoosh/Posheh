@@ -123,8 +123,12 @@ $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interac
   || log "BlogSeeder warning (may already be seeded)"
 $COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \
   || log "AppReleaseSeeder warning (may already be seeded)"
-$COMPOSE exec -T app php artisan db:seed --class=DatabaseSeeder --force --no-interaction \
-  || log "DatabaseSeeder warning (may already be seeded)"
+if [ "${SKIP_DEMO_SEED:-1}" = "1" ]; then
+  log "Skipping demo office/users seeder (set SKIP_DEMO_SEED=0 to enable)"
+else
+  $COMPOSE exec -T app php artisan db:seed --class=DatabaseSeeder --force --no-interaction \
+    || log "DatabaseSeeder warning (may already be seeded)"
+fi
 
 log "6/9 Clearing caches and enabling SMS"
 clear_laravel_cache

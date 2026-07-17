@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SeoHead } from '@/components/seo/SeoHead'
+import { SiteFooter } from '@/components/layout/SiteFooter'
 import { trackDownloadClick } from '@/lib/analytics'
 
 interface Release {
@@ -52,7 +53,7 @@ export function DownloadPage() {
         <div className="text-center space-y-3">
           <h1 className="text-3xl font-bold gradient-text">دانلود پوشه</h1>
           <p className="text-muted max-w-xl mx-auto">
-            نسخه ۱.۰.۱ — اندروید و ویندوز همگام با وب. پنل فردی: ۴۸ ساعت رایگان.
+            نسخه ۱.۰.۱ — اندروید همگام با وب. نسخه دسکتاپ: لانچر سبک یا PWA. پنل فردی: ۴۸ ساعت رایگان.
           </p>
         </div>
 
@@ -109,6 +110,8 @@ export function DownloadPage() {
           </Link>
         </div>
       </main>
+
+      <SiteFooter />
     </div>
   )
 }

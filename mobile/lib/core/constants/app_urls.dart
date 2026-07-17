@@ -8,5 +8,5 @@ class AppUrls {
   static const terms = '$site/terms';
   static const androidApk = '$site/downloads/posheh-android.apk';
   static const windowsZip = '$site/downloads/posheh-windows.zip';
-  static const support = '$site/login';
+  static const support = '$site/contact';
 }

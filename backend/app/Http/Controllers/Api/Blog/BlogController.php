@@ -98,6 +98,9 @@ class BlogController extends Controller
             ['path' => '/blog', 'priority' => 0.9],
             ['path' => '/register', 'priority' => 0.9],
             ['path' => '/download', 'priority' => 0.8],
+            ['path' => '/contact', 'priority' => 0.7],
+            ['path' => '/privacy', 'priority' => 0.5],
+            ['path' => '/terms', 'priority' => 0.5],
             ['path' => '/login', 'priority' => 0.5],
         ];
 

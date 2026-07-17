@@ -48,6 +48,7 @@ import { CustomerDetailPage } from '@/pages/CustomerDetailPage'
 import { PropertyPublicPage } from '@/pages/PropertyPublicPage'
 import { TermsPage } from '@/pages/TermsPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
+import { ContactPage } from '@/pages/ContactPage'
 import { getOfficeSubdomain } from '@/lib/subdomain'
 
 const queryClient = new QueryClient({
@@ -93,6 +94,7 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/payment/callback" element={<PaymentCallbackPage />} />
           <Route path="/p/:token" element={<PropertyPublicPage />} />
           <Route path="/o/:slug" element={<OfficeLandingPage />} />

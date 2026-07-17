@@ -91,6 +91,13 @@ export function getOrganizationJsonLd() {
     url: getSiteUrl(),
     logo: `${getSiteUrl()}/favicon.svg`,
     description: DEFAULT_DESCRIPTION,
+    email: 'info@posheapp.ir',
+    contactPoint: {
+      '@type': 'ContactPoint',
+      email: 'support@posheapp.ir',
+      contactType: 'customer support',
+      availableLanguage: 'Persian',
+    },
     areaServed: 'IR',
     inLanguage: 'fa-IR',
   }

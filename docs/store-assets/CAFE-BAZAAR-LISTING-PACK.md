@@ -97,7 +97,7 @@ CRM املاک
 | وب‌سایت | https://posheapp.ir |
 | حریم خصوصی | https://posheapp.ir/privacy |
 | قوانین | https://posheapp.ir/terms |
-| پشتیبانی | support@posheapp.ir *(ایمیل خود را جایگزین کنید)* |
+| پشتیبانی | support@posheapp.ir |
 | دانلود APK | https://posheapp.ir/downloads/posheh-android.apk |
 
 ---

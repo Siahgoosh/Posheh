@@ -23,10 +23,10 @@ class AppReleaseSeeder extends Seeder
             [
                 'platform' => 'windows',
                 'version' => '1.0.1',
-                'title' => 'نسخه ویندوز پوشه',
-                'description' => 'نرم‌افزار دسکتاپ Flutter برای دفتر املاک — همان امکانات اندروید روی ویندوز ۱۰/۱۱.',
+                'title' => 'نسخه دسکتاپ پوشه',
+                'description' => 'لانچر سبک دسکتاپ — دسترسی سریع به posheapp.ir در مرورگر. نسخه Flutter ویندوز به‌زودی.',
                 'download_url' => '/downloads/posheh-windows.zip',
-                'file_size' => '~۴۵ مگابایت',
+                'file_size' => 'سبک',
                 'is_published' => true,
                 'published_at' => now(),
             ],

@@ -13,6 +13,7 @@ import { formatPrice } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { SeoHead } from '@/components/seo/SeoHead'
+import { SiteFooter } from '@/components/layout/SiteFooter'
 import { getOrganizationJsonLd, getSoftwareJsonLd, getWebSiteJsonLd } from '@/lib/seo'
 import { PLAN_FEATURE_LABELS, trialBadgeForPlan } from '@/constants/plans'
 
@@ -352,20 +353,7 @@ export function LandingPage() {
         </Card>
       </section>
 
-      <footer className="border-t border-card-border py-10">
-        <div className="container mx-auto max-w-6xl px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
-            <span>پوشه — سامانه ابری مدیریت املاک</span>
-          </div>
-          <div className="flex gap-4">
-            <Link to="/terms" className="hover:text-primary">قوانین</Link>
-            <Link to="/privacy" className="hover:text-primary">حریم خصوصی</Link>
-            <Link to="/download" className="hover:text-primary">دانلود</Link>
-          </div>
-          <p>© {new Date().getFullYear()} تمامی حقوق محفوظ است.</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   )
 }

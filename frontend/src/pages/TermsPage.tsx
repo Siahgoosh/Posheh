@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { SiteFooter } from '@/components/layout/SiteFooter'
+import { SITE_CONTACT } from '@/constants/site'
 
 export function TermsPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto max-w-3xl px-4 py-12 space-y-8">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="container mx-auto max-w-3xl px-4 py-12 space-y-8 flex-1">
         <div className="flex items-center gap-4">
           <Link to="/">
             <Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button>
@@ -40,10 +42,26 @@ export function TermsPage() {
               <h2 className="text-foreground font-semibold mb-2">۶. تغییرات</h2>
               <p>پوشه حق به‌روزرسانی قوانین و قیمت‌ها را با اطلاع‌رسانی در سایت محفوظ می‌دارد. ادامه استفاده به منزله پذیرش تغییرات است.</p>
             </section>
+            <section>
+              <h2 className="text-foreground font-semibold mb-2">۷. تماس</h2>
+              <p>
+                برای سوالات حقوقی و قراردادی با{' '}
+                <a href={`mailto:${SITE_CONTACT.email}`} className="text-primary hover:underline">
+                  {SITE_CONTACT.email}
+                </a>{' '}
+                تماس بگیرید یا از{' '}
+                <Link to="/contact" className="text-primary hover:underline">
+                  صفحه تماس با ما
+                </Link>{' '}
+                استفاده کنید.
+              </p>
+            </section>
             <p className="text-xs pt-4 border-t border-card-border">آخرین به‌روزرسانی: تیر ۱۴۰۵</p>
           </CardContent>
         </Card>
       </div>
+
+      <SiteFooter />
     </div>
   )
 }
