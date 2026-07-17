@@ -1,60 +1,70 @@
-# انتشار اپ پوشه در دیوار
+# انتشار اپ پوشه — نسخه ۱.۱.۰
 
 ## فایل‌های آماده دانلود
 
-پس از merge و اجرای workflow **Build Android & Windows**:
+| پلتفرم | لینک |
+|--------|------|
+| **اندروید APK** | https://posheapp.ir/downloads/posheh-android.apk |
+| **ویندوز ZIP** | https://posheapp.ir/downloads/posheh-windows.zip |
+| **صفحه دانلود** | https://posheapp.ir/download |
 
-| پلتفرم | آدرس مستقیم |
-|--------|-------------|
-| اندروید (APK) | https://posheapp.ir/downloads/posheh-android.apk |
-| ویندوز (ZIP) | https://posheapp.ir/downloads/posheh-windows.zip |
-| صفحه دانلود | https://posheapp.ir/download |
+نسخه: **1.1.0+5** — هم‌تراز کامل با وب
 
-نسخه فعلی: **1.0.3+4**
+## قابلیت‌های نسخه ۱.۱.۰
 
-## متن پیشنهادی آگهی دیوار
+- پرداخت و تمدید اشتراک درون‌اپ (زیبال)
+- وبسایت اختصاصی دفتر
+- ثبت ملک با فیلدهای داینامیک + آپلود تصویر
+- اشتراک‌گذاری و کپی متن آگهی
+- جستجوی پیشرفته با فیلتر
+- گزارش KPI کامل
+- تنظیمات ربات/برند و API Key (مدیر)
+- اعلان‌های درون‌اپ با ناوبری مستقیم
 
-**عنوان:** اپ مدیریت املاک پوشه — اندروید و ویندوز (۳ روز رایگان)
+## متن آگهی دیوار
+
+**عنوان:** اپ مدیریت املاک پوشه — اندروید و ویندوز | ۳ روز رایگان
 
 **متن:**
 
-سامانه ابری **پوشه** برای مشاوران و دفاتر املاک:
+سامانه **پوشه** — مدیریت حرفه‌ای املاک برای مشاور و دفتر:
 
-- ثبت و مدیریت ملک، مالک، مشتری
-- تقویم بازدید شمسی
-- CRM فروش و حسابداری دفتر
-- کمیسیون، قرارداد، گزارش
-- دعوت عضو تیم و پشتیبانی تیکتی
-- اعلان‌های داخل اپ
-- ورود با OTP (بدون رمز عبور)
+✅ ثبت ملک با فیلدهای تخصصی و عکس  
+✅ مالک، مشتری، بازدید شمسی، CRM  
+✅ حسابداری، کمیسیون، قرارداد PDF  
+✅ دعوت تیم، تیکت پشتیبانی  
+✅ پرداخت و تمدید اشتراک داخل اپ  
+✅ وبسایت اختصاصی دفتر (پلن حرفه‌ای)  
+✅ اندروید + ویندوز همگام با نسخه وب  
 
-**دانلود اندروید:** https://posheapp.ir/downloads/posheh-android.apk  
-**دانلود ویندوز:** https://posheapp.ir/downloads/posheh-windows.zip  
-**ثبت‌نام / ورود:** https://posheapp.ir/register
+📥 **اندروید:** https://posheapp.ir/downloads/posheh-android.apk  
+💻 **ویندوز:** https://posheapp.ir/downloads/posheh-windows.zip  
+🌐 **ثبت‌نام:** https://posheapp.ir/register  
 
-پلن فردی: **۳ روز رایگان** — سپس تمدید از سایت.
-
-پشتیبانی: posheapp.ir
+پلن فردی: **۳ روز رایگان**
 
 ---
 
-## نکات نصب برای خریداران
-
-### اندروید
-1. APK را دانلود کنید.
-2. در تنظیمات، نصب از منابع ناشناس را برای مرورگر فعال کنید.
-3. فایل را باز کرده و نصب کنید.
-
-### ویندوز
-1. ZIP را دانلود و Extract کنید.
-2. `posheh.exe` را اجرا کنید.
-3. در صورت هشدار SmartScreen: More info → Run anyway
-
-## CI
+## Build برای انتشار
 
 ```bash
-# روی main یا workflow_dispatch
-GitHub Actions → Build Android & Windows
+# GitHub Actions
+Actions → Build Android & Windows → Run workflow
+
+# یا محلی
+cd mobile
+flutter build apk --release --dart-define=API_URL=https://posheapp.ir/api/v1
+flutter build windows --release --dart-define=API_URL=https://posheapp.ir/api/v1
 ```
 
-برای کافه‌بازار: secrets مربوط به `ANDROID_KEYSTORE_*` باید تنظیم شده باشند.
+## Deploy سرور
+
+```bash
+cd /var/www/posheh && ./scripts/deploy.sh cursor/mobile-web-parity-divar-e117
+docker compose exec app php artisan migrate --force
+```
+
+## نصب
+
+**اندروید:** دانلود APK → اجازه نصب از منبع ناشناس → نصب  
+**ویندوز:** Extract ZIP → اجرای `posheh.exe`

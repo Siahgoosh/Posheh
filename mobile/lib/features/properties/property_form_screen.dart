@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/api/api_client.dart';
+import '../../core/auth/auth_controller.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/page_shell.dart';
+import 'widgets/dynamic_filing_fields.dart';
 
 class PropertyFormScreen extends ConsumerStatefulWidget {
   final int? editId;
@@ -39,6 +43,11 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
   bool _storage = false;
   bool _loading = false;
   bool _schemaLoading = true;
+  bool _showOnWebsite = false;
+  List<dynamic> _dynamicFieldDefs = [];
+  final Map<String, dynamic> _dynamicValues = {};
+  final List<String> _pendingImages = [];
+  final _picker = ImagePicker();
 
   List<(String, String)> _types = [('sale', 'فروش')];
   List<(String, String)> _categories = [('apartment', 'آپارتمان')];
@@ -82,7 +91,9 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
         _parking = p['has_parking'] == true;
         _elevator = p['has_elevator'] == true;
         _storage = p['has_storage'] == true;
+        _showOnWebsite = p['show_on_website'] == true;
       });
+      await _loadDynamicFields();
     } catch (_) {}
   }
 
@@ -98,9 +109,30 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
         if (_types.isNotEmpty) _type = _types.first.$1;
         _schemaLoading = false;
       });
+      await _loadDynamicFields();
     } catch (_) {
       if (mounted) setState(() => _schemaLoading = false);
     }
+  }
+
+  Future<void> _loadDynamicFields() async {
+    try {
+      final res = await ref.read(apiClientProvider).getFilingFields(_category, _type);
+      final sections = (res['sections'] as List?) ?? const [];
+      final fields = <dynamic>[];
+      for (final s in sections) {
+        fields.addAll((s as Map)['fields'] as List? ?? const []);
+      }
+      if (mounted) setState(() => _dynamicFieldDefs = fields);
+    } catch (_) {
+      if (mounted) setState(() => _dynamicFieldDefs = const []);
+    }
+  }
+
+  Future<void> _pickImages() async {
+    final files = await _picker.pickMultiImage(imageQuality: 85);
+    if (files.isEmpty) return;
+    setState(() => _pendingImages.addAll(files.map((f) => f.path)));
   }
 
   @override
@@ -154,11 +186,20 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
         'has_parking': _parking,
         'has_elevator': _elevator,
         'has_storage': _storage,
+        ..._dynamicValues,
       };
+      if (ref.read(authControllerProvider).user?.hasFeature('website_listing') == true) {
+        data['show_on_website'] = _showOnWebsite;
+      }
       final res = widget.editId != null
           ? await ref.read(apiClientProvider).updateProperty(widget.editId!, data)
           : await ref.read(apiClientProvider).createProperty(data);
       final id = widget.editId ?? res['data']?['id'] ?? res['id'];
+      if (id != null && _pendingImages.isNotEmpty) {
+        for (var i = 0; i < _pendingImages.length; i++) {
+          await ref.read(apiClientProvider).uploadPropertyMedia(id as int, _pendingImages[i], isCover: i == 0);
+        }
+      }
       if (mounted && id != null) context.go('/properties/$id');
     } on ApiException catch (e) {
       if (mounted) {
@@ -207,14 +248,20 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                     value: _type,
                     decoration: const InputDecoration(labelText: 'نوع معامله'),
                     items: _types.map((t) => DropdownMenuItem(value: t.$1, child: Text(t.$2))).toList(),
-                    onChanged: (v) => setState(() => _type = v ?? _type),
+                    onChanged: (v) async {
+                      setState(() => _type = v ?? _type);
+                      await _loadDynamicFields();
+                    },
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: _category,
                     decoration: const InputDecoration(labelText: 'نوع ملک'),
                     items: _categories.map((c) => DropdownMenuItem(value: c.$1, child: Text(c.$2))).toList(),
-                    onChanged: (v) => setState(() => _category = v ?? _category),
+                    onChanged: (v) async {
+                      setState(() => _category = v ?? _category);
+                      await _loadDynamicFields();
+                    },
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
@@ -293,6 +340,47 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                   SwitchListTile(title: const Text('انباری'), value: _storage, onChanged: (v) => setState(() => _storage = v)),
                   const SizedBox(height: 12),
                   TextFormField(controller: _description, decoration: const InputDecoration(labelText: 'توضیحات'), maxLines: 4),
+                ],
+              ),
+            ),
+            if (_dynamicFieldDefs.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              GlassCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('فیلدهای تخصصی', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    DynamicFilingFields(
+                      fields: _dynamicFieldDefs,
+                      values: _dynamicValues,
+                      onChange: (k, v) => setState(() => _dynamicValues[k] = v),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('تصاویر', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  if (_pendingImages.isNotEmpty)
+                    Text('${_pendingImages.length} تصویر انتخاب شده', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                  OutlinedButton.icon(
+                    onPressed: _pickImages,
+                    icon: const Icon(Icons.photo_library_outlined),
+                    label: const Text('افزودن تصویر'),
+                  ),
+                  if (ref.watch(authControllerProvider).user?.hasFeature('website_listing') == true)
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('نمایش در وبسایت دفتر'),
+                      value: _showOnWebsite,
+                      onChanged: (v) => setState(() => _showOnWebsite = v),
+                    ),
                 ],
               ),
             ),

@@ -495,6 +495,115 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> subscribe(int planId, {String gateway = 'zibal'}) {
+    return _guard(
+      () => _dio.post('/subscribe', data: {'plan_id': planId, 'gateway': gateway}),
+      'خطا در شروع پرداخت',
+      ok: (res) => Map<String, dynamic>.from(res.data as Map),
+    );
+  }
+
+  Future<Map<String, dynamic>> getOfficeWebsiteStatus() => getData('/office/website');
+
+  Future<void> requestOfficeWebsite({required String subdomain, String? description}) async {
+    await _guard(
+      () => _dio.post('/office/website/request', data: {
+        'subdomain': subdomain,
+        if (description != null && description.isNotEmpty) 'description': description,
+      }),
+      'خطا در درخواست وبسایت',
+      ok: (_) => null,
+    );
+  }
+
+  Future<void> createOfficeWebsitePost({required String title, required String body}) async {
+    await _guard(
+      () => _dio.post('/office/website/posts', data: {'title': title, 'body': body}),
+      'خطا در انتشار پست',
+      ok: (_) => null,
+    );
+  }
+
+  Future<List<dynamic>> getOfficeVisitRequests() => getList('/office/website/visit-requests');
+
+  Future<List<dynamic>> getOfficePendingProperties() => getList('/office/website/pending-properties');
+
+  Future<void> approvePropertyWebsite(int propertyId, bool approved) async {
+    await _guard(
+      () => _dio.post('/properties/$propertyId/website-approval', data: {'approved': approved}),
+      'خطا در تأیید ملک',
+      ok: (_) => null,
+    );
+  }
+
+  Future<void> updateOfficeSettings(Map<String, dynamic> data) async {
+    await _guard(
+      () => _dio.put('/office/settings', data: data),
+      'خطا در ذخیره تنظیمات دفتر',
+      ok: (_) => null,
+    );
+  }
+
+  Future<List<dynamic>> getApiKeys() => getList('/api-keys');
+
+  Future<Map<String, dynamic>> createApiKey(String name) {
+    return _guard(
+      () => _dio.post('/api-keys', data: {'name': name}),
+      'خطا در ایجاد کلید',
+      ok: (res) => Map<String, dynamic>.from(res.data as Map),
+    );
+  }
+
+  Future<Map<String, dynamic>> getPropertyShareMessage(int id) => getData('/properties/$id/share-message');
+
+  Future<void> shareProperty(int id, {String? recipientMobile, String? channel}) async {
+    await _guard(
+      () => _dio.post('/properties/$id/share', data: {
+        if (recipientMobile != null) 'recipient_mobile': recipientMobile,
+        if (channel != null) 'channel': channel,
+      }),
+      'خطا در اشتراک‌گذاری',
+      ok: (_) => null,
+    );
+  }
+
+  Future<List<dynamic>> getSimilarProperties(int id) => getList('/properties/$id/similar');
+
+  Future<Map<String, dynamic>> uploadPropertyMedia(int propertyId, String filePath, {bool isCover = false}) {
+    return _guard(
+      () async {
+        final formData = FormData.fromMap({
+          'file': await MultipartFile.fromFile(filePath),
+          if (isCover) 'is_cover': '1',
+        });
+        return _dio.post('/properties/$propertyId/media', data: formData);
+      },
+      'خطا در آپلود تصویر',
+      ok: (res) {
+        final body = res.data as Map;
+        final inner = body['data'];
+        if (inner is Map) return Map<String, dynamic>.from(inner);
+        return Map<String, dynamic>.from(body);
+      },
+    );
+  }
+
+  Future<void> deletePropertyMedia(int propertyId, int mediaId) async {
+    await _guard(
+      () => _dio.delete('/properties/$propertyId/media/$mediaId'),
+      'خطا در حذف تصویر',
+      ok: (_) => null,
+    );
+  }
+
+  Future<void> setPropertyCover(int propertyId, int mediaId) async {
+    await _guard(
+      () => _dio.post('/properties/$propertyId/media/$mediaId/cover'),
+      'خطا در تنظیم کاور',
+      ok: (_) => null,
+    );
+  }
+
   Future<Map<String, dynamic>> register(Map<String, dynamic> data) {
     return _guard(
       () => _dio.post('/auth/register', data: data),

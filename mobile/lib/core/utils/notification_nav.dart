@@ -80,6 +80,8 @@ Future<void> navigateFromNotification(BuildContext context, String? linkUrl) asy
     '/team',
     '/tickets',
     '/subscription',
+    '/office-website',
+    '/renew',
     '/settings',
   ];
 

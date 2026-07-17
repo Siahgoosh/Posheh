@@ -1171,20 +1171,97 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final props = _data?['properties'] as Map<String, dynamic>? ?? {};
     final crm = _data?['crm'] as Map<String, dynamic>? ?? {};
     final accounting = _data?['accounting'] as Map<String, dynamic>? ?? {};
+    final commissions = _data?['commissions'] as Map<String, dynamic>? ?? {};
+    final visits = _data?['visits'] as Map<String, dynamic>? ?? {};
+    final consultants = (_data?['consultants'] as List?) ?? const [];
+    final monthlyTrend = (accounting['monthly_trend'] as List?) ?? const [];
+    final pipeline = (crm['pipeline'] as List?) ?? const [];
+    final byType = (props['by_type'] as List?) ?? const [];
+
     return PageShell(
       title: 'گزارش‌ها',
       actions: [IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load)],
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _statCard('ملک فعال', formatNumber(props['active'] as num? ?? 0)),
-                _statCard('معامله باز', formatNumber(crm['open_deals'] as num? ?? 0)),
-                _statCard('نرخ تبدیل', '${crm['conversion_rate'] ?? 0}%'),
-                _statCard('درآمد ماه', formatPrice(accounting['month_income'] as num? ?? 0)),
-              ],
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _statCard('ملک فعال', formatNumber(props['active'] as num? ?? 0)),
+                      _statCard('کل املاک', formatNumber(props['total'] as num? ?? 0)),
+                      _statCard('معامله باز', formatNumber(crm['open_deals'] as num? ?? 0)),
+                      _statCard('نرخ تبدیل', '${crm['conversion_rate'] ?? 0}%'),
+                      _statCard('درآمد ماه', formatPrice(accounting['month_income'] as num? ?? 0)),
+                      _statCard('هزینه ماه', formatPrice(accounting['month_expense'] as num? ?? 0)),
+                      _statCard('کمیسیون معوق', formatPrice(commissions['pending_total'] as num? ?? 0)),
+                      _statCard('بازدید ماه', formatNumber(visits['month_count'] as num? ?? 0)),
+                    ],
+                  ),
+                  if (monthlyTrend.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Text('روند مالی ۶ ماه', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    for (final m in monthlyTrend)
+                      _barRow('${m['label'] ?? ''}', (m['income'] as num?)?.toDouble() ?? 0,
+                          (monthlyTrend.map((x) => (x['income'] as num?)?.toDouble() ?? 0).fold<double>(0, (a, b) => a > b ? a : b))),
+                  ],
+                  if (pipeline.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Text('قیف فروش', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    for (final p in pipeline)
+                      _barRow('${p['stage_label'] ?? p['stage'] ?? ''}', (p['count'] as num?)?.toDouble() ?? 0, 20),
+                  ],
+                  if (byType.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Text('توزیع نوع ملک', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    for (final t in byType)
+                      _barRow('${t['type_label'] ?? t['type'] ?? ''}', (t['count'] as num?)?.toDouble() ?? 0, 50),
+                  ],
+                  if (consultants.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Text('عملکرد مشاوران', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    for (final c in consultants)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: simpleListTile(
+                          title: '${c['name'] ?? ''}',
+                          subtitle: '${formatNumber(c['properties_count'] as num? ?? 0)} ملک · ${formatNumber(c['deals_won'] as num? ?? 0)} معامله',
+                          trailing: formatPrice(c['commission_total'] as num?),
+                        ),
+                      ),
+                  ],
+                ],
+              ),
             ),
+    );
+  }
+
+  Widget _barRow(String label, double value, double max) {
+    final pct = max > 0 ? (value / max).clamp(0.0, 1.0) : 0.0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 13)),
+              Text(value > 1000 ? formatPrice(value) : formatNumber(value), style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          LinearProgressIndicator(value: pct, backgroundColor: AppColors.muted.withValues(alpha: 0.15)),
+        ],
+      ),
     );
   }
 
@@ -1204,122 +1281,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 }
 
-class SubscriptionScreen extends ConsumerStatefulWidget {
-  const SubscriptionScreen({super.key});
-  @override
-  ConsumerState<SubscriptionScreen> createState() => _SubscriptionScreenState();
-}
-
-class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
-  Map<String, dynamic>? _current;
-  List<dynamic> _plans = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final api = ref.read(apiClientProvider);
-      final current = await api.getSubscription();
-      final plans = await api.getPlans();
-      if (mounted) setState(() { _current = current; _plans = plans; _loading = false; });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final user = ref.watch(authControllerProvider).user;
-    return PageShell(
-      title: 'اشتراک',
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (user?.onTrial == true && user?.trialLabel != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: GlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(user!.trialLabel!,
-                              style: const TextStyle(
-                                  color: AppColors.warning,
-                                  fontWeight: FontWeight.bold)),
-                          if (user.trialHoursRemaining != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                '${toPersianDigits('${user.trialHoursRemaining}')} ساعت باقی‌مانده',
-                                style: const TextStyle(color: AppColors.muted, fontSize: 13),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                if (_current != null && _current!.isNotEmpty)
-                  GlassCard(
-                    child: Text(
-                      'اشتراک فعال: ${_current!['plan']?['name'] ?? '—'}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                const SizedBox(height: 12),
-                for (final p in _plans)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: GlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('${p['name']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          const SizedBox(height: 4),
-                          Text(formatPrice(p['monthly_price'] as num? ?? 0),
-                              style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
-                          if (p['slug'] == 'solo')
-                            const Padding(
-                              padding: EdgeInsets.only(top: 6),
-                              child: Text('۳ روز رایگان — فقط پنل فردی', style: TextStyle(color: AppColors.warning, fontSize: 12)),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                GlassCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text('تمدید و پرداخت',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'خرید و تمدید اشتراک از وب‌سایت پوشه انجام می‌شود.',
-                        style: TextStyle(color: AppColors.muted, fontSize: 13, height: 1.5),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton(
-                        onPressed: () => openRenewSubscription(),
-                        child: const Text('رفتن به صفحه اشتراک در وب'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-}
-
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
   @override
@@ -1328,15 +1289,35 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _q = TextEditingController();
+  final _minPrice = TextEditingController();
+  final _maxPrice = TextEditingController();
+  final _minArea = TextEditingController();
+  final _maxArea = TextEditingController();
+  final _rooms = TextEditingController();
+  final _city = TextEditingController();
+  String _type = '';
+  bool _showAdvanced = false;
+  bool _parking = false;
+  bool _elevator = false;
   List<dynamic> _results = [];
   bool _loading = false;
 
   Future<void> _search() async {
     setState(() => _loading = true);
     try {
-      final data = await ref.read(apiClientProvider).getProperties(
-        params: {'q': _q.text.trim()},
-      );
+      final params = <String, dynamic>{
+        if (_q.text.trim().isNotEmpty) 'q': _q.text.trim(),
+        if (_type.isNotEmpty) 'type': _type,
+        if (_city.text.trim().isNotEmpty) 'city': _city.text.trim(),
+        if (_minPrice.text.trim().isNotEmpty) 'min_price': _minPrice.text.trim(),
+        if (_maxPrice.text.trim().isNotEmpty) 'max_price': _maxPrice.text.trim(),
+        if (_minArea.text.trim().isNotEmpty) 'min_area': _minArea.text.trim(),
+        if (_maxArea.text.trim().isNotEmpty) 'max_area': _maxArea.text.trim(),
+        if (_rooms.text.trim().isNotEmpty) 'rooms': _rooms.text.trim(),
+        if (_parking) 'has_parking': true,
+        if (_elevator) 'has_elevator': true,
+      };
+      final data = await ref.read(apiClientProvider).getProperties(params: params);
       if (mounted) {
         setState(() {
           _results = (data['data'] as List?) ?? const [];
@@ -1351,6 +1332,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   void dispose() {
     _q.dispose();
+    _minPrice.dispose();
+    _maxPrice.dispose();
+    _minArea.dispose();
+    _maxArea.dispose();
+    _rooms.dispose();
+    _city.dispose();
     super.dispose();
   }
 
@@ -1361,17 +1348,64 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _q,
-              decoration: InputDecoration(
-                hintText: 'کد ملک، محله، شهر...',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: IconButton(icon: const Icon(Icons.search_rounded), onPressed: _search),
-              ),
-              onSubmitted: (_) => _search(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _q,
+                    decoration: const InputDecoration(
+                      hintText: 'کد، آدرس، نام مالک…',
+                      prefixIcon: Icon(Icons.search_rounded),
+                    ),
+                    onSubmitted: (_) => _search(),
+                  ),
+                ),
+                IconButton(icon: const Icon(Icons.tune_rounded), onPressed: () => setState(() => _showAdvanced = !_showAdvanced)),
+              ],
             ),
           ),
+          if (_showAdvanced)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: _type.isEmpty ? null : _type,
+                    decoration: const InputDecoration(labelText: 'نوع معامله'),
+                    items: const [
+                      DropdownMenuItem(value: '', child: Text('همه')),
+                      DropdownMenuItem(value: 'sale', child: Text('فروش')),
+                      DropdownMenuItem(value: 'rent', child: Text('اجاره')),
+                      DropdownMenuItem(value: 'full_mortgage', child: Text('رهن کامل')),
+                    ],
+                    onChanged: (v) => setState(() => _type = v ?? ''),
+                  ),
+                  TextField(controller: _city, decoration: const InputDecoration(labelText: 'شهر')),
+                  Row(children: [
+                    Expanded(child: TextField(controller: _minPrice, decoration: const InputDecoration(labelText: 'قیمت از'), keyboardType: TextInputType.number)),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: _maxPrice, decoration: const InputDecoration(labelText: 'قیمت تا'), keyboardType: TextInputType.number)),
+                  ]),
+                  Row(children: [
+                    Expanded(child: TextField(controller: _minArea, decoration: const InputDecoration(labelText: 'متراژ از'), keyboardType: TextInputType.number)),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: _maxArea, decoration: const InputDecoration(labelText: 'متراژ تا'), keyboardType: TextInputType.number)),
+                  ]),
+                  TextField(controller: _rooms, decoration: const InputDecoration(labelText: 'تعداد خواب'), keyboardType: TextInputType.number),
+                  SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('پارکینگ'), value: _parking, onChanged: (v) => setState(() => _parking = v)),
+                  SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('آسانسور'), value: _elevator, onChanged: (v) => setState(() => _elevator = v)),
+                ],
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(onPressed: _loading ? null : _search, child: const Text('جستجو')),
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())

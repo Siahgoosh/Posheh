@@ -22,12 +22,66 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   List<dynamic> _devices = [];
   bool _loadingDevices = true;
   String _appVersion = '';
+  final _telegramCtrl = TextEditingController();
+  final _whatsappCtrl = TextEditingController();
+  final _brandNameCtrl = TextEditingController();
+  final _apiKeyNameCtrl = TextEditingController();
+  List<dynamic> _apiKeys = [];
+  String? _plainKey;
+  bool _loadingOffice = false;
 
   @override
   void initState() {
     super.initState();
     _loadDevices();
     _loadVersion();
+    _loadManagerData();
+  }
+
+  @override
+  void dispose() {
+    _telegramCtrl.dispose();
+    _whatsappCtrl.dispose();
+    _brandNameCtrl.dispose();
+    _apiKeyNameCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadManagerData() async {
+    final user = ref.read(authControllerProvider).user;
+    if (!(user?.canManage ?? false)) return;
+    try {
+      final keys = await ref.read(apiClientProvider).getApiKeys();
+      if (mounted) setState(() => _apiKeys = keys);
+    } catch (_) {}
+  }
+
+  Future<void> _saveOfficeSettings() async {
+    setState(() => _loadingOffice = true);
+    try {
+      await ref.read(apiClientProvider).updateOfficeSettings({
+        if (_telegramCtrl.text.isNotEmpty) 'telegram_bot_token': _telegramCtrl.text.trim(),
+        if (_whatsappCtrl.text.isNotEmpty) 'whatsapp_phone': _whatsappCtrl.text.trim(),
+        if (_brandNameCtrl.text.isNotEmpty) 'brand_name': _brandNameCtrl.text.trim(),
+      });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تنظیمات دفتر ذخیره شد')));
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _loadingOffice = false);
+    }
+  }
+
+  Future<void> _createApiKey() async {
+    if (_apiKeyNameCtrl.text.trim().isEmpty) return;
+    try {
+      final res = await ref.read(apiClientProvider).createApiKey(_apiKeyNameCtrl.text.trim());
+      setState(() => _plainKey = res['plain_key'] as String?);
+      _apiKeyNameCtrl.clear();
+      await _loadManagerData();
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
   }
 
   Future<void> _loadVersion() async {
@@ -169,6 +223,59 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
+          if (user?.canManage == true) ...[
+            const SizedBox(height: 16),
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.smart_toy_outlined, size: 18, color: AppColors.primary),
+                      SizedBox(width: 8),
+                      Text('ربات‌ها و برند دفتر', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(controller: _telegramCtrl, decoration: const InputDecoration(labelText: 'توکن ربات تلگرام'), obscureText: true),
+                  const SizedBox(height: 8),
+                  TextField(controller: _whatsappCtrl, decoration: const InputDecoration(labelText: 'شماره واتساپ'), keyboardType: TextInputType.phone),
+                  const SizedBox(height: 8),
+                  TextField(controller: _brandNameCtrl, decoration: const InputDecoration(labelText: 'نام برند')),
+                  const SizedBox(height: 10),
+                  FilledButton(onPressed: _loadingOffice ? null : _saveOfficeSettings, child: const Text('ذخیره تنظیمات دفتر')),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.vpn_key_outlined, size: 18, color: AppColors.primary),
+                      SizedBox(width: 8),
+                      Text('کلید API عمومی', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(controller: _apiKeyNameCtrl, decoration: const InputDecoration(labelText: 'نام کلید')),
+                  FilledButton(onPressed: _createApiKey, child: const Text('ایجاد کلید')),
+                  if (_plainKey != null) ...[
+                    const SizedBox(height: 8),
+                    SelectableText(_plainKey!, style: const TextStyle(fontSize: 12, color: AppColors.warning)),
+                    const Text('این کلید فقط یک‌بار نمایش داده می‌شود.', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                  ],
+                  for (final k in _apiKeys)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text('${k['name']} · ${k['key_prefix']}…', style: const TextStyle(fontSize: 13)),
+                    ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           GlassCard(
             child: Column(
