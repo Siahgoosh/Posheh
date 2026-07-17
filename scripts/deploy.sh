@@ -119,8 +119,10 @@ clear_laravel_cache
 log "5/9 Seeding settings, blog and demo data"
 $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --no-interaction \
   || fail "SystemSettingsSeeder failed"
-$COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
+  $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
   || log "BlogSeeder warning (may already be seeded)"
+$COMPOSE exec -T app php artisan blog:seed-bulk --count=100 --no-interaction \
+  || log "Blog bulk seed warning"
 $COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \
   || log "AppReleaseSeeder warning (may already be seeded)"
 if [ "${SKIP_DEMO_SEED:-1}" = "1" ]; then

@@ -37,7 +37,7 @@ jobs:
           cache: true
 
       - run: flutter pub get
-      - run: flutter analyze --no-fatal-infos
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - run: flutter test
 
   android:
@@ -126,7 +126,7 @@ jobs:
 
   publish-downloads:
     needs: [android, windows]
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/cursor/') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

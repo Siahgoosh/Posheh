@@ -191,7 +191,7 @@ export function BlogPostPage() {
           <div className="mt-12 p-6 rounded-2xl bg-primary/10 border border-primary/20 text-center">
             <p className="font-medium mb-3">{post.cta_text || 'آماده مدیریت حرفه‌ای املاک هستید؟'}</p>
             <Link to={post.cta_url || '/register'}>
-              <Button>شروع ۴۸ ساعت رایگان</Button>
+              <Button>شروع ۳ روز رایگان</Button>
             </Link>
           </div>
         </article>

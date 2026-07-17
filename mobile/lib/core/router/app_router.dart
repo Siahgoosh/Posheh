@@ -9,6 +9,10 @@ import '../../features/properties/property_form_screen.dart';
 import '../../features/properties/property_detail_screen.dart';
 import '../../features/settings/settings_screen.dart';
 import '../../features/modules/module_screens.dart';
+import '../../features/subscription/subscription_screen.dart';
+import '../../features/office_website/office_website_screen.dart';
+import '../../features/owners/owners_screen.dart';
+import '../../features/customers/customers_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authControllerProvider);
@@ -19,14 +23,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (auth.loading) return null;
       final loggingIn = state.matchedLocation == '/login';
       final registering = state.matchedLocation == '/register';
+      final onSubscription = state.matchedLocation == '/subscription' || state.matchedLocation == '/renew';
       if (!auth.isAuthenticated) return (loggingIn || registering) ? null : '/login';
       if (loggingIn || registering) return '/dashboard';
+      final user = auth.user;
+      if (user != null && user.role != 'super_admin' && (!user.hasAccess || user.subscriptionExpired)) {
+        if (!onSubscription) return '/subscription';
+      }
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       GoRoute(path: '/properties/new', builder: (_, __) => const PropertyFormScreen()),
+      GoRoute(
+        path: '/properties/:id/edit',
+        builder: (_, state) => PropertyFormScreen(
+          editId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
       GoRoute(
         path: '/properties/:id',
         builder: (_, state) => PropertyDetailScreen(
@@ -35,7 +50,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
       GoRoute(path: '/properties', builder: (_, __) => const PropertiesScreen()),
+      GoRoute(
+        path: '/owners/:id',
+        builder: (_, state) => OwnerDetailScreen(id: int.parse(state.pathParameters['id']!)),
+      ),
       GoRoute(path: '/owners', builder: (_, __) => const OwnersScreen()),
+      GoRoute(
+        path: '/customers/:id',
+        builder: (_, state) => CustomerDetailScreen(id: int.parse(state.pathParameters['id']!)),
+      ),
       GoRoute(path: '/customers', builder: (_, __) => const CustomersScreen()),
       GoRoute(path: '/visits', builder: (_, __) => const VisitsScreen()),
       GoRoute(path: '/search', builder: (_, __) => const SearchScreen()),
@@ -47,7 +70,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/contracts', builder: (_, __) => const ContractsScreen()),
       GoRoute(path: '/team', builder: (_, __) => const TeamScreen()),
       GoRoute(path: '/tickets', builder: (_, __) => const TicketsScreen()),
+      GoRoute(path: '/office-website', builder: (_, __) => const OfficeWebsiteScreen()),
       GoRoute(path: '/subscription', builder: (_, __) => const SubscriptionScreen()),
+      GoRoute(path: '/renew', builder: (_, __) => const SubscriptionScreen(renewMode: true)),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
     ],
   );

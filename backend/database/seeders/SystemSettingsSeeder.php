@@ -26,7 +26,8 @@ class SystemSettingsSeeder extends Seeder
             ['group' => 'payment', 'key' => 'zibal_merchant', 'value' => env('ZIBAL_MERCHANT', ''), 'label' => 'مرچنت زیبال', 'type' => 'text', 'is_secret' => true],
             ['group' => 'payment', 'key' => 'zibal_sandbox', 'value' => env('ZIBAL_SANDBOX', '0') ? '1' : '0', 'label' => 'حالت تست زیبال', 'type' => 'boolean'],
             ['group' => 'general', 'key' => 'app_public_name', 'value' => 'پوشه', 'label' => 'نام نرم‌افزار', 'type' => 'text'],
-            ['group' => 'general', 'key' => 'trial_hours_solo', 'value' => '48', 'label' => 'ساعت دوره آزمایشی پنل فردی', 'type' => 'number'],
+            ['group' => 'general', 'key' => 'trial_days_solo', 'value' => '3', 'label' => 'روز دوره آزمایشی پنل فردی (فقط مشاور مستقل)', 'type' => 'number'],
+            ['group' => 'general', 'key' => 'trial_hours_solo', 'value' => '72', 'label' => '(قدیمی) ساعت آزمایشی — از trial_days_solo استفاده کنید', 'type' => 'number'],
             ['group' => 'general', 'key' => 'frontend_url', 'value' => env('FRONTEND_URL', env('APP_URL', 'http://localhost:8000')), 'label' => 'آدرس فرانت‌اند', 'type' => 'text'],
             ['group' => 'general', 'key' => 'invite_sms_template', 'value' => 'شما به دفتر {office} در پوشه دعوت شدید. با شماره موبایل خود وارد شوید.', 'label' => 'متن پیامک دعوت', 'type' => 'textarea'],
         ];

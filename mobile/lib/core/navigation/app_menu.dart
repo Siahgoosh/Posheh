@@ -30,7 +30,8 @@ const appMenuItems = <AppMenuItem>[
   AppMenuItem(path: '/commissions', label: 'کمیسیون', icon: Icons.percent_rounded),
   AppMenuItem(path: '/contracts', label: 'قراردادها', icon: Icons.description_outlined),
   AppMenuItem(path: '/team', label: 'تیم', icon: Icons.groups_outlined, feature: 'team'),
+  AppMenuItem(path: '/office-website', label: 'وبسایت دفتر', icon: Icons.language_rounded, feature: 'website_listing'),
   AppMenuItem(path: '/tickets', label: 'پشتیبانی', icon: Icons.support_agent_rounded),
-  AppMenuItem(path: '/subscription', label: 'اشتراک', icon: Icons.credit_card_rounded, managerOnly: true),
+  AppMenuItem(path: '/subscription', label: 'اشتراک', icon: Icons.credit_card_rounded),
   AppMenuItem(path: '/settings', label: 'تنظیمات', icon: Icons.settings_outlined),
 ];
