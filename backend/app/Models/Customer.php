@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PropertyType;
 use App\Traits\BelongsToOffice;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Customer extends Model
 {
     use BelongsToOffice;
+
+    protected $appends = ['need_label'];
 
     protected $fillable = [
         'office_id',
@@ -43,5 +46,18 @@ class Customer extends Model
     public function visits(): HasMany
     {
         return $this->hasMany(PropertyVisit::class);
+    }
+
+    public function getNeedLabelAttribute(): ?string
+    {
+        if (! $this->preferred_type) {
+            return null;
+        }
+
+        try {
+            return PropertyType::from($this->preferred_type)->label();
+        } catch (\ValueError) {
+            return $this->preferred_type;
+        }
     }
 }

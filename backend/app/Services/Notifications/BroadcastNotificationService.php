@@ -65,9 +65,10 @@ class BroadcastNotificationService
                 return count(array_intersect($roles, $targetRoles)) > 0;
             })
             ->map(function (BroadcastMessage $message) use ($user) {
-                $read = BroadcastMessageRead::where('broadcast_message_id', $message->id)
-                    ->where('user_id', $user->id)
-                    ->first();
+                $read = BroadcastMessageRead::firstOrCreate(
+                    ['broadcast_message_id' => $message->id, 'user_id' => $user->id],
+                    ['delivered_at' => now()],
+                );
 
                 return [
                     'id' => $message->id,
@@ -88,9 +89,10 @@ class BroadcastNotificationService
 
     public function markRead(User $user, int $messageId): void
     {
-        BroadcastMessageRead::where('broadcast_message_id', $messageId)
-            ->where('user_id', $user->id)
-            ->update(['read_at' => now()]);
+        BroadcastMessageRead::updateOrCreate(
+            ['broadcast_message_id' => $messageId, 'user_id' => $user->id],
+            ['read_at' => now(), 'delivered_at' => now()],
+        );
     }
 
     /** @return Collection<int, User> */
