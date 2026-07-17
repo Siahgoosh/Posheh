@@ -32,6 +32,9 @@ mobile/.flutter-plugins
 mobile/.flutter-plugins-dependencies
 mobile/.packages
 mobile/pubspec.lock
+mobile/android/key.properties
+mobile/android/*.jks
+mobile/android/*.keystore
 
 # Testing
 coverage/

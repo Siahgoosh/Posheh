@@ -132,7 +132,16 @@
 
 ## ۵. ساخت فایل انتشار (APK / AAB)
 
-### پیش‌نیاز: Keystore تولید
+### روش توصیه‌شده: امضا از GitHub Actions
+
+راهنمای کامل: **[docs/GITHUB-ANDROID-SIGNING.md](./GITHUB-ANDROID-SIGNING.md)**
+
+خلاصه:
+1. یک‌بار workflow **Generate Android Keystore** را اجرا کنید
+2. چهار Secret (`ANDROID_KEYSTORE_*`) را در GitHub تنظیم کنید
+3. workflow **Build Android & Windows** → APK امضا‌شده در Artifacts و `frontend/public/downloads/`
+
+### روش دستی: Keystore محلی
 
 ```bash
 keytool -genkey -v -keystore posheh-release.keystore \

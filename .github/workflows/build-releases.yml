@@ -6,7 +6,9 @@ on:
     paths:
       - 'mobile/**'
       - '.github/workflows/build-releases.yml'
+      - '.github/workflows/generate-android-keystore.yml'
       - 'scripts/build-releases.sh'
+      - 'scripts/android-signing-ci.sh'
   workflow_dispatch:
 
 permissions:
@@ -58,7 +60,30 @@ jobs:
           cache: true
 
       - run: flutter pub get
+
+      - name: Configure Android release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: bash scripts/android-signing-ci.sh
+
       - run: flutter build apk --release --dart-define=API_URL=${{ env.API_URL }}
+
+      - name: Verify APK signing (Cafe Bazaar requires release keystore)
+        run: |
+          APK="mobile/build/app/outputs/flutter-apk/app-release.apk"
+          if keytool -printcert -jarfile "$APK" 2>/dev/null | grep -qi "Android Debug"; then
+            echo "::warning::APK is debug-signed. Add ANDROID_KEYSTORE_* secrets and re-run, or use Generate Android Keystore workflow."
+            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              echo "::error::Main branch APK must be release-signed for Cafe Bazaar. Configure GitHub Secrets."
+              exit 1
+            fi
+          else
+            echo "APK is release-signed."
+            keytool -printcert -jarfile "$APK" 2>/dev/null | grep -E "Owner:|SHA256:" | head -4
+          fi
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
@@ -107,6 +132,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - uses: actions/download-artifact@v4
         with:
           name: posheh-android-apk
@@ -123,6 +153,9 @@ jobs:
           cp artifacts/android/app-release.apk frontend/public/downloads/posheh-android.apk
           cp artifacts/windows/posheh-windows.zip frontend/public/downloads/posheh-windows.zip
           ls -lh frontend/public/downloads/
+          if keytool -printcert -jarfile frontend/public/downloads/posheh-android.apk 2>/dev/null | grep -qi "Android Debug"; then
+            echo "::warning::Published APK is debug-signed — not suitable for Cafe Bazaar production."
+          fi
 
       - name: Commit and push downloads
         run: |

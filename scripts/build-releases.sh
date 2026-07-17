@@ -14,6 +14,8 @@ fi
 cd "$ROOT/mobile"
 flutter pub get
 
+bash "$ROOT/scripts/android-signing-ci.sh"
+
 echo "Building Android APK..."
 flutter build apk --release --dart-define=API_URL="$API_URL"
 cp build/app/outputs/flutter-apk/app-release.apk "$OUT/posheh-android.apk"
