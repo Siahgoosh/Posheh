@@ -162,9 +162,24 @@ sudo ufw allow 25,465,587,993/tcp
 
 ## عیب‌یابی
 
+### admin/webmail در حلقه Restarting
+
+```bash
+cd /var/www/posheh
+git pull origin cursor/zibal-payments-seo-backup-e117
+chmod +x scripts/fix-mail-restart.sh
+./scripts/fix-mail-restart.sh
+```
+
+اگر هنوز `git pull` نکردی، همین یک خط:
+
+```bash
+sed -i 's/^INITIAL_ADMIN_MODE=.*/INITIAL_ADMIN_MODE=ifmissing/' docker/mail/mailu.env; grep -q '^INITIAL_ADMIN_MODE=' docker/mail/mailu.env || echo 'INITIAL_ADMIN_MODE=ifmissing' >> docker/mail/mailu.env; docker compose -f docker-compose.yml -f docker-compose.mail.yml up -d --force-recreate mailu-admin mailu-webmail
+```
+
 | مشکل | راه‌حل |
 |------|--------|
-| admin/webmail در حلقه Restarting | `./scripts/fix-mail-restart.sh` — معمولاً `INITIAL_ADMIN_MODE=ifmissing` لازم است |
+| admin/webmail Restarting | `./scripts/fix-mail-restart.sh` |
 | mail.posheapp.ir باز نمی‌شود | `docker compose ps` — mailu-front باید Up باشد؛ nginx restart |
 | ایمیل ارسال نمی‌شود | SPF و DKIM را چک کن؛ پورت 587 باز باشد |
 | اسپم می‌شود | DKIM + DMARC کامل کن؛ ۲۴ ساعت صبر |

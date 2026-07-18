@@ -12,7 +12,11 @@ log "1/4 Recover website..."
 
 log "2/4 Setup email..."
 if [ -f docker/mail/secrets.env ]; then
-  "$ROOT/scripts/setup-mail.sh"
+  if [ -f scripts/fix-mail-restart.sh ]; then
+    "$ROOT/scripts/fix-mail-restart.sh" || "$ROOT/scripts/setup-mail.sh"
+  else
+    "$ROOT/scripts/setup-mail.sh"
+  fi
 else
   log "Skip mail — create docker/mail/secrets.env first"
 fi
