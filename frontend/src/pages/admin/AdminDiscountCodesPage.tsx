@@ -122,7 +122,7 @@ export function AdminDiscountCodesPage() {
                     <Button size="sm" variant="outline" onClick={() => toggleMutation.mutate({ id: c.id, is_active: !c.is_active })}>
                       {c.is_active ? 'غیرفعال' : 'فعال'}
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(c.id)}>حذف</Button>
+                    <Button size="sm" variant="danger" onClick={() => deleteMutation.mutate(c.id)}>حذف</Button>
                   </div>
                 </div>
               ))}
