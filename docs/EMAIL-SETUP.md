@@ -164,6 +164,7 @@ sudo ufw allow 25,465,587,993/tcp
 
 | مشکل | راه‌حل |
 |------|--------|
+| admin/webmail در حلقه Restarting | `./scripts/fix-mail-restart.sh` — معمولاً `INITIAL_ADMIN_MODE=ifmissing` لازم است |
 | mail.posheapp.ir باز نمی‌شود | `docker compose ps` — mailu-front باید Up باشد؛ nginx restart |
 | ایمیل ارسال نمی‌شود | SPF و DKIM را چک کن؛ پورت 587 باز باشد |
 | اسپم می‌شود | DKIM + DMARC کامل کن؛ ۲۴ ساعت صبر |

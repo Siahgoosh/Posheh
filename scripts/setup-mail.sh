@@ -6,8 +6,25 @@ MAIL_DIR="$ROOT/docker/mail"
 SECRETS="$MAIL_DIR/secrets.env"
 MAILU_ENV="$MAIL_DIR/mailu.env"
 COMPOSE="docker compose -f $ROOT/docker-compose.yml -f $ROOT/docker-compose.mail.yml"
+EXPECTED_SUBNET="172.28.203.0/24"
 
 log() { printf '[mail-setup] %s\n' "$1"; }
+
+set_mailu_kv() {
+  local key="$1" val="$2"
+  if grep -q "^${key}=" "$MAILU_ENV" 2>/dev/null; then
+    sed -i "s|^${key}=.*|${key}=${val}|" "$MAILU_ENV"
+  else
+    echo "${key}=${val}" >> "$MAILU_ENV"
+  fi
+}
+
+sync_mailu_env() {
+  set_mailu_kv SUBNET "$EXPECTED_SUBNET"
+  set_mailu_kv INITIAL_ADMIN_MODE ifmissing
+  set_mailu_kv DISABLE_STATISTICS True
+  grep -q '^WEBROOT_REDIRECT=' "$MAILU_ENV" || set_mailu_kv WEBROOT_REDIRECT /webmail
+}
 
 mailu_network() {
   $COMPOSE ps -q mailu-front 2>/dev/null | head -1 | xargs -r docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{"\n"}}{{end}}' 2>/dev/null | head -1
@@ -27,8 +44,8 @@ wait_admin() {
     sleep 5
   done
   echo ""
-  log "Admin still starting — web panel may need 1-2 more minutes."
-  log "Check: docker compose -f docker-compose.yml -f docker-compose.mail.yml logs mailu-admin --tail=20"
+  log "Admin still starting — try: ./scripts/fix-mail-restart.sh"
+  log "Check: docker compose -f docker-compose.yml -f docker-compose.mail.yml logs mailu-admin --tail=30"
   return 0
 }
 
@@ -59,6 +76,8 @@ mkdir -p "$MAIL_DIR/overrides/roundcube"
 if [ ! -f "$MAILU_ENV" ]; then
   cp "$MAIL_DIR/mailu.env.example" "$MAILU_ENV"
 fi
+
+sync_mailu_env
 
 # Only generate secret key on first setup
 if grep -q 'CHANGE_ME_SETUP_SCRIPT' "$MAILU_ENV" 2>/dev/null; then
