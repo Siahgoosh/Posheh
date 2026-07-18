@@ -11,7 +11,6 @@ services:
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
     networks:
       - posheh
-      - mailu
     depends_on:
       - mysql
       - redis
@@ -30,7 +29,6 @@ services:
       - ./frontend/dist:/var/www/frontend
     networks:
       - posheh
-      - mailu
     depends_on:
       - app
 
@@ -74,7 +72,6 @@ services:
       - ./backend:/var/www
     networks:
       - posheh
-      - mailu
     depends_on:
       - app
       - redis
@@ -91,7 +88,6 @@ services:
       - ./backend:/var/www
     networks:
       - posheh
-      - mailu
     depends_on:
       - app
 

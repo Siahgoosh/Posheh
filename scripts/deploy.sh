@@ -163,6 +163,8 @@ if [ ! -f frontend/dist/downloads/posheh-android.apk ] || [ "$(wc -c < frontend/
 fi
 
 log "8/9 Restarting services"
+$COMPOSE up -d mysql redis app nginx queue scheduler || fail "docker compose up failed"
+$COMPOSE exec -T nginx nginx -t 2>/dev/null || log "WARNING: nginx config test failed"
 $COMPOSE restart app queue nginx scheduler 2>/dev/null || $COMPOSE restart app queue nginx
 
 if [ -f "$ROOT/docker/mail/secrets.env" ] || [ -n "${MAIL_INFO_PASSWORD:-}" ]; then
