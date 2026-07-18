@@ -165,6 +165,14 @@ fi
 log "8/9 Restarting services"
 $COMPOSE restart app queue nginx scheduler 2>/dev/null || $COMPOSE restart app queue nginx
 
+if [ -f "$ROOT/docker/mail/secrets.env" ] || [ -n "${MAIL_INFO_PASSWORD:-}" ]; then
+  log "Mail: setting up Mailu panel"
+  chmod +x "$ROOT/scripts/setup-mail.sh" 2>/dev/null || true
+  MAIL_INFO_PASSWORD="${MAIL_INFO_PASSWORD:-}" "$ROOT/scripts/setup-mail.sh" || log "Mail setup warning — see docs/EMAIL-SETUP.md"
+  $COMPOSE -f docker-compose.yml -f docker-compose.mail.yml up -d 2>/dev/null || true
+  $COMPOSE restart nginx 2>/dev/null || true
+fi
+
 log "9/9 Health check"
 sleep 6
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/plans || echo "000")
@@ -190,6 +198,10 @@ Next steps:
   - OTP logs:             docker compose exec app tail -50 storage/logs/laravel.log
   - Site URL:            http://YOUR_SERVER_IP/  (or :8000)
   - Admin settings:       /admin/settings
+  - Email panel:          https://mail.posheapp.ir/admin
+  - Webmail:              https://mail.posheapp.ir/webmail
+  - Email setup:          docs/EMAIL-SETUP.md
+  - First-time mail:      cp docker/mail/secrets.env.example docker/mail/secrets.env && ./scripts/setup-mail.sh
   - If sms_mode=log only: login OTP code is 123456
 
 EOF

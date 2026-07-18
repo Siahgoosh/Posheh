@@ -1,118 +1,157 @@
-# راه‌اندازی ایمیل Info@posheapp.ir
+# راه‌اندازی ایمیل Info@posheapp.ir — Cloudflare + Mailu
 
-ایمیل رسمی: **Info@posheapp.ir**  
-پشتیبانی: **support@posheapp.ir** (می‌تواند به همان صندوق forward شود)
+پنل کامل ایمیل با **وب‌میل**، **پنل ادمین**، SMTP و IMAP روی سرور خودت.
 
----
-
-## روش ۱ — پیشنهادی: Zoho Mail (رایگان، پایدار)
-
-ساده‌ترین راه برای دامنه `posheapp.ir` بدون دردسر سرور ایمیل.
-
-### گام‌ها
-
-1. برو به [zoho.com/mail](https://www.zoho.com/mail/) → **Sign Up** → Plan رایگان (تا ۵ کاربر)
-2. **Add Domain** → `posheapp.ir`
-3. Zoho رکوردهای DNS را نشان می‌دهد — در پنل دامنه (ایران‌سرور، نیک‌نیم، Cloudflare، …) اضافه کن:
-
-| نوع | نام | مقدار |
-|-----|-----|--------|
-| TXT | `@` | `zoho-verification=...` (از Zoho) |
-| MX | `@` | `mx.zoho.com` اولویت 10 |
-| MX | `@` | `mx2.zoho.com` اولویت 20 |
-| TXT | `@` | `v=spf1 include:zoho.com ~all` |
-| TXT | `zmail._domainkey` | DKIM از پنل Zoho |
-| TXT | `_dmarc` | `v=DMARC1; p=none; rua=mailto:Info@posheapp.ir` |
-
-4. در Zoho کاربر بساز: **Info@posheapp.ir**
-5. (اختیاری) Alias: `support@posheapp.ir` → forward به Info
-
-### اتصال به Laravel (سرور پوشه)
-
-در `backend/.env` روی سرور:
-
-```env
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.zoho.com
-MAIL_PORT=587
-MAIL_USERNAME=Info@posheapp.ir
-MAIL_PASSWORD=رمز-اپلیکیشن-zoho
-MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS=Info@posheapp.ir
-MAIL_FROM_NAME="پوشه"
-BACKUP_EMAIL=hamidrezakeshavarziii9@gmail.com
-```
-
-**نکته Zoho:** اگر 2FA داری، از [App Password](https://help.zoho.com/portal/en/kb/bigin/channels/email/articles/app-specific-password) استفاده کن.
-
-تست:
-```bash
-docker compose exec app php artisan tinker
->>> Mail::raw('تست ایمیل پوشه', fn($m) => $m->to('hamidrezakeshavarziii9@gmail.com')->subject('Test'));
-```
+| آدرس | کاربرد |
+|------|--------|
+| **https://mail.posheapp.ir/webmail** | خواندن/ارسال ایمیل (Roundcube) |
+| **https://mail.posheapp.ir/admin** | مدیریت کاربران، alias، DKIM |
+| **Info@posheapp.ir** | ایمیل اصلی |
+| **support@posheapp.ir** | alias به Info (خودکار ساخته می‌شود) |
 
 ---
 
-## روش ۲ — سرور ایمیل روی همان VPS (Docker)
+## مرحله ۱ — DNS در Cloudflare
 
-فایل‌های آماده در `docker/mail/`. فقط اگر IP سرور reverse DNS دارد و پورت 25 باز است.
+برو به [dash.cloudflare.com](https://dash.cloudflare.com) → دامنه **posheapp.ir** → **DNS** → **Records**
 
-### پیش‌نیاز DNS
+### رکوردهای الزامی
 
-| نوع | نام | مقدار |
-|-----|-----|--------|
-| A | `mail` | IP سرور |
-| MX | `@` | `mail.posheapp.ir` اولویت 10 |
-| TXT | `@` | `v=spf1 mx a ip4:IP_SERVER ~all` |
-| TXT | `_dmarc` | `v=DMARC1; p=quarantine; rua=mailto:Info@posheapp.ir` |
+| نوع | Name | Content | Proxy | TTL |
+|-----|------|---------|-------|-----|
+| **A** | `mail` | `IP سرور تو` | **DNS only** (ابر خاکستری) | Auto |
+| **MX** | `@` | `mail.posheapp.ir` | — | priority **10** |
+| **TXT** | `@` | `v=spf1 mx a:mail.posheapp.ir ~all` | — | Auto |
+| **TXT** | `_dmarc` | `v=DMARC1; p=none; rua=mailto:Info@posheapp.ir` | — | Auto |
 
-بعد از بالا آوردن mailserver، DKIM را از لاگ/setup بگیر و به DNS اضافه کن.
+### نکات Cloudflare
 
-### راه‌اندازی
+1. رکورد **mail** حتماً **Proxied خاموش** (خاکستری) — برای SMTP/IMAP لازم است
+2. رکورد **MX** و **SPF** روی ریشه `@` باشد
+3. رکورد **DKIM** بعد از deploy از پنل Mailu می‌گیری (مرحله ۴)
+
+### SSL در Cloudflare (اختیاری ولی توصیه‌شده)
+
+برای `mail.posheapp.ir`:
+- **SSL/TLS** → Overview → **Full** یا **Full (strict)**
+- اگر Certificate روی سرور نداری، موقتاً **Flexible** هم کار می‌کند
+
+---
+
+## مرحله ۲ — Deploy روی سرور
 
 ```bash
 cd /var/www/posheh
-cp docker/mail/mailserver.env.example docker/mail/mailserver.env
-# ویرایش: DMS_DOMAIN=posheapp.ir و رمزها
 
-./docker/mail/setup.sh
-docker compose -f docker-compose.yml -f docker-compose.mail.yml up -d mailserver
+# ۱. کد جدید
+./scripts/deploy.sh cursor/zibal-payments-seo-backup-e117
+
+# ۲. رمز ایمیل را تنظیم کن (فقط یک‌بار)
+cp docker/mail/secrets.env.example docker/mail/secrets.env
+nano docker/mail/secrets.env
+# MAIL_INFO_PASSWORD=رمز-تو
+
+# ۳. راه‌اندازی Mailu
+chmod +x scripts/setup-mail.sh
+./scripts/setup-mail.sh
+
+# ۴. بالا آوردن nginx با پنل ایمیل
+docker compose -f docker-compose.yml -f docker-compose.mail.yml up -d
+docker compose restart nginx
 ```
 
-### Laravel با mailserver محلی
+### یک خط (اگر رمز را می‌دانی)
+
+```bash
+MAIL_INFO_PASSWORD='رمز-ایمیل-تو' ./scripts/setup-mail.sh
+docker compose -f docker-compose.yml -f docker-compose.mail.yml up -d
+docker compose restart nginx app
+```
+
+---
+
+## مرحله ۳ — ورود به پنل
+
+| | |
+|--|--|
+| **وب‌میل** | https://mail.posheapp.ir/webmail |
+| **ادمین** | https://mail.posheapp.ir/admin |
+| **کاربر** | `Info@posheapp.ir` |
+| **رمز** | همان `MAIL_INFO_PASSWORD` در secrets.env |
+
+از پنل ادمین می‌توانی:
+- کاربر جدید بسازی
+- alias اضافه کنی (مثلاً sales@)
+- کوتا و فیلتر تنظیم کنی
+- DKIM را ببینی
+
+---
+
+## مرحله ۴ — DKIM (بعد از اولین ورود)
+
+1. برو **https://mail.posheapp.ir/admin**
+2. **Mail domains** → `posheapp.ir` → **DKIM keys**
+3. مقدار TXT را کپی کن
+4. در Cloudflare اضافه کن:
+
+| نوع | Name | Content |
+|-----|------|---------|
+| TXT | `dkim._domainkey` (یا همان نامی که Mailu نشان می‌دهد) | مقدار DKIM |
+
+---
+
+## مرحله ۵ — اتصال به اپ پوشه (Laravel)
+
+`setup-mail.sh` خودکار `backend/.env` را تنظیم می‌کند:
 
 ```env
 MAIL_MAILER=smtp
-MAIL_HOST=mailserver
+MAIL_HOST=mailu-front
 MAIL_PORT=587
 MAIL_USERNAME=Info@posheapp.ir
-MAIL_PASSWORD=رمز-تعیین‌شده-در-setup
+MAIL_PASSWORD=...
 MAIL_ENCRYPTION=tls
 MAIL_FROM_ADDRESS=Info@posheapp.ir
-MAIL_FROM_NAME="پوشه"
+MAIL_FROM_NAME=پوشه
+BACKUP_EMAIL=hamidrezakeshavarziii9@gmail.com
+```
+
+تست ارسال:
+
+```bash
+docker compose exec app php artisan tinker
+>>> Mail::raw('تست ایمیل پوشه', fn($m) => $m->to('hamidrezakeshavarziii9@gmail.com')->subject('Test Posheh'));
 ```
 
 ---
 
-## روش ۳ — cPanel / هاست اشتراکی
+## اتصال از Outlook / Gmail / موبایل
 
-اگر دامنه روی cPanel است:
-
-1. **Email Accounts** → Create → `Info@posheapp.ir`
-2. SMTP: `mail.posheapp.ir` پورت 587 TLS
-3. همان تنظیمات `.env` بالا با `MAIL_HOST=mail.posheapp.ir`
+| تنظیم | مقدار |
+|-------|--------|
+| IMAP Server | `mail.posheapp.ir` |
+| IMAP Port | `993` SSL |
+| SMTP Server | `mail.posheapp.ir` |
+| SMTP Port | `587` STARTTLS |
+| Username | `Info@posheapp.ir` |
+| Password | رمز secrets.env |
 
 ---
 
-## کجاها از Info@posheapp.ir استفاده می‌شود
+## پورت‌های باز روی سرور (فایروال)
 
-| محل | کاربرد |
-|-----|--------|
-| کافه‌بازار | ایمیل توسعه‌دهنده |
-| Play Protect Appeals | ایمیل تماس |
-| `MAIL_FROM` لاراول | OTP، بک‌آپ، اعلان‌ها |
-| سایت | صفحه تماس / فوتر |
-| `support@posheapp.ir` | تیکت پشتیبانی (می‌تواند alias باشد) |
+| پورت | سرویس |
+|------|--------|
+| 25 | SMTP دریافت |
+| 587 | SMTP ارسال (STARTTLS) |
+| 465 | SMTP SSL |
+| 993 | IMAP SSL |
+| 80/443 | وب‌میل و ادمین |
+
+```bash
+# Ubuntu UFW example:
+sudo ufw allow 25,465,587,993/tcp
+```
 
 ---
 
@@ -120,11 +159,29 @@ MAIL_FROM_NAME="پوشه"
 
 | مشکل | راه‌حل |
 |------|--------|
-| ایمیل ارسال نمی‌شود | `MAIL_MAILER=log` را به `smtp` عوض کن؛ پورت 587 را چک کن |
-| اسپم می‌شود | SPF + DKIM + DMARC را کامل کن |
-| Zoho verify نمی‌شود | ۲۴–۴۸ ساعت صبر کن؛ TTL DNS را ۳۰۰ بگذار |
-| بک‌آپ ایمیل نمی‌رسد | `BACKUP_EMAIL` و SMTP را تست کن |
+| mail.posheapp.ir باز نمی‌شود | `docker compose ps` — mailu-front باید Up باشد؛ nginx restart |
+| ایمیل ارسال نمی‌شود | SPF و DKIM را چک کن؛ پورت 587 باز باشد |
+| اسپم می‌شود | DKIM + DMARC کامل کن؛ ۲۴ ساعت صبر |
+| Laravel خطا می‌دهد | `docker compose exec app php artisan config:clear` |
+| پسورد اشتباه | `nano docker/mail/secrets.env` و دوباره `./scripts/setup-mail.sh` |
+
+لاگ Mailu:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.mail.yml logs mailu-front --tail=50
+```
 
 ---
 
-*پس از تنظیم، حتماً یک ایمیل تست بفرست و در Spam هم چک کن.*
+## فایل‌های مهم
+
+```
+docker/mail/secrets.env      ← رمز (gitignore — روی سرور بساز)
+docker/mail/mailu.env        ← تنظیمات Mailu (خودکار)
+docker-compose.mail.yml      ← سرویس‌های Mailu
+docker/nginx/mail.conf       ← پروکسی mail.posheapp.ir
+scripts/setup-mail.sh        ← اسکریپت راه‌اندازی
+```
+
+---
+
+*پس از deploy حتماً یک ایمیل تست بفرست و Inbox و Spam را چک کن.*

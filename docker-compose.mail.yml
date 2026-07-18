@@ -1,28 +1,112 @@
-# Optional mail server overlay — see docs/EMAIL-SETUP.md
+# Mailu — full email panel (admin + webmail + SMTP/IMAP)
+# Usage: ./scripts/setup-mail.sh && docker compose -f docker-compose.yml -f docker-compose.mail.yml up -d
 services:
-  mailserver:
-    image: ghcr.io/docker-mailserver/docker-mailserver:latest
-    container_name: posheh-mail
-    hostname: mail.posheapp.ir
+  mailu-front:
+    image: ghcr.io/mailu/nginx:${MAILU_VERSION:-2024.06}
+    container_name: posheh-mailu-front
     restart: unless-stopped
     env_file:
-      - ./docker/mail/mailserver.env
+      - ./docker/mail/mailu.env
     ports:
       - "25:25"
+      - "465:465"
       - "587:587"
       - "993:993"
+    expose:
+      - "80"
     volumes:
-      - maildata:/var/mail
-      - mailstate:/var/mail-state
-      - maillogs:/var/log/mail
-      - ./docker/mail/config/:/tmp/docker-mailserver/
-      - /etc/localtime:/etc/localtime:ro
-    cap_add:
-      - NET_ADMIN
+      - mailu_certs:/certs
+      - mailu_overrides:/overrides
     networks:
-      - posheh
+      - mailu
+
+  mailu-redis:
+    image: redis:7-alpine
+    container_name: posheh-mailu-redis
+    restart: unless-stopped
+    volumes:
+      - mailu_redis:/data
+    networks:
+      - mailu
+
+  mailu-admin:
+    image: ghcr.io/mailu/admin:${MAILU_VERSION:-2024.06}
+    container_name: posheh-mailu-admin
+    restart: unless-stopped
+    env_file:
+      - ./docker/mail/mailu.env
+    volumes:
+      - mailu_data:/data
+      - mailu_dkim:/dkim
+    depends_on:
+      - mailu-redis
+    networks:
+      - mailu
+
+  mailu-imap:
+    image: ghcr.io/mailu/dovecot:${MAILU_VERSION:-2024.06}
+    container_name: posheh-mailu-imap
+    restart: unless-stopped
+    env_file:
+      - ./docker/mail/mailu.env
+    volumes:
+      - mailu_mail:/mail
+    depends_on:
+      - mailu-front
+    networks:
+      - mailu
+
+  mailu-smtp:
+    image: ghcr.io/mailu/postfix:${MAILU_VERSION:-2024.06}
+    container_name: posheh-mailu-smtp
+    restart: unless-stopped
+    env_file:
+      - ./docker/mail/mailu.env
+    volumes:
+      - mailu_queue:/queue
+    depends_on:
+      - mailu-front
+    networks:
+      - mailu
+
+  mailu-antispam:
+    image: ghcr.io/mailu/rspamd:${MAILU_VERSION:-2024.06}
+    container_name: posheh-mailu-antispam
+    restart: unless-stopped
+    env_file:
+      - ./docker/mail/mailu.env
+    volumes:
+      - mailu_filter:/var/lib/rspamd
+      - mailu_dkim:/dkim:ro
+    depends_on:
+      - mailu-front
+    networks:
+      - mailu
+
+  mailu-webmail:
+    image: ghcr.io/mailu/roundcube:${MAILU_VERSION:-2024.06}
+    container_name: posheh-mailu-webmail
+    restart: unless-stopped
+    env_file:
+      - ./docker/mail/mailu.env
+    volumes:
+      - mailu_webmail:/data
+    depends_on:
+      - mailu-imap
+    networks:
+      - mailu
 
 volumes:
-  maildata:
-  mailstate:
-  maillogs:
+  mailu_certs:
+  mailu_overrides:
+  mailu_redis:
+  mailu_data:
+  mailu_dkim:
+  mailu_mail:
+  mailu_queue:
+  mailu_filter:
+  mailu_webmail:
+
+networks:
+  mailu:
+    driver: bridge
