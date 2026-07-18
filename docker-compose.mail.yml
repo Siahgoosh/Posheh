@@ -1,0 +1,28 @@
+# Optional mail server overlay — see docs/EMAIL-SETUP.md
+services:
+  mailserver:
+    image: ghcr.io/docker-mailserver/docker-mailserver:latest
+    container_name: posheh-mail
+    hostname: mail.posheapp.ir
+    restart: unless-stopped
+    env_file:
+      - ./docker/mail/mailserver.env
+    ports:
+      - "25:25"
+      - "587:587"
+      - "993:993"
+    volumes:
+      - maildata:/var/mail
+      - mailstate:/var/mail-state
+      - maillogs:/var/log/mail
+      - ./docker/mail/config/:/tmp/docker-mailserver/
+      - /etc/localtime:/etc/localtime:ro
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - posheh
+
+volumes:
+  maildata:
+  mailstate:
+  maillogs:

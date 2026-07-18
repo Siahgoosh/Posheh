@@ -63,6 +63,7 @@ ensure_env_file() {
   grep -q '^ZIBAL_MERCHANT=' "$ENV_FILE" || set_env_var ZIBAL_MERCHANT 6a58d65f2881deb76c48df68
   grep -q '^ZIBAL_SANDBOX=' "$ENV_FILE" || set_env_var ZIBAL_SANDBOX false
   grep -q '^BACKUP_EMAIL=' "$ENV_FILE" || set_env_var BACKUP_EMAIL hamidrezakeshavarziii9@gmail.com
+  grep -q '^MAIL_FROM_ADDRESS=' "$ENV_FILE" || set_env_var MAIL_FROM_ADDRESS Info@posheapp.ir
 }
 
 clear_laravel_cache() {
