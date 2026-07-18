@@ -1,6 +1,6 @@
 #!/bin/bash
 # Setup Mailu email panel for posheapp.ir
-set -euo pipefail
+set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MAIL_DIR="$ROOT/docker/mail"
 SECRETS="$MAIL_DIR/secrets.env"
@@ -8,6 +8,29 @@ MAILU_ENV="$MAIL_DIR/mailu.env"
 COMPOSE="docker compose -f $ROOT/docker-compose.yml -f $ROOT/docker-compose.mail.yml"
 
 log() { printf '[mail-setup] %s\n' "$1"; }
+
+mailu_network() {
+  $COMPOSE ps -q mailu-front 2>/dev/null | head -1 | xargs -r docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{"\n"}}{{end}}' 2>/dev/null | head -1
+}
+
+wait_admin() {
+  log "Waiting for Mailu admin (max 2 min)..."
+  local i
+  for i in $(seq 1 24); do
+    if timeout 10 $COMPOSE exec -T mailu-admin true 2>/dev/null; then
+      if timeout 20 $COMPOSE exec -T mailu-admin flask mailu config-update 2>/dev/null; then
+        log "Mailu admin is ready."
+        return 0
+      fi
+    fi
+    printf '.'
+    sleep 5
+  done
+  echo ""
+  log "Admin still starting — web panel may need 1-2 more minutes."
+  log "Check: docker compose -f docker-compose.yml -f docker-compose.mail.yml logs mailu-admin --tail=20"
+  return 0
+}
 
 if [ ! -f "$SECRETS" ]; then
   if [ -n "${MAIL_INFO_PASSWORD:-}" ]; then
@@ -37,38 +60,36 @@ if [ ! -f "$MAILU_ENV" ]; then
   cp "$MAIL_DIR/mailu.env.example" "$MAILU_ENV"
 fi
 
-SECRET_KEY=$(openssl rand -hex 32)
-sed -i "s|^SECRET_KEY=.*|SECRET_KEY=${SECRET_KEY}|" "$MAILU_ENV"
+# Only generate secret key on first setup
+if grep -q 'CHANGE_ME_SETUP_SCRIPT' "$MAILU_ENV" 2>/dev/null; then
+  SECRET_KEY=$(openssl rand -hex 32)
+  sed -i "s|^SECRET_KEY=.*|SECRET_KEY=${SECRET_KEY}|" "$MAILU_ENV"
+fi
 sed -i "s|^INITIAL_ADMIN_PW=.*|INITIAL_ADMIN_PW=${MAIL_INFO_PASSWORD}|" "$MAILU_ENV"
 
-# Ensure mailu docker network exists
-docker network inspect posheh_mailu >/dev/null 2>&1 || docker network create posheh_mailu
+log "Pulling Mailu images..."
+$COMPOSE pull mailu-front mailu-admin mailu-imap mailu-smtp mailu-antispam mailu-webmail mailu-redis || log "Pull warning (continuing)"
 
-SUBNET_LINE=$(docker network inspect posheh_mailu 2>/dev/null | grep -oP '"Subnet": "\K[^"]+' | head -1 || echo "172.28.0.0/16")
-sed -i "s|^SUBNET=.*|SUBNET=${SUBNET_LINE}|" "$MAILU_ENV"
-
-log "Pulling Mailu images (webmail not roundcube)..."
-$COMPOSE pull mailu-front mailu-admin mailu-imap mailu-smtp mailu-antispam mailu-webmail mailu-redis
-
-log "Starting Mailu..."
+log "Starting Mailu containers..."
 $COMPOSE up -d mailu-redis mailu-admin mailu-front mailu-imap mailu-smtp mailu-antispam mailu-webmail
 
-log "Connecting app + nginx to mail network..."
-docker network connect posheh_mailu posheh-app 2>/dev/null || true
-docker network connect posheh_mailu posheh-nginx 2>/dev/null || true
+sleep 8
 
-log "Waiting for Mailu admin..."
-for i in $(seq 1 24); do
-  if $COMPOSE exec -T mailu-admin flask mailu config-update 2>/dev/null; then
-    break
-  fi
-  sleep 5
-done
+NET=$(mailu_network)
+if [ -n "$NET" ]; then
+  log "Connecting app + nginx to network: $NET"
+  docker network connect "$NET" posheh-app 2>/dev/null || true
+  docker network connect "$NET" posheh-nginx 2>/dev/null || true
+else
+  log "WARNING: mailu network not found yet — run again after containers are up"
+fi
+
+wait_admin
 
 SUPPORT_USER="${MAIL_SUPPORT_ALIAS%%@*}"
 SUPPORT_USER="${SUPPORT_USER:-support}"
-$COMPOSE exec -T mailu-admin flask mailu alias "${SUPPORT_USER}" posheapp.ir Info@posheapp.ir 2>/dev/null \
-  || log "Add support alias manually in admin panel"
+timeout 15 $COMPOSE exec -T mailu-admin flask mailu alias "${SUPPORT_USER}" posheapp.ir Info@posheapp.ir 2>/dev/null \
+  || log "Support alias: add manually in admin panel"
 
 ENV_FILE="$ROOT/backend/.env"
 if [ -f "$ENV_FILE" ]; then
@@ -88,15 +109,18 @@ if [ -f "$ENV_FILE" ]; then
   set_env MAIL_ENCRYPTION tls
   set_env MAIL_FROM_ADDRESS "Info@posheapp.ir"
   set_env MAIL_FROM_NAME "پوشه"
+  log "Updated backend/.env mail settings"
 fi
 
-$COMPOSE restart nginx app 2>/dev/null || true
+docker compose restart nginx app 2>/dev/null || true
 
 log ""
 log "=========================================="
-log "  Mailu ready"
+log "  Mailu deploy finished"
 log "  Webmail: https://mail.posheapp.ir/webmail"
 log "  Admin:   https://mail.posheapp.ir/admin"
 log "  Login:   Info@posheapp.ir"
-log "  DKIM:    Admin -> Mail domains -> posheapp.ir"
+log ""
+log "  If panel not open yet, wait 1-2 min then refresh."
+log "  Status:  docker compose -f docker-compose.yml -f docker-compose.mail.yml ps"
 log "=========================================="
