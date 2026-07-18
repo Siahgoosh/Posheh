@@ -10,9 +10,9 @@ use Symfony\Component\Process\Process;
 
 class BackupDatabaseCommand extends Command
 {
-    protected $signature = 'backup:database {--email= : Override backup recipient email}';
+    protected $signature = 'backup:database {--email= : Override backup recipient email} {--no-email : Save file only, skip email}';
 
-    protected $description = 'Create a MySQL dump, gzip it, and email to the configured backup address';
+    protected $description = 'Create a MySQL dump, gzip it, and optionally email to the configured backup address';
 
     public function handle(): int
     {
@@ -71,13 +71,20 @@ class BackupDatabaseCommand extends Command
         $sizeMb = round(filesize($gzFile) / 1024 / 1024, 2);
         $this->info("Backup created: {$filename} ({$sizeMb} MB)");
 
+        if ($this->option('no-email')) {
+            $this->info("Saved locally: {$gzFile}");
+
+            return self::SUCCESS;
+        }
+
         try {
             Mail::to($recipient)->send(new DatabaseBackupMail($gzFile, $filename));
             $this->info("Backup emailed to {$recipient}");
         } catch (\Throwable $e) {
-            $this->error('Email failed: '.$e->getMessage());
+            $this->warn('Email failed: '.$e->getMessage());
+            $this->info("Backup saved locally: {$gzFile}");
 
-            return self::FAILURE;
+            return self::SUCCESS;
         }
 
         $this->cleanupOldBackups($dir, 10);
