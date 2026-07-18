@@ -29,6 +29,7 @@ services:
       - ./frontend/dist:/var/www/frontend
     networks:
       - posheh
+      - mailu
     depends_on:
       - app
 

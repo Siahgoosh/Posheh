@@ -60,12 +60,17 @@ docker compose -f docker-compose.yml -f docker-compose.mail.yml up -d
 docker compose restart nginx
 ```
 
-### یک خط (اگر رمز را می‌دانی)
+### یک خط (بعد از ساخت secrets.env)
 
 ```bash
-MAIL_INFO_PASSWORD='رمز-ایمیل-تو' ./scripts/setup-mail.sh
-docker compose -f docker-compose.yml -f docker-compose.mail.yml up -d
-docker compose restart nginx app
+./scripts/fix-site-and-mail.sh
+```
+
+یا جداگانه:
+
+```bash
+./scripts/recover-site.sh
+./scripts/setup-mail.sh
 ```
 
 ---

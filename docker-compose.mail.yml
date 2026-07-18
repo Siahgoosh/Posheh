@@ -84,13 +84,14 @@ services:
       - mailu
 
   mailu-webmail:
-    image: ghcr.io/mailu/roundcube:${MAILU_VERSION:-2024.06}
+    image: ghcr.io/mailu/webmail:${MAILU_VERSION:-2024.06}
     container_name: posheh-mailu-webmail
     restart: unless-stopped
     env_file:
       - ./docker/mail/mailu.env
     volumes:
       - mailu_webmail:/data
+      - ./docker/mail/overrides/roundcube:/overrides:ro
     depends_on:
       - mailu-imap
     networks:
