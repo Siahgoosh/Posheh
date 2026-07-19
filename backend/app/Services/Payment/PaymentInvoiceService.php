@@ -8,12 +8,14 @@ use App\Models\Payment;
 use App\Services\Settings\SystemSettingsService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Morilog\Jalali\Jalalian;
 use Symfony\Component\HttpFoundation\Response;
 
 class PaymentInvoiceService
 {
     public function __construct(
         private readonly SystemSettingsService $settings,
+        private readonly InvoicePdfRenderer $pdfRenderer,
     ) {}
 
     public function assignInvoiceNumber(Payment $payment): Payment
@@ -53,13 +55,16 @@ class PaymentInvoiceService
         $amount = (int) $payment->amount;
         $vatAmount = $vatPercent > 0 ? (int) round($amount * $vatPercent / 100) : 0;
 
+        $issuedAt = $payment->paid_at ?? $payment->created_at;
+
         return [
             'invoice_number' => $payment->invoice_number ?? $this->generateInvoiceNumber($payment),
             'invoice_type' => $payment->status === 'paid' ? 'receipt' : 'proforma',
             'invoice_type_label' => $payment->status === 'paid' ? 'رسید پرداخت' : 'پیش‌فاکتور',
             'status' => $payment->status,
             'status_label' => $payment->status === 'paid' ? 'پرداخت شده' : 'در انتظار پرداخت',
-            'issued_at' => ($payment->paid_at ?? $payment->created_at)?->toIso8601String(),
+            'issued_at' => $issuedAt?->toIso8601String(),
+            'issued_at_jalali' => $issuedAt ? Jalalian::fromDateTime($issuedAt)->format('Y/m/d — H:i') : Jalalian::now()->format('Y/m/d — H:i'),
             'seller' => [
                 'name' => (string) $this->settings->get('app_public_name', 'پوشه'),
                 'support_phone' => (string) $this->settings->get('support_phone', ''),
@@ -92,12 +97,38 @@ class PaymentInvoiceService
     {
         $invoice = $this->build($payment);
 
-        return response()->view('invoices.payment-print', ['invoice' => $invoice]);
+        return response()->view('invoices.payment-invoice', [
+            'invoice' => $invoice,
+            'forPdf' => false,
+        ]);
+    }
+
+    public function pdfResponse(Payment $payment): Response
+    {
+        $payment = $this->assignInvoiceNumber($payment);
+        $invoice = $this->build($payment);
+        $html = view('invoices.payment-invoice', [
+            'invoice' => $invoice,
+            'forPdf' => true,
+        ])->render();
+
+        $filename = ($payment->invoice_number ?? 'invoice-'.$payment->id).'.pdf';
+
+        try {
+            return $this->pdfRenderer->render($html, $filename);
+        } catch (\Throwable $e) {
+            Log::error('mPDF invoice failed, falling back to HTML', [
+                'payment_id' => $payment->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return $this->printResponse($payment);
+        }
     }
 
     public function downloadResponse(Payment $payment): Response
     {
-        return $this->printResponse($payment);
+        return $this->pdfResponse($payment);
     }
 
     private function generateInvoiceNumber(Payment $payment): string

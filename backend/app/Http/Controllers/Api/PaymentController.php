@@ -41,12 +41,28 @@ class PaymentController extends Controller
         ]);
     }
 
-    public function invoicePdf(Request $request, int $id)
+    public function invoicePrint(Request $request, int $id)
     {
         try {
             $payment = $request->user()->office->payments()->findOrFail($id);
 
             return $this->invoices->printResponse($payment);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('invoice print failed', [
+                'payment_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'خطا در نمایش فاکتور: '.$e->getMessage()], 500);
+        }
+    }
+
+    public function invoicePdf(Request $request, int $id)
+    {
+        try {
+            $payment = $request->user()->office->payments()->findOrFail($id);
+
+            return $this->invoices->pdfResponse($payment);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('invoice print failed', [
                 'payment_id' => $id,

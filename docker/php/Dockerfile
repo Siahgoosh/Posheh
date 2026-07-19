@@ -12,6 +12,15 @@ WORKDIR /var/www
 
 COPY . .
 
+# Persian fonts for invoice PDF (Vazirmatn)
+RUN mkdir -p /var/www/resources/fonts \
+    && (test -f /var/www/resources/fonts/Vazirmatn-Regular.ttf || \
+        curl -fsSL -o /var/www/resources/fonts/Vazirmatn-Regular.ttf \
+          https://github.com/rastikerdar/vazirmatn/raw/master/fonts/ttf/Vazirmatn-Regular.ttf) \
+    && (test -f /var/www/resources/fonts/Vazirmatn-Bold.ttf || \
+        curl -fsSL -o /var/www/resources/fonts/Vazirmatn-Bold.ttf \
+          https://github.com/rastikerdar/vazirmatn/raw/master/fonts/ttf/Vazirmatn-Bold.ttf)
+
 RUN composer install --no-dev --optimize-autoloader --no-interaction || true
 
 RUN chmod +x /var/www/docker-entrypoint.sh \

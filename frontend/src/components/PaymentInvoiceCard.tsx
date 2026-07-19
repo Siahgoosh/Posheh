@@ -39,21 +39,35 @@ export function PaymentInvoiceCard({ invoice, paymentId, onConfirm, onClose, con
     try {
       const res = await api.get(`/payments/${paymentId}/invoice/pdf`, {
         responseType: 'blob',
-        headers: { Accept: 'text/html,application/pdf' },
+        headers: { Accept: 'application/pdf' },
       })
-      const type = res.headers['content-type'] ?? ''
-      const blob = new Blob([res.data], { type: type.includes('html') ? 'text/html;charset=utf-8' : 'application/pdf' })
+      const blob = new Blob([res.data], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
-      const win = window.open(url, '_blank')
-      if (!win) {
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${invoice.invoice_number ?? `invoice-${paymentId}`}.html`
-        a.click()
-      }
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${invoice.invoice_number ?? `invoice-${paymentId}`}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('خطا در دانلود فاکتور — دوباره تلاش کنید')
+    }
+  }
+
+  const previewHtml = async () => {
+    if (!paymentId) return
+    try {
+      const res = await api.get(`/payments/${paymentId}/invoice/print`, {
+        responseType: 'blob',
+        headers: { Accept: 'text/html' },
+      })
+      const blob = new Blob([res.data], { type: 'text/html;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
       setTimeout(() => URL.revokeObjectURL(url), 60_000)
     } catch {
-      alert('خطا در نمایش فاکتور — دوباره تلاش کنید')
+      alert('خطا در نمایش فاکتور')
     }
   }
 
@@ -119,7 +133,10 @@ export function PaymentInvoiceCard({ invoice, paymentId, onConfirm, onClose, con
               <Button variant="outline" onClick={onClose}>بستن</Button>
             )}
             {paymentId && invoice.status === 'paid' && (
-              <Button variant="outline" type="button" onClick={downloadPdf}>چاپ / دانلود فاکتور</Button>
+              <>
+                <Button variant="outline" type="button" onClick={downloadPdf}>دانلود PDF</Button>
+                <Button variant="ghost" type="button" onClick={previewHtml}>پیش‌نمایش</Button>
+              </>
             )}
           </div>
         )}

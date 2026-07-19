@@ -187,6 +187,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/payments', [PaymentController::class, 'index']);
         Route::get('/payments/{id}', [PaymentController::class, 'show']);
         Route::get('/payments/{id}/invoice', [PaymentController::class, 'invoice']);
+        Route::get('/payments/{id}/invoice/print', [PaymentController::class, 'invoicePrint']);
         Route::get('/payments/{id}/invoice/pdf', [PaymentController::class, 'invoicePdf']);
 
         Route::get('/subscription/current', [SubscriptionController::class, 'current']);
