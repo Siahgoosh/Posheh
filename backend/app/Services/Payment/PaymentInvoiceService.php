@@ -5,11 +5,9 @@ namespace App\Services\Payment;
 use App\Enums\PaymentGateway;
 use App\Models\Office;
 use App\Models\Payment;
-use App\Models\User;
 use App\Services\Settings\SystemSettingsService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class PaymentInvoiceService
 {
@@ -39,8 +37,8 @@ class PaymentInvoiceService
     {
         $payment = $this->assignInvoiceNumber($payment);
         $office = $payment->office ?? Office::find($payment->office_id);
-        $gateway = $payment->gateway instanceof PaymentGateway ? $payment->gateway : PaymentGateway::from((string) $payment->gateway);
-        $purpose = $payment->metadata['purpose'] ?? 'subscription';
+        $gateway = $payment->gateway instanceof PaymentGateway ? $payment->gateway : PaymentGateway::tryFrom((string) $payment->gateway);
+        $purpose = ($payment->metadata ?? [])['purpose'] ?? 'subscription';
         $vatPercent = (int) ($this->settings->get('accounting_default_vat_percent', '0') ?: 0);
         $amount = (int) $payment->amount;
         $vatAmount = $vatPercent > 0 ? (int) round($amount * $vatPercent / 100) : 0;
@@ -59,7 +57,7 @@ class PaymentInvoiceService
             ],
             'buyer' => [
                 'office_name' => $office?->name,
-                'user_name' => $payment->metadata['user_name'] ?? null,
+                'user_name' => ($payment->metadata ?? [])['user_name'] ?? null,
                 'user_phone' => $payment->user_phone,
             ],
             'items' => [[
@@ -74,7 +72,7 @@ class PaymentInvoiceService
             'vat_percent' => $vatPercent,
             'vat_amount' => $vatAmount,
             'total' => $amount + $vatAmount,
-            'gateway_label' => $gateway->label(),
+            'gateway_label' => $gateway?->label() ?? (string) $payment->gateway,
             'ref_id' => $payment->ref_id,
             'currency' => 'تومان',
         ];
@@ -84,19 +82,34 @@ class PaymentInvoiceService
     {
         $invoice = $this->build($payment);
         $html = view('invoices.payment', ['invoice' => $invoice])->render();
-        $pdf = Pdf::loadHTML($html);
-        $path = 'invoices/'.Str::slug($payment->invoice_number ?? 'payment-'.$payment->id).'.pdf';
+        $pdf = Pdf::loadHTML($html)->setPaper('a4');
+        $path = 'invoices/'.($payment->invoice_number ?? 'payment-'.$payment->id).'.pdf';
+        $path = preg_replace('/[^a-zA-Z0-9._\-\/]/', '-', $path) ?: 'invoices/payment-'.$payment->id.'.pdf';
+
+        Storage::disk('public')->makeDirectory('invoices');
         Storage::disk('public')->put($path, $pdf->output());
 
         return $path;
+    }
+
+    public function downloadResponse(Payment $payment): \Symfony\Component\HttpFoundation\Response
+    {
+        $payment = $this->assignInvoiceNumber($payment);
+        $invoice = $this->build($payment);
+        $html = view('invoices.payment', ['invoice' => $invoice])->render();
+        $filename = ($payment->invoice_number ?? 'invoice-'.$payment->id).'.pdf';
+
+        return Pdf::loadHTML($html)
+            ->setPaper('a4')
+            ->download($filename);
     }
 
     private function itemTitle(Payment $payment, string $purpose): string
     {
         return match ($purpose) {
             'wallet_topup' => 'شارژ کیف پول پوشه',
-            'manual_credit' => $payment->metadata['description'] ?? 'شارژ دستی کیف پول',
-            default => 'اشتراک '.($payment->metadata['plan_name'] ?? 'پوشه'),
+            'manual_credit' => ($payment->metadata ?? [])['description'] ?? 'شارژ دستی کیف پول',
+            default => 'اشتراک '.(($payment->metadata ?? [])['plan_name'] ?? 'پوشه'),
         };
     }
 }

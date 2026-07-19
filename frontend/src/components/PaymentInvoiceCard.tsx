@@ -1,4 +1,5 @@
 import { formatPrice } from '@/lib/utils'
+import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -33,7 +34,21 @@ interface Props {
 }
 
 export function PaymentInvoiceCard({ invoice, paymentId, onConfirm, onClose, confirmLabel = 'رفتن به درگاه پرداخت', showActions = true }: Props) {
-  const pdfUrl = paymentId ? `/api/v1/payments/${paymentId}/invoice/pdf` : null
+  const downloadPdf = async () => {
+    if (!paymentId) return
+    try {
+      const res = await api.get(`/payments/${paymentId}/invoice/pdf`, { responseType: 'blob' })
+      const blob = new Blob([res.data], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${invoice.invoice_number ?? `invoice-${paymentId}`}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('خطا در دانلود فاکتور — دوباره تلاش کنید')
+    }
+  }
 
   return (
     <Card className="border-primary/20 shadow-lg max-w-lg w-full">
@@ -96,10 +111,8 @@ export function PaymentInvoiceCard({ invoice, paymentId, onConfirm, onClose, con
             {onClose && (
               <Button variant="outline" onClick={onClose}>بستن</Button>
             )}
-            {pdfUrl && invoice.status === 'paid' && (
-              <a href={pdfUrl} target="_blank" rel="noreferrer">
-                <Button variant="outline" type="button">دانلود PDF</Button>
-              </a>
+            {paymentId && invoice.status === 'paid' && (
+              <Button variant="outline" type="button" onClick={downloadPdf}>دانلود PDF</Button>
             )}
           </div>
         )}

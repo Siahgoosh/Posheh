@@ -7,7 +7,6 @@ use App\Services\Payment\PaymentHistoryService;
 use App\Services\Payment\PaymentInvoiceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
 {
@@ -45,11 +44,7 @@ class PaymentController extends Controller
     public function invoicePdf(Request $request, int $id)
     {
         $payment = $request->user()->office->payments()->findOrFail($id);
-        $path = $this->invoices->pdfPath($payment);
 
-        return response()->download(
-            Storage::disk('public')->path($path),
-            ($payment->invoice_number ?? 'invoice-'.$payment->id).'.pdf',
-        );
+        return $this->invoices->downloadResponse($payment);
     }
 }
