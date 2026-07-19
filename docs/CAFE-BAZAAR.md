@@ -2,6 +2,9 @@
 
 این سند تمام اطلاعات لازم برای ثبت و انتشار **نسخه اندروید پوشه** در [کافه‌بازار](https://cafebazaar.ir) را در یک جا جمع می‌کند.
 
+> **خطای Blocked by Play Protect؟** → راهنمای کامل: [docs/PLAY-PROTECT-BAZAAR.md](./PLAY-PROTECT-BAZAAR.md)  
+> **ایمیل توسعه‌دهنده:** Info@posheapp.ir — راه‌اندازی: [docs/EMAIL-SETUP.md](./EMAIL-SETUP.md)
+
 ---
 
 ## ۱. اطلاعات فنی اپ
@@ -11,7 +14,7 @@
 | نام فارسی | **پوشه** |
 | نام انگلیسی | **Posheh** |
 | Package Name | `ir.posheapp.posheh` |
-| نسخه فعلی | `1.0.1` (versionCode: `2`) |
+| نسخه فعلی | `1.1.1` (versionCode: `6`) |
 | حداقل SDK | Android 5.0+ (طبق Flutter پیش‌فرض) |
 | زبان رابط | فارسی (RTL) |
 | API سرور | `https://posheapp.ir/api/v1` |

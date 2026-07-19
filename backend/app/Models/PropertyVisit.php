@@ -5,10 +5,13 @@ namespace App\Models;
 use App\Traits\BelongsToOffice;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Morilog\Jalali\Jalalian;
 
 class PropertyVisit extends Model
 {
     use BelongsToOffice;
+
+    protected $appends = ['visit_at_jalali', 'status_label'];
 
     protected $fillable = [
         'office_id',
@@ -49,5 +52,22 @@ class PropertyVisit extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function getVisitAtJalaliAttribute(): ?string
+    {
+        return $this->visit_at
+            ? Jalalian::fromDateTime($this->visit_at)->format('Y/m/d H:i')
+            : null;
+    }
+
+    public function getStatusLabelAttribute(): ?string
+    {
+        return match ($this->status) {
+            'scheduled' => 'برنامه‌ریزی‌شده',
+            'completed' => 'انجام‌شده',
+            'cancelled' => 'لغو',
+            default => $this->status,
+        };
     }
 }

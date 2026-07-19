@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth'
 
-const RENEWAL_ALLOWED = ['/renew', '/subscription', '/settings']
+const RENEWAL_ALLOWED = ['/renew', '/subscription']
 
 export function SubscriptionGuard({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore()

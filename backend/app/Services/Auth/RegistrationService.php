@@ -57,10 +57,10 @@ class RegistrationService
             ->firstOrFail();
 
         $panelType = PanelType::from($plan->panel_type);
-        $soloTrialHours = (int) $this->settings->get('trial_hours_solo', 48);
+        $soloTrialDays = (int) $this->settings->get('trial_days_solo', 3);
 
-        return DB::transaction(function () use ($mobile, $data, $plan, $panelType, $device, $registrationToken, $soloTrialHours) {
-            $officeData = $this->buildOfficeData($data, $plan, $panelType, $soloTrialHours);
+        return DB::transaction(function () use ($mobile, $data, $plan, $panelType, $device, $registrationToken, $soloTrialDays) {
+            $officeData = $this->buildOfficeData($data, $plan, $panelType, $soloTrialDays);
             $office = Office::create($officeData);
 
             if (! empty($data['logo']) && $data['logo'] instanceof \Illuminate\Http\UploadedFile) {
@@ -103,9 +103,9 @@ class RegistrationService
     }
 
     /** @return array<string, mixed> */
-    private function buildOfficeData(array $data, SubscriptionPlan $plan, PanelType $panelType, int $soloTrialHours): array
+    private function buildOfficeData(array $data, SubscriptionPlan $plan, PanelType $panelType, int $soloTrialDays): array
     {
-        $trialEndsAt = $panelType->isSolo() ? now()->addHours($soloTrialHours) : null;
+        $trialEndsAt = $panelType->isSolo() ? now()->addDays($soloTrialDays) : null;
 
         if ($panelType->isSolo()) {
             $name = trim(($data['first_name'] ?? '').' '.($data['last_name'] ?? ''));

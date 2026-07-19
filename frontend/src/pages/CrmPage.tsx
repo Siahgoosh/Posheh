@@ -120,9 +120,9 @@ export function CrmPage() {
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Kanban className="h-6 w-6 text-primary" /> قیف فروش CRM
+            <Kanban className="h-6 w-6 text-primary" /> قیف فروش
           </h1>
-          <p className="text-sm text-muted mt-1">{totalOpen} معامله باز — الگوی Salesforce / Follow Up Boss</p>
+          <p className="text-sm text-muted mt-1">{totalOpen} معامله باز — مدیریت قیف فروش</p>
         </div>
       </div>
 

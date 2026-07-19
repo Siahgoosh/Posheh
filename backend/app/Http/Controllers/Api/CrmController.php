@@ -26,6 +26,11 @@ class CrmController extends Controller
         return response()->json(['data' => $this->crm->followUps($request->user())]);
     }
 
+    public function stages(): JsonResponse
+    {
+        return response()->json(['data' => $this->crm->stages()]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
