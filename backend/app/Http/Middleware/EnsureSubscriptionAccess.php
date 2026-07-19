@@ -16,6 +16,7 @@ class EnsureSubscriptionAccess
         'api/v1/subscription',
         'api/v1/subscribe',
         'api/v1/payments',
+        'api/v1/notifications',
     ];
 
     public function __construct(

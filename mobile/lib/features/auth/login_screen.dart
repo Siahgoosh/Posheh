@@ -222,7 +222,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Center(
           child: TextButton(
             onPressed: _loading ? null : () => context.go('/register'),
-            child: const Text('ثبت‌نام رایگان ۴۸ ساعته'),
+            child: const Text('ثبت‌نام رایگان ۳ روزه'),
           ),
         ),
       ],

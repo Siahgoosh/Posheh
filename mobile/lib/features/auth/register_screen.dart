@@ -166,7 +166,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 GradientText('ثبت‌نام پوشه',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
-                const Text('۴۸ ساعت رایگان — پنل فردی', style: TextStyle(color: AppColors.warning)),
+                const Text('۳ روز رایگان — پنل فردی', style: TextStyle(color: AppColors.warning)),
                 const SizedBox(height: 24),
                 GlassCard(
                   padding: const EdgeInsets.all(20),
@@ -200,7 +200,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 groupValue: _planSlug,
                 onChanged: (v) => setState(() => _planSlug = v ?? 'solo'),
                 title: Text('${p['name']}'),
-                subtitle: Text(slug == 'solo' ? '۴۸ ساعت رایگان' : ''),
+                subtitle: Text(slug == 'solo' ? '۳ روز رایگان' : ''),
               );
             }),
             if (_plans.isEmpty)
@@ -208,7 +208,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 value: 'solo',
                 groupValue: _planSlug,
                 onChanged: null,
-                title: const Text('پنل فردی — ۴۸ ساعت رایگان'),
+                title: const Text('پنل فردی — ۳ روز رایگان'),
               ),
             ElevatedButton(
               onPressed: () => setState(() => _step = _RegisterStep.mobile),

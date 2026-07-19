@@ -53,7 +53,7 @@ const allFeatures = [
 ]
 
 const steps = [
-  { n: '۱', title: 'ثبت‌نام و انتخاب پلن', desc: 'پنل فردی: ۴۸ ساعت رایگان — بدون کارت بانکی' },
+  { n: '۱', title: 'ثبت‌نام و انتخاب پلن', desc: 'پنل فردی: ۳ روز رایگان — بدون کارت بانکی' },
   { n: '۲', title: 'راه‌اندازی خودکار', desc: 'پنل اختصاصی دفتر شما در کمتر از ۳ دقیقه آماده می‌شود' },
   { n: '۳', title: 'شروع فایلینگ', desc: 'مشاوران را دعوت کنید و اولین ملک را ثبت کنید' },
 ]
@@ -145,7 +145,7 @@ export function LandingPage() {
             </p>
             <div className="flex flex-wrap gap-3 mb-6">
               <Link to="/register">
-                <Button size="lg" className="shadow-lg shadow-primary/30">شروع ۴۸ ساعت رایگان</Button>
+                <Button size="lg" className="shadow-lg shadow-primary/30">شروع ۳ روز رایگان</Button>
               </Link>
               <a href="#pricing"><Button variant="outline" size="lg">مشاهده پلن‌ها</Button></a>
             </div>
@@ -288,7 +288,7 @@ export function LandingPage() {
       <section id="pricing" className="container mx-auto max-w-6xl px-4 py-20">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-2">پلن مناسب خود را انتخاب کنید</h2>
-          <p className="text-muted">پنل مشاور مستقل: ۴۸ ساعت رایگان — پلن‌های دفتر از ابتدا پرداختی</p>
+          <p className="text-muted">پنل مشاور مستقل: ۳ روز رایگان — پلن‌های دفتر از ابتدا پرداختی</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {(apiPlans ?? []).map((plan, idx) => (

@@ -121,6 +121,9 @@ class MarketingDashboardService
             'total' => (int) Payment::where('status', 'paid')->sum('amount'),
             'monthly' => (int) Payment::where('status', 'paid')->whereMonth('paid_at', now()->month)->sum('amount'),
             'paid_count' => Payment::where('status', 'paid')->count(),
+            'pending_count' => Payment::where('status', 'pending')->count(),
+            'failed_count' => Payment::where('status', 'failed')->count(),
+            'incomplete_leads' => Payment::whereIn('status', ['pending', 'failed'])->count(),
         ];
     }
 

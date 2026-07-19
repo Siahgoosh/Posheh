@@ -3,11 +3,14 @@
 namespace App\Services\Subscription;
 
 use App\Enums\PaymentGateway;
+use App\Models\DiscountCode;
 use App\Models\Office;
 use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
+use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Payment\DiscountCodeService;
 use App\Services\Payment\ZibalService;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +19,7 @@ class SubscriptionService
 {
     public function __construct(
         private readonly ZibalService $zibal,
+        private readonly DiscountCodeService $discountCodes,
     ) {}
 
     public function getPlans()
@@ -25,25 +29,49 @@ class SubscriptionService
             ->get();
     }
 
-    public function subscribe(Office $office, int $planId, PaymentGateway $gateway): array
+    public function subscribe(Office $office, User $user, int $planId, PaymentGateway $gateway, ?string $discountCode = null): array
     {
         $plan = SubscriptionPlan::findOrFail($planId);
+        $originalAmount = (int) $plan->monthly_price;
+        $discountAmount = 0;
+        $discountModel = null;
+        $finalAmount = $originalAmount;
+
+        if ($discountCode) {
+            $discountModel = $this->discountCodes->findValid($discountCode, $plan);
+            $discountAmount = $discountModel->calculateDiscount($originalAmount);
+            $finalAmount = $discountModel->applyTo($originalAmount);
+        }
 
         $payment = Payment::create([
             'office_id' => $office->id,
+            'user_id' => $user->id,
+            'user_phone' => $user->mobile,
+            'discount_code_id' => $discountModel?->id,
             'gateway' => $gateway,
             'status' => 'pending',
-            'amount' => $plan->monthly_price,
+            'amount' => $finalAmount,
+            'original_amount' => $originalAmount,
+            'discount_amount' => $discountAmount,
             'authority' => 'pending',
-            'metadata' => ['plan_id' => $plan->id],
+            'metadata' => [
+                'plan_id' => $plan->id,
+                'plan_name' => $plan->name,
+                'user_name' => $user->name,
+                'discount_code' => $discountModel?->code,
+            ],
         ]);
 
         if ($gateway === PaymentGateway::Wallet) {
-            return $this->payWithWallet($office, $plan, $payment);
+            return $this->payWithWallet($office, $plan, $payment, $discountModel);
         }
 
         if ($gateway === PaymentGateway::Zibal) {
-            return $this->initiateZibal($payment, $plan);
+            if ($finalAmount <= 0) {
+                return $this->completeFreePayment($office, $plan, $payment, $discountModel);
+            }
+
+            return $this->initiateZibal($payment, $plan, $user->mobile);
         }
 
         return [
@@ -52,6 +80,13 @@ class SubscriptionService
             'amount' => $payment->amount,
             'message' => 'پرداخت درگاه کافه‌بازار آماده است.',
         ];
+    }
+
+    public function previewDiscount(string $code, int $planId): array
+    {
+        $plan = SubscriptionPlan::findOrFail($planId);
+
+        return $this->discountCodes->preview($code, $plan);
     }
 
     public function verifyZibal(string $trackId, bool $success): array
@@ -99,20 +134,20 @@ class SubscriptionService
             ->first();
     }
 
-    private function payWithWallet(Office $office, SubscriptionPlan $plan, Payment $payment): array
+    private function payWithWallet(Office $office, SubscriptionPlan $plan, Payment $payment, ?DiscountCode $discount): array
     {
         $wallet = $office->wallet ?? Wallet::create(['office_id' => $office->id, 'balance' => 0]);
 
-        if ($wallet->balance < $plan->monthly_price) {
+        if ($wallet->balance < $payment->amount) {
             throw ValidationException::withMessages([
                 'wallet' => ['موجودی کیف پول کافی نیست.'],
             ]);
         }
 
-        $wallet->decrement('balance', $plan->monthly_price);
+        $wallet->decrement('balance', $payment->amount);
         $wallet->transactions()->create([
             'type' => 'debit',
-            'amount' => $plan->monthly_price,
+            'amount' => $payment->amount,
             'balance_after' => $wallet->balance,
             'description' => "خرید اشتراک {$plan->name}",
             'reference_type' => Payment::class,
@@ -120,12 +155,28 @@ class SubscriptionService
         ]);
 
         $payment->update(['status' => 'paid', 'paid_at' => now(), 'authority' => 'wallet-'.$payment->id]);
-        $this->activateSubscription($payment);
+        $this->activateSubscription($payment, $discount);
 
         return ['message' => 'اشتراک با موفقیت فعال شد.', 'payment' => $payment];
     }
 
-    private function initiateZibal(Payment $payment, SubscriptionPlan $plan): array
+    private function completeFreePayment(Office $office, SubscriptionPlan $plan, Payment $payment, ?DiscountCode $discount): array
+    {
+        $payment->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+            'authority' => 'discount-'.$payment->id,
+        ]);
+        $this->activateSubscription($payment, $discount);
+
+        return [
+            'message' => 'اشتراک با کد تخفیف فعال شد.',
+            'payment' => $payment,
+            'amount' => 0,
+        ];
+    }
+
+    private function initiateZibal(Payment $payment, SubscriptionPlan $plan, ?string $mobile = null): array
     {
         $appUrl = rtrim(config('app.url'), '/');
         $callbackUrl = $appUrl.'/api/v1/payments/zibal/callback';
@@ -135,6 +186,7 @@ class SubscriptionService
             "خرید اشتراک {$plan->name} — پوشه",
             $callbackUrl,
             $payment->id,
+            $mobile,
         );
 
         $payment->update(['authority' => $result['track_id']]);
@@ -143,12 +195,14 @@ class SubscriptionService
             'payment_id' => $payment->id,
             'gateway' => 'zibal',
             'amount' => $payment->amount,
+            'original_amount' => $payment->original_amount,
+            'discount_amount' => $payment->discount_amount,
             'redirect_url' => $result['redirect_url'],
             'track_id' => $result['track_id'],
         ];
     }
 
-    private function activateSubscription(Payment $payment): Subscription
+    private function activateSubscription(Payment $payment, ?DiscountCode $discount = null): Subscription
     {
         $planId = $payment->metadata['plan_id'] ?? null;
         $plan = $planId
@@ -171,7 +225,18 @@ class SubscriptionService
         Office::where('id', $payment->office_id)->update([
             'subscription_plan_id' => $plan->id,
             'panel_type' => $plan->panel_type,
+            'plan_active' => true,
+            'trial_ends_at' => null,
         ]);
+
+        $payment->update(['subscription_id' => $subscription->id]);
+
+        if ($discount || $payment->discount_code_id) {
+            $code = $discount ?? DiscountCode::find($payment->discount_code_id);
+            if ($code) {
+                $this->discountCodes->markUsed($code);
+            }
+        }
 
         return $subscription;
     }
