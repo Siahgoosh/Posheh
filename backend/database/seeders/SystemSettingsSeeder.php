@@ -25,6 +25,8 @@ class SystemSettingsSeeder extends Seeder
             ['group' => 'payment', 'key' => 'aqayepardakht_sandbox', 'value' => env('AQAYEPARDAKHT_SANDBOX', '1') ? '1' : '0', 'label' => 'حالت تست آقای پرداخت', 'type' => 'boolean'],
             ['group' => 'payment', 'key' => 'zibal_merchant', 'value' => env('ZIBAL_MERCHANT', ''), 'label' => 'مرچنت زیبال', 'type' => 'text', 'is_secret' => true],
             ['group' => 'payment', 'key' => 'zibal_sandbox', 'value' => env('ZIBAL_SANDBOX', '0') ? '1' : '0', 'label' => 'حالت تست زیبال', 'type' => 'boolean'],
+            ['group' => 'payment', 'key' => 'cafe_bazaar_package', 'value' => env('CAFE_BAZAAR_PACKAGE', 'ir.posheh.app'), 'label' => 'Package Name کافه‌بازار', 'type' => 'text'],
+            ['group' => 'payment', 'key' => 'cafe_bazaar_access_token', 'value' => env('CAFE_BAZAAR_ACCESS_TOKEN', ''), 'label' => 'Access Token کافه‌بازار', 'type' => 'password', 'is_secret' => true],
             ['group' => 'general', 'key' => 'app_public_name', 'value' => 'پوشه', 'label' => 'نام نرم‌افزار', 'type' => 'text'],
             ['group' => 'general', 'key' => 'trial_days_solo', 'value' => '3', 'label' => 'روز دوره آزمایشی پنل فردی (فقط مشاور مستقل)', 'type' => 'number'],
             ['group' => 'general', 'key' => 'trial_hours_solo', 'value' => '72', 'label' => '(قدیمی) ساعت آزمایشی — از trial_days_solo استفاده کنید', 'type' => 'number'],

@@ -20,7 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('backup:database')->cron('0 2 */3 * *');
     })
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'plan.feature' => \App\Http\Middleware\EnsurePlanFeature::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

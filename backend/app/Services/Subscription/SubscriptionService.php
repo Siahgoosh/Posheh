@@ -10,8 +10,11 @@ use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\Payment\AqayepardakhtService;
+use App\Services\Payment\CafeBazaarService;
 use App\Services\Payment\DiscountCodeService;
 use App\Services\Payment\ZibalService;
+use App\Services\Wallet\WalletService;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -19,7 +22,10 @@ class SubscriptionService
 {
     public function __construct(
         private readonly ZibalService $zibal,
+        private readonly AqayepardakhtService $aqayepardakht,
+        private readonly CafeBazaarService $cafeBazaar,
         private readonly DiscountCodeService $discountCodes,
+        private readonly WalletService $walletService,
     ) {}
 
     public function getPlans()
@@ -29,7 +35,7 @@ class SubscriptionService
             ->get();
     }
 
-    public function subscribe(Office $office, User $user, int $planId, PaymentGateway $gateway, ?string $discountCode = null): array
+    public function subscribe(Office $office, User $user, int $planId, PaymentGateway $gateway, ?string $discountCode = null, array $extras = []): array
     {
         $plan = SubscriptionPlan::findOrFail($planId);
         $originalAmount = (int) $plan->monthly_price;
@@ -55,6 +61,7 @@ class SubscriptionService
             'discount_amount' => $discountAmount,
             'authority' => 'pending',
             'metadata' => [
+                'purpose' => 'subscription',
                 'plan_id' => $plan->id,
                 'plan_name' => $plan->name,
                 'user_name' => $user->name,
@@ -74,12 +81,21 @@ class SubscriptionService
             return $this->initiateZibal($payment, $plan, $user->mobile);
         }
 
-        return [
-            'payment_id' => $payment->id,
-            'gateway' => $gateway->value,
-            'amount' => $payment->amount,
-            'message' => 'پرداخت درگاه کافه‌بازار آماده است.',
-        ];
+        if ($gateway === PaymentGateway::Aqayepardakht) {
+            if ($finalAmount <= 0) {
+                return $this->completeFreePayment($office, $plan, $payment, $discountModel);
+            }
+
+            return $this->initiateAqayepardakht($payment, $plan, $user->mobile);
+        }
+
+        if ($gateway === PaymentGateway::CafeBazaar) {
+            return $this->verifyCafeBazaarPurchase($office, $plan, $payment, $discountModel, $extras);
+        }
+
+        throw ValidationException::withMessages([
+            'gateway' => ['درگاه پرداخت نامعتبر است.'],
+        ]);
     }
 
     public function previewDiscount(string $code, int $planId): array
@@ -91,7 +107,7 @@ class SubscriptionService
 
     public function verifyZibal(string $trackId, bool $success): array
     {
-        $payment = Payment::where('authority', $trackId)->firstOrFail();
+        $payment = Payment::with('office')->where('authority', $trackId)->firstOrFail();
 
         if ($payment->status === 'paid') {
             return ['message' => 'این پرداخت قبلاً تأیید شده است.', 'payment' => $payment, 'success' => true];
@@ -120,6 +136,45 @@ class SubscriptionService
             'paid_at' => now(),
         ]);
 
+        if (($payment->metadata['purpose'] ?? 'subscription') === 'wallet_topup') {
+            return $this->walletService->completeTopUp($payment);
+        }
+
+        $this->activateSubscription($payment);
+
+        return ['message' => 'پرداخت با موفقیت انجام شد.', 'payment' => $payment, 'success' => true];
+    }
+
+    public function verifyAqayepardakht(string $transId, bool $success): array
+    {
+        $payment = Payment::with('office')->where('authority', $transId)->firstOrFail();
+
+        if ($payment->status === 'paid') {
+            return ['message' => 'این پرداخت قبلاً تأیید شده است.', 'payment' => $payment, 'success' => true];
+        }
+
+        if (! $success) {
+            $payment->update(['status' => 'failed']);
+            throw ValidationException::withMessages(['payment' => ['پرداخت ناموفق بود.']]);
+        }
+
+        $verify = $this->aqayepardakht->verify($transId, (int) $payment->amount);
+
+        if (! $verify['success']) {
+            $payment->update(['status' => 'failed']);
+            throw ValidationException::withMessages(['payment' => [$verify['message'] ?? 'تأیید ناموفق']]);
+        }
+
+        $payment->update([
+            'status' => 'paid',
+            'ref_id' => $verify['ref_id'] ?: Str::random(10),
+            'paid_at' => now(),
+        ]);
+
+        if (($payment->metadata['purpose'] ?? 'subscription') === 'wallet_topup') {
+            return $this->walletService->completeTopUp($payment);
+        }
+
         $this->activateSubscription($payment);
 
         return ['message' => 'پرداخت با موفقیت انجام شد.', 'payment' => $payment, 'success' => true];
@@ -134,13 +189,52 @@ class SubscriptionService
             ->first();
     }
 
+    private function verifyCafeBazaarPurchase(Office $office, SubscriptionPlan $plan, Payment $payment, ?DiscountCode $discount, array $extras): array
+    {
+        $productId = $extras['cafe_bazaar_product_id'] ?? null;
+        $purchaseToken = $extras['cafe_bazaar_purchase_token'] ?? null;
+
+        if (! $productId || ! $purchaseToken) {
+            throw ValidationException::withMessages([
+                'payment' => ['توکن خرید کافه‌بازار ارسال نشده است.'],
+            ]);
+        }
+
+        $verify = $this->cafeBazaar->verifyPurchase($productId, $purchaseToken);
+
+        if (! $verify['success']) {
+            $payment->update(['status' => 'failed']);
+            throw ValidationException::withMessages([
+                'payment' => [$verify['message'] ?? 'تأیید کافه‌بازار ناموفق بود.'],
+            ]);
+        }
+
+        $payment->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+            'authority' => 'bazaar-'.$purchaseToken,
+            'transaction_id' => $purchaseToken,
+            'metadata' => array_merge($payment->metadata ?? [], [
+                'cafe_bazaar_product_id' => $productId,
+            ]),
+        ]);
+
+        $this->activateSubscription($payment, $discount);
+
+        return [
+            'message' => 'اشتراک با خرید کافه‌بازار فعال شد.',
+            'payment' => $payment,
+            'success' => true,
+        ];
+    }
+
     private function payWithWallet(Office $office, SubscriptionPlan $plan, Payment $payment, ?DiscountCode $discount): array
     {
         $wallet = $office->wallet ?? Wallet::create(['office_id' => $office->id, 'balance' => 0]);
 
         if ($wallet->balance < $payment->amount) {
             throw ValidationException::withMessages([
-                'wallet' => ['موجودی کیف پول کافی نیست.'],
+                'wallet' => ['موجودی کیف پول کافی نیست. از بخش اشتراک کیف پول را شارژ کنید.'],
             ]);
         }
 
@@ -197,6 +291,30 @@ class SubscriptionService
             'amount' => $payment->amount,
             'original_amount' => $payment->original_amount,
             'discount_amount' => $payment->discount_amount,
+            'redirect_url' => $result['redirect_url'],
+            'track_id' => $result['track_id'],
+        ];
+    }
+
+    private function initiateAqayepardakht(Payment $payment, SubscriptionPlan $plan, ?string $mobile = null): array
+    {
+        $appUrl = rtrim(config('app.url'), '/');
+        $callbackUrl = $appUrl.'/api/v1/payments/aqayepardakht/callback';
+
+        $result = $this->aqayepardakht->request(
+            (int) $payment->amount,
+            "خرید اشتراک {$plan->name} — پوشه",
+            $callbackUrl,
+            $payment->id,
+            $mobile,
+        );
+
+        $payment->update(['authority' => $result['track_id']]);
+
+        return [
+            'payment_id' => $payment->id,
+            'gateway' => 'aqayepardakht',
+            'amount' => $payment->amount,
             'redirect_url' => $result['redirect_url'],
             'track_id' => $result['track_id'],
         ];

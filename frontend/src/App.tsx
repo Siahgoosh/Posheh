@@ -53,6 +53,11 @@ import { PropertyPublicPage } from '@/pages/PropertyPublicPage'
 import { TermsPage } from '@/pages/TermsPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
 import { ContactPage } from '@/pages/ContactPage'
+import { ConsultantsPage } from '@/pages/ConsultantsPage'
+import { OwnerPortalPage } from '@/pages/OwnerPortalPage'
+import { SavedSearchesPage } from '@/pages/SavedSearchesPage'
+import { ActivityLogsPage } from '@/pages/ActivityLogsPage'
+import { PropertyComparePage } from '@/pages/PropertyComparePage'
 import { getOfficeSubdomain } from '@/lib/subdomain'
 
 const queryClient = new QueryClient({
@@ -99,6 +104,8 @@ export default function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/consultants" element={<ConsultantsPage />} />
+          <Route path="/owner-portal/:token" element={<OwnerPortalPage />} />
           <Route path="/payment/callback" element={<PaymentCallbackPage />} />
           <Route path="/p/:token" element={<PropertyPublicPage />} />
           <Route path="/o/:slug" element={<OfficeLandingPage />} />
@@ -134,6 +141,9 @@ export default function App() {
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/customers/:id" element={<CustomerDetailPage />} />
             <Route path="/visits" element={<VisitsPage />} />
+            <Route path="/saved-searches" element={<SavedSearchesPage />} />
+            <Route path="/activity-logs" element={<ActivityLogsPage />} />
+            <Route path="/property-compare" element={<PropertyComparePage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route
               path="/admin/tickets"

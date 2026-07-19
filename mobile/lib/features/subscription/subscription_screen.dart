@@ -20,6 +20,8 @@ class SubscriptionScreen extends ConsumerStatefulWidget {
 class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> with WidgetsBindingObserver {
   Map<String, dynamic>? _current;
   List<dynamic> _plans = [];
+  Map<String, dynamic>? _wallet;
+  Map<String, dynamic>? _discountPreview;
   bool _loading = true;
   int? _payingPlanId;
   bool _awaitingPaymentReturn = false;
@@ -66,7 +68,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> with Wi
       final api = ref.read(apiClientProvider);
       final current = await api.getSubscription();
       final plans = await api.getPlans();
-      if (mounted) setState(() { _current = current; _plans = plans; _loading = false; });
+      Map<String, dynamic>? wallet;
+      try { wallet = await api.getWalletBalance(); } catch (_) {}
+      if (mounted) setState(() { _current = current; _plans = plans; _wallet = wallet; _loading = false; });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -102,6 +106,33 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> with Wi
     }
   }
 
+  Future<void> _previewDiscount(int planId) async {
+    final code = _discountController.text.trim();
+    if (code.isEmpty) return;
+    try {
+      final preview = await ref.read(apiClientProvider).previewDiscount(planId, code);
+      if (mounted) setState(() => _discountPreview = preview);
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _topUpWallet() async {
+    try {
+      final res = await ref.read(apiClientProvider).topUpWallet(100000);
+      final redirect = res['redirect_url'] as String?;
+      if (redirect != null && redirect.isNotEmpty) {
+        final uri = Uri.parse(redirect);
+        if (await canLaunchUrl(uri)) {
+          _awaitingPaymentReturn = true;
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      }
+    } on ApiException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).user;
@@ -133,14 +164,41 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> with Wi
                       ),
                     ),
                   const SizedBox(height: 12),
-                  GlassCard(
-                    child: TextField(
-                      controller: _discountController,
-                      decoration: const InputDecoration(
-                        labelText: 'کد تخفیف (اختیاری)',
-                        border: OutlineInputBorder(),
-                        isDense: true,
+                  if (_wallet != null)
+                    GlassCard(
+                      child: Row(
+                        children: [
+                          Expanded(child: Text('کیف پول: ${formatPrice(_wallet!['balance'] as num? ?? 0)}')),
+                          TextButton(onPressed: _topUpWallet, child: const Text('شارژ ۱۰۰هزار')),
+                        ],
                       ),
+                    ),
+                  GlassCard(
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _discountController,
+                          decoration: const InputDecoration(
+                            labelText: 'کد تخفیف (اختیاری)',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          onChanged: (_) => setState(() => _discountPreview = null),
+                        ),
+                        if (_plans.isNotEmpty)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton(
+                              onPressed: () => _previewDiscount(_plans.first['id'] as int),
+                              child: const Text('پیش‌نمایش تخفیف'),
+                            ),
+                          ),
+                        if (_discountPreview != null)
+                          Text(
+                            'مبلغ نهایی: ${formatPrice(_discountPreview!['final_amount'] as num? ?? 0)}',
+                            style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold),
+                          ),
+                      ],
                     ),
                   ),
                   if (user?.onTrial == true && user?.trialLabel != null) ...[
@@ -188,6 +246,26 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> with Wi
                                         ? 'پرداخت با زیبال'
                                         : 'فعال‌سازی',
                               ),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton(
+                              onPressed: _payingPlanId != null ? null : () async {
+                                setState(() => _payingPlanId = p['id'] as int);
+                                try {
+                                  final code = _discountController.text.trim();
+                                  await ref.read(apiClientProvider).subscribe(
+                                    p['id'] as int,
+                                    gateway: 'wallet',
+                                    discountCode: code.isEmpty ? null : code,
+                                  );
+                                  await _afterPaymentReturn();
+                                } on ApiException catch (e) {
+                                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+                                } finally {
+                                  if (mounted) setState(() => _payingPlanId = null);
+                                }
+                              },
+                              child: const Text('خرید با کیف پول'),
                             ),
                           ],
                         ),

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 const PLATFORMS = [
   { id: 'web', label: 'وب' },
   { id: 'android', label: 'اندروید' },
+  { id: 'ios', label: 'iOS' },
   { id: 'windows', label: 'ویندوز' },
 ]
 

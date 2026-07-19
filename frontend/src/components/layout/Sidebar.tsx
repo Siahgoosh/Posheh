@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Building2, Search, Users, Settings, CreditCard, Star, LogOut,
   Moon, Sun, Menu, X, BookOpen, Download, Shield, BarChart3, Building,
   Kanban, Wallet, FileText, LifeBuoy, UserCircle, CalendarDays, Contact, Globe, ChevronDown,
+  Bookmark, History, GitCompare, Tag,
 } from 'lucide-react'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
 import { useEffect, useState } from 'react'
@@ -20,6 +21,10 @@ export function Sidebar() {
   const hasAccounting = usePlanFeature('accounting')
   const hasCrm = usePlanFeature('crm')
   const hasWebsite = usePlanFeature('website_listing')
+  const hasSavedSearches = usePlanFeature('saved_searches')
+  const hasActivityLogs = usePlanFeature('activity_logs')
+  const hasPropertyCompare = usePlanFeature('property_compare')
+  const hasCommissions = usePlanFeature('commissions')
   const onTrial = user?.office?.on_trial
   const expired = user?.office?.subscription_expired === true || user?.office?.has_access === false
 
@@ -35,11 +40,14 @@ export function Sidebar() {
     { to: '/customers', icon: Contact, label: 'مشتریان' },
     { to: '/visits', icon: CalendarDays, label: 'بازدیدها' },
     { to: '/search', icon: Search, label: 'جستجو' },
+    ...(hasSavedSearches ? [{ to: '/saved-searches', icon: Bookmark, label: 'جستجوهای ذخیره' }] : []),
     { to: '/favorites', icon: Star, label: 'علاقه‌مندی‌ها' },
     ...(hasCrm ? [{ to: '/crm', icon: Kanban, label: 'CRM' }] : []),
     ...(hasAccounting ? [{ to: '/accounting', icon: Wallet, label: 'حسابداری' }] : []),
     { to: '/reports', icon: BarChart3, label: 'گزارش‌ها' },
-    { to: '/commissions', icon: Wallet, label: 'کمیسیون' },
+    ...(hasActivityLogs ? [{ to: '/activity-logs', icon: History, label: 'گزارش فعالیت' }] : []),
+    ...(hasPropertyCompare ? [{ to: '/property-compare', icon: GitCompare, label: 'مقایسه ملک' }] : []),
+    ...(hasCommissions ? [{ to: '/commissions', icon: Wallet, label: 'کمیسیون' }] : []),
     { to: '/contracts', icon: FileText, label: 'قراردادها' },
     ...(hasTeam ? [{ to: '/team', icon: Users, label: 'تیم' }] : []),
     ...(hasWebsite ? [{ to: '/office-website', icon: Globe, label: 'وبسایت دفتر' }] : []),
@@ -54,6 +62,8 @@ export function Sidebar() {
         { to: '/admin/settings', icon: Settings, label: 'تنظیمات سیستم' },
         { to: '/admin/broadcasts', icon: LifeBuoy, label: 'اعلان‌ها' },
         { to: '/admin/plans', icon: CreditCard, label: 'پلن‌ها' },
+        { to: '/admin/payment-leads', icon: Wallet, label: 'سرنخ پرداخت' },
+        { to: '/admin/discount-codes', icon: Tag, label: 'کد تخفیف' },
         { to: '/admin/offices', icon: Building, label: 'دفاتر' },
         { to: '/admin/tickets', icon: LifeBuoy, label: 'تیکت‌ها' },
         { to: '/admin/blog', icon: BookOpen, label: 'وبلاگ' },

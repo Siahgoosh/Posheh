@@ -68,4 +68,17 @@ class OwnerController extends Controller
 
         return response()->json(['message' => 'مالک حذف شد.']);
     }
+
+    public function portalLink(Request $request, int $id): JsonResponse
+    {
+        $owner = $this->ownerService->ensurePortalToken($request->user(), $id);
+        $frontend = rtrim(config('app.frontend_url', config('app.url')), '/');
+
+        return response()->json([
+            'data' => [
+                'portal_url' => $frontend.'/owner-portal/'.$owner->portal_token,
+                'portal_token' => $owner->portal_token,
+            ],
+        ]);
+    }
 }

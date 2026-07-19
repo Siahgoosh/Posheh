@@ -507,6 +507,33 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> previewDiscount(int planId, String discountCode) {
+    return _guard(
+      () => _dio.post('/discount-codes/preview', data: {
+        'plan_id': planId,
+        'discount_code': discountCode,
+      }),
+      'خطا در بررسی کد تخفیف',
+      ok: (res) => Map<String, dynamic>.from((res.data as Map)['data'] as Map),
+    );
+  }
+
+  Future<Map<String, dynamic>> getWalletBalance() {
+    return _guard(
+      () => _dio.get('/wallet'),
+      'خطا در دریافت کیف پول',
+      ok: (res) => Map<String, dynamic>.from((res.data as Map)['data'] as Map),
+    );
+  }
+
+  Future<Map<String, dynamic>> topUpWallet(int amount) {
+    return _guard(
+      () => _dio.post('/wallet/top-up', data: {'amount': amount}),
+      'خطا در شارژ کیف پول',
+      ok: (res) => Map<String, dynamic>.from(res.data as Map),
+    );
+  }
+
   Future<Map<String, dynamic>> getOfficeWebsiteStatus() => getData('/office/website');
 
   Future<void> requestOfficeWebsite({required String subdomain, String? description}) async {
