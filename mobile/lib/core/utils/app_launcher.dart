@@ -13,4 +13,4 @@ Future<void> openDownloadPage() => openAppUrl(AppUrls.download);
 Future<void> openBlog() => openAppUrl(AppUrls.blog);
 Future<void> openPrivacy() => openAppUrl(AppUrls.privacy);
 Future<void> openTerms() => openAppUrl(AppUrls.terms);
-Future<void> openRenewSubscription() => openAppUrl('${AppUrls.site}/subscription');
+Future<void> openRenewSubscription() => openAppUrl('${AppUrls.site}/renew');

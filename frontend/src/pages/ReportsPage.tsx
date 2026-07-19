@@ -179,6 +179,37 @@ export function ReportsPage() {
           />
         </CardContent>
       </Card>
+
+      {data.demand_heatmap && (
+        <div className="grid lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader><CardTitle className="text-base">نقشه عرضه (محله)</CardTitle></CardHeader>
+            <CardContent>
+              <BarChart
+                items={(data.demand_heatmap.supply_by_district ?? []).map((r: { area: string; listings: number }) => ({
+                  label: r.area,
+                  value: r.listings,
+                }))}
+                labelKey="label"
+                valueKey="value"
+              />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-base">نقشه تقاضا (شهر مشتری)</CardTitle></CardHeader>
+            <CardContent>
+              <BarChart
+                items={(data.demand_heatmap.demand_by_city ?? []).map((r: { city: string; seekers: number }) => ({
+                  label: r.city,
+                  value: r.seekers,
+                }))}
+                labelKey="label"
+                valueKey="value"
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

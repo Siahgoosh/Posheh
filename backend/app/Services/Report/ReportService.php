@@ -59,6 +59,7 @@ class ReportService
                     ->count(),
             ],
             'consultants' => $this->consultantKpi($officeId),
+            'demand_heatmap' => $this->demandHeatmap($officeId),
             'by_type' => Property::where('office_id', $officeId)
                 ->selectRaw('type, count(*) as count')
                 ->groupBy('type')
@@ -131,5 +132,41 @@ class ReportService
             ->sortByDesc('deals_won')
             ->values()
             ->all();
+    }
+
+    private function demandHeatmap(int $officeId): array
+    {
+        $byDistrict = Property::where('office_id', $officeId)
+            ->where('status', PropertyStatus::Active->value)
+            ->selectRaw("coalesce(district, city, 'نامشخص') as area, count(*) as listings, avg(price) as avg_price")
+            ->groupBy('area')
+            ->orderByDesc('listings')
+            ->limit(12)
+            ->get()
+            ->map(fn ($row) => [
+                'area' => $row->area,
+                'listings' => (int) $row->listings,
+                'avg_price' => (int) $row->avg_price,
+            ])
+            ->values()
+            ->all();
+
+        $customerDemand = \App\Models\Customer::where('office_id', $officeId)
+            ->selectRaw("coalesce(preferred_city, 'نامشخص') as city, count(*) as seekers")
+            ->groupBy('preferred_city')
+            ->orderByDesc('seekers')
+            ->limit(8)
+            ->get()
+            ->map(fn ($row) => [
+                'city' => $row->city,
+                'seekers' => (int) $row->seekers,
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'supply_by_district' => $byDistrict,
+            'demand_by_city' => $customerDemand,
+        ];
     }
 }

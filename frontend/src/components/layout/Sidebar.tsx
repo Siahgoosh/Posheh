@@ -3,12 +3,14 @@ import {
   LayoutDashboard, Building2, Search, Users, Settings, CreditCard, Star, LogOut,
   Moon, Sun, Menu, X, BookOpen, Download, Shield, BarChart3, Building,
   Kanban, Wallet, FileText, LifeBuoy, UserCircle, CalendarDays, Contact, Globe, ChevronDown,
+  Bookmark, History, GitCompare, Tag,
 } from 'lucide-react'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore, useThemeStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
+import { NotificationBell } from '@/components/NotificationBell'
 
 export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -19,7 +21,12 @@ export function Sidebar() {
   const hasAccounting = usePlanFeature('accounting')
   const hasCrm = usePlanFeature('crm')
   const hasWebsite = usePlanFeature('website_listing')
+  const hasSavedSearches = usePlanFeature('saved_searches')
+  const hasActivityLogs = usePlanFeature('activity_logs')
+  const hasPropertyCompare = usePlanFeature('property_compare')
+  const hasCommissions = usePlanFeature('commissions')
   const onTrial = user?.office?.on_trial
+  const expired = user?.office?.subscription_expired === true || user?.office?.has_access === false
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
@@ -33,11 +40,14 @@ export function Sidebar() {
     { to: '/customers', icon: Contact, label: 'مشتریان' },
     { to: '/visits', icon: CalendarDays, label: 'بازدیدها' },
     { to: '/search', icon: Search, label: 'جستجو' },
+    ...(hasSavedSearches ? [{ to: '/saved-searches', icon: Bookmark, label: 'جستجوهای ذخیره' }] : []),
     { to: '/favorites', icon: Star, label: 'علاقه‌مندی‌ها' },
     ...(hasCrm ? [{ to: '/crm', icon: Kanban, label: 'CRM' }] : []),
     ...(hasAccounting ? [{ to: '/accounting', icon: Wallet, label: 'حسابداری' }] : []),
     { to: '/reports', icon: BarChart3, label: 'گزارش‌ها' },
-    { to: '/commissions', icon: Wallet, label: 'کمیسیون' },
+    ...(hasActivityLogs ? [{ to: '/activity-logs', icon: History, label: 'گزارش فعالیت' }] : []),
+    ...(hasPropertyCompare ? [{ to: '/property-compare', icon: GitCompare, label: 'مقایسه ملک' }] : []),
+    ...(hasCommissions ? [{ to: '/commissions', icon: Wallet, label: 'کمیسیون' }] : []),
     { to: '/contracts', icon: FileText, label: 'قراردادها' },
     ...(hasTeam ? [{ to: '/team', icon: Users, label: 'تیم' }] : []),
     ...(hasWebsite ? [{ to: '/office-website', icon: Globe, label: 'وبسایت دفتر' }] : []),
@@ -49,7 +59,11 @@ export function Sidebar() {
   const adminItems = user?.role === 'super_admin'
     ? [
         { to: '/admin', icon: BarChart3, label: 'پنل مدیر کل' },
+        { to: '/admin/settings', icon: Settings, label: 'تنظیمات سیستم' },
+        { to: '/admin/broadcasts', icon: LifeBuoy, label: 'اعلان‌ها' },
         { to: '/admin/plans', icon: CreditCard, label: 'پلن‌ها' },
+        { to: '/admin/payment-leads', icon: Wallet, label: 'سرنخ پرداخت' },
+        { to: '/admin/discount-codes', icon: Tag, label: 'کد تخفیف' },
         { to: '/admin/offices', icon: Building, label: 'دفاتر' },
         { to: '/admin/tickets', icon: LifeBuoy, label: 'تیکت‌ها' },
         { to: '/admin/blog', icon: BookOpen, label: 'وبلاگ' },
@@ -80,7 +94,16 @@ export function Sidebar() {
         <button type="button" className="lg:hidden text-muted p-1" onClick={() => setMobileOpen(false)}>
           <X className="h-5 w-5" />
         </button>
+        <NotificationBell />
       </div>
+
+      {expired && (
+        <div className="px-3 pb-2">
+          <NavLink to="/renew" onClick={() => setMobileOpen(false)}>
+            <Button className="w-full" size="sm">تمدید اشتراک</Button>
+          </NavLink>
+        </div>
+      )}
 
       <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 py-2 space-y-0.5">
         {navItems.map((item) => (

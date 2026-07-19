@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Office;
+use App\Models\Subscription;
 use App\Services\Sms\IpPanelSmsService;
 use App\Services\Subscription\SubscriptionAccessService;
 use Illuminate\Console\Command;
@@ -12,7 +13,7 @@ class SubscriptionReminderCommand extends Command
 {
     protected $signature = 'subscriptions:remind';
 
-    protected $description = 'Send SMS reminders for trial/subscription expiry';
+    protected $description = 'Send SMS reminders 2 days before trial/subscription expiry';
 
     public function handle(SubscriptionAccessService $access, IpPanelSmsService $sms): int
     {
@@ -20,28 +21,61 @@ class SubscriptionReminderCommand extends Command
         $sent = 0;
 
         foreach ($offices as $office) {
-            if ($access->hasAccess($office)) {
+            if ($office->onTrial()) {
                 $daysLeft = $access->trialDaysRemaining($office);
-                if ($office->onTrial() && in_array($daysLeft, [1, 2, 3], true)) {
-                    $this->notifyOffice($office, "دوره آزمایشی پوشه {$daysLeft} روز دیگر تمام می‌شود. برای تمدید وارد پنل شوید.", $sms);
+                if ($daysLeft === 2 && $this->markSent("trial:{$office->id}:2")) {
+                    $this->notifyOffice(
+                        $office,
+                        'پوشه: دوره آزمایشی شما ۲ روز دیگر تمام می‌شود. برای تمدید از دکمه «تمدید اشتراک» در پنل یا posheapp.ir/renew استفاده کنید.',
+                        $sms,
+                    );
                     $sent++;
                 }
                 continue;
             }
 
-            $cacheKey = "sub_remind:{$office->id}:".now()->toDateString();
-            if (Cache::has($cacheKey)) {
+            $activeSub = Subscription::where('office_id', $office->id)
+                ->where('status', 'active')
+                ->where('ends_at', '>', now())
+                ->latest('ends_at')
+                ->first();
+
+            if ($activeSub && (int) now()->diffInDays($activeSub->ends_at, false) === 2) {
+                if ($this->markSent("sub:{$office->id}:{$activeSub->id}:2")) {
+                    $this->notifyOffice(
+                        $office,
+                        'پوشه: اشتراک شما ۲ روز دیگر تمام می‌شود. همین حالا از posheapp.ir/renew تمدید کنید.',
+                        $sms,
+                    );
+                    $sent++;
+                }
                 continue;
             }
 
-            $this->notifyOffice($office, 'اشتراک پوشه شما منقضی شده. لطفاً از بخش تمدید حساب را شارژ کنید.', $sms);
-            Cache::put($cacheKey, true, now()->addDay());
-            $sent++;
+            if (! $access->hasAccess($office)) {
+                $cacheKey = "sub_expired:{$office->id}:".now()->toDateString();
+                if (! Cache::has($cacheKey)) {
+                    $this->notifyOffice($office, 'اشتراک پوشه منقضی شده. ورود فقط پس از تمدید از posheapp.ir/renew ممکن است.', $sms);
+                    Cache::put($cacheKey, true, now()->addDay());
+                    $sent++;
+                }
+            }
         }
 
         $this->info("Sent {$sent} reminders.");
 
         return self::SUCCESS;
+    }
+
+    private function markSent(string $key): bool
+    {
+        $cacheKey = "sub_remind:{$key}";
+        if (Cache::has($cacheKey)) {
+            return false;
+        }
+        Cache::put($cacheKey, true, now()->addDays(3));
+
+        return true;
     }
 
     private function notifyOffice(Office $office, string $message, IpPanelSmsService $sms): void

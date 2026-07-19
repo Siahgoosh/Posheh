@@ -24,7 +24,11 @@ import { SuperAdminRoute } from '@/components/SuperAdminRoute'
 import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
+import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage'
+import { AdminBroadcastPage } from '@/pages/admin/AdminBroadcastPage'
 import { AdminSuperPanelPage } from '@/pages/admin/AdminSuperPanelPage'
+import { AdminPaymentLeadsPage } from '@/pages/admin/AdminPaymentLeadsPage'
+import { AdminDiscountCodesPage } from '@/pages/admin/AdminDiscountCodesPage'
 import { AnalyticsTracker } from '@/components/AnalyticsTracker'
 import { SubscriptionGuard } from '@/components/SubscriptionGuard'
 import { AdminPlansPage } from '@/pages/admin/AdminPlansPage'
@@ -49,6 +53,11 @@ import { PropertyPublicPage } from '@/pages/PropertyPublicPage'
 import { TermsPage } from '@/pages/TermsPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
 import { ContactPage } from '@/pages/ContactPage'
+import { ConsultantsPage } from '@/pages/ConsultantsPage'
+import { OwnerPortalPage } from '@/pages/OwnerPortalPage'
+import { SavedSearchesPage } from '@/pages/SavedSearchesPage'
+import { ActivityLogsPage } from '@/pages/ActivityLogsPage'
+import { PropertyComparePage } from '@/pages/PropertyComparePage'
 import { getOfficeSubdomain } from '@/lib/subdomain'
 
 const queryClient = new QueryClient({
@@ -95,6 +104,8 @@ export default function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/consultants" element={<ConsultantsPage />} />
+          <Route path="/owner-portal/:token" element={<OwnerPortalPage />} />
           <Route path="/payment/callback" element={<PaymentCallbackPage />} />
           <Route path="/p/:token" element={<PropertyPublicPage />} />
           <Route path="/o/:slug" element={<OfficeLandingPage />} />
@@ -130,6 +141,9 @@ export default function App() {
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/customers/:id" element={<CustomerDetailPage />} />
             <Route path="/visits" element={<VisitsPage />} />
+            <Route path="/saved-searches" element={<SavedSearchesPage />} />
+            <Route path="/activity-logs" element={<ActivityLogsPage />} />
+            <Route path="/property-compare" element={<PropertyComparePage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route
               path="/admin/tickets"
@@ -192,6 +206,38 @@ export default function App() {
               element={
                 <SuperAdminRoute>
                   <AdminDownloadsPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <SuperAdminRoute>
+                  <AdminSettingsPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/payment-leads"
+              element={
+                <SuperAdminRoute>
+                  <AdminPaymentLeadsPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/discount-codes"
+              element={
+                <SuperAdminRoute>
+                  <AdminDiscountCodesPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/broadcasts"
+              element={
+                <SuperAdminRoute>
+                  <AdminBroadcastPage />
                 </SuperAdminRoute>
               }
             />

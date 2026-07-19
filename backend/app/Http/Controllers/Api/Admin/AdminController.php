@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Exports\UsersExport;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\Office;
@@ -10,6 +11,8 @@ use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AdminController extends Controller
 {
@@ -63,5 +66,10 @@ class AdminController extends Controller
         $announcement = Announcement::create($request->all());
 
         return response()->json(['data' => $announcement], 201);
+    }
+
+    public function exportUsers(): BinaryFileResponse
+    {
+        return Excel::download(new UsersExport, 'posheh-users-'.now()->format('Y-m-d').'.xlsx');
     }
 }

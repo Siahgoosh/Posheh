@@ -20,6 +20,7 @@ class Owner extends Model
         'email',
         'address',
         'notes',
+        'portal_token',
     ];
 
     public function creator(): BelongsTo

@@ -5,8 +5,11 @@ use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AdminOfficeController;
 use App\Http\Controllers\Api\Admin\AppReleaseAdminController;
 use App\Http\Controllers\Api\Admin\BlogAdminController;
+use App\Http\Controllers\Api\Admin\BroadcastAdminController;
+use App\Http\Controllers\Api\Admin\SystemSettingsAdminController;
 use App\Http\Controllers\Api\Admin\MarketingDashboardController;
-use App\Http\Controllers\Api\Admin\PlanAdminController;
+use App\Http\Controllers\Api\Admin\DiscountCodeAdminController;
+use App\Http\Controllers\Api\Admin\PaymentLeadAdminController;
 use App\Http\Controllers\Api\Admin\TicketAdminController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\ApiKeyController;
@@ -32,6 +35,13 @@ use App\Http\Controllers\Api\PublicApiController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
 use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\Admin\PlanAdminController;
+use App\Http\Controllers\Api\ActivityLogController;
+use App\Http\Controllers\Api\OwnerPortalController;
+use App\Http\Controllers\Api\PropertyCompareController;
+use App\Http\Controllers\Api\SavedSearchController;
+use App\Http\Controllers\Api\WalletController;
 use App\Http\Middleware\EnsureOfficeIsActive;
 use App\Http\Middleware\EnsureSubscriptionAccess;
 use App\Http\Middleware\EnsureUserHasRole;
@@ -55,6 +65,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/analytics/track', [AnalyticsController::class, 'track'])->middleware('throttle:120,1');
     Route::post('/auth/register', [RegistrationController::class, 'register'])->middleware('throttle:10,1');
     Route::get('/payments/zibal/callback', [SubscriptionController::class, 'zibalCallback'])->middleware('throttle:30,1');
+    Route::get('/payments/aqayepardakht/callback', [SubscriptionController::class, 'aqayepardakhtCallback'])->middleware('throttle:30,1');
+    Route::get('/owner-portal/{token}', [OwnerPortalController::class, 'show']);
 
     Route::post('/bots/telegram/{officeSlug}', [BotWebhookController::class, 'telegram']);
     Route::post('/bots/whatsapp/{officeSlug}', [BotWebhookController::class, 'whatsapp']);
@@ -100,23 +112,35 @@ Route::prefix('v1')->group(function () {
         Route::post('/tickets', [TicketController::class, 'store']);
         Route::post('/tickets/{id}/reply', [TicketController::class, 'reply']);
 
-        Route::get('/accounting', [AccountingController::class, 'index']);
-        Route::get('/accounting/summary', [AccountingController::class, 'summary']);
-        Route::post('/accounting', [AccountingController::class, 'store']);
+        Route::get('/saved-searches', [SavedSearchController::class, 'index'])->middleware('plan.feature:saved_searches');
+        Route::post('/saved-searches', [SavedSearchController::class, 'store'])->middleware('plan.feature:saved_searches');
+        Route::delete('/saved-searches/{id}', [SavedSearchController::class, 'destroy'])->middleware('plan.feature:saved_searches');
+        Route::post('/saved-searches/{id}/run', [SavedSearchController::class, 'run'])->middleware('plan.feature:saved_searches');
 
-        Route::get('/crm/deals', [CrmController::class, 'index']);
-        Route::get('/crm/pipeline', [CrmController::class, 'pipeline']);
-        Route::get('/crm/follow-ups', [CrmController::class, 'followUps']);
-        Route::post('/crm/deals', [CrmController::class, 'store']);
-        Route::put('/crm/deals/{id}', [CrmController::class, 'update']);
-        Route::get('/crm/deals/{id}/activities', [CrmController::class, 'activities']);
-        Route::post('/crm/deals/{id}/activities', [CrmController::class, 'addActivity']);
+        Route::get('/activity-logs', [ActivityLogController::class, 'index'])->middleware('plan.feature:activity_logs');
 
-        Route::get('/commissions', [CommissionController::class, 'index']);
-        Route::get('/commissions/settings', [CommissionController::class, 'settings']);
-        Route::put('/commissions/settings', [CommissionController::class, 'updateSettings']);
-        Route::post('/commissions', [CommissionController::class, 'store']);
-        Route::post('/commissions/{id}/pay', [CommissionController::class, 'markPaid']);
+        Route::post('/properties/compare', [PropertyCompareController::class, 'compare'])->middleware('plan.feature:property_compare');
+
+        Route::get('/wallet', [WalletController::class, 'balance']);
+        Route::post('/wallet/top-up', [WalletController::class, 'topUp']);
+
+        Route::get('/accounting', [AccountingController::class, 'index'])->middleware('plan.feature:accounting');
+        Route::get('/accounting/summary', [AccountingController::class, 'summary'])->middleware('plan.feature:accounting');
+        Route::post('/accounting', [AccountingController::class, 'store'])->middleware('plan.feature:accounting');
+
+        Route::get('/crm/deals', [CrmController::class, 'index'])->middleware('plan.feature:crm');
+        Route::get('/crm/pipeline', [CrmController::class, 'pipeline'])->middleware('plan.feature:crm');
+        Route::get('/crm/follow-ups', [CrmController::class, 'followUps'])->middleware('plan.feature:crm');
+        Route::post('/crm/deals', [CrmController::class, 'store'])->middleware('plan.feature:crm');
+        Route::put('/crm/deals/{id}', [CrmController::class, 'update'])->middleware('plan.feature:crm');
+        Route::get('/crm/deals/{id}/activities', [CrmController::class, 'activities'])->middleware('plan.feature:crm');
+        Route::post('/crm/deals/{id}/activities', [CrmController::class, 'addActivity'])->middleware('plan.feature:crm');
+
+        Route::get('/commissions', [CommissionController::class, 'index'])->middleware('plan.feature:commissions');
+        Route::get('/commissions/settings', [CommissionController::class, 'settings'])->middleware('plan.feature:commissions');
+        Route::put('/commissions/settings', [CommissionController::class, 'updateSettings'])->middleware('plan.feature:commissions');
+        Route::post('/commissions', [CommissionController::class, 'store'])->middleware('plan.feature:commissions');
+        Route::post('/commissions/{id}/pay', [CommissionController::class, 'markPaid'])->middleware('plan.feature:commissions');
 
         Route::get('/contracts/templates', [ContractController::class, 'templates']);
         Route::get('/contracts/fields', [ContractController::class, 'fields']);
@@ -132,28 +156,49 @@ Route::prefix('v1')->group(function () {
 
         Route::prefix('office')->group(function () {
             Route::post('/', [OfficeController::class, 'store']);
-            Route::get('/team', [OfficeController::class, 'team']);
+            Route::get('/team', [OfficeController::class, 'team'])->middleware('plan.feature:team');
             Route::put('/settings', [OfficeController::class, 'updateSettings'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/invite', [OfficeController::class, 'invite'])
-                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
-            Route::get('/website', [OfficeController::class, 'websiteStatus']);
-            Route::get('/website/visit-requests', [OfficeController::class, 'visitRequests']);
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin')
+                ->middleware('plan.feature:team');
+            Route::get('/website', [OfficeController::class, 'websiteStatus'])->middleware('plan.feature:website_listing');
+            Route::get('/website/visit-requests', [OfficeController::class, 'visitRequests'])->middleware('plan.feature:website_listing');
             Route::get('/website/pending-properties', [OfficeController::class, 'pendingWebsiteProperties'])
-                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin')
+                ->middleware('plan.feature:website_listing');
             Route::post('/website/request', [OfficeController::class, 'requestWebsite'])
-                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin')
+                ->middleware('plan.feature:website_listing');
             Route::post('/website/posts', [OfficeController::class, 'createSitePost'])
-                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin')
+                ->middleware('plan.feature:website_listing');
         });
+
+        Route::post('/owners/{id}/portal-link', [OwnerController::class, 'portalLink'])->middleware('plan.feature:owner_portal');
 
         Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])
             ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+        Route::post('/discount-codes/preview', [SubscriptionController::class, 'previewDiscount'])
+            ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
         Route::get('/subscription/current', [SubscriptionController::class, 'current']);
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
 
         Route::prefix('admin')->middleware(EnsureUserHasRole::class.':super_admin')->group(function () {
             Route::get('/marketing', [MarketingDashboardController::class, 'index']);
             Route::get('/system/sms', [MarketingDashboardController::class, 'smsStatus']);
+            Route::get('/system-settings', [SystemSettingsAdminController::class, 'index']);
+            Route::put('/system-settings', [SystemSettingsAdminController::class, 'update']);
+            Route::get('/users/export', [AdminController::class, 'exportUsers']);
+            Route::get('/payment-leads', [PaymentLeadAdminController::class, 'index']);
+            Route::get('/payment-leads/export', [PaymentLeadAdminController::class, 'export']);
+            Route::get('/discount-codes', [DiscountCodeAdminController::class, 'index']);
+            Route::post('/discount-codes', [DiscountCodeAdminController::class, 'store']);
+            Route::put('/discount-codes/{id}', [DiscountCodeAdminController::class, 'update']);
+            Route::delete('/discount-codes/{id}', [DiscountCodeAdminController::class, 'destroy']);
+            Route::get('/broadcasts', [BroadcastAdminController::class, 'index']);
+            Route::post('/broadcasts', [BroadcastAdminController::class, 'store']);
             Route::get('/plans', [PlanAdminController::class, 'index']);
             Route::post('/plans', [PlanAdminController::class, 'store']);
             Route::put('/plans/{id}', [PlanAdminController::class, 'update']);

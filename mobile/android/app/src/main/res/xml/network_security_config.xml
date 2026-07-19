@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- The production API is currently served over HTTP only. Allow cleartext
-         for the app's own domain while keeping it disabled everywhere else. -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">posheapp.ir</domain>
-    </domain-config>
+    <!-- HTTPS only — cleartext HTTP triggers Play Protect warnings on sideload/Bazaar review -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />

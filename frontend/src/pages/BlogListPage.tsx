@@ -73,7 +73,7 @@ export function BlogListPage() {
           <div className="container mx-auto max-w-4xl flex h-16 items-center justify-between px-4">
             <Link to="/" className="font-bold gradient-text">پوشه</Link>
             <div className="flex gap-2">
-              <Link to="/register"><Button size="sm">شروع ۴۸ ساعت رایگان</Button></Link>
+              <Link to="/register"><Button size="sm">شروع ۳ روز رایگان</Button></Link>
             </div>
           </div>
         </header>
@@ -127,7 +127,7 @@ export function BlogListPage() {
           <div className="mt-12 p-8 rounded-2xl bg-primary/10 border border-primary/20 text-center">
             <h2 className="text-lg font-bold mb-2">پوشه — سامانه ابری مدیریت املاک</h2>
             <p className="text-muted text-sm mb-4">فایلینگ، CRM، حسابداری، قرارداد و اپ اندروید/ویندوز</p>
-            <Link to="/register"><Button>شروع ۴۸ ساعت رایگان</Button></Link>
+            <Link to="/register"><Button>شروع ۳ روز رایگان</Button></Link>
           </div>
         </main>
 

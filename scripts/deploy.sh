@@ -60,6 +60,10 @@ ensure_env_file() {
 
   grep -q '^DB_HOST=' "$ENV_FILE" || echo 'DB_HOST=mysql' >> "$ENV_FILE"
   grep -q '^DB_DATABASE=' "$ENV_FILE" || echo 'DB_DATABASE=posheh' >> "$ENV_FILE"
+  grep -q '^ZIBAL_MERCHANT=' "$ENV_FILE" || set_env_var ZIBAL_MERCHANT 6a58d65f2881deb76c48df68
+  grep -q '^ZIBAL_SANDBOX=' "$ENV_FILE" || set_env_var ZIBAL_SANDBOX false
+  grep -q '^BACKUP_EMAIL=' "$ENV_FILE" || set_env_var BACKUP_EMAIL hamidrezakeshavarziii9@gmail.com
+  grep -q '^MAIL_FROM_ADDRESS=' "$ENV_FILE" || set_env_var MAIL_FROM_ADDRESS Info@posheapp.ir
 }
 
 clear_laravel_cache() {
@@ -96,8 +100,17 @@ sync_code
 
 ensure_env_file
 
-log "2/9 Starting containers"
-$COMPOSE up -d --build || fail "docker compose up failed"
+log "Ensuring mailu Docker network (nginx requires external posheh_mailu)"
+if [ -f "$ROOT/docker/mail/secrets.env" ] || [ -f "$ROOT/docker/mail/mailu.env" ]; then
+  chmod +x "$ROOT/scripts/ensure-mailu-network.sh" 2>/dev/null || true
+  "$ROOT/scripts/ensure-mailu-network.sh" 2>/dev/null || true
+else
+  docker network inspect posheh_mailu >/dev/null 2>&1 || docker network create posheh_mailu 2>/dev/null || true
+fi
+
+log "2/9 Starting containers (main stack)"
+$COMPOSE up -d --build mysql redis app nginx queue scheduler \
+  || fail "docker compose up failed — run: docker compose ps && docker compose logs app --tail=30"
 
 wait_for_mysql
 
@@ -119,8 +132,10 @@ clear_laravel_cache
 log "5/9 Seeding settings, blog and demo data"
 $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --no-interaction \
   || fail "SystemSettingsSeeder failed"
-$COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
+  $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
   || log "BlogSeeder warning (may already be seeded)"
+$COMPOSE exec -T app php artisan blog:seed-bulk --count=100 --no-interaction \
+  || log "Blog bulk seed warning"
 $COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \
   || log "AppReleaseSeeder warning (may already be seeded)"
 if [ "${SKIP_DEMO_SEED:-1}" = "1" ]; then
@@ -157,7 +172,25 @@ if [ ! -f frontend/dist/downloads/posheh-android.apk ] || [ "$(wc -c < frontend/
 fi
 
 log "8/9 Restarting services"
+$COMPOSE up -d mysql redis app nginx queue scheduler || fail "docker compose up failed"
+$COMPOSE exec -T nginx nginx -t 2>/dev/null || log "WARNING: nginx config test failed"
 $COMPOSE restart app queue nginx scheduler 2>/dev/null || $COMPOSE restart app queue nginx
+
+if [ -f "$ROOT/docker/mail/secrets.env" ] || [ -n "${MAIL_INFO_PASSWORD:-}" ]; then
+  log "Mail: checking Mailu health"
+  chmod +x "$ROOT/scripts/setup-mail.sh" "$ROOT/scripts/fix-mail-restart.sh" "$ROOT/scripts/mail-up.sh" "$ROOT/scripts/ensure-mailu-network.sh" 2>/dev/null || true
+  MAIL_ADMIN_STATE=$(docker compose -f docker-compose.yml -f docker-compose.mail.yml ps mailu-admin --format '{{.State}}' 2>/dev/null || echo missing)
+  if echo "$MAIL_ADMIN_STATE" | grep -qiE 'restarting|exited|dead|missing'; then
+    log "Mail unhealthy ($MAIL_ADMIN_STATE) — running fix-mail-restart.sh"
+    MAIL_INFO_PASSWORD="${MAIL_INFO_PASSWORD:-}" "$ROOT/scripts/fix-mail-restart.sh" \
+      || MAIL_INFO_PASSWORD="${MAIL_INFO_PASSWORD:-}" "$ROOT/scripts/setup-mail.sh" \
+      || log "Mail setup warning — see docs/EMAIL-SETUP.md"
+  else
+    log "Mail healthy — syncing network only (no recreate)"
+    "$ROOT/scripts/mail-up.sh" || log "Mail sync warning — email may still work"
+  fi
+  $COMPOSE restart nginx 2>/dev/null || true
+fi
 
 log "9/9 Health check"
 sleep 6
@@ -184,6 +217,10 @@ Next steps:
   - OTP logs:             docker compose exec app tail -50 storage/logs/laravel.log
   - Site URL:            http://YOUR_SERVER_IP/  (or :8000)
   - Admin settings:       /admin/settings
+  - Email panel:          https://mail.posheapp.ir/admin
+  - Webmail:              https://mail.posheapp.ir/webmail
+  - Email setup:          docs/EMAIL-SETUP.md
+  - First-time mail:      cp docker/mail/secrets.env.example docker/mail/secrets.env && ./scripts/setup-mail.sh
   - If sms_mode=log only: login OTP code is 123456
 
 EOF

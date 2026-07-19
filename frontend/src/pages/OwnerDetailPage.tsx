@@ -1,16 +1,25 @@
 import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, Phone, Building2 } from 'lucide-react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { ArrowRight, Phone, Building2, Link2 } from 'lucide-react'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function OwnerDetailPage() {
   const { id } = useParams<{ id: string }>()
+
   const { data: owner, isLoading } = useQuery({
     queryKey: ['owner', id],
     queryFn: async () => (await api.get(`/owners/${id}`)).data.data,
     enabled: !!id,
+  })
+
+  const portal = useMutation({
+    mutationFn: async () => (await api.post(`/owners/${id}/portal-link`)).data.data as { portal_url: string },
+    onSuccess: (data) => {
+      navigator.clipboard?.writeText(data.portal_url)
+      alert('لینک پورتال مالک کپی شد.')
+    },
   })
 
   if (isLoading) return <div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>
@@ -21,6 +30,9 @@ export function OwnerDetailPage() {
       <div className="flex items-center gap-3">
         <Link to="/owners"><Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button></Link>
         <h1 className="text-2xl font-bold">{owner.name}</h1>
+        <Button size="sm" variant="outline" className="mr-auto" onClick={() => portal.mutate()} disabled={portal.isPending}>
+          <Link2 className="h-4 w-4" /> لینک پورتال مالک
+        </Button>
       </div>
       <Card>
         <CardHeader><CardTitle>اطلاعات</CardTitle></CardHeader>
