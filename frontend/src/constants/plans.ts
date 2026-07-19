@@ -113,7 +113,7 @@ export function subscriptionStatusLabel(key?: string): string {
 }
 
 export function trialBadgeForPlan(slug: string): string | null {
-  if (slug === 'solo') return '۴۸ ساعت رایگان'
+  if (slug === 'solo') return '۳ روز رایگان'
   return null
 }
 

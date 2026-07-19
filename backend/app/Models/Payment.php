@@ -10,10 +10,15 @@ class Payment extends Model
 {
     protected $fillable = [
         'office_id',
+        'user_id',
+        'user_phone',
+        'discount_code_id',
         'subscription_id',
         'gateway',
         'status',
         'amount',
+        'original_amount',
+        'discount_amount',
         'currency',
         'authority',
         'ref_id',
@@ -34,6 +39,16 @@ class Payment extends Model
     public function office(): BelongsTo
     {
         return $this->belongsTo(Office::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function discountCode(): BelongsTo
+    {
+        return $this->belongsTo(DiscountCode::class);
     }
 
     public function subscription(): BelongsTo

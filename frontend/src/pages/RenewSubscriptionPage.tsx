@@ -1,12 +1,14 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, CreditCard, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle, CreditCard, CheckCircle2, Tag } from 'lucide-react'
 import api from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 
 interface Plan {
   id: number
@@ -19,9 +21,10 @@ interface Plan {
 }
 
 export function RenewSubscriptionPage() {
-  const { user, refreshUser } = useAuthStore()
+  const { user } = useAuthStore()
   const queryClient = useQueryClient()
   const office = user?.office
+  const [discountCode, setDiscountCode] = useState('')
 
   const { data: plans } = useQuery({
     queryKey: ['plans'],
@@ -41,11 +44,17 @@ export function RenewSubscriptionPage() {
 
   const subscribeMutation = useMutation({
     mutationFn: ({ planId, gateway }: { planId: number; gateway: string }) =>
-      api.post('/subscribe', { plan_id: planId, gateway }),
-    onSuccess: async (res) => {
-      if (res.data.redirect_url) window.open(res.data.redirect_url, '_blank')
-      await refreshUser()
-      queryClient.invalidateQueries({ queryKey: ['subscription-current'] })
+      api.post('/subscribe', {
+        plan_id: planId,
+        gateway,
+        discount_code: discountCode.trim() || undefined,
+      }),
+    onSuccess: (res) => {
+      if (res.data.redirect_url) {
+        window.open(res.data.redirect_url, '_blank')
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['subscription-current'] })
+      }
     },
   })
 
@@ -68,6 +77,13 @@ export function RenewSubscriptionPage() {
                 <Badge variant="outline" className="mt-3">نیاز به پرداخت</Badge>
               )}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <label className="text-sm text-muted flex items-center gap-1 mb-1"><Tag className="h-3 w-3" /> کد تخفیف (اختیاری)</label>
+            <Input value={discountCode} onChange={(e) => setDiscountCode(e.target.value)} placeholder="کد تخفیف" />
           </CardContent>
         </Card>
 
@@ -110,6 +126,10 @@ export function RenewSubscriptionPage() {
             </Card>
           ))}
         </div>
+
+        <p className="text-center text-xs text-muted">
+          پس از پرداخت در درگاه زیبال، به صفحه تأیید هدایت می‌شوید. سپس داشبورد را رفرش کنید.
+        </p>
 
         <div className="text-center">
           <Link to="/subscription" className="text-sm text-primary hover:underline">جزئیات اشتراک</Link>

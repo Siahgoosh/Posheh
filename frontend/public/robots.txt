@@ -4,10 +4,14 @@ Allow: /blog
 Allow: /blog/
 Allow: /register
 Allow: /download
+Allow: /consultants
+Allow: /contact
 Disallow: /dashboard
 Disallow: /properties
 Disallow: /settings
 Disallow: /admin
 Disallow: /api/
 
-Sitemap: https://posheapp.ir/api/v1/sitemap.xml
+# Google Search Console: add meta tag to index.html after verification
+# Sitemap must return 200 at https://posheapp.ir/sitemap.xml
+Sitemap: https://posheapp.ir/sitemap.xml

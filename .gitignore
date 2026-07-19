@@ -46,3 +46,9 @@ redis_data/
 
 # Workspace
 /workspace/bin/
+backups/
+
+# Mail secrets (never commit)
+docker/mail/secrets.env
+docker/mail/mailu.env
+docker/mail/mailserver.env

@@ -2,6 +2,7 @@
 
 namespace App\Services\Payment;
 
+use App\Services\Settings\SystemSettingsService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -9,6 +10,10 @@ use Illuminate\Validation\ValidationException;
 class ZibalService
 {
     private const API_BASE = 'https://gateway.zibal.ir/v1';
+
+    public function __construct(
+        private readonly SystemSettingsService $settings,
+    ) {}
 
     public function request(int $amountToman, string $description, string $callbackUrl, int $orderId, ?string $mobile = null): array
     {
@@ -103,8 +108,9 @@ class ZibalService
 
     private function merchant(): ?string
     {
-        $merchant = config('services.zibal.merchant');
-        $sandbox = (bool) config('services.zibal.sandbox', false);
+        $config = $this->settings->zibalConfig();
+        $merchant = $config['merchant'] ?? null;
+        $sandbox = (bool) ($config['sandbox'] ?? false);
 
         if ($sandbox && ! $merchant) {
             return 'zibal';

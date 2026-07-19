@@ -25,9 +25,11 @@ services:
     volumes:
       - ./backend:/var/www
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./docker/nginx/mail.conf:/etc/nginx/conf.d/mail.conf
       - ./frontend/dist:/var/www/frontend
     networks:
       - posheh
+      - mailu
     depends_on:
       - app
 
@@ -92,6 +94,8 @@ services:
 
 networks:
   posheh:
+    driver: bridge
+  mailu:
     driver: bridge
 
 volumes:

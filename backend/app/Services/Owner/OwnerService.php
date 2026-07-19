@@ -5,6 +5,7 @@ namespace App\Services\Owner;
 use App\Models\Owner;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OwnerService
@@ -41,6 +42,7 @@ class OwnerService
             ...$data,
             'office_id' => $user->office_id,
             'created_by' => $user->id,
+            'portal_token' => Str::random(48),
         ]);
     }
 
@@ -57,5 +59,17 @@ class OwnerService
         $owner = $this->find($user, $id);
         $owner->properties()->update(['owner_id' => null]);
         $owner->delete();
+    }
+
+    public function ensurePortalToken(User $user, int $id): Owner
+    {
+        $owner = $this->find($user, $id);
+
+        if (! $owner->portal_token) {
+            $owner->update(['portal_token' => Str::random(48)]);
+            $owner = $owner->fresh();
+        }
+
+        return $owner;
     }
 }
