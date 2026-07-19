@@ -32,6 +32,34 @@ class SystemSettingsSeeder extends Seeder
             ['group' => 'general', 'key' => 'trial_hours_solo', 'value' => '72', 'label' => '(قدیمی) ساعت آزمایشی — از trial_days_solo استفاده کنید', 'type' => 'number'],
             ['group' => 'general', 'key' => 'frontend_url', 'value' => env('FRONTEND_URL', env('APP_URL', 'http://localhost:8000')), 'label' => 'آدرس فرانت‌اند', 'type' => 'text'],
             ['group' => 'general', 'key' => 'invite_sms_template', 'value' => 'شما به دفتر {office} در پوشه دعوت شدید. با شماره موبایل خود وارد شوید.', 'label' => 'متن پیامک دعوت', 'type' => 'textarea'],
+            ['group' => 'general', 'key' => 'support_phone', 'value' => '09170577873', 'label' => 'تلفن پشتیبانی', 'type' => 'text'],
+            ['group' => 'general', 'key' => 'support_email', 'value' => 'Info@posheapp.ir', 'label' => 'ایمیل پشتیبانی', 'type' => 'text'],
+            ['group' => 'general', 'key' => 'company_legal_name', 'value' => 'پوشه — سامانه مدیریت املاک', 'label' => 'نام حقوقی شرکت (فاکتور)', 'type' => 'text'],
+
+            // Marketing
+            ['group' => 'marketing', 'key' => 'marketing_google_analytics_id', 'value' => '', 'label' => 'شناسه Google Analytics', 'type' => 'text'],
+            ['group' => 'marketing', 'key' => 'marketing_meta_pixel_id', 'value' => '', 'label' => 'شناسه Meta Pixel', 'type' => 'text'],
+            ['group' => 'marketing', 'key' => 'marketing_default_utm_source', 'value' => 'posheh', 'label' => 'UTM پیش‌فرض', 'type' => 'text'],
+            ['group' => 'marketing', 'key' => 'marketing_referral_bonus_percent', 'value' => '10', 'label' => 'پاداش معرفی (درصد)', 'type' => 'number'],
+            ['group' => 'marketing', 'key' => 'marketing_welcome_message', 'value' => 'به پوشه خوش آمدید! از قیف CRM و حسابداری استفاده کنید.', 'label' => 'پیام خوش‌آمدگویی', 'type' => 'textarea'],
+            ['group' => 'marketing', 'key' => 'marketing_blog_auto_publish', 'value' => '0', 'label' => 'انتشار خودکار مقالات وبلاگ', 'type' => 'boolean'],
+
+            // Accounting
+            ['group' => 'accounting', 'key' => 'accounting_default_vat_percent', 'value' => '0', 'label' => 'مالیات بر ارزش افزوده (درصد)', 'type' => 'number'],
+            ['group' => 'accounting', 'key' => 'accounting_invoice_prefix', 'value' => 'POS', 'label' => 'پیشوند شماره فاکتور', 'type' => 'text'],
+            ['group' => 'accounting', 'key' => 'accounting_fiscal_year_start', 'value' => '01-01', 'label' => 'شروع سال مالی (ماه-روز)', 'type' => 'text'],
+            ['group' => 'accounting', 'key' => 'accounting_auto_commission_on_deal', 'value' => '1', 'label' => 'کمیسیون خودکار پس از معامله موفق', 'type' => 'boolean'],
+            ['group' => 'accounting', 'key' => 'accounting_default_commission_percent', 'value' => '2.5', 'label' => 'درصد کمیسیون پیش‌فرض', 'type' => 'number'],
+
+            // Notifications
+            ['group' => 'notifications', 'key' => 'notification_ttl_hours', 'value' => '72', 'label' => 'حذف خودکار اعلان‌ها پس از (ساعت)', 'type' => 'number'],
+            ['group' => 'notifications', 'key' => 'notification_poll_interval_seconds', 'value' => '30', 'label' => 'فاصله به‌روزرسانی اعلان (ثانیه)', 'type' => 'number'],
+            ['group' => 'notifications', 'key' => 'notification_enable_browser_alerts', 'value' => '1', 'label' => 'نمایش اعلان مرورگر (وب)', 'type' => 'boolean'],
+
+            // CRM
+            ['group' => 'crm', 'key' => 'crm_default_follow_up_days', 'value' => '3', 'label' => 'روز پیش‌فرض پیگیری سرنخ', 'type' => 'number'],
+            ['group' => 'crm', 'key' => 'crm_auto_lead_scoring', 'value' => '1', 'label' => 'امتیازدهی خودکار سرنخ', 'type' => 'boolean'],
+            ['group' => 'crm', 'key' => 'crm_pipeline_currency_display', 'value' => 'toman', 'label' => 'نمایش ارز در قیف (toman/rial)', 'type' => 'select'],
         ];
 
         foreach ($settings as $setting) {

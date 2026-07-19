@@ -42,7 +42,7 @@ export function Sidebar() {
     { to: '/search', icon: Search, label: 'جستجو' },
     ...(hasSavedSearches ? [{ to: '/saved-searches', icon: Bookmark, label: 'جستجوهای ذخیره' }] : []),
     { to: '/favorites', icon: Star, label: 'علاقه‌مندی‌ها' },
-    ...(hasCrm ? [{ to: '/crm', icon: Kanban, label: 'CRM' }] : []),
+    ...(hasCrm ? [{ to: '/crm', icon: Kanban, label: 'قیف فروش' }] : []),
     ...(hasAccounting ? [{ to: '/accounting', icon: Wallet, label: 'حسابداری' }] : []),
     { to: '/reports', icon: BarChart3, label: 'گزارش‌ها' },
     ...(hasActivityLogs ? [{ to: '/activity-logs', icon: History, label: 'گزارش فعالیت' }] : []),

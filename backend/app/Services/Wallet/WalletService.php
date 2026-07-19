@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Payment\ZibalService;
+use App\Services\Payment\PaymentInvoiceService;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -69,6 +70,68 @@ class WalletService
             'amount' => $amountToman,
             'redirect_url' => $result['redirect_url'],
             'track_id' => $result['track_id'],
+            'invoice' => app(PaymentInvoiceService::class)->build($payment->fresh()),
+        ];
+    }
+
+    public function adminCredit(Office $office, User $admin, int $amountToman, string $description): array
+    {
+        $wallet = $office->wallet ?? Wallet::create(['office_id' => $office->id, 'balance' => 0]);
+
+        $payment = Payment::create([
+            'office_id' => $office->id,
+            'user_id' => $admin->id,
+            'gateway' => PaymentGateway::Manual,
+            'status' => 'paid',
+            'amount' => $amountToman,
+            'original_amount' => $amountToman,
+            'paid_at' => now(),
+            'metadata' => [
+                'purpose' => 'manual_credit',
+                'description' => $description,
+                'admin_user_id' => $admin->id,
+                'admin_name' => $admin->name,
+            ],
+        ]);
+
+        $wallet->increment('balance', $amountToman);
+        $wallet->transactions()->create([
+            'type' => 'credit',
+            'amount' => $amountToman,
+            'balance_after' => $wallet->balance,
+            'description' => $description,
+            'reference_type' => Payment::class,
+            'reference_id' => $payment->id,
+        ]);
+
+        return [
+            'balance' => (int) $wallet->balance,
+            'payment_id' => $payment->id,
+        ];
+    }
+
+    public function adminDebit(Office $office, User $admin, int $amountToman, string $description): array
+    {
+        $wallet = $office->wallet ?? Wallet::create(['office_id' => $office->id, 'balance' => 0]);
+
+        if ($wallet->balance < $amountToman) {
+            throw ValidationException::withMessages([
+                'amount' => ['موجودی کیف پول کافی نیست.'],
+            ]);
+        }
+
+        $wallet->decrement('balance', $amountToman);
+        $wallet->transactions()->create([
+            'type' => 'debit',
+            'amount' => $amountToman,
+            'balance_after' => $wallet->balance,
+            'description' => $description,
+            'reference_type' => User::class,
+            'reference_id' => $admin->id,
+        ]);
+
+        return [
+            'balance' => (int) $wallet->balance,
         ];
     }
 

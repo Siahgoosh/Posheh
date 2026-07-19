@@ -90,6 +90,11 @@ class Office extends Model
         return $this->hasOne(Wallet::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     public function invitations(): HasMany
     {
         return $this->hasMany(OfficeInvitation::class);

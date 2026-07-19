@@ -13,6 +13,7 @@ use App\Models\Wallet;
 use App\Services\Payment\AqayepardakhtService;
 use App\Services\Payment\CafeBazaarService;
 use App\Services\Payment\DiscountCodeService;
+use App\Services\Payment\PaymentInvoiceService;
 use App\Services\Payment\ZibalService;
 use App\Services\Wallet\WalletService;
 use Illuminate\Support\Str;
@@ -293,6 +294,7 @@ class SubscriptionService
             'discount_amount' => $payment->discount_amount,
             'redirect_url' => $result['redirect_url'],
             'track_id' => $result['track_id'],
+            'invoice' => app(PaymentInvoiceService::class)->build($payment->fresh()),
         ];
     }
 
@@ -317,6 +319,7 @@ class SubscriptionService
             'amount' => $payment->amount,
             'redirect_url' => $result['redirect_url'],
             'track_id' => $result['track_id'],
+            'invoice' => app(PaymentInvoiceService::class)->build($payment->fresh()),
         ];
     }
 

@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('subscriptions:remind')->dailyAt('09:00');
         $schedule->command('visits:remind')->hourly();
         $schedule->command('backup:database')->cron('0 2 */3 * *');
+        $schedule->command('notifications:prune')->hourly();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([

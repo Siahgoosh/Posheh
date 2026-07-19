@@ -21,6 +21,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> with Wi
   Map<String, dynamic>? _current;
   List<dynamic> _plans = [];
   Map<String, dynamic>? _wallet;
+  List<dynamic> _payments = [];
   Map<String, dynamic>? _discountPreview;
   bool _loading = true;
   int? _payingPlanId;
@@ -69,8 +70,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> with Wi
       final current = await api.getSubscription();
       final plans = await api.getPlans();
       Map<String, dynamic>? wallet;
+      List<dynamic> payments = [];
       try { wallet = await api.getWalletBalance(); } catch (_) {}
-      if (mounted) setState(() { _current = current; _plans = plans; _wallet = wallet; _loading = false; });
+      try { payments = await api.getPaymentHistory(); } catch (_) {}
+      if (mounted) setState(() { _current = current; _plans = plans; _wallet = wallet; _payments = payments; _loading = false; });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -271,6 +274,21 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> with Wi
                         ),
                       ),
                     ),
+                  if (_payments.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Text('تاریخچه پرداخت‌ها', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    ..._payments.take(10).map((p) {
+                      final m = Map<String, dynamic>.from(p as Map);
+                      return GlassCard(
+                        child: ListTile(
+                          title: Text(m['purpose_label']?.toString() ?? 'پرداخت'),
+                          subtitle: Text('${m['gateway_label'] ?? ''} · ${m['status_label'] ?? ''}'),
+                          trailing: Text(formatPrice(m['amount'] as num? ?? 0), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                        ),
+                      );
+                    }),
+                  ],
                 ],
               ),
             ),

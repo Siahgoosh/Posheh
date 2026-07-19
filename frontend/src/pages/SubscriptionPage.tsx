@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CreditCard, CheckCircle2, Tag, Wallet } from 'lucide-react'
+import { CreditCard, CheckCircle2, Tag, Wallet, History, FileText } from 'lucide-react'
 import api from '@/lib/api'
 import { formatJalaliDate, formatPrice } from '@/lib/utils'
 import { PLAN_FEATURE_LABELS, subscriptionStatusLabel, trialBadgeForPlan } from '@/constants/plans'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { PaymentInvoiceCard, type InvoiceData } from '@/components/PaymentInvoiceCard'
 
 interface Plan {
   id: number
@@ -33,12 +34,28 @@ interface DiscountPreview {
   final_amount: number
 }
 
+interface PaymentRow {
+  id: number
+  invoice_number?: string
+  purpose_label: string
+  status_label: string
+  status: string
+  gateway_label: string
+  amount: number
+  ref_id?: string
+  plan_name?: string
+  paid_at?: string
+  created_at?: string
+}
+
 export function SubscriptionPage() {
   const queryClient = useQueryClient()
   const [discountCode, setDiscountCode] = useState('')
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null)
   const [preview, setPreview] = useState<DiscountPreview | null>(null)
   const [topUpAmount, setTopUpAmount] = useState('100000')
+  const [pendingInvoice, setPendingInvoice] = useState<{ invoice: InvoiceData; redirectUrl: string; paymentId: number } | null>(null)
+  const [viewInvoiceId, setViewInvoiceId] = useState<number | null>(null)
 
   const params = new URLSearchParams(window.location.search)
   const walletStatus = params.get('wallet')
@@ -64,6 +81,20 @@ export function SubscriptionPage() {
     },
   })
 
+  const { data: paymentHistory } = useQuery({
+    queryKey: ['payment-history'],
+    queryFn: async () => {
+      const res = await api.get('/payments')
+      return res.data.data as PaymentRow[]
+    },
+  })
+
+  const { data: viewedInvoice } = useQuery({
+    queryKey: ['payment-invoice', viewInvoiceId],
+    queryFn: async () => (await api.get(`/payments/${viewInvoiceId}/invoice`)).data.data as InvoiceData,
+    enabled: !!viewInvoiceId,
+  })
+
   const previewMutation = useMutation({
     mutationFn: async (planId: number) => {
       const res = await api.post('/discount-codes/preview', {
@@ -83,11 +114,18 @@ export function SubscriptionPage() {
         discount_code: discountCode.trim() || undefined,
       }),
     onSuccess: (res) => {
-      if (res.data.redirect_url) {
+      if (res.data.invoice && res.data.redirect_url) {
+        setPendingInvoice({
+          invoice: res.data.invoice,
+          redirectUrl: res.data.redirect_url,
+          paymentId: res.data.payment_id,
+        })
+      } else if (res.data.redirect_url) {
         window.open(res.data.redirect_url, '_blank')
       } else {
         queryClient.invalidateQueries({ queryKey: ['subscription-current'] })
         queryClient.invalidateQueries({ queryKey: ['wallet-balance'] })
+        queryClient.invalidateQueries({ queryKey: ['payment-history'] })
       }
     },
   })
@@ -95,7 +133,15 @@ export function SubscriptionPage() {
   const topUpMutation = useMutation({
     mutationFn: () => api.post('/wallet/top-up', { amount: Number(topUpAmount) }),
     onSuccess: (res) => {
-      if (res.data.redirect_url) window.open(res.data.redirect_url, '_blank')
+      if (res.data.invoice && res.data.redirect_url) {
+        setPendingInvoice({
+          invoice: res.data.invoice,
+          redirectUrl: res.data.redirect_url,
+          paymentId: res.data.payment_id,
+        })
+      } else if (res.data.redirect_url) {
+        window.open(res.data.redirect_url, '_blank')
+      }
     },
   })
 
@@ -107,6 +153,20 @@ export function SubscriptionPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {(pendingInvoice || viewedInvoice) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => { setPendingInvoice(null); setViewInvoiceId(null) }}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <PaymentInvoiceCard
+              invoice={pendingInvoice?.invoice ?? viewedInvoice!}
+              paymentId={pendingInvoice?.paymentId ?? viewInvoiceId ?? undefined}
+              onConfirm={pendingInvoice ? () => { window.open(pendingInvoice.redirectUrl, '_blank'); setPendingInvoice(null) } : undefined}
+              onClose={() => { setPendingInvoice(null); setViewInvoiceId(null) }}
+              showActions
+            />
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <CreditCard className="h-6 w-6 text-primary" />
@@ -222,6 +282,31 @@ export function SubscriptionPage() {
           ))}
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2"><History className="h-4 w-4" /> تاریخچه پرداخت‌ها</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {!paymentHistory?.length ? (
+            <p className="text-sm text-muted">هنوز پرداختی ثبت نشده است.</p>
+          ) : paymentHistory.map((p) => (
+            <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-card-border p-3 text-sm">
+              <div>
+                <p className="font-medium">{p.purpose_label}{p.plan_name ? ` — ${p.plan_name}` : ''}</p>
+                <p className="text-xs text-muted">{p.invoice_number ?? `#${p.id}`} · {p.gateway_label} · {p.created_at ? formatJalaliDate(p.created_at) : ''}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-primary">{formatPrice(p.amount)}</span>
+                <Badge variant="outline" className={p.status === 'paid' ? 'text-success' : ''}>{p.status_label}</Badge>
+                <Button size="sm" variant="ghost" onClick={() => setViewInvoiceId(p.id)}>
+                  <FileText className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -56,9 +56,13 @@ class CrmService
         $deal = $deal->fresh(['assignee', 'property']);
 
         if (isset($data['stage']) && $data['stage'] !== $oldStage) {
-            $this->logActivity($user, $deal, 'stage_change', "مرحله به «{$data['stage']}» تغییر کرد", [
+            $fromLabel = self::STAGE_LABELS[$oldStage] ?? $oldStage;
+            $toLabel = self::STAGE_LABELS[$data['stage']] ?? $data['stage'];
+            $this->logActivity($user, $deal, 'stage_change', "مرحله از «{$fromLabel}» به «{$toLabel}» تغییر کرد", [
                 'from' => $oldStage,
                 'to' => $data['stage'],
+                'from_label' => $fromLabel,
+                'to_label' => $toLabel,
             ]);
         }
 
@@ -67,6 +71,19 @@ class CrmService
         }
 
         return $this->enrichDeal($deal);
+    }
+
+    public function stages(): array
+    {
+        return array_map(
+            fn (string $key) => ['key' => $key, 'label' => self::STAGE_LABELS[$key] ?? $key],
+            self::STAGES,
+        );
+    }
+
+    public static function stageLabel(?string $stage): string
+    {
+        return self::STAGE_LABELS[$stage ?? ''] ?? ($stage ?? '');
     }
 
     public function pipelineSummary(User $user): array

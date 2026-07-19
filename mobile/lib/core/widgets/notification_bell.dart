@@ -119,6 +119,30 @@ class _NotificationPanelState extends ConsumerState<_NotificationPanel> {
     }
   }
 
+  Future<void> _markAllRead() async {
+    try {
+      await ref.read(apiClientProvider).markAllNotificationsRead();
+      widget.onChanged();
+      await _refresh();
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
+  Future<void> _dismiss(int id) async {
+    try {
+      await ref.read(apiClientProvider).dismissNotification(id);
+      widget.onChanged();
+      await _refresh();
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    }
+  }
+
   Future<void> _openNotification(Map<String, dynamic> n) async {
     final id = notificationIdAsInt(n['id']);
     if (id > 0 && n['is_read'] != true) {
@@ -158,6 +182,11 @@ class _NotificationPanelState extends ConsumerState<_NotificationPanel> {
                   icon: const Icon(Icons.refresh_rounded, size: 20),
                   onPressed: _refresh,
                   tooltip: 'به‌روزرسانی',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.done_all_rounded, size: 20),
+                  onPressed: _markAllRead,
+                  tooltip: 'همه خوانده',
                 ),
               ],
             ),
@@ -226,12 +255,21 @@ class _NotificationPanelState extends ConsumerState<_NotificationPanel> {
                         style: const TextStyle(fontSize: 13, height: 1.4, color: AppColors.muted),
                       ),
                     ),
-                    trailing: !isRead
-                        ? TextButton(
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!isRead)
+                          TextButton(
                             onPressed: () => _markRead(notificationIdAsInt(n['id'])),
                             child: const Text('خواندم'),
-                          )
-                        : null,
+                          ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.muted),
+                          onPressed: () => _dismiss(notificationIdAsInt(n['id'])),
+                          tooltip: 'حذف',
+                        ),
+                      ],
+                    ),
                     onTap: () => _openNotification(n),
                   );
                 },

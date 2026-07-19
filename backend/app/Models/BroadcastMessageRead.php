@@ -12,6 +12,7 @@ class BroadcastMessageRead extends Model
         'user_id',
         'read_at',
         'delivered_at',
+        'dismissed_at',
     ];
 
     protected function casts(): array
@@ -19,6 +20,7 @@ class BroadcastMessageRead extends Model
         return [
             'read_at' => 'datetime',
             'delivered_at' => 'datetime',
+            'dismissed_at' => 'datetime',
         ];
     }
 

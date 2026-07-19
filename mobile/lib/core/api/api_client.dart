@@ -484,8 +484,14 @@ class ApiClient {
     );
   }
 
-  Future<List<dynamic>> getNotifications() =>
-      getList('/notifications', params: {'platform': clientPlatform});
+  Future<List<dynamic>> getNotifications() async {
+    final res = await _guard(
+      () => _dio.get('/notifications', queryParameters: {'platform': clientPlatform}),
+      'خطا در دریافت اعلان‌ها',
+      ok: (r) => r.data as Map,
+    );
+    return (res['data'] as List?) ?? [];
+  }
 
   Future<void> markNotificationRead(int id) async {
     await _guard(
@@ -494,6 +500,25 @@ class ApiClient {
       ok: (_) => null,
     );
   }
+
+  Future<void> markAllNotificationsRead() async {
+    await _guard(
+      () => _dio.post('/notifications/read-all'),
+      'خطا در علامت‌گذاری اعلان‌ها',
+      ok: (_) => null,
+    );
+  }
+
+  Future<void> dismissNotification(int id) async {
+    await _guard(
+      () => _dio.delete('/notifications/$id'),
+      'خطا در حذف اعلان',
+      ok: (_) => null,
+    );
+  }
+
+  Future<List<dynamic>> getPaymentHistory() =>
+      getList('/payments');
 
   Future<Map<String, dynamic>> subscribe(int planId, {String gateway = 'zibal', String? discountCode}) {
     return _guard(

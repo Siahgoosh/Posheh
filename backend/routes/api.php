@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AccountingController;
 use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AdminOfficeController;
+use App\Http\Controllers\Api\Admin\AdminOfficeWalletController;
 use App\Http\Controllers\Api\Admin\AppReleaseAdminController;
 use App\Http\Controllers\Api\Admin\BlogAdminController;
 use App\Http\Controllers\Api\Admin\BroadcastAdminController;
@@ -39,6 +40,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Admin\PlanAdminController;
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\OwnerPortalController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PropertyCompareController;
 use App\Http\Controllers\Api\SavedSearchController;
 use App\Http\Controllers\Api\WalletController;
@@ -128,6 +130,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/accounting/summary', [AccountingController::class, 'summary'])->middleware('plan.feature:accounting');
         Route::post('/accounting', [AccountingController::class, 'store'])->middleware('plan.feature:accounting');
 
+        Route::get('/crm/stages', [CrmController::class, 'stages'])->middleware('plan.feature:crm');
         Route::get('/crm/deals', [CrmController::class, 'index'])->middleware('plan.feature:crm');
         Route::get('/crm/pipeline', [CrmController::class, 'pipeline'])->middleware('plan.feature:crm');
         Route::get('/crm/follow-ups', [CrmController::class, 'followUps'])->middleware('plan.feature:crm');
@@ -181,9 +184,16 @@ Route::prefix('v1')->group(function () {
             ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
         Route::post('/discount-codes/preview', [SubscriptionController::class, 'previewDiscount'])
             ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+        Route::get('/payments', [PaymentController::class, 'index']);
+        Route::get('/payments/{id}', [PaymentController::class, 'show']);
+        Route::get('/payments/{id}/invoice', [PaymentController::class, 'invoice']);
+        Route::get('/payments/{id}/invoice/pdf', [PaymentController::class, 'invoicePdf']);
+
         Route::get('/subscription/current', [SubscriptionController::class, 'current']);
         Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+        Route::delete('/notifications/{id}', [NotificationController::class, 'dismiss']);
 
         Route::prefix('admin')->middleware(EnsureUserHasRole::class.':super_admin')->group(function () {
             Route::get('/marketing', [MarketingDashboardController::class, 'index']);
@@ -206,6 +216,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/offices', [AdminController::class, 'offices']);
             Route::put('/offices/{id}/plan-status', [AdminOfficeController::class, 'updatePlanStatus']);
             Route::put('/offices/{id}/website-status', [AdminOfficeController::class, 'updateWebsiteStatus']);
+            Route::get('/offices/{id}/wallet', [AdminOfficeWalletController::class, 'show']);
+            Route::post('/offices/{id}/wallet/credit', [AdminOfficeWalletController::class, 'credit']);
+            Route::post('/offices/{id}/wallet/debit', [AdminOfficeWalletController::class, 'debit']);
             Route::get('/analytics', [AdminController::class, 'analytics']);
             Route::get('/tickets', [TicketAdminController::class, 'index']);
             Route::post('/tickets/{id}/reply', [TicketAdminController::class, 'reply']);

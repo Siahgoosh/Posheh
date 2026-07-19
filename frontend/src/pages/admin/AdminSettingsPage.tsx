@@ -16,6 +16,16 @@ interface SettingItem {
   has_value: boolean
 }
 
+const GROUP_LABELS: Record<string, string> = {
+  payment: 'درگاه پرداخت',
+  general: 'عمومی و پشتیبانی',
+  sms: 'پیامک (IPPanel)',
+  marketing: 'مارکتینگ و رشد',
+  accounting: 'حسابداری و فاکتور',
+  notifications: 'اعلان‌ها',
+  crm: 'قیف فروش (CRM)',
+}
+
 export function AdminSettingsPage() {
   const queryClient = useQueryClient()
   const [values, setValues] = useState<Record<string, string>>({})
@@ -30,7 +40,7 @@ export function AdminSettingsPage() {
         flat[s.key] = s.value ?? ''
       })
       setValues(flat)
-      return res.data
+      return grouped
     },
   })
 
@@ -41,34 +51,75 @@ export function AdminSettingsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-system-settings'] }),
   })
 
-  const paymentKeys = ['zibal_merchant', 'zibal_sandbox', 'aqayepardakht_pin', 'aqayepardakht_sandbox']
-  const generalKeys = ['trial_days_solo', 'frontend_url', 'app_public_name', 'invite_sms_template']
-  const smsKeys = ['sms_mode', 'sms_provider', 'ippanel_username', 'ippanel_from_number', 'ippanel_otp_pattern_code']
+  const renderField = (item: SettingItem) => {
+    const isSecret = item.is_secret || item.type === 'password'
+    const isLtr = item.key.includes('merchant') || item.key.includes('pin') || item.key.includes('analytics') || item.key.includes('pixel') || item.key.includes('utm')
 
-  const renderField = (key: string, label?: string) => (
-    <div key={key} className="space-y-1">
-      <label className="text-sm text-muted">{label || key}</label>
-      <Input
-        value={values[key] ?? ''}
-        onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
-        dir={key.includes('merchant') || key.includes('pin') ? 'ltr' : 'rtl'}
-        type={key.includes('password') || key.includes('secret') || key.includes('pin') || key.includes('merchant') ? 'password' : 'text'}
-        placeholder={key === 'zibal_merchant' ? 'مرچنت ID زیبال' : ''}
-      />
-    </div>
-  )
+    if (item.type === 'textarea') {
+      return (
+        <div key={item.key} className="space-y-1 md:col-span-2">
+          <label className="text-sm text-muted">{item.label}</label>
+          <textarea
+            className="w-full min-h-[80px] rounded-lg border border-card-border bg-background px-3 py-2 text-sm"
+            value={values[item.key] ?? ''}
+            onChange={(e) => setValues((v) => ({ ...v, [item.key]: e.target.value }))}
+          />
+        </div>
+      )
+    }
 
-  const flatSettings = Object.values(data?.data ?? {}).flat() as SettingItem[]
-  const labelFor = (key: string) => flatSettings.find((s) => s.key === key)?.label ?? key
+    if (item.type === 'boolean' || item.type === 'select') {
+      return (
+        <div key={item.key} className="space-y-1">
+          <label className="text-sm text-muted">{item.label}</label>
+          <select
+            className="w-full rounded-lg border border-card-border bg-background px-3 py-2 text-sm"
+            value={values[item.key] ?? ''}
+            onChange={(e) => setValues((v) => ({ ...v, [item.key]: e.target.value }))}
+          >
+            {item.type === 'boolean' ? (
+              <>
+                <option value="1">فعال</option>
+                <option value="0">غیرفعال</option>
+              </>
+            ) : (
+              <>
+                <option value="toman">تومان</option>
+                <option value="rial">ریال</option>
+                <option value="log">log</option>
+                <option value="live">live</option>
+                <option value="maxsms">maxsms</option>
+                <option value="ippanel">ippanel</option>
+              </>
+            )}
+          </select>
+        </div>
+      )
+    }
+
+    return (
+      <div key={item.key} className="space-y-1">
+        <label className="text-sm text-muted">{item.label}</label>
+        <Input
+          value={values[item.key] ?? ''}
+          onChange={(e) => setValues((v) => ({ ...v, [item.key]: e.target.value }))}
+          dir={isLtr ? 'ltr' : 'rtl'}
+          type={isSecret ? 'password' : item.type === 'number' ? 'number' : 'text'}
+        />
+      </div>
+    )
+  }
+
+  const groups = data ? Object.entries(data) : []
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link to="/admin"><Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button></Link>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2"><Settings className="h-6 w-6 text-primary" />تنظیمات سیستم</h1>
-            <p className="text-sm text-muted">مرچنت زیبال، SMS و دوره آزمایشی — بلافاصله در وب و اپ اعمال می‌شود</p>
+            <p className="text-sm text-muted">مارکتینگ، حسابداری، اعلان‌ها، CRM و درگاه پرداخت — بلافاصله در وب و اپ اعمال می‌شود</p>
           </div>
         </div>
         <Button onClick={() => save.mutate()} disabled={save.isPending}>
@@ -81,27 +132,14 @@ export function AdminSettingsPage() {
         <p className="text-muted">در حال بارگذاری…</p>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="glass">
-            <CardHeader><CardTitle>درگاه پرداخت (زیبال)</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {paymentKeys.map((k) => renderField(k, labelFor(k)))}
-              <p className="text-xs text-muted">مرچنت فعلی: {data?.zibal?.merchant ? '••••••' + String(data.zibal.merchant).slice(-4) : 'تنظیم نشده'}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="glass">
-            <CardHeader><CardTitle>عمومی و آزمایشی</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {generalKeys.map((k) => renderField(k, labelFor(k)))}
-            </CardContent>
-          </Card>
-
-          <Card className="glass lg:col-span-2">
-            <CardHeader><CardTitle>پیامک (IPPanel)</CardTitle></CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              {smsKeys.map((k) => renderField(k, labelFor(k)))}
-            </CardContent>
-          </Card>
+          {groups.map(([group, items]) => (
+            <Card key={group} className={`glass ${group === 'sms' ? 'lg:col-span-2' : ''}`}>
+              <CardHeader><CardTitle>{GROUP_LABELS[group] ?? group}</CardTitle></CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                {items.map((item) => renderField(item))}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

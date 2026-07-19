@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Payment extends Model
 {
     protected $fillable = [
+        'invoice_number',
         'office_id',
         'user_id',
         'user_phone',
