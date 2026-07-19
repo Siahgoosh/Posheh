@@ -43,8 +43,17 @@ class PaymentController extends Controller
 
     public function invoicePdf(Request $request, int $id)
     {
-        $payment = $request->user()->office->payments()->findOrFail($id);
+        try {
+            $payment = $request->user()->office->payments()->findOrFail($id);
 
-        return $this->invoices->downloadResponse($payment);
+            return $this->invoices->printResponse($payment);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('invoice print failed', [
+                'payment_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['message' => 'خطا در نمایش فاکتور: '.$e->getMessage()], 500);
+        }
     }
 }

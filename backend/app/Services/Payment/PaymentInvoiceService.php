@@ -6,8 +6,9 @@ use App\Enums\PaymentGateway;
 use App\Models\Office;
 use App\Models\Payment;
 use App\Services\Settings\SystemSettingsService;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Symfony\Component\HttpFoundation\Response;
 
 class PaymentInvoiceService
 {
@@ -17,19 +18,28 @@ class PaymentInvoiceService
 
     public function assignInvoiceNumber(Payment $payment): Payment
     {
-        if ($payment->invoice_number) {
+        if (! empty($payment->invoice_number)) {
             return $payment;
         }
 
-        $prefix = 'POS-'.now()->format('Ymd');
-        $last = Payment::where('invoice_number', 'like', $prefix.'-%')
-            ->orderByDesc('id')
-            ->value('invoice_number');
+        $number = $this->generateInvoiceNumber($payment);
 
-        $seq = $last ? ((int) substr($last, -4)) + 1 : 1;
-        $payment->update(['invoice_number' => sprintf('%s-%04d', $prefix, $seq)]);
+        if (Schema::hasColumn('payments', 'invoice_number')) {
+            try {
+                $payment->update(['invoice_number' => $number]);
 
-        return $payment->fresh();
+                return $payment->fresh();
+            } catch (\Throwable $e) {
+                Log::warning('Could not save invoice_number', [
+                    'payment_id' => $payment->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $payment->setAttribute('invoice_number', $number);
+
+        return $payment;
     }
 
     /** @return array<string, mixed> */
@@ -37,23 +47,23 @@ class PaymentInvoiceService
     {
         $payment = $this->assignInvoiceNumber($payment);
         $office = $payment->office ?? Office::find($payment->office_id);
-        $gateway = $payment->gateway instanceof PaymentGateway ? $payment->gateway : PaymentGateway::tryFrom((string) $payment->gateway);
+        $gateway = $this->resolveGateway($payment);
         $purpose = ($payment->metadata ?? [])['purpose'] ?? 'subscription';
         $vatPercent = (int) ($this->settings->get('accounting_default_vat_percent', '0') ?: 0);
         $amount = (int) $payment->amount;
         $vatAmount = $vatPercent > 0 ? (int) round($amount * $vatPercent / 100) : 0;
 
         return [
-            'invoice_number' => $payment->invoice_number,
+            'invoice_number' => $payment->invoice_number ?? $this->generateInvoiceNumber($payment),
             'invoice_type' => $payment->status === 'paid' ? 'receipt' : 'proforma',
             'invoice_type_label' => $payment->status === 'paid' ? 'رسید پرداخت' : 'پیش‌فاکتور',
             'status' => $payment->status,
             'status_label' => $payment->status === 'paid' ? 'پرداخت شده' : 'در انتظار پرداخت',
             'issued_at' => ($payment->paid_at ?? $payment->created_at)?->toIso8601String(),
             'seller' => [
-                'name' => $this->settings->get('app_public_name', 'پوشه'),
-                'support_phone' => $this->settings->get('support_phone', ''),
-                'support_email' => $this->settings->get('support_email', 'Info@posheapp.ir'),
+                'name' => (string) $this->settings->get('app_public_name', 'پوشه'),
+                'support_phone' => (string) $this->settings->get('support_phone', ''),
+                'support_email' => (string) $this->settings->get('support_email', 'Info@posheapp.ir'),
             ],
             'buyer' => [
                 'office_name' => $office?->name,
@@ -72,36 +82,38 @@ class PaymentInvoiceService
             'vat_percent' => $vatPercent,
             'vat_amount' => $vatAmount,
             'total' => $amount + $vatAmount,
-            'gateway_label' => $gateway?->label() ?? (string) $payment->gateway,
+            'gateway_label' => $gateway?->label() ?? (string) $payment->getRawOriginal('gateway'),
             'ref_id' => $payment->ref_id,
             'currency' => 'تومان',
         ];
     }
 
-    public function pdfPath(Payment $payment): string
+    public function printResponse(Payment $payment): Response
     {
         $invoice = $this->build($payment);
-        $html = view('invoices.payment', ['invoice' => $invoice])->render();
-        $pdf = Pdf::loadHTML($html)->setPaper('a4');
-        $path = 'invoices/'.($payment->invoice_number ?? 'payment-'.$payment->id).'.pdf';
-        $path = preg_replace('/[^a-zA-Z0-9._\-\/]/', '-', $path) ?: 'invoices/payment-'.$payment->id.'.pdf';
 
-        Storage::disk('public')->makeDirectory('invoices');
-        Storage::disk('public')->put($path, $pdf->output());
-
-        return $path;
+        return response()->view('invoices.payment-print', ['invoice' => $invoice]);
     }
 
-    public function downloadResponse(Payment $payment): \Symfony\Component\HttpFoundation\Response
+    public function downloadResponse(Payment $payment): Response
     {
-        $payment = $this->assignInvoiceNumber($payment);
-        $invoice = $this->build($payment);
-        $html = view('invoices.payment', ['invoice' => $invoice])->render();
-        $filename = ($payment->invoice_number ?? 'invoice-'.$payment->id).'.pdf';
+        return $this->printResponse($payment);
+    }
 
-        return Pdf::loadHTML($html)
-            ->setPaper('a4')
-            ->download($filename);
+    private function generateInvoiceNumber(Payment $payment): string
+    {
+        return sprintf('POS-%s-%04d', now()->format('Ymd'), $payment->id);
+    }
+
+    private function resolveGateway(Payment $payment): ?PaymentGateway
+    {
+        $raw = $payment->getRawOriginal('gateway');
+
+        if ($raw instanceof PaymentGateway) {
+            return $raw;
+        }
+
+        return PaymentGateway::tryFrom((string) $raw);
     }
 
     private function itemTitle(Payment $payment, string $purpose): string

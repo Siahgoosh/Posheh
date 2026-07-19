@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\SafePaymentGatewayCast;
 use App\Enums\PaymentGateway;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,7 +32,7 @@ class Payment extends Model
     protected function casts(): array
     {
         return [
-            'gateway' => PaymentGateway::class,
+            'gateway' => SafePaymentGatewayCast::class,
             'metadata' => 'array',
             'paid_at' => 'datetime',
         ];
