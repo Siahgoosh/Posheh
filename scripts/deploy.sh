@@ -100,6 +100,14 @@ sync_code
 
 ensure_env_file
 
+log "Ensuring mailu Docker network (nginx requires external posheh_mailu)"
+if [ -f "$ROOT/docker/mail/secrets.env" ] || [ -f "$ROOT/docker/mail/mailu.env" ]; then
+  chmod +x "$ROOT/scripts/ensure-mailu-network.sh" 2>/dev/null || true
+  "$ROOT/scripts/ensure-mailu-network.sh" 2>/dev/null || true
+else
+  docker network inspect posheh_mailu >/dev/null 2>&1 || docker network create posheh_mailu 2>/dev/null || true
+fi
+
 log "2/9 Starting containers (main stack)"
 $COMPOSE up -d --build mysql redis app nginx queue scheduler \
   || fail "docker compose up failed — run: docker compose ps && docker compose logs app --tail=30"
@@ -169,11 +177,18 @@ $COMPOSE exec -T nginx nginx -t 2>/dev/null || log "WARNING: nginx config test f
 $COMPOSE restart app queue nginx scheduler 2>/dev/null || $COMPOSE restart app queue nginx
 
 if [ -f "$ROOT/docker/mail/secrets.env" ] || [ -n "${MAIL_INFO_PASSWORD:-}" ]; then
-  log "Mail: setting up Mailu panel"
-  chmod +x "$ROOT/scripts/setup-mail.sh" "$ROOT/scripts/fix-mail-restart.sh" 2>/dev/null || true
-  MAIL_INFO_PASSWORD="${MAIL_INFO_PASSWORD:-}" "$ROOT/scripts/fix-mail-restart.sh" \
-    || MAIL_INFO_PASSWORD="${MAIL_INFO_PASSWORD:-}" "$ROOT/scripts/setup-mail.sh" \
-    || log "Mail setup warning — email may still work; see docs/EMAIL-SETUP.md"
+  log "Mail: checking Mailu health"
+  chmod +x "$ROOT/scripts/setup-mail.sh" "$ROOT/scripts/fix-mail-restart.sh" "$ROOT/scripts/mail-up.sh" "$ROOT/scripts/ensure-mailu-network.sh" 2>/dev/null || true
+  MAIL_ADMIN_STATE=$(docker compose -f docker-compose.yml -f docker-compose.mail.yml ps mailu-admin --format '{{.State}}' 2>/dev/null || echo missing)
+  if echo "$MAIL_ADMIN_STATE" | grep -qiE 'restarting|exited|dead|missing'; then
+    log "Mail unhealthy ($MAIL_ADMIN_STATE) — running fix-mail-restart.sh"
+    MAIL_INFO_PASSWORD="${MAIL_INFO_PASSWORD:-}" "$ROOT/scripts/fix-mail-restart.sh" \
+      || MAIL_INFO_PASSWORD="${MAIL_INFO_PASSWORD:-}" "$ROOT/scripts/setup-mail.sh" \
+      || log "Mail setup warning — see docs/EMAIL-SETUP.md"
+  else
+    log "Mail healthy — syncing network only (no recreate)"
+    "$ROOT/scripts/mail-up.sh" || log "Mail sync warning — email may still work"
+  fi
   $COMPOSE restart nginx 2>/dev/null || true
 fi
 

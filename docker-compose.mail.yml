@@ -126,7 +126,5 @@ volumes:
 
 networks:
   mailu:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.28.203.0/24
+    external: true
+    name: posheh_mailu

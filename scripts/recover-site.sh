@@ -13,6 +13,12 @@ git checkout -B cursor/zibal-payments-seo-backup-e117 origin/cursor/zibal-paymen
   || git pull origin cursor/zibal-payments-seo-backup-e117 2>/dev/null || true
 
 log "Starting core services..."
+chmod +x scripts/ensure-mailu-network.sh 2>/dev/null || true
+if [ -f docker/mail/mailu.env ] || [ -f docker/mail/secrets.env ]; then
+  ./scripts/ensure-mailu-network.sh
+else
+  docker network inspect posheh_mailu >/dev/null 2>&1 || docker network create posheh_mailu
+fi
 $COMPOSE up -d mysql redis app nginx queue scheduler
 
 log "Testing nginx config..."

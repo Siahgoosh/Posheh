@@ -162,25 +162,42 @@ sudo ufw allow 25,465,587,993/tcp
 
 ## عیب‌یابی
 
+### خطای `network posheh_mailu has active endpoints` هنگام deploy
+
+**هرگز** `docker network rm posheh_mailu` نزن — کانتینرهای Mailu و nginx هنوز به آن وصل‌اند.
+
+```bash
+cd /var/www/posheh
+git pull origin main   # یا شاخهٔ deploy فعلی
+chmod +x scripts/server-recover.sh scripts/ensure-mailu-network.sh scripts/mail-up.sh
+./scripts/server-recover.sh
+```
+
+یا دستی:
+
+```bash
+cd /var/www/posheh
+docker network inspect posheh_mailu >/dev/null 2>&1 || docker network create posheh_mailu
+ACTUAL=$(docker network inspect posheh_mailu -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}')
+sed -i "s/^SUBNET=.*/SUBNET=${ACTUAL}/" docker/mail/mailu.env
+docker compose up -d mysql redis app nginx queue scheduler
+docker compose exec app php artisan migrate --force
+./scripts/mail-up.sh
+```
+
 ### admin/webmail در حلقه Restarting
 
 ```bash
 cd /var/www/posheh
-git pull origin cursor/zibal-payments-seo-backup-e117
 chmod +x scripts/fix-mail-restart.sh
 ./scripts/fix-mail-restart.sh
 ```
 
-اگر هنوز `git pull` نکردی، همین یک خط:
-
-```bash
-sed -i 's/^INITIAL_ADMIN_MODE=.*/INITIAL_ADMIN_MODE=ifmissing/' docker/mail/mailu.env; grep -q '^INITIAL_ADMIN_MODE=' docker/mail/mailu.env || echo 'INITIAL_ADMIN_MODE=ifmissing' >> docker/mail/mailu.env; docker compose -f docker-compose.yml -f docker-compose.mail.yml up -d --force-recreate mailu-admin mailu-webmail
-```
-
 | مشکل | راه‌حل |
 |------|--------|
-| admin/webmail Restarting + redis error | `./scripts/fix-mail-restart.sh` (adds `redis` DNS alias) |
-| mail.posheapp.ir باز نمی‌شود | `docker compose ps` — mailu-front باید Up باشد؛ nginx restart |
+| `posheh_mailu has active endpoints` | `./scripts/server-recover.sh` — شبکه را حذف نکن |
+| admin/webmail Restarting + redis error | `./scripts/fix-mail-restart.sh` |
+| mail.posheapp.ir باز نمی‌شود | `docker compose ps` — mailu-front باید Up باشد؛ `docker compose restart nginx` |
 | ایمیل ارسال نمی‌شود | SPF و DKIM را چک کن؛ پورت 587 باز باشد |
 | اسپم می‌شود | DKIM + DMARC کامل کن؛ ۲۴ ساعت صبر |
 | Laravel خطا می‌دهد | `docker compose exec app php artisan config:clear` |
@@ -201,6 +218,8 @@ docker/mail/mailu.env        ← تنظیمات Mailu (خودکار)
 docker-compose.mail.yml      ← سرویس‌های Mailu
 docker/nginx/mail.conf       ← پروکسی mail.posheapp.ir
 scripts/setup-mail.sh        ← اسکریپت راه‌اندازی
+scripts/mail-up.sh             ← بالا آوردن Mailu بدون recreate شبکه
+scripts/server-recover.sh      ← بازیابی سریع deploy + mail
 ```
 
 ---

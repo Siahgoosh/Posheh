@@ -96,7 +96,8 @@ networks:
   posheh:
     driver: bridge
   mailu:
-    driver: bridge
+    external: true
+    name: posheh_mailu
 
 volumes:
   mysql_data:

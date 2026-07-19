@@ -6,7 +6,6 @@ MAIL_DIR="$ROOT/docker/mail"
 SECRETS="$MAIL_DIR/secrets.env"
 MAILU_ENV="$MAIL_DIR/mailu.env"
 COMPOSE="docker compose -f $ROOT/docker-compose.yml -f $ROOT/docker-compose.mail.yml"
-EXPECTED_SUBNET="172.28.203.0/24"
 
 log() { printf '[mail-setup] %s\n' "$1"; }
 
@@ -20,9 +19,7 @@ set_mailu_kv() {
 }
 
 sync_mailu_env() {
-  local actual
-  actual=$(docker network inspect posheh_mailu -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || true)
-  set_mailu_kv SUBNET "${actual:-$EXPECTED_SUBNET}"
+  "$ROOT/scripts/ensure-mailu-network.sh"
   set_mailu_kv INITIAL_ADMIN_MODE ifmissing
   set_mailu_kv DISABLE_STATISTICS True
   set_mailu_kv REDIS_ADDRESS mailu-redis
@@ -99,7 +96,7 @@ log "Pulling Mailu images..."
 $COMPOSE pull mailu-front mailu-admin mailu-imap mailu-smtp mailu-antispam mailu-webmail mailu-redis || log "Pull warning (continuing)"
 
 log "Starting Mailu containers..."
-$COMPOSE up -d mailu-redis mailu-admin mailu-front mailu-imap mailu-smtp mailu-antispam mailu-webmail
+$COMPOSE up -d --no-recreate mailu-redis mailu-admin mailu-front mailu-imap mailu-smtp mailu-antispam mailu-webmail
 
 sleep 8
 
