@@ -100,8 +100,9 @@ sync_code
 
 ensure_env_file
 
-log "2/9 Starting containers"
-$COMPOSE up -d --build || fail "docker compose up failed"
+log "2/9 Starting containers (main stack)"
+$COMPOSE up -d --build mysql redis app nginx queue scheduler \
+  || fail "docker compose up failed — run: docker compose ps && docker compose logs app --tail=30"
 
 wait_for_mysql
 
@@ -169,9 +170,10 @@ $COMPOSE restart app queue nginx scheduler 2>/dev/null || $COMPOSE restart app q
 
 if [ -f "$ROOT/docker/mail/secrets.env" ] || [ -n "${MAIL_INFO_PASSWORD:-}" ]; then
   log "Mail: setting up Mailu panel"
-  chmod +x "$ROOT/scripts/setup-mail.sh" 2>/dev/null || true
-  MAIL_INFO_PASSWORD="${MAIL_INFO_PASSWORD:-}" "$ROOT/scripts/setup-mail.sh" || log "Mail setup warning — see docs/EMAIL-SETUP.md"
-  $COMPOSE -f docker-compose.yml -f docker-compose.mail.yml up -d 2>/dev/null || true
+  chmod +x "$ROOT/scripts/setup-mail.sh" "$ROOT/scripts/fix-mail-restart.sh" 2>/dev/null || true
+  MAIL_INFO_PASSWORD="${MAIL_INFO_PASSWORD:-}" "$ROOT/scripts/fix-mail-restart.sh" \
+    || MAIL_INFO_PASSWORD="${MAIL_INFO_PASSWORD:-}" "$ROOT/scripts/setup-mail.sh" \
+    || log "Mail setup warning — email may still work; see docs/EMAIL-SETUP.md"
   $COMPOSE restart nginx 2>/dev/null || true
 fi
 

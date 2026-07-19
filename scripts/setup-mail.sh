@@ -20,7 +20,9 @@ set_mailu_kv() {
 }
 
 sync_mailu_env() {
-  set_mailu_kv SUBNET "$EXPECTED_SUBNET"
+  local actual
+  actual=$(docker network inspect posheh_mailu -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}' 2>/dev/null || true)
+  set_mailu_kv SUBNET "${actual:-$EXPECTED_SUBNET}"
   set_mailu_kv INITIAL_ADMIN_MODE ifmissing
   set_mailu_kv DISABLE_STATISTICS True
   set_mailu_kv REDIS_ADDRESS mailu-redis
