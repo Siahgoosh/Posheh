@@ -23,6 +23,13 @@ sync_mailu_env() {
   set_mailu_kv SUBNET "$EXPECTED_SUBNET"
   set_mailu_kv INITIAL_ADMIN_MODE ifmissing
   set_mailu_kv DISABLE_STATISTICS True
+  set_mailu_kv REDIS_ADDRESS mailu-redis
+  set_mailu_kv ADMIN_ADDRESS mailu-admin
+  set_mailu_kv FRONT_ADDRESS mailu-front
+  set_mailu_kv IMAP_ADDRESS mailu-imap
+  set_mailu_kv SMTP_ADDRESS mailu-smtp
+  set_mailu_kv ANTISPAM_ADDRESS mailu-antispam
+  set_mailu_kv WEBMAIL_ADDRESS mailu-webmail
   grep -q '^WEBROOT_REDIRECT=' "$MAILU_ENV" || set_mailu_kv WEBROOT_REDIRECT /webmail
 }
 

@@ -18,7 +18,9 @@ services:
       - mailu_certs:/certs
       - mailu_overrides:/overrides
     networks:
-      - mailu
+      mailu:
+        aliases:
+          - front
 
   mailu-redis:
     image: redis:7-alpine
@@ -27,7 +29,9 @@ services:
     volumes:
       - mailu_redis:/data
     networks:
-      - mailu
+      mailu:
+        aliases:
+          - redis
 
   mailu-admin:
     image: ghcr.io/mailu/admin:${MAILU_VERSION:-2024.06}
@@ -41,7 +45,9 @@ services:
     depends_on:
       - mailu-redis
     networks:
-      - mailu
+      mailu:
+        aliases:
+          - admin
 
   mailu-imap:
     image: ghcr.io/mailu/dovecot:${MAILU_VERSION:-2024.06}
@@ -54,7 +60,9 @@ services:
     depends_on:
       - mailu-front
     networks:
-      - mailu
+      mailu:
+        aliases:
+          - imap
 
   mailu-smtp:
     image: ghcr.io/mailu/postfix:${MAILU_VERSION:-2024.06}
@@ -67,7 +75,9 @@ services:
     depends_on:
       - mailu-front
     networks:
-      - mailu
+      mailu:
+        aliases:
+          - smtp
 
   mailu-antispam:
     image: ghcr.io/mailu/rspamd:${MAILU_VERSION:-2024.06}
@@ -82,7 +92,9 @@ services:
       - mailu-front
       - mailu-redis
     networks:
-      - mailu
+      mailu:
+        aliases:
+          - antispam
 
   mailu-webmail:
     image: ghcr.io/mailu/webmail:${MAILU_VERSION:-2024.06}
@@ -95,8 +107,11 @@ services:
       - ./docker/mail/overrides/roundcube:/overrides:ro
     depends_on:
       - mailu-imap
+      - mailu-admin
     networks:
-      - mailu
+      mailu:
+        aliases:
+          - webmail
 
 volumes:
   mailu_certs:

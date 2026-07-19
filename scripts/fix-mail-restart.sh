@@ -39,6 +39,13 @@ stop_mail_stack() {
 log "1/5 Patching mailu.env..."
 set_kv INITIAL_ADMIN_MODE ifmissing
 set_kv SUBNET "$EXPECTED_SUBNET"
+set_kv REDIS_ADDRESS mailu-redis
+set_kv ADMIN_ADDRESS mailu-admin
+set_kv FRONT_ADDRESS mailu-front
+set_kv IMAP_ADDRESS mailu-imap
+set_kv SMTP_ADDRESS mailu-smtp
+set_kv ANTISPAM_ADDRESS mailu-antispam
+set_kv WEBMAIL_ADDRESS mailu-webmail
 grep -q '^DISABLE_STATISTICS=' "$MAILU_ENV" || set_kv DISABLE_STATISTICS True
 grep -q '^WEBROOT_REDIRECT=' "$MAILU_ENV" || set_kv WEBROOT_REDIRECT /webmail
 
@@ -58,11 +65,10 @@ if [ -n "$ACTUAL_SUBNET" ] && [ "$ACTUAL_SUBNET" != "$EXPECTED_SUBNET" ]; then
   docker network rm "$NET_NAME" 2>/dev/null || true
 fi
 
-log "3/5 Starting Mailu (force-recreate admin + webmail)..."
-$COMPOSE up -d "${MAIL_SERVICES[@]}"
-$COMPOSE up -d --force-recreate mailu-admin mailu-webmail
+log "3/5 Starting Mailu (force-recreate all mail services for DNS aliases)..."
+$COMPOSE up -d --force-recreate "${MAIL_SERVICES[@]}"
 
-sleep 12
+sleep 20
 
 NET_NAME=$(mailu_net_name)
 if [ -n "$NET_NAME" ]; then
@@ -76,10 +82,12 @@ log "5/5 Status:"
 $COMPOSE ps
 
 ADMIN_STATE=$($COMPOSE ps mailu-admin --format '{{.State}}' 2>/dev/null || echo unknown)
-if echo "$ADMIN_STATE" | grep -qi restarting; then
+WEBMAIL_STATE=$($COMPOSE ps mailu-webmail --format '{{.State}}' 2>/dev/null || echo unknown)
+if echo "$ADMIN_STATE$WEBMAIL_STATE" | grep -qi restarting; then
   log ""
-  log "Admin still restarting — last log lines:"
+  log "Admin/webmail still restarting — last log lines:"
   $COMPOSE logs mailu-admin --tail=25 2>/dev/null || true
+  $COMPOSE logs mailu-webmail --tail=25 2>/dev/null || true
   log ""
   log "Quick manual fix (if git pull not done yet):"
   log "  sed -i 's/^INITIAL_ADMIN_MODE=.*/INITIAL_ADMIN_MODE=ifmissing/' docker/mail/mailu.env"

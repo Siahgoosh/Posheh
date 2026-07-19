@@ -179,7 +179,7 @@ sed -i 's/^INITIAL_ADMIN_MODE=.*/INITIAL_ADMIN_MODE=ifmissing/' docker/mail/mail
 
 | مشکل | راه‌حل |
 |------|--------|
-| admin/webmail Restarting | `./scripts/fix-mail-restart.sh` |
+| admin/webmail Restarting + redis error | `./scripts/fix-mail-restart.sh` (adds `redis` DNS alias) |
 | mail.posheapp.ir باز نمی‌شود | `docker compose ps` — mailu-front باید Up باشد؛ nginx restart |
 | ایمیل ارسال نمی‌شود | SPF و DKIM را چک کن؛ پورت 587 باز باشد |
 | اسپم می‌شود | DKIM + DMARC کامل کن؛ ۲۴ ساعت صبر |
