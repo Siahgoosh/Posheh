@@ -4,8 +4,9 @@ set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-BRANCH="${1:-cursor/final-platform-update-e117}"
+BRANCH="${1:-main}"
 COMPOSE="docker compose"
+COMPOSE_MAIL="docker compose -f docker-compose.yml -f docker-compose.mail.yml"
 
 log() { printf '\n==> %s\n' "$1"; }
 fail() { printf '\n[ERROR] %s\n' "$1" >&2; exit 1; }
@@ -100,17 +101,22 @@ sync_code() {
   git reset --hard "origin/$BRANCH"
 }
 
-log "1/9 Fetching code"
+log "1/10 Fetching code"
 sync_code
+
+if [ -x "$ROOT/scripts/ensure-mailu-network.sh" ]; then
+  log "Ensuring Mailu Docker network exists"
+  "$ROOT/scripts/ensure-mailu-network.sh" || log "Mailu network warning (email optional)"
+fi
 
 ensure_env_file
 
-log "2/9 Starting containers"
+log "2/10 Starting containers"
 $COMPOSE up -d --build || fail "docker compose up failed"
 
 wait_for_mysql
 
-log "3/9 Ensuring database exists"
+log "3/10 Ensuring database exists"
 $COMPOSE exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD:-secret}" -e \
   "CREATE DATABASE IF NOT EXISTS posheh CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" \
   2>/dev/null || $COMPOSE exec -T mysql mysql -uroot -psecret -e \
@@ -119,13 +125,13 @@ $COMPOSE exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD:-secret}" -e \
 
 clear_laravel_cache
 
-log "4/9 Running migrations"
+log "4/10 Running migrations"
 $COMPOSE exec -T app php artisan migrate --force --no-interaction \
   || fail "Migration failed — check: docker compose logs app"
 
 clear_laravel_cache
 
-log "5/9 Seeding settings, blog and demo data"
+log "5/10 Seeding settings, blog and demo data"
 $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --no-interaction \
   || fail "SystemSettingsSeeder failed"
 $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
@@ -139,14 +145,14 @@ else
     || log "DatabaseSeeder warning (may already be seeded)"
 fi
 
-log "6/9 Clearing caches and enabling SMS"
+log "6/10 Clearing caches and enabling SMS"
 clear_laravel_cache
 $COMPOSE exec -T app php artisan optimize:clear --no-interaction || true
 $COMPOSE exec -T app php artisan system:sms-enable --live --from-env --no-interaction 2>/dev/null \
   || log "Run manually: docker compose exec app php artisan system:sms-enable --live --from-env"
 $COMPOSE exec -T app php artisan storage:link --force --no-interaction 2>/dev/null || true
 
-log "7/9 Building frontend"
+log "7/10 Building frontend"
 if [ ! -f frontend/package.json ]; then
   fail "frontend/package.json not found"
 fi
@@ -165,13 +171,34 @@ if [ ! -f frontend/dist/downloads/posheh-android.apk ] || [ "$(wc -c < frontend/
   log "WARNING: posheh-android.apk missing or too small in dist — run ./scripts/build-releases.sh"
 fi
 
-log "8/9 Restarting services"
+log "8/10 Email (Mailu)"
+if [ -f "$ROOT/docker/mail/secrets.env" ]; then
+  if [ -x "$ROOT/scripts/fix-mail-restart.sh" ]; then
+    "$ROOT/scripts/fix-mail-restart.sh" || log "Mail fix warning — try: ./scripts/setup-mail.sh"
+  elif [ -x "$ROOT/scripts/setup-mail.sh" ]; then
+    "$ROOT/scripts/setup-mail.sh" || log "Mail setup warning"
+  fi
+else
+  log "Skip mail — create docker/mail/secrets.env then run ./scripts/setup-mail.sh"
+fi
+
+log "9/10 Restarting services"
 $COMPOSE restart app queue nginx scheduler 2>/dev/null || $COMPOSE restart app queue nginx
 
-log "9/9 Health check"
+log "10/10 Health check"
 sleep 6
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/plans || echo "000")
 printf 'API /plans status: %s\n' "$HTTP_CODE"
+
+PANEL_HTML=$(curl -s -H "Host: panel.posheapp.ir" http://localhost:8000/ | head -c 500 || true)
+if echo "$PANEL_HTML" | grep -q 'پنل مدیریت پلتفرم\|__POSHEH_PANEL__'; then
+  printf 'Panel subdomain: admin app detected\n'
+else
+  log "Panel check: rebuild frontend if panel.posheapp.ir still shows landing"
+fi
+
+MAIL_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: mail.posheapp.ir" http://localhost:8000/webmail || echo "000")
+printf 'Mail webmail status: %s\n' "$MAIL_CODE"
 
 if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "401" ]; then
   log "Deploy successful"
@@ -183,6 +210,12 @@ fi
 cat <<EOF
 
 Next steps:
+  - Deploy from main: ./scripts/deploy.sh main
+  - Platform admin panel: https://panel.posheapp.ir/login
+  - Email setup: cp docker/mail/secrets.env.example docker/mail/secrets.env && ./scripts/setup-mail.sh
+  - Fix broken mail: ./scripts/fix-mail-restart.sh  or  ./scripts/fix-site-and-mail.sh
+  - Test email: docker compose exec app php artisan system:mail-test you@example.com
+  - Mail status: ./scripts/mail-status.sh
   - Cafe Bazaar IAP: ./scripts/set-cafe-bazaar-env.sh 'JWT_FROM_PANEL'
     or: CAFE_BAZAAR_API_TOKEN='JWT' ./scripts/deploy.sh
   - After token change: docker compose exec app php artisan config:clear

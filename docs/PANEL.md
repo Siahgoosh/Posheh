@@ -26,12 +26,33 @@ Nginx wildcard `*.posheapp.ir` از قبل پشتیبانی می‌کند.
 ## استقرار
 
 ```bash
-git pull
-cd frontend && npm run build
+./scripts/deploy.sh main
+```
+
+یا دستی:
+
+```bash
+git pull origin main
+cd frontend && npm ci && npm run build
+docker compose exec app php artisan migrate --force
 docker compose restart nginx
 ```
 
-تنظیم توکن کافه‌بازار روی سرور:
+بعد از deploy، `panel.posheapp.ir` باید صفحه **«پنل مدیریت پلتفرم»** را نشان دهد (نه لندینگ).
+
+## ایمیل
+
+راه‌اندازی و رفع مشکل: `docs/EMAIL-SETUP.md`
+
+```bash
+cp docker/mail/secrets.env.example docker/mail/secrets.env
+nano docker/mail/secrets.env   # MAIL_INFO_PASSWORD=...
+./scripts/setup-mail.sh
+```
+
+اگر ایمیل کار نمی‌کند: `./scripts/fix-mail-restart.sh`
+
+## کافه‌بازار
 
 ```bash
 ./scripts/set-cafe-bazaar-env.sh 'JWT_TOKEN'

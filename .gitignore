@@ -11,6 +11,8 @@ desktop/build/
 .env
 .env.local
 backend/.env
+docker/mail/secrets.env
+docker/mail/mailu.env
 
 # IDE
 .idea/
