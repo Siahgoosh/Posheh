@@ -1,9 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthBootstrap } from '@/components/AuthBootstrap'
-import { PlatformStaffRoute } from '@/components/PlatformStaffRoute'
+import { useAuthStore } from '@/stores/auth'
+import { isPlatformStaffRole } from '@/lib/subdomain'
 import { AdminLayout } from '@/components/layout/AdminLayout'
-import { LoginPage } from '@/pages/LoginPage'
+import { PanelLoginPage } from '@/pages/admin/PanelLoginPage'
 import { AdminSuperPanelPage } from '@/pages/admin/AdminSuperPanelPage'
 import { AdminOfficesPage } from '@/pages/admin/AdminOfficesPage'
 import { AdminPlansPage } from '@/pages/admin/AdminPlansPage'
@@ -26,8 +27,31 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
 })
 
-function PanelLogin() {
-  return <LoginPage panelMode />
+function PanelSpinner() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+    </div>
+  )
+}
+
+/** مهمان → فقط صفحه ورود؛ هر مسیر دیگر → /login */
+function PanelGuestOnly({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, hydrated, user } = useAuthStore()
+  if (!hydrated) return <PanelSpinner />
+  if (isAuthenticated && isPlatformStaffRole(user?.role)) {
+    return <Navigate to="/" replace />
+  }
+  return <>{children}</>
+}
+
+/** فقط مدیران پلتفرم — داشبورد مدیریت */
+function PanelProtected({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, hydrated, user } = useAuthStore()
+  if (!hydrated) return <PanelSpinner />
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (!isPlatformStaffRole(user?.role)) return <Navigate to="/login" replace />
+  return <>{children}</>
 }
 
 export function PanelApp() {
@@ -35,12 +59,19 @@ export function PanelApp() {
     <QueryClientProvider client={queryClient}>
       <AuthBootstrap>
         <Routes>
-          <Route path="/login" element={<PanelLogin />} />
+          <Route
+            path="/login"
+            element={
+              <PanelGuestOnly>
+                <PanelLoginPage />
+              </PanelGuestOnly>
+            }
+          />
           <Route
             element={
-              <PlatformStaffRoute>
+              <PanelProtected>
                 <AdminLayout />
-              </PlatformStaffRoute>
+              </PanelProtected>
             }
           >
             <Route index element={<AdminSuperPanelPage />} />
@@ -62,7 +93,8 @@ export function PanelApp() {
             <Route path="audit" element={<AdminAuditPage />} />
             <Route path="reports" element={<AdminReportsPage />} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* هر مسیر دیگر (شامل لندینگ، ثبت‌نام، …) → ورود یا داشبورد */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </AuthBootstrap>
     </QueryClientProvider>

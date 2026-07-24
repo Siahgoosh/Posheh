@@ -15,6 +15,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <title>پوشه | سامانه ثبت املاک</title>
+    <script>
+      (function () {
+        var h = (location.hostname || '').toLowerCase();
+        if (h === 'panel.posheapp.ir' || h === 'panel.localhost' || h.indexOf('panel.') === 0) {
+          window.__POSHEH_PANEL__ = true;
+          document.title = 'پنل مدیریت پوشه';
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

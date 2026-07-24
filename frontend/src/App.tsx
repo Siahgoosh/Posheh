@@ -49,8 +49,7 @@ import { PropertyPublicPage } from '@/pages/PropertyPublicPage'
 import { TermsPage } from '@/pages/TermsPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
 import { ContactPage } from '@/pages/ContactPage'
-import { getOfficeSubdomain, isPanelSubdomain } from '@/lib/subdomain'
-import { PanelApp } from '@/panel/PanelApp'
+import { getOfficeSubdomain } from '@/lib/subdomain'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -70,12 +69,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  if (isPanelSubdomain()) {
-    return <PanelApp />
-  }
-
-  // When served from an office subdomain (name.posheapp.ir) render only that
-  // office's public website, regardless of the requested path.
+  // panel.posheapp.ir handled in main.tsx — never load tenant/landing app there
   const officeSubdomain = getOfficeSubdomain()
   if (officeSubdomain) {
     return (

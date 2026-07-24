@@ -16,8 +16,9 @@ export function isPlatformStaffRole(role?: string | null): boolean {
 
 export function isPanelSubdomain(): boolean {
   if (typeof window === 'undefined') return false
+  if ((window as Window & { __POSHEH_PANEL__?: boolean }).__POSHEH_PANEL__) return true
   const host = window.location.hostname.toLowerCase()
-  return host === `panel.${ROOT_DOMAIN}` || host === 'panel.localhost'
+  return host === `panel.${ROOT_DOMAIN}` || host === 'panel.localhost' || host.startsWith('panel.')
 }
 
 /**
