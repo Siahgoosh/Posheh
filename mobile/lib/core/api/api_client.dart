@@ -79,16 +79,48 @@ class ApiClient {
 
   ApiClient(this._dio);
 
+  static const _fieldLabels = {
+    'mobile': 'شماره موبایل',
+    'code': 'کد تأیید',
+    'first_name': 'نام',
+    'last_name': 'نام خانوادگی',
+    'office_name': 'نام دفتر',
+    'office_phone': 'تلفن دفتر',
+    'office_address': 'آدرس دفتر',
+    'office_city': 'شهر',
+    'plan_slug': 'پلن',
+    'registration_token': 'توکن ثبت‌نام',
+    'payment': 'پرداخت',
+    'purchase_token': 'توکن خرید',
+    'product_id': 'شناسه محصول',
+  };
+
+  String _localizeError(String field, String raw) {
+    if (raw.contains('office name field is required')) {
+      return 'نام دفتر الزامی است. در اپ اندروید فقط پنل فردی قابل ثبت‌نام است؛ برای پلن دفتر از وب‌سایت ثبت‌نام کنید.';
+    }
+    if (raw.contains('required unless plan slug is in solo')) {
+      return 'برای پلن‌های دفتر، ثبت‌نام از وب‌سایت posheapp.ir انجام شود.';
+    }
+    final label = _fieldLabels[field] ?? field;
+    if (raw.toLowerCase().contains('required')) {
+      return '$label الزامی است.';
+    }
+    return raw;
+  }
+
   Never _throw(Response? response, String fallback) {
     final data = response?.data;
     if (data is Map) {
       final errors = data['errors'];
       if (errors is Map) {
-        for (final key in ['mobile', 'code']) {
-          final list = errors[key];
+        for (final entry in errors.entries) {
+          final list = entry.value;
           if (list is List && list.isNotEmpty) {
-            throw ApiException(list.first.toString(),
-                statusCode: response?.statusCode);
+            throw ApiException(
+              _localizeError(entry.key.toString(), list.first.toString()),
+              statusCode: response?.statusCode,
+            );
           }
         }
       }
@@ -282,6 +314,24 @@ class ApiClient {
     return _guard(
       () => _dio.post('/auth/register', data: data),
       'خطا در ثبت‌نام',
+      ok: (res) => Map<String, dynamic>.from(res.data as Map),
+    );
+  }
+
+  Future<Map<String, dynamic>> verifyBazaarPurchase({
+    required int planId,
+    required String productId,
+    required String purchaseToken,
+    String? orderId,
+  }) {
+    return _guard(
+      () => _dio.post('/subscribe/bazaar/verify', data: {
+        'plan_id': planId,
+        'product_id': productId,
+        'purchase_token': purchaseToken,
+        if (orderId != null) 'order_id': orderId,
+      }),
+      'خطا در تأیید خرید',
       ok: (res) => Map<String, dynamic>.from(res.data as Map),
     );
   }

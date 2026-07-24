@@ -1,7 +1,7 @@
 name: posheh
 description: پوشه - سامانه ابری ثبت و مدیریت املاک
 publish_to: 'none'
-version: 1.0.1+2
+version: 1.0.2+6
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -25,6 +25,7 @@ dependencies:
   google_fonts: ^6.2.1
   url_launcher: ^6.3.1
   package_info_plus: ^8.1.2
+  flutter_poolakey: ^2.2.0+1.0.0
 
 dev_dependencies:
   flutter_test:

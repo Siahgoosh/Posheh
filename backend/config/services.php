@@ -40,6 +40,11 @@ return [
         'sandbox' => env('ZIBAL_SANDBOX', false),
     ],
 
+    'cafe_bazaar' => [
+        'api_token' => env('CAFE_BAZAAR_API_TOKEN'),
+        'package_name' => env('CAFE_BAZAAR_PACKAGE_NAME', 'ir.posheapp.posheh'),
+    ],
+
     'sms' => [
         'provider' => env('SMS_PROVIDER', 'kavenegar'),
         'api_key' => env('SMS_API_KEY'),

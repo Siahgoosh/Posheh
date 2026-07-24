@@ -57,6 +57,26 @@ class SubscriptionController extends Controller
         return response()->json($result);
     }
 
+    public function verifyBazaarPurchase(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
+            'product_id' => ['required', 'string', 'max:100'],
+            'purchase_token' => ['required', 'string', 'max:500'],
+            'order_id' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $result = $this->subscriptionService->verifyCafeBazaarPurchase(
+            $request->user()->office,
+            $data['plan_id'],
+            $data['product_id'],
+            $data['purchase_token'],
+            $data['order_id'] ?? null,
+        );
+
+        return response()->json($result);
+    }
+
     public function zibalCallback(Request $request)
     {
         $frontend = rtrim(config('app.frontend_url', config('app.url')), '/');

@@ -35,6 +35,11 @@ class RegistrationController extends Controller
             'device_id' => ['nullable', 'string'],
             'device_name' => ['nullable', 'string'],
             'platform' => ['nullable', 'string'],
+        ], [
+            'first_name.required_if' => 'نام الزامی است.',
+            'last_name.required_if' => 'نام خانوادگی الزامی است.',
+            'office_name.required_unless' => 'نام دفتر الزامی است. برای پلن‌های دفتر از وب‌سایت ثبت‌نام کنید.',
+            'plan_slug.exists' => 'پلن انتخاب‌شده معتبر نیست.',
         ]);
 
         $result = $this->registrationService->register(

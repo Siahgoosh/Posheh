@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Models\Wallet;
+use App\Services\Payment\CafeBazaarService;
 use App\Services\Payment\ZibalService;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -16,6 +17,7 @@ class SubscriptionService
 {
     public function __construct(
         private readonly ZibalService $zibal,
+        private readonly CafeBazaarService $cafeBazaar,
     ) {}
 
     public function getPlans()
@@ -51,6 +53,59 @@ class SubscriptionService
             'gateway' => $gateway->value,
             'amount' => $payment->amount,
             'message' => 'پرداخت درگاه کافه‌بازار آماده است.',
+        ];
+    }
+
+    public function verifyCafeBazaarPurchase(
+        Office $office,
+        int $planId,
+        string $productId,
+        string $purchaseToken,
+        ?string $orderId = null,
+    ): array {
+        $plan = SubscriptionPlan::findOrFail($planId);
+
+        if ($plan->slug !== $productId) {
+            throw ValidationException::withMessages([
+                'product_id' => ['شناسه محصول با پلن انتخاب‌شده مطابقت ندارد.'],
+            ]);
+        }
+
+        $existing = Payment::where('gateway', PaymentGateway::CafeBazaar)
+            ->where('authority', $purchaseToken)
+            ->where('status', 'paid')
+            ->first();
+
+        if ($existing) {
+            return [
+                'message' => 'این خرید قبلاً ثبت شده است.',
+                'payment' => $existing,
+                'success' => true,
+            ];
+        }
+
+        $packageName = config('services.cafe_bazaar.package_name', 'ir.posheapp.posheh');
+        $this->cafeBazaar->verifySubscriptionPurchase($packageName, $productId, $purchaseToken);
+
+        $payment = Payment::create([
+            'office_id' => $office->id,
+            'gateway' => PaymentGateway::CafeBazaar,
+            'status' => 'paid',
+            'amount' => $plan->monthly_price,
+            'authority' => $purchaseToken,
+            'ref_id' => $orderId,
+            'transaction_id' => $orderId,
+            'metadata' => ['plan_id' => $plan->id, 'product_id' => $productId],
+            'paid_at' => now(),
+        ]);
+
+        $subscription = $this->activateSubscription($payment);
+
+        return [
+            'message' => 'اشتراک با موفقیت فعال شد.',
+            'payment' => $payment,
+            'subscription' => $subscription,
+            'success' => true,
         ];
     }
 

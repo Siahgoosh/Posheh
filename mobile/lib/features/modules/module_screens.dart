@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
 import '../../core/auth/auth_controller.dart';
+import '../../core/constants/bazaar_config.dart';
+import '../../core/payment/bazaar_payment_service.dart';
 import '../../core/utils/app_launcher.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/theme/app_theme.dart';
@@ -284,11 +286,51 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
   Map<String, dynamic>? _current;
   List<dynamic> _plans = [];
   bool _loading = true;
+  bool _purchasing = false;
+  String? _error;
+  final _bazaar = BazaarPaymentService();
+
+  @override
+  void dispose() {
+    _bazaar.disconnect();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  Future<void> _purchasePlan(Map<String, dynamic> plan) async {
+    final planId = (plan['id'] as num?)?.toInt();
+    final slug = plan['slug']?.toString() ?? '';
+    if (planId == null || slug.isEmpty) return;
+
+    setState(() { _purchasing = true; _error = null; });
+    try {
+      final purchase = await _bazaar.subscribe(bazaarSkuForPlan(slug));
+      await ref.read(apiClientProvider).verifyBazaarPurchase(
+        planId: planId,
+        productId: slug,
+        purchaseToken: purchase.purchaseToken,
+        orderId: purchase.orderId,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('اشتراک با موفقیت فعال شد')),
+        );
+        await _load();
+      }
+    } on BazaarPaymentException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _error = 'خرید لغو شد یا با خطا مواجه شد.');
+    } finally {
+      if (mounted) setState(() => _purchasing = false);
+    }
   }
 
   Future<void> _load() async {
@@ -360,30 +402,54 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                               padding: EdgeInsets.only(top: 6),
                               child: Text('۴۸ ساعت رایگان — فقط پنل فردی', style: TextStyle(color: AppColors.warning, fontSize: 12)),
                             ),
+                          if (isAndroidPlatform) ...[
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _purchasing ? null : () => _purchasePlan(Map<String, dynamic>.from(p as Map)),
+                                child: _purchasing
+                                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                    : const Text('خرید از کافه‌بازار'),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
                   ),
-                const SizedBox(height: 8),
-                GlassCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text('تمدید و پرداخت',
-                          style: TextStyle(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'خرید و تمدید اشتراک از وب‌سایت پوشه انجام می‌شود.',
-                        style: TextStyle(color: AppColors.muted, fontSize: 13, height: 1.5),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton(
-                        onPressed: () => openRenewSubscription(),
-                        child: const Text('رفتن به صفحه اشتراک در وب'),
-                      ),
-                    ],
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(_error!, style: const TextStyle(color: AppColors.danger, fontSize: 13)),
                   ),
-                ),
+                if (!isAndroidPlatform)
+                  GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text('تمدید و پرداخت',
+                            style: TextStyle(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'خرید و تمدید اشتراک از وب‌سایت پوشه انجام می‌شود.',
+                          style: TextStyle(color: AppColors.muted, fontSize: 13, height: 1.5),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton(
+                          onPressed: () => openRenewSubscription(),
+                          child: const Text('رفتن به صفحه اشتراک در وب'),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  const GlassCard(
+                    child: Text(
+                      'پرداخت اشتراک فقط از طریق درگاه کافه‌بازار انجام می‌شود.',
+                      style: TextStyle(color: AppColors.muted, fontSize: 13, height: 1.5),
+                    ),
+                  ),
               ],
             ),
     );

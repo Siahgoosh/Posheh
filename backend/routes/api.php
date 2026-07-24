@@ -149,6 +149,8 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])
             ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+        Route::post('/subscribe/bazaar/verify', [SubscriptionController::class, 'verifyBazaarPurchase'])
+            ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
         Route::get('/subscription/current', [SubscriptionController::class, 'current']);
 
         Route::prefix('admin')->middleware(EnsureUserHasRole::class.':super_admin')->group(function () {

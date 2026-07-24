@@ -70,7 +70,7 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: bash scripts/android-signing-ci.sh
 
-      - run: flutter build apk --release --dart-define=API_URL=${{ env.API_URL }}
+      - run: flutter build apk --release --dart-define=API_URL=${{ env.API_URL }} --dart-define=BAZAAR_RSA_KEY=${{ secrets.BAZAAR_RSA_KEY }}
 
       - name: Verify APK signing (Cafe Bazaar requires release keystore)
         run: |

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
 import '../../core/auth/auth_controller.dart';
+import '../../core/constants/privacy_policy.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/input_normalizers.dart';
@@ -13,7 +14,7 @@ import '../../core/widgets/app_logo.dart';
 import '../../core/widgets/glass_card.dart';
 import '../../core/widgets/gradient_text.dart';
 
-enum _RegisterStep { plan, mobile, otp, details }
+enum _RegisterStep { privacy, mobile, otp, details }
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -23,25 +24,18 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  _RegisterStep _step = _RegisterStep.plan;
-  String _planSlug = 'solo';
+  _RegisterStep _step = _RegisterStep.privacy;
   final _mobile = TextEditingController();
   final _otp = TextEditingController();
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
   String _registrationToken = '';
-  List<dynamic> _plans = [];
   bool _loading = false;
+  bool _privacyAccepted = false;
   String? _error;
   String? _devHint;
   int _countdown = 0;
   Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPlans();
-  }
 
   @override
   void dispose() {
@@ -51,13 +45,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _firstName.dispose();
     _lastName.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadPlans() async {
-    try {
-      final plans = await ref.read(apiClientProvider).getPlans();
-      if (mounted) setState(() => _plans = plans);
-    } catch (_) {}
   }
 
   void _startCountdown() {
@@ -125,11 +112,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       setState(() => _error = 'نام را وارد کنید');
       return;
     }
+    if (_lastName.text.trim().isEmpty) {
+      setState(() => _error = 'نام خانوادگی را وارد کنید');
+      return;
+    }
     setState(() { _loading = true; _error = null; });
     try {
       final res = await ref.read(apiClientProvider).register({
         'registration_token': _registrationToken,
-        'plan_slug': _planSlug,
+        'plan_slug': 'solo',
         'first_name': _firstName.text.trim(),
         'last_name': _lastName.text.trim(),
         'device_id': 'posheh-$clientPlatform',
@@ -166,7 +157,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 GradientText('ثبت‌نام پوشه',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
-                const Text('۴۸ ساعت رایگان — پنل فردی', style: TextStyle(color: AppColors.warning)),
+                const Text('پنل فردی — ۴۸ ساعت رایگان', style: TextStyle(color: AppColors.warning)),
                 const SizedBox(height: 24),
                 GlassCard(
                   padding: const EdgeInsets.all(20),
@@ -187,35 +178,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Widget _buildStep() {
     switch (_step) {
-      case _RegisterStep.plan:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('انتخاب پلن', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 12),
-            ..._plans.map((p) {
-              final slug = p['slug']?.toString() ?? '';
-              return RadioListTile<String>(
-                value: slug,
-                groupValue: _planSlug,
-                onChanged: (v) => setState(() => _planSlug = v ?? 'solo'),
-                title: Text('${p['name']}'),
-                subtitle: Text(slug == 'solo' ? '۴۸ ساعت رایگان' : ''),
-              );
-            }),
-            if (_plans.isEmpty)
-              RadioListTile<String>(
-                value: 'solo',
-                groupValue: _planSlug,
-                onChanged: null,
-                title: const Text('پنل فردی — ۴۸ ساعت رایگان'),
-              ),
-            ElevatedButton(
-              onPressed: () => setState(() => _step = _RegisterStep.mobile),
-              child: const Text('ادامه'),
-            ),
-          ],
-        );
+      case _RegisterStep.privacy:
+        return _privacyStep();
       case _RegisterStep.mobile:
         return _otpStep(sendOtp: true);
       case _RegisterStep.otp:
@@ -225,10 +189,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text('اطلاعات شما', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 4),
+            const Text(
+              'پلن مشاور مستقل — برای پلن‌های دفتر از وب‌سایت posheapp.ir ثبت‌نام کنید.',
+              style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.5),
+            ),
             const SizedBox(height: 12),
             TextField(controller: _firstName, decoration: const InputDecoration(labelText: 'نام *')),
             const SizedBox(height: 12),
-            TextField(controller: _lastName, decoration: const InputDecoration(labelText: 'نام خانوادگی')),
+            TextField(controller: _lastName, decoration: const InputDecoration(labelText: 'نام خانوادگی *')),
             if (_error != null) ...[const SizedBox(height: 12), Text(_error!, style: const TextStyle(color: AppColors.danger))],
             const SizedBox(height: 16),
             ElevatedButton(
@@ -238,6 +207,53 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ],
         );
     }
+  }
+
+  Widget _privacyStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(privacyPolicyTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 12),
+        Container(
+          constraints: const BoxConstraints(maxHeight: 320),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.cardFill(true),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.cardBorder(true)),
+          ),
+          child: const SingleChildScrollView(
+            child: Text(
+              privacyPolicyFullText,
+              style: TextStyle(fontSize: 13, height: 1.7, color: AppColors.muted),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        CheckboxListTile(
+          value: _privacyAccepted,
+          onChanged: (v) => setState(() => _privacyAccepted = v ?? false),
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          title: const Text(
+            'سیاست حریم خصوصی را مطالعه کردم و می‌پذیرم',
+            style: TextStyle(fontSize: 13),
+          ),
+        ),
+        if (_error != null) ...[const SizedBox(height: 8), Text(_error!, style: const TextStyle(color: AppColors.danger))],
+        const SizedBox(height: 12),
+        ElevatedButton(
+          onPressed: _privacyAccepted
+              ? () => setState(() {
+                    _step = _RegisterStep.mobile;
+                    _error = null;
+                  })
+              : null,
+          child: const Text('ادامه ثبت‌نام'),
+        ),
+      ],
+    );
   }
 
   Widget _otpStep({required bool sendOtp}) {
