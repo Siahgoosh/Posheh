@@ -170,6 +170,9 @@ fi
   npm run build
 ) || fail "Frontend build failed — try: cd frontend && npm install && npm run build"
 
+chmod +x "$ROOT/scripts/verify-panel-build.sh" 2>/dev/null || true
+"$ROOT/scripts/verify-panel-build.sh" || fail "Panel build missing — panel.posheapp.ir needs frontend/dist/panel.html"
+
 if [ ! -f frontend/dist/downloads/posheh-android.apk ] || [ "$(wc -c < frontend/dist/downloads/posheh-android.apk)" -lt 1000000 ]; then
   log "WARNING: posheh-android.apk missing or too small in dist — run ./scripts/build-releases.sh"
 fi
