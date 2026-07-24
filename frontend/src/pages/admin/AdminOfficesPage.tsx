@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, Building2, BadgeCheck, Globe, Power, CheckCircle, XCircle } from 'lucide-react'
+import { Building2, BadgeCheck, Globe, Power, CheckCircle, XCircle, ExternalLink } from 'lucide-react'
 import api from '@/lib/api'
 import { formatJalaliDate, formatNumber } from '@/lib/utils'
 import { panelTypeLabel, subscriptionStatusLabel } from '@/constants/plans'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 
 interface OfficeRow {
   id: number
@@ -57,13 +58,7 @@ export function AdminOfficesPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
-      <div className="flex items-center gap-3">
-        <Link to="/admin"><Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button></Link>
-        <div>
-          <h1 className="text-2xl font-bold">مدیریت دفاتر و کاربران</h1>
-          <p className="text-sm text-muted">{formatNumber(data?.total ?? offices.length)} دفتر — فعال/غیرفعال پلن و تأیید وبسایت</p>
-        </div>
-      </div>
+      <AdminPageHeader title="مدیریت دفاتر" description={`${formatNumber(data?.total ?? offices.length)} دفتر`} />
 
       <Card>
         <CardHeader><CardTitle>لیست دفاتر</CardTitle></CardHeader>
@@ -97,6 +92,9 @@ export function AdminOfficesPage() {
               )}
 
               <div className="flex flex-wrap gap-2">
+                <Link to={`/tenants/${office.id}`}>
+                  <Button size="sm" variant="outline"><ExternalLink className="h-3 w-3 ml-1" /> جزئیات</Button>
+                </Link>
                 <Button
                   size="sm"
                   variant={office.plan_active !== false ? 'outline' : 'default'}

@@ -48,7 +48,7 @@ class AdminController extends Controller
     public function announcements(): JsonResponse
     {
         return response()->json([
-            'data' => Announcement::where('is_active', true)->latest()->get(),
+            'data' => Announcement::latest()->get(),
         ]);
     }
 
@@ -58,10 +58,36 @@ class AdminController extends Controller
             'title' => ['required', 'string'],
             'content' => ['required', 'string'],
             'type' => ['nullable', 'string'],
+            'is_active' => ['nullable', 'boolean'],
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date'],
         ]);
 
         $announcement = Announcement::create($request->all());
 
         return response()->json(['data' => $announcement], 201);
+    }
+
+    public function updateAnnouncement(Request $request, int $id): JsonResponse
+    {
+        $announcement = Announcement::findOrFail($id);
+        $data = $request->validate([
+            'title' => ['sometimes', 'string'],
+            'content' => ['sometimes', 'string'],
+            'type' => ['nullable', 'string'],
+            'is_active' => ['sometimes', 'boolean'],
+            'starts_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date'],
+        ]);
+        $announcement->update($data);
+
+        return response()->json(['data' => $announcement->fresh()]);
+    }
+
+    public function deleteAnnouncement(int $id): JsonResponse
+    {
+        Announcement::findOrFail($id)->delete();
+
+        return response()->json(['message' => 'حذف شد.']);
     }
 }

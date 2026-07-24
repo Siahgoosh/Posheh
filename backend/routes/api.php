@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AccountingController;
 use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AdminAuditController;
+use App\Http\Controllers\Api\Admin\AdminDataController;
+use App\Http\Controllers\Api\Admin\AdminOperationsController;
 use App\Http\Controllers\Api\Admin\AdminCouponController;
 use App\Http\Controllers\Api\Admin\AdminImpersonationController;
 use App\Http\Controllers\Api\Admin\AdminPaymentController;
@@ -213,6 +215,27 @@ Route::prefix('v1')->group(function () {
             Route::put('/tickets/{id}/status', [TicketAdminController::class, 'updateStatus']);
             Route::get('/announcements', [AdminController::class, 'announcements']);
             Route::post('/announcements', [AdminController::class, 'createAnnouncement']);
+            Route::put('/announcements/{id}', [AdminController::class, 'updateAnnouncement']);
+            Route::delete('/announcements/{id}', [AdminController::class, 'deleteAnnouncement']);
+
+            Route::get('/platform/overview', [AdminOperationsController::class, 'overview']);
+            Route::get('/platform/revenue', [AdminOperationsController::class, 'revenue']);
+            Route::get('/platform/churn', [AdminOperationsController::class, 'churn']);
+            Route::get('/platform/maintenance', [AdminOperationsController::class, 'maintenance']);
+            Route::put('/platform/maintenance', [AdminOperationsController::class, 'updateMaintenance']);
+            Route::get('/export/{type}', [AdminOperationsController::class, 'export']);
+
+            Route::get('/customers', [AdminDataController::class, 'customers']);
+            Route::get('/owners', [AdminDataController::class, 'owners']);
+            Route::get('/properties', [AdminDataController::class, 'properties']);
+            Route::get('/crm-deals', [AdminDataController::class, 'crmDeals']);
+            Route::get('/property-visits', [AdminDataController::class, 'propertyVisits']);
+            Route::get('/visit-requests', [AdminDataController::class, 'visitRequests']);
+            Route::get('/contracts', [AdminDataController::class, 'contracts']);
+            Route::get('/commissions', [AdminDataController::class, 'commissions']);
+            Route::get('/accounting', [AdminDataController::class, 'accounting']);
+            Route::get('/devices', [AdminDataController::class, 'devices']);
+            Route::get('/impersonation-sessions', [AdminDataController::class, 'impersonationSessions']);
 
             Route::get('/blog', [BlogAdminController::class, 'index']);
             Route::get('/blog/categories', [BlogAdminController::class, 'categories']);

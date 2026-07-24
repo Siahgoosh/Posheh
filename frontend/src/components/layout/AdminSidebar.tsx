@@ -3,11 +3,15 @@ import {
   LayoutDashboard, Building2, Users, CreditCard, Wallet, Ticket, Settings,
   BookOpen, Download, Shield, BarChart3, Tag, Bell, ScrollText,
   LogOut, Moon, Sun, Menu, X, UserCog, ChevronDown,
+  UserCircle, Home, Handshake, Calendar, FileText, Percent,
+  Calculator, Smartphone, TrendingDown, DollarSign, Database,
+  Activity, Flag, DownloadCloud,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuthStore, useThemeStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
+import { CAPABILITY_COUNT } from '@/constants/adminCapabilities'
 
 const navGroups = [
   {
@@ -15,23 +19,48 @@ const navGroups = [
     items: [
       { to: '/', icon: LayoutDashboard, label: 'داشبورد' },
       { to: '/reports', icon: BarChart3, label: 'گزارش‌ها' },
+      { to: '/analytics', icon: Activity, label: 'تحلیل‌ها' },
+      { to: '/revenue', icon: DollarSign, label: 'درآمدها' },
+      { to: '/churn', icon: TrendingDown, label: 'ریسک ریزش' },
     ],
   },
   {
     label: 'مدیریت پلتفرم',
     items: [
-      { to: '/tenants', icon: Building2, label: 'دفاتر / Tenant' },
+      { to: '/tenants', icon: Building2, label: 'دفاتر' },
       { to: '/users', icon: Users, label: 'کاربران' },
+      { to: '/customers', icon: UserCircle, label: 'مشتریان' },
+      { to: '/owners', icon: Users, label: 'مالکان' },
+      { to: '/properties', icon: Home, label: 'املاک' },
       { to: '/staff', icon: UserCog, label: 'مدیران پلتفرم' },
+      { to: '/devices', icon: Smartphone, label: 'دستگاه‌ها' },
+      { to: '/impersonation', icon: Shield, label: 'Impersonation' },
+    ],
+  },
+  {
+    label: 'مالی',
+    items: [
       { to: '/subscriptions', icon: CreditCard, label: 'اشتراک‌ها' },
       { to: '/plans', icon: Shield, label: 'پلن‌ها' },
       { to: '/payments', icon: Wallet, label: 'پرداخت‌ها' },
       { to: '/wallets', icon: Wallet, label: 'کیف پول' },
+      { to: '/wallet-transactions', icon: Database, label: 'تراکنش‌ها' },
       { to: '/coupons', icon: Tag, label: 'کوپن‌ها' },
+      { to: '/commissions', icon: Percent, label: 'کمیسیون' },
+      { to: '/accounting', icon: Calculator, label: 'حسابداری' },
+      { to: '/exports', icon: DownloadCloud, label: 'خروجی CSV' },
     ],
   },
   {
-    label: 'محتوا و پشتیبانی',
+    label: 'عملیات',
+    items: [
+      { to: '/crm', icon: Handshake, label: 'CRM' },
+      { to: '/visits', icon: Calendar, label: 'بازدیدها' },
+      { to: '/contracts', icon: FileText, label: 'قراردادها' },
+    ],
+  },
+  {
+    label: 'پشتیبانی و محتوا',
     items: [
       { to: '/tickets', icon: Ticket, label: 'تیکت‌ها' },
       { to: '/announcements', icon: Bell, label: 'اطلاعیه‌ها' },
@@ -43,6 +72,7 @@ const navGroups = [
     label: 'سیستم',
     items: [
       { to: '/settings', icon: Settings, label: 'تنظیمات' },
+      { to: '/system', icon: Flag, label: 'Feature Flags' },
       { to: '/audit', icon: ScrollText, label: 'لاگ ممیزی' },
     ],
   },
@@ -72,8 +102,8 @@ export function AdminSidebar() {
         </div>
         {!collapsed && (
           <div className="min-w-0 flex-1">
-            <h1 className="text-base font-bold gradient-text truncate">پنل پوشه</h1>
-            <p className="text-xs text-muted truncate">مدیریت پلتفرم SaaS</p>
+            <h1 className="text-base font-bold gradient-text truncate">پنل مدیریت پوشه</h1>
+            <p className="text-xs text-muted truncate">{CAPABILITY_COUNT}+ قابلیت · SaaS</p>
           </div>
         )}
         <button type="button" className="lg:hidden text-muted p-1" onClick={() => setMobileOpen(false)}>

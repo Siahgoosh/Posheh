@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
@@ -92,7 +93,7 @@ export function AdminUsersPage() {
           {isLoading ? <p className="text-muted text-sm">بارگذاری…</p> : users.map((u) => (
             <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-card-border p-3 text-sm">
               <div>
-                <p className="font-medium">{u.name}</p>
+                <Link to={`/users/${u.id}`} className="font-medium text-primary hover:underline">{u.name}</Link>
                 <p className="text-muted">{u.mobile} · {roleLabels[u.role] ?? u.role}</p>
                 {u.office && <p className="text-xs text-muted">دفتر: {u.office.name}</p>}
                 {u.last_login_at && <p className="text-xs text-muted">آخرین ورود: {formatJalaliDate(u.last_login_at)}</p>}

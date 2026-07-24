@@ -1,5 +1,7 @@
 # پنل مدیریت پلتفرم — panel.posheapp.ir
 
+مشخصات کامل ۵۲+ قابلیت: `docs/SUPER-ADMIN-PROMPT.md`
+
 ## دسترسی
 
 - **URL:** https://panel.posheapp.ir

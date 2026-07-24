@@ -7,21 +7,39 @@ import { AdminLayout } from '@/components/layout/AdminLayout'
 import { PanelLoginPage } from '@/pages/admin/PanelLoginPage'
 import { AdminSuperPanelPage } from '@/pages/admin/AdminSuperPanelPage'
 import { AdminOfficesPage } from '@/pages/admin/AdminOfficesPage'
+import { AdminOfficeDetailPage } from '@/pages/admin/AdminOfficeDetailPage'
 import { AdminPlansPage } from '@/pages/admin/AdminPlansPage'
 import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage'
 import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage'
+import { AdminUserDetailPage } from '@/pages/admin/AdminUserDetailPage'
 import { AdminPaymentsPage } from '@/pages/admin/AdminPaymentsPage'
 import { AdminSubscriptionsPage } from '@/pages/admin/AdminSubscriptionsPage'
 import { AdminWalletsPage } from '@/pages/admin/AdminWalletsPage'
+import { AdminWalletTransactionsPage } from '@/pages/admin/AdminWalletTransactionsPage'
 import { AdminCouponsPage } from '@/pages/admin/AdminCouponsPage'
 import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage'
 import { AdminAuditPage } from '@/pages/admin/AdminAuditPage'
 import { AdminAnnouncementsPage } from '@/pages/admin/AdminAnnouncementsPage'
 import { AdminStaffPage } from '@/pages/admin/AdminStaffPage'
 import { AdminReportsPage } from '@/pages/admin/AdminReportsPage'
+import { AdminCustomersPage } from '@/pages/admin/AdminCustomersPage'
+import { AdminOwnersPage } from '@/pages/admin/AdminOwnersPage'
+import { AdminPropertiesPage } from '@/pages/admin/AdminPropertiesPage'
+import { AdminCrmPage } from '@/pages/admin/AdminCrmPage'
+import { AdminVisitsPage } from '@/pages/admin/AdminVisitsPage'
+import { AdminContractsPage } from '@/pages/admin/AdminContractsPage'
+import { AdminCommissionsPage } from '@/pages/admin/AdminCommissionsPage'
+import { AdminAccountingPage } from '@/pages/admin/AdminAccountingPage'
+import { AdminDevicesPage } from '@/pages/admin/AdminDevicesPage'
+import { AdminImpersonationPage } from '@/pages/admin/AdminImpersonationPage'
+import { AdminRevenuePage } from '@/pages/admin/AdminRevenuePage'
+import { AdminAnalyticsPage } from '@/pages/admin/AdminAnalyticsPage'
+import { AdminSystemPage } from '@/pages/admin/AdminSystemPage'
+import { AdminExportsPage } from '@/pages/admin/AdminExportsPage'
+import { AdminChurnPage } from '@/pages/admin/AdminChurnPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -35,7 +53,6 @@ function PanelSpinner() {
   )
 }
 
-/** مهمان → فقط صفحه ورود؛ هر مسیر دیگر → /login */
 function PanelGuestOnly({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, hydrated, user } = useAuthStore()
   if (!hydrated) return <PanelSpinner />
@@ -45,7 +62,6 @@ function PanelGuestOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-/** فقط مدیران پلتفرم — داشبورد مدیریت */
 function PanelProtected({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, hydrated, user } = useAuthStore()
   if (!hydrated) return <PanelSpinner />
@@ -59,30 +75,31 @@ export function PanelApp() {
     <QueryClientProvider client={queryClient}>
       <AuthBootstrap>
         <Routes>
-          <Route
-            path="/login"
-            element={
-              <PanelGuestOnly>
-                <PanelLoginPage />
-              </PanelGuestOnly>
-            }
-          />
-          <Route
-            element={
-              <PanelProtected>
-                <AdminLayout />
-              </PanelProtected>
-            }
-          >
+          <Route path="/login" element={<PanelGuestOnly><PanelLoginPage /></PanelGuestOnly>} />
+          <Route element={<PanelProtected><AdminLayout /></PanelProtected>}>
             <Route index element={<AdminSuperPanelPage />} />
             <Route path="tenants" element={<AdminOfficesPage />} />
+            <Route path="tenants/:id" element={<AdminOfficeDetailPage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="users/:id" element={<AdminUserDetailPage />} />
+            <Route path="customers" element={<AdminCustomersPage />} />
+            <Route path="owners" element={<AdminOwnersPage />} />
+            <Route path="properties" element={<AdminPropertiesPage />} />
             <Route path="staff" element={<AdminStaffPage />} />
+            <Route path="devices" element={<AdminDevicesPage />} />
+            <Route path="impersonation" element={<AdminImpersonationPage />} />
             <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
             <Route path="plans" element={<AdminPlansPage />} />
             <Route path="payments" element={<AdminPaymentsPage />} />
             <Route path="wallets" element={<AdminWalletsPage />} />
+            <Route path="wallet-transactions" element={<AdminWalletTransactionsPage />} />
             <Route path="coupons" element={<AdminCouponsPage />} />
+            <Route path="commissions" element={<AdminCommissionsPage />} />
+            <Route path="accounting" element={<AdminAccountingPage />} />
+            <Route path="exports" element={<AdminExportsPage />} />
+            <Route path="crm" element={<AdminCrmPage />} />
+            <Route path="visits" element={<AdminVisitsPage />} />
+            <Route path="contracts" element={<AdminContractsPage />} />
             <Route path="tickets" element={<AdminTicketsPage />} />
             <Route path="announcements" element={<AdminAnnouncementsPage />} />
             <Route path="blog" element={<AdminBlogListPage />} />
@@ -90,10 +107,13 @@ export function PanelApp() {
             <Route path="blog/:id/edit" element={<AdminBlogEditorPage />} />
             <Route path="downloads" element={<AdminDownloadsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
+            <Route path="system" element={<AdminSystemPage />} />
             <Route path="audit" element={<AdminAuditPage />} />
             <Route path="reports" element={<AdminReportsPage />} />
+            <Route path="analytics" element={<AdminAnalyticsPage />} />
+            <Route path="revenue" element={<AdminRevenuePage />} />
+            <Route path="churn" element={<AdminChurnPage />} />
           </Route>
-          {/* هر مسیر دیگر (شامل لندینگ، ثبت‌نام، …) → ورود یا داشبورد */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </AuthBootstrap>
