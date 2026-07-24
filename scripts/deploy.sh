@@ -94,6 +94,9 @@ sync_code() {
   # Laravel/Docker runtime edits tracked .gitignore files under storage/ and bootstrap/cache/.
   # Local Flutter scaffolds under mobile/ can also block checkout on production servers.
   log "Resetting local runtime edits before checkout"
+  git restore backend/bootstrap/cache backend/storage 2>/dev/null \
+    || git checkout -- backend/bootstrap/cache backend/storage 2>/dev/null \
+    || true
   git reset --hard HEAD 2>/dev/null || true
   git clean -fd -- mobile/ 2>/dev/null || true
 
