@@ -13,11 +13,17 @@ fi
 
 cd "$ROOT/mobile"
 flutter pub get
+bash "$ROOT/scripts/patch-flutter-poolakey.sh"
 
 bash "$ROOT/scripts/android-signing-ci.sh"
 
+BAZAAR_DEFINE=()
+if [[ -n "${BAZAAR_RSA_KEY:-}" ]]; then
+  BAZAAR_DEFINE=(--dart-define=BAZAAR_RSA_KEY="$BAZAAR_RSA_KEY")
+fi
+
 echo "Building Android APK..."
-flutter build apk --release --dart-define=API_URL="$API_URL"
+flutter build apk --release --dart-define=API_URL="$API_URL" "${BAZAAR_DEFINE[@]}"
 cp build/app/outputs/flutter-apk/app-release.apk "$OUT/posheh-android.apk"
 echo "Android: $OUT/posheh-android.apk ($(du -h "$OUT/posheh-android.apk" | cut -f1))"
 
