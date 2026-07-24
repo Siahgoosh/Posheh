@@ -11,7 +11,7 @@
 | نام فارسی | **پوشه** |
 | نام انگلیسی | **Posheh** |
 | Package Name | `ir.posheapp.posheh` |
-| نسخه فعلی | `1.0.2` (versionCode: `6`) |
+| نسخه فعلی | `1.0.2` (versionCode: `7`) |
 | حداقل SDK | Android 5.0+ (طبق Flutter پیش‌فرض) |
 | زبان رابط | فارسی (RTL) |
 | API سرور | `https://posheapp.ir/api/v1` |
@@ -246,10 +246,15 @@ cp mobile/build/app/outputs/flutter-apk/app-release.apk \
 
 ### پیکربندی
 
-1. در [پنل توسعه‌دهندگان](https://pishkhan.cafebazaar.ir) محصولات اشتراکی با SKUهای `solo`, `office`, `premium` تعریف کنید.
-2. کلید RSA عمومی را در GitHub Secret `BAZAAR_RSA_KEY` قرار دهید (برای build اندروید).
-3. توکن API را در سرور: `CAFE_BAZAAR_API_TOKEN` در `.env`
-4. SKUها باید با slug پلن‌ها در دیتابیس یکسان باشند.
+| پلن پوشه | SKU کافه‌بازار | عنوان در پنل |
+|----------|----------------|--------------|
+| solo | `solo01` | مشاور مستقل |
+| office | `office01` | دفتر املاک |
+| premium | `office02` | دفتر حرفه‌ای |
+
+1. کلید RSA عمومی و JWT تخفیف پویا در `mobile/lib/core/constants/bazaar_config.dart`
+2. توکن API سرور: `CAFE_BAZAAR_API_TOKEN` در `.env`
+3. اشتراک آزمایشی (Trial): طبق [مستندات کافه‌بازار](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/subscription#Trial-subscription) روی محصول در پنل تنظیم می‌شود
 
 ### جریان پرداخت
 
@@ -265,7 +270,8 @@ cp mobile/build/app/outputs/flutter-apk/app-release.apk \
 ## ۹. چک‌لیست قبل از ارسال
 
 - [ ] APK با keystore تولیدی (نه debug) امضا شده
-- [ ] versionCode در `pubspec.yaml` افزایش یافته (`1.0.2+6`)
+- [ ] versionCode در `pubspec.yaml` افزایش یافته (`1.0.2+7`)
+- [ ] SKUهای کافه‌بازار: `solo01`, `office01`, `office02`
 - [ ] سیاست حریم خصوصی کامل قبل از دریافت شماره موبایل در ثبت‌نام
 - [ ] پرداخت اشتراک اندروید فقط از کافه‌بازار (بدون لینک وب/زیبال)
 - [ ] `CAFE_BAZAAR_API_TOKEN` و `BAZAAR_RSA_KEY` در محیط تولید تنظیم شده

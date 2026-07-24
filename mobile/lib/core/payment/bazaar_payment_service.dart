@@ -38,7 +38,7 @@ class BazaarPaymentService {
     return FlutterPoolakey.subscribe(
       productId,
       payload: payload,
-      dynamicPriceToken: '',
+      dynamicPriceToken: bazaarDynamicDiscountJwt,
     );
   }
 }

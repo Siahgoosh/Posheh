@@ -309,10 +309,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
 
     setState(() { _purchasing = true; _error = null; });
     try {
-      final purchase = await _bazaar.subscribe(bazaarSkuForPlan(slug));
+      final bazaarSku = bazaarSkuForPlan(slug);
+      final purchase = await _bazaar.subscribe(bazaarSku);
       await ref.read(apiClientProvider).verifyBazaarPurchase(
         planId: planId,
-        productId: slug,
+        productId: bazaarSku,
         purchaseToken: purchase.purchaseToken,
         orderId: purchase.orderId,
       );
@@ -403,6 +404,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                               child: Text('۴۸ ساعت رایگان — فقط پنل فردی', style: TextStyle(color: AppColors.warning, fontSize: 12)),
                             ),
                           if (isAndroidPlatform) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              'شناسه کافه‌بازار: ${bazaarSkuForPlan(p['slug']?.toString() ?? '')}',
+                              style: const TextStyle(color: AppColors.muted, fontSize: 11),
+                            ),
                             const SizedBox(height: 10),
                             SizedBox(
                               width: double.infinity,

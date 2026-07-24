@@ -43,6 +43,11 @@ return [
     'cafe_bazaar' => [
         'api_token' => env('CAFE_BAZAAR_API_TOKEN'),
         'package_name' => env('CAFE_BAZAAR_PACKAGE_NAME', 'ir.posheapp.posheh'),
+        'plan_skus' => [
+            'solo' => env('CAFE_BAZAAR_SKU_SOLO', 'solo01'),
+            'office' => env('CAFE_BAZAAR_SKU_OFFICE', 'office01'),
+            'premium' => env('CAFE_BAZAAR_SKU_PREMIUM', 'office02'),
+        ],
     ],
 
     'sms' => [

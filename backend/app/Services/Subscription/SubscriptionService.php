@@ -65,9 +65,10 @@ class SubscriptionService
     ): array {
         $plan = SubscriptionPlan::findOrFail($planId);
 
-        if ($plan->slug !== $productId) {
+        $expectedSku = config("services.cafe_bazaar.plan_skus.{$plan->slug}");
+        if (! $expectedSku || $expectedSku !== $productId) {
             throw ValidationException::withMessages([
-                'product_id' => ['شناسه محصول با پلن انتخاب‌شده مطابقت ندارد.'],
+                'product_id' => ['شناسه محصول کافه‌بازار با پلن انتخاب‌شده مطابقت ندارد.'],
             ]);
         }
 
