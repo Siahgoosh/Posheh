@@ -253,7 +253,8 @@ cp mobile/build/app/outputs/flutter-apk/app-release.apk \
 | premium | `office02` | دفتر حرفه‌ای |
 
 1. کلید RSA عمومی و JWT تخفیف پویا در `mobile/lib/core/constants/bazaar_config.dart`
-2. توکن API سرور: `CAFE_BAZAAR_API_TOKEN` در `.env`
+2. توکن API سرور (`CAFE_BAZAAR_API_TOKEN`): JWT از پنل پیشخوان → API  
+   روی سرور: `./scripts/set-cafe-bazaar-env.sh 'YOUR_JWT'`
 3. اشتراک آزمایشی (Trial): طبق [مستندات کافه‌بازار](https://developers.cafebazaar.ir/fa/guidelines/in-app-billing/subscription#Trial-subscription) روی محصول در پنل تنظیم می‌شود
 
 ### جریان پرداخت
