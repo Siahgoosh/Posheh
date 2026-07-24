@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth'
+import { isPlatformStaffRole } from '@/lib/subdomain'
 
 export function SuperAdminRoute({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, hydrated } = useAuthStore()
@@ -13,7 +14,7 @@ export function SuperAdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) return <Navigate to="/login" replace />
-  if (user?.role !== 'super_admin') return <Navigate to="/dashboard" replace />
+  if (!isPlatformStaffRole(user?.role)) return <Navigate to="/dashboard" replace />
 
   return <>{children}</>
 }

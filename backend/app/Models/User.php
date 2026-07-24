@@ -84,6 +84,16 @@ class User extends Authenticatable
         return $this->role === UserRole::SuperAdmin;
     }
 
+    public function isPlatformStaff(): bool
+    {
+        return $this->role->isPlatformStaff();
+    }
+
+    public function canAccessAdminPanel(): bool
+    {
+        return $this->isPlatformStaff();
+    }
+
     public function isOfficeManager(): bool
     {
         return $this->role === UserRole::OfficeManager;

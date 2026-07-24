@@ -1,13 +1,14 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth'
+import { isPlatformStaffRole } from '@/lib/subdomain'
 
-const RENEWAL_ALLOWED = ['/renew', '/subscription', '/settings']
+const RENEWAL_ALLOWED = ['/renew', '/subscription', '/settings', '/admin']
 
 export function SubscriptionGuard({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore()
   const location = useLocation()
 
-  if (user?.role === 'super_admin') {
+  if (isPlatformStaffRole(user?.role)) {
     return <>{children}</>
   }
 
@@ -23,7 +24,7 @@ export function SubscriptionGuard({ children }: { children: React.ReactNode }) {
 
 export function usePlanFeature(feature: string): boolean {
   const { user } = useAuthStore()
-  if (user?.role === 'super_admin') return true
+  if (isPlatformStaffRole(user?.role)) return true
   const features = user?.office?.plan?.features ?? []
   return features.includes(feature)
 }

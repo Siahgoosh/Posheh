@@ -183,7 +183,9 @@ fi
 cat <<EOF
 
 Next steps:
-  - Set Zibal: ZIBAL_MERCHANT=... ZIBAL_SANDBOX=false FRONTEND_URL=https://posheapp.ir
+  - Cafe Bazaar IAP: ./scripts/set-cafe-bazaar-env.sh 'JWT_FROM_PANEL'
+    or: CAFE_BAZAAR_API_TOKEN='JWT' ./scripts/deploy.sh
+  - After token change: docker compose exec app php artisan config:clear
   - Run scheduler: docker compose up -d scheduler
   - Seed contracts: docker compose exec app php artisan db:seed --class=ContractTemplateSeeder --force
   - OTP also needs: IPPANEL_USERNAME, IPPANEL_PASSWORD, IPPANEL_OTP_PATTERN_CODE=qhhly1nai3njev0

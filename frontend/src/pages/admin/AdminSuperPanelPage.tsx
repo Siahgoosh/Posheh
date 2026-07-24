@@ -58,7 +58,7 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: typeof Users; label
   )
 }
 
-function MiniBarChart({ data, valueKey, label }: { data: { date: string; [k: string]: string | number }[]; valueKey: string; label: string }) {
+export function MiniBarChart({ data, valueKey, label }: { data: { date: string; [k: string]: string | number }[]; valueKey: string; label: string }) {
   const max = Math.max(...data.map((d) => Number(d[valueKey]) || 0), 1)
 
   return (

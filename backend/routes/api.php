@@ -2,6 +2,16 @@
 
 use App\Http\Controllers\Api\AccountingController;
 use App\Http\Controllers\Api\Admin\AdminController;
+use App\Http\Controllers\Api\Admin\AdminAuditController;
+use App\Http\Controllers\Api\Admin\AdminCouponController;
+use App\Http\Controllers\Api\Admin\AdminImpersonationController;
+use App\Http\Controllers\Api\Admin\AdminPaymentController;
+use App\Http\Controllers\Api\Admin\AdminSearchController;
+use App\Http\Controllers\Api\Admin\AdminSettingsController;
+use App\Http\Controllers\Api\Admin\AdminSubscriptionController;
+use App\Http\Controllers\Api\Admin\AdminUserController;
+use App\Http\Controllers\Api\Admin\AdminWalletController;
+use App\Http\Middleware\EnsurePlatformStaff;
 use App\Http\Controllers\Api\Admin\AdminOfficeController;
 use App\Http\Controllers\Api\Admin\AppReleaseAdminController;
 use App\Http\Controllers\Api\Admin\BlogAdminController;
@@ -153,14 +163,48 @@ Route::prefix('v1')->group(function () {
             ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
         Route::get('/subscription/current', [SubscriptionController::class, 'current']);
 
-        Route::prefix('admin')->middleware(EnsureUserHasRole::class.':super_admin')->group(function () {
+        Route::prefix('admin')->middleware(EnsurePlatformStaff::class)->group(function () {
             Route::get('/marketing', [MarketingDashboardController::class, 'index']);
             Route::get('/system/sms', [MarketingDashboardController::class, 'smsStatus']);
+            Route::get('/search', AdminSearchController::class);
+
+            Route::get('/users', [AdminUserController::class, 'index']);
+            Route::get('/users/platform-staff', [AdminUserController::class, 'platformStaff']);
+            Route::post('/users/platform-staff', [AdminUserController::class, 'storePlatformStaff']);
+            Route::get('/users/{id}', [AdminUserController::class, 'show']);
+            Route::put('/users/{id}', [AdminUserController::class, 'update']);
+            Route::post('/users/{id}/logout-all', [AdminUserController::class, 'logoutAll']);
+
+            Route::get('/payments', [AdminPaymentController::class, 'index']);
+            Route::get('/payments/{id}', [AdminPaymentController::class, 'show']);
+
+            Route::get('/subscriptions', [AdminSubscriptionController::class, 'index']);
+            Route::post('/subscriptions/{id}/extend', [AdminSubscriptionController::class, 'extend']);
+            Route::post('/offices/{officeId}/assign-plan', [AdminSubscriptionController::class, 'assignPlan']);
+
+            Route::get('/wallets', [AdminWalletController::class, 'index']);
+            Route::get('/wallet-transactions', [AdminWalletController::class, 'transactions']);
+            Route::post('/offices/{officeId}/wallet/adjust', [AdminWalletController::class, 'adjust']);
+
+            Route::get('/coupons', [AdminCouponController::class, 'index']);
+            Route::post('/coupons', [AdminCouponController::class, 'store']);
+            Route::put('/coupons/{id}', [AdminCouponController::class, 'update']);
+            Route::delete('/coupons/{id}', [AdminCouponController::class, 'destroy']);
+
+            Route::get('/audit-logs', [AdminAuditController::class, 'index']);
+            Route::get('/settings', [AdminSettingsController::class, 'index']);
+            Route::put('/settings', [AdminSettingsController::class, 'update']);
+
+            Route::post('/impersonate/{userId}', [AdminImpersonationController::class, 'start']);
+            Route::post('/impersonate/end', [AdminImpersonationController::class, 'end']);
+
             Route::get('/plans', [PlanAdminController::class, 'index']);
             Route::post('/plans', [PlanAdminController::class, 'store']);
             Route::put('/plans/{id}', [PlanAdminController::class, 'update']);
             Route::delete('/plans/{id}', [PlanAdminController::class, 'destroy']);
             Route::get('/offices', [AdminController::class, 'offices']);
+            Route::get('/offices/{id}', [AdminOfficeController::class, 'show']);
+            Route::put('/offices/{id}/status', [AdminOfficeController::class, 'updateStatus']);
             Route::put('/offices/{id}/plan-status', [AdminOfficeController::class, 'updatePlanStatus']);
             Route::put('/offices/{id}/website-status', [AdminOfficeController::class, 'updateWebsiteStatus']);
             Route::get('/analytics', [AdminController::class, 'analytics']);

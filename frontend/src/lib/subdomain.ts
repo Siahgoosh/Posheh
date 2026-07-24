@@ -3,6 +3,23 @@ const ROOT_DOMAIN = 'posheapp.ir'
 // Hostnames that are part of the main app, not office sites.
 const RESERVED = new Set(['www', 'app', 'admin', 'api', 'panel', 'mail', 'ftp', 'cdn', 'static'])
 
+const PLATFORM_ROLES = new Set([
+  'super_admin',
+  'platform_admin',
+  'platform_support',
+  'platform_finance',
+])
+
+export function isPlatformStaffRole(role?: string | null): boolean {
+  return !!role && PLATFORM_ROLES.has(role)
+}
+
+export function isPanelSubdomain(): boolean {
+  if (typeof window === 'undefined') return false
+  const host = window.location.hostname.toLowerCase()
+  return host === `panel.${ROOT_DOMAIN}` || host === 'panel.localhost'
+}
+
 /**
  * When the app is served from an office subdomain (e.g. tehran-amlak.posheapp.ir)
  * return that subdomain. Returns null for the apex domain, www, reserved names,

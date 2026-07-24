@@ -9,8 +9,9 @@ import api from '@/lib/api'
 import { getDeviceId, getDeviceName, getPlatform } from '@/lib/device'
 import { useAuthStore } from '@/stores/auth'
 import { toEnglishDigits, toPersianDigits, normalizeMobile } from '@/lib/utils'
+import { isPanelSubdomain, isPlatformStaffRole } from '@/lib/subdomain'
 
-export function LoginPage() {
+export function LoginPage({ panelMode = false }: { panelMode?: boolean }) {
   const [step, setStep] = useState<'mobile' | 'otp'>('mobile')
   const [mobile, setMobile] = useState('')
   const [otp, setOtp] = useState('')
@@ -64,7 +65,15 @@ export function LoginPage() {
       }
       const { data } = await api.post('/auth/otp/verify', payload)
       setAuth(data.user, data.token)
-      navigate(data.subscription_expired ? '/renew' : '/dashboard')
+      const isPanel = panelMode || isPanelSubdomain()
+      if (isPanel && isPlatformStaffRole(data.user?.role)) {
+        navigate('/')
+      } else if (isPanel && !isPlatformStaffRole(data.user?.role)) {
+        setError('این حساب دسترسی پنل مدیریت ندارد.')
+        return
+      } else {
+        navigate(data.subscription_expired ? '/renew' : '/dashboard')
+      }
     } catch (err: unknown) {
       const axiosErr = err as {
         response?: {
