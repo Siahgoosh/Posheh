@@ -2,6 +2,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 export function PaymentCallbackPage() {
   const [params] = useSearchParams()
@@ -9,6 +10,7 @@ export function PaymentCallbackPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
+      <SeoHead title="نتیجه پرداخت" path="/payment/callback" noindex />
       <Card className="max-w-md w-full">
         <CardContent className="p-8 text-center space-y-4">
           {success ? (

@@ -10,6 +10,7 @@ import { getDeviceId, getDeviceName, getPlatform } from '@/lib/device'
 import { useAuthStore } from '@/stores/auth'
 import { toEnglishDigits, toPersianDigits, normalizeMobile } from '@/lib/utils'
 import { isPanelSubdomain, isPlatformStaffRole } from '@/lib/subdomain'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 export function LoginPage({ panelMode = false }: { panelMode?: boolean }) {
   const [step, setStep] = useState<'mobile' | 'otp'>('mobile')
@@ -108,6 +109,9 @@ export function LoginPage({ panelMode = false }: { panelMode?: boolean }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
+      {!panelMode && !isPanelSubdomain() && (
+        <SeoHead title="ورود" path="/login" noindex />
+      )}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />

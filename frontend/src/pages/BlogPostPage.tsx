@@ -5,7 +5,8 @@ import { ArrowRight, Calendar, Clock } from 'lucide-react'
 import api from '@/lib/api'
 import { SeoHead } from '@/components/seo/SeoHead'
 import { SeoBreadcrumb, getBreadcrumbJsonLd, getFaqJsonLd } from '@/components/seo/SeoBreadcrumb'
-import { getSiteUrl } from '@/lib/seo'
+import { getArticleJsonLd, getSiteUrl } from '@/lib/seo'
+import { PRIMARY_KEYWORDS_STRING } from '@/constants/seo'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SiteFooter } from '@/components/layout/SiteFooter'
@@ -27,6 +28,8 @@ interface BlogPostDetail {
   category_label?: string
   author_name?: string
   reading_time?: number
+  cover_image?: string
+  published_at?: string
   published_at_jalali?: string
   updated_at?: string
   faq?: FaqItem[]
@@ -76,10 +79,13 @@ export function BlogPostPage() {
 
   if (error || !post) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-muted">مقاله یافت نشد</p>
-        <Link to="/blog"><Button variant="outline">بازگشت به وبلاگ</Button></Link>
-      </div>
+      <>
+        <SeoHead title="مقاله یافت نشد" noindex path={`/blog/${slug}`} />
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+          <p className="text-muted">مقاله یافت نشد</p>
+          <Link to="/blog"><Button variant="outline">بازگشت به وبلاگ</Button></Link>
+        </div>
+      </>
     )
   }
 
@@ -92,17 +98,17 @@ export function BlogPostPage() {
     { label: post.title },
   ]
 
-  const articleJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: post.title,
+  const articleJsonLd = getArticleJsonLd({
+    title: post.title,
     description: post.meta_description || post.excerpt,
-    author: { '@type': 'Organization', name: post.author_name || 'تیم پوشه' },
-    datePublished: post.published_at_jalali,
-    dateModified: post.updated_at,
-    inLanguage: 'fa-IR',
-    mainEntityOfPage: `${getSiteUrl()}/blog/${post.slug}`,
-  }
+    slug: post.slug,
+    image: post.cover_image,
+    authorName: post.author_name,
+    publishedAt: post.published_at,
+    modifiedAt: post.updated_at,
+    keywords: post.keywords || PRIMARY_KEYWORDS_STRING,
+    section: post.category_label,
+  })
 
   const faqLd = getFaqJsonLd(post.faq ?? [])
   const jsonLd = [articleJsonLd, getBreadcrumbJsonLd(breadcrumbs, getSiteUrl()), ...(faqLd ? [faqLd] : [])]
@@ -112,9 +118,12 @@ export function BlogPostPage() {
       <SeoHead
         title={post.meta_title || post.title}
         description={post.meta_description || post.excerpt}
-        keywords={post.keywords}
+        keywords={post.keywords || PRIMARY_KEYWORDS_STRING}
         path={`/blog/${post.slug}`}
+        image={post.cover_image || '/og-default.svg'}
         type="article"
+        articlePublishedTime={post.published_at}
+        articleModifiedTime={post.updated_at}
         jsonLd={jsonLd}
       />
 

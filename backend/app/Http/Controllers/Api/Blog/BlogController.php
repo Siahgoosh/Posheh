@@ -94,18 +94,17 @@ class BlogController extends Controller
             ->get(['slug', 'updated_at', 'published_at', 'category_slug']);
 
         $static = [
-            ['path' => '/', 'priority' => 1.0],
-            ['path' => '/blog', 'priority' => 0.9],
-            ['path' => '/register', 'priority' => 0.9],
-            ['path' => '/download', 'priority' => 0.8],
-            ['path' => '/contact', 'priority' => 0.7],
-            ['path' => '/privacy', 'priority' => 0.5],
-            ['path' => '/terms', 'priority' => 0.5],
-            ['path' => '/login', 'priority' => 0.5],
+            ['path' => '/', 'priority' => 1.0, 'changefreq' => 'daily'],
+            ['path' => '/blog', 'priority' => 0.95, 'changefreq' => 'daily'],
+            ['path' => '/register', 'priority' => 0.9, 'changefreq' => 'weekly'],
+            ['path' => '/download', 'priority' => 0.8, 'changefreq' => 'monthly'],
+            ['path' => '/contact', 'priority' => 0.7, 'changefreq' => 'monthly'],
+            ['path' => '/privacy', 'priority' => 0.4, 'changefreq' => 'yearly'],
+            ['path' => '/terms', 'priority' => 0.4, 'changefreq' => 'yearly'],
         ];
 
         foreach (self::CATEGORIES as $slug => $label) {
-            $static[] = ['path' => '/blog/category/'.$slug, 'priority' => 0.75];
+            $static[] = ['path' => '/blog/category/'.$slug, 'priority' => 0.8, 'changefreq' => 'weekly'];
         }
 
         return response()->json([
@@ -114,7 +113,10 @@ class BlogController extends Controller
                 'path' => '/blog/'.$post->slug,
                 'slug' => $post->slug,
                 'updated_at' => ($post->updated_at ?? $post->published_at)?->toIso8601String(),
+                'changefreq' => 'monthly',
+                'priority' => 0.85,
             ]),
+            'sitemap_url' => rtrim(config('app.frontend_url', 'https://posheapp.ir'), '/').'/sitemap.xml',
         ]);
     }
 

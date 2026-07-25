@@ -6,13 +6,15 @@ import { SeoHead } from '@/components/seo/SeoHead'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { SITE_CONTACT } from '@/constants/site'
 import { getOrganizationJsonLd } from '@/lib/seo'
+import { PRIMARY_KEYWORDS_STRING } from '@/constants/seo'
 
 export function ContactPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <SeoHead
-        title="تماس با ما"
-        description="ارتباط با تیم پوشه — پشتیبانی، سوالات فروش و حریم خصوصی"
+        title="تماس با پوشه — پشتیبانی نرم‌افزار املاک"
+        description="تماس با تیم پوشه برای پشتیبانی فایلینگ املاک، CRM املاک و حسابداری املاک."
+        keywords={`تماس پوشه, پشتیبانی نرم افزار املاک, ${PRIMARY_KEYWORDS_STRING}`}
         path="/contact"
         jsonLd={getOrganizationJsonLd()}
       />

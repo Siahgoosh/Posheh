@@ -1,8 +1,11 @@
 const SITE_NAME = 'پوشه'
-const DEFAULT_DESCRIPTION = 'پوشه — سامانه ابری ثبت و مدیریت املاک برای مشاوران و آژانس‌های املاک در ایران'
+const DEFAULT_DESCRIPTION = 'پوشه — سامانه ابری فایلینگ املاک، CRM املاک، حسابداری املاک، فروش ملک و اجاره ملک برای مشاوران ایران'
 
 export function getSiteUrl(): string {
-  return import.meta.env.VITE_SITE_URL || window.location.origin
+  if (typeof window !== 'undefined') {
+    return import.meta.env.VITE_SITE_URL || window.location.origin
+  }
+  return import.meta.env.VITE_SITE_URL || 'https://posheapp.ir'
 }
 
 interface SeoProps {
@@ -14,6 +17,8 @@ interface SeoProps {
   type?: 'website' | 'article'
   jsonLd?: Record<string, unknown> | Record<string, unknown>[]
   noindex?: boolean
+  articlePublishedTime?: string
+  articleModifiedTime?: string
 }
 
 function setMeta(name: string, content: string, attr: 'name' | 'property' = 'name') {
@@ -56,10 +61,12 @@ export function applySeo({
   type = 'website',
   jsonLd,
   noindex = false,
+  articlePublishedTime,
+  articleModifiedTime,
 }: SeoProps) {
-  const fullTitle = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | سامانه مدیریت املاک`
+  const fullTitle = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | فایلینگ و CRM املاک`
   const url = `${getSiteUrl()}${path}`
-  const ogImage = image || `${getSiteUrl()}/favicon.svg`
+  const ogImage = image?.startsWith('http') ? image : image ? `${getSiteUrl()}${image}` : `${getSiteUrl()}/og-default.svg`
 
   document.title = fullTitle
   setMeta('description', description)
@@ -74,13 +81,57 @@ export function applySeo({
   setMeta('og:locale', 'fa_IR', 'property')
   setMeta('og:site_name', SITE_NAME, 'property')
 
+  if (type === 'article' && articlePublishedTime) {
+    setMeta('article:published_time', articlePublishedTime, 'property')
+  }
+  if (type === 'article' && articleModifiedTime) {
+    setMeta('article:modified_time', articleModifiedTime, 'property')
+  }
+
   setMeta('twitter:card', 'summary_large_image')
   setMeta('twitter:title', fullTitle)
   setMeta('twitter:description', description)
+  setMeta('twitter:image', ogImage)
 
   setCanonical(url)
 
   if (jsonLd) setJsonLd(jsonLd)
+}
+
+export function getArticleJsonLd(opts: {
+  title: string
+  description?: string
+  slug: string
+  image?: string
+  authorName?: string
+  publishedAt?: string
+  modifiedAt?: string
+  keywords?: string
+  section?: string
+}) {
+  const url = `${getSiteUrl()}/blog/${opts.slug}`
+  const image = opts.image?.startsWith('http') ? opts.image : opts.image ? `${getSiteUrl()}${opts.image}` : `${getSiteUrl()}/og-default.svg`
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: opts.title,
+    description: opts.description,
+    image: [image],
+    author: { '@type': 'Organization', name: opts.authorName || 'تیم پوشه' },
+    publisher: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+      logo: { '@type': 'ImageObject', url: `${getSiteUrl()}/favicon.svg` },
+    },
+    datePublished: opts.publishedAt,
+    dateModified: opts.modifiedAt || opts.publishedAt,
+    inLanguage: 'fa-IR',
+    mainEntityOfPage: url,
+    url,
+    ...(opts.section ? { articleSection: opts.section } : {}),
+    ...(opts.keywords ? { keywords: opts.keywords.split(',').map((k) => k.trim()) } : {}),
+  }
 }
 
 export function getOrganizationJsonLd() {

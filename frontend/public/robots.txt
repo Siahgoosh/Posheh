@@ -4,10 +4,16 @@ Allow: /blog
 Allow: /blog/
 Allow: /register
 Allow: /download
+Allow: /contact
+Allow: /privacy
+Allow: /terms
 Disallow: /dashboard
 Disallow: /properties
 Disallow: /settings
 Disallow: /admin
+Disallow: /login
 Disallow: /api/
+Disallow: /panel
 
-Sitemap: https://posheapp.ir/api/v1/sitemap.xml
+# Submit this URL in Google Search Console:
+Sitemap: https://posheapp.ir/sitemap.xml

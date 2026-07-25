@@ -15,6 +15,8 @@ import { Card } from '@/components/ui/card'
 import { SeoHead } from '@/components/seo/SeoHead'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { getOrganizationJsonLd, getSoftwareJsonLd, getWebSiteJsonLd } from '@/lib/seo'
+import { getFaqJsonLd } from '@/components/seo/SeoBreadcrumb'
+import { SITE_SEO } from '@/constants/seo'
 import { PLAN_FEATURE_LABELS, trialBadgeForPlan } from '@/constants/plans'
 
 const stats = [
@@ -86,14 +88,22 @@ export function LandingPage() {
     },
   })
 
+  const faqLd = getFaqJsonLd(faqs.map((f) => ({ question: f.q, answer: f.a })))
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <SeoHead
-        title="پوشه — سامانه ابری مدیریت دفتر املاک"
-        description="فایلینگ، CRM، تطبیق هوشمند، تقویم بازدید، QR و حسابداری — همه در یک پنل ابری برای مشاوران املاک ایران."
-        keywords="نرم افزار املاک, CRM املاک, فایلینگ املاک, پوشه, سامانه مشاور املاک"
+        title={SITE_SEO.defaultTitle}
+        description={SITE_SEO.defaultDescription}
+        keywords={SITE_SEO.defaultKeywords}
         path="/"
-        jsonLd={[getOrganizationJsonLd(), getSoftwareJsonLd(), getWebSiteJsonLd()]}
+        image="/og-default.svg"
+        jsonLd={[
+          getOrganizationJsonLd(),
+          getSoftwareJsonLd(),
+          getWebSiteJsonLd(),
+          ...(faqLd ? [faqLd] : []),
+        ]}
       />
 
       <div className="landing-glow pointer-events-none fixed inset-0 -z-10" />
@@ -137,10 +147,10 @@ export function LandingPage() {
               راه‌اندازی در کمتر از ۳ دقیقه
             </div>
             <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-5">
-              با <span className="gradient-text">پوشه</span> بیشتر بفروشید و دفترتان را حرفه‌ای مدیریت کنید
+              <span className="gradient-text">فایلینگ املاک</span>، CRM و حسابداری — فروش و اجاره حرفه‌ای
             </h1>
             <p className="text-muted text-lg leading-relaxed mb-8">
-              فایلینگ هوشمند، CRM کانبان، تطبیق ملک↔مشتری، تقویم بازدید شمسی، QR و قرارداد PDF —
+              نرم‌افزار ابری پوشه: فایلینگ املاک، CRM املاک، حسابداری املاک، مدیریت فروش ملک و اجاره ملک —
               بدون نصب و بدون برنامه‌نویس.
             </p>
             <div className="flex flex-wrap gap-3 mb-6">

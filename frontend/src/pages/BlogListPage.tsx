@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { SeoHead } from '@/components/seo/SeoHead'
 import { SeoBreadcrumb, getBreadcrumbJsonLd } from '@/components/seo/SeoBreadcrumb'
 import { getOrganizationJsonLd, getSiteUrl, getWebSiteJsonLd } from '@/lib/seo'
+import { PRIMARY_KEYWORDS_STRING, SITE_SEO } from '@/constants/seo'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -49,10 +50,11 @@ export function BlogListPage() {
   return (
     <>
       <SeoHead
-        title="وبلاگ املاک و نرم‌افزار مدیریت دفتر"
-        description="مرجع فارسی نرم افزار املاک، CRM مشاوران، ثبت ملک، حسابداری دفتر و تحول دیجیتال املاک در ایران."
-        keywords="وبلاگ املاک, نرم افزار املاک, CRM املاک, مدیریت دفتر املاک, فایلینگ املاک"
+        title={SITE_SEO.blogListTitle}
+        description={SITE_SEO.blogListDescription}
+        keywords={`وبلاگ املاک, ${PRIMARY_KEYWORDS_STRING}`}
         path="/blog"
+        image="/og-default.svg"
         jsonLd={[
           getOrganizationJsonLd(),
           getWebSiteJsonLd(),
@@ -80,9 +82,9 @@ export function BlogListPage() {
 
         <main className="container mx-auto max-w-4xl px-4 py-12">
           <SeoBreadcrumb items={breadcrumbs} />
-          <h1 className="text-3xl md:text-4xl font-bold mb-3">وبلاگ پوشه</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-3">وبلاگ فایلینگ، CRM و حسابداری املاک</h1>
           <p className="text-muted mb-8 leading-relaxed">
-            بزرگ‌ترین مرجع فارسی نرم‌افزار املاک، CRM، فایلینگ و مدیریت دفتر — برای مشاوران و مدیران آژانس‌های املاک ایران
+            مقالات تخصصی فایلینگ املاک، CRM املاک، حسابداری املاک، فروش ملک و اجاره ملک — برای مشاوران و مدیران آژانس‌های ایران
           </p>
 
           {categories && categories.length > 0 && (

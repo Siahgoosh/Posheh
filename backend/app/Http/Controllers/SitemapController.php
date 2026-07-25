@@ -17,11 +17,21 @@ class SitemapController extends Controller
         $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
 
         foreach ($payload['static'] ?? [] as $item) {
-            $xml .= $this->url($base.$item['path'], $item['priority'] ?? 0.5);
+            $xml .= $this->url(
+                $base.$item['path'],
+                $item['priority'] ?? 0.5,
+                null,
+                $item['changefreq'] ?? 'weekly',
+            );
         }
 
         foreach ($payload['posts'] ?? [] as $post) {
-            $xml .= $this->url($base.($post['path'] ?? '/blog/'.$post['slug']), 0.8, $post['updated_at'] ?? null);
+            $xml .= $this->url(
+                $base.($post['path'] ?? '/blog/'.$post['slug']),
+                $post['priority'] ?? 0.8,
+                $post['updated_at'] ?? null,
+                $post['changefreq'] ?? 'monthly',
+            );
         }
 
         $xml .= '</urlset>';
@@ -29,10 +39,10 @@ class SitemapController extends Controller
         return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
     }
 
-    private function url(string $loc, float $priority, ?string $lastmod = null): string
+    private function url(string $loc, float $priority, ?string $lastmod = null, string $changefreq = 'weekly'): string
     {
         $lastmodTag = $lastmod ? '<lastmod>'.substr($lastmod, 0, 10).'</lastmod>' : '';
 
-        return "  <url><loc>{$loc}</loc>{$lastmodTag}<changefreq>weekly</changefreq><priority>{$priority}</priority></url>\n";
+        return "  <url><loc>{$loc}</loc>{$lastmodTag}<changefreq>{$changefreq}</changefreq><priority>{$priority}</priority></url>\n";
     }
 }
