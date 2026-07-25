@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 export function PropertyPublicPage() {
   const { token } = useParams<{ token: string }>()
@@ -35,9 +36,11 @@ export function PropertyPublicPage() {
   }
 
   const cover = property.cover_image?.url || property.media?.[0]?.url
+  const title = `${property.type_label || 'ملک'} ${property.code}${property.city ? ` — ${property.city}` : ''}`
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SeoHead title={title} description={property.description || title} path={`/p/${token}`} noindex />
       <header className="border-b border-card-border glass p-4 text-center">
         <p className="text-sm text-muted">{office?.name || 'پوشه'}</p>
         <h1 className="text-xl font-bold mt-1">{property.code}</h1>

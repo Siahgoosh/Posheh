@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { SeoHead } from '@/components/seo/SeoHead'
 import { SeoBreadcrumb, getBreadcrumbJsonLd } from '@/components/seo/SeoBreadcrumb'
 import { getSiteUrl } from '@/lib/seo'
+import { BLOG_CATEGORY_SEO, PRIMARY_KEYWORDS_STRING } from '@/constants/seo'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { SiteFooter } from '@/components/layout/SiteFooter'
@@ -50,12 +51,16 @@ export function BlogCategoryPage() {
     { label },
   ]
 
+  const catSeo = category ? BLOG_CATEGORY_SEO[category] : undefined
+
   return (
     <>
       <SeoHead
-        title={`${label} | وبلاگ پوشه`}
-        description={`مقالات تخصصی ${label} برای مشاوران و مدیران دفاتر املاک.`}
+        title={catSeo?.title ?? `${label} | وبلاگ پوشه`}
+        description={catSeo?.description ?? `مقالات تخصصی ${label} — ${PRIMARY_KEYWORDS_STRING}`}
+        keywords={catSeo?.keywords ?? PRIMARY_KEYWORDS_STRING}
         path={`/blog/category/${category}`}
+        image="/og-default.svg"
         jsonLd={getBreadcrumbJsonLd(breadcrumbs, getSiteUrl())}
       />
 

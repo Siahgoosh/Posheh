@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SeoHead } from '@/components/seo/SeoHead'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { trackDownloadClick } from '@/lib/analytics'
+import { PRIMARY_KEYWORDS_STRING } from '@/constants/seo'
 
 interface Release {
   id: number
@@ -39,8 +40,10 @@ export function DownloadPage() {
     <div className="min-h-screen bg-background text-foreground">
       <SeoHead
         title="دانلود اپلیکیشن پوشه"
-        description="دانلود نسخه اندروید، ویندوز و PWA نرم‌افزار پوشه — سامانه مدیریت املاک"
+        description="دانلود اندروید و ویندوز — نرم‌افزار فایلینگ املاک، CRM املاک و حسابداری املاک."
+        keywords={`دانلود اپ املاک, ${PRIMARY_KEYWORDS_STRING}`}
         path="/download"
+        image="/og-default.svg"
       />
       <header className="border-b border-card-border glass">
         <div className="container mx-auto flex h-16 max-w-4xl items-center justify-between px-4">

@@ -154,6 +154,42 @@ class BlogSeeder extends Seeder
                 [],
                 ['real-estate-accounting-commission-guide'],
             ),
+            $this->post(
+                'real-estate-sales-funnel-guide',
+                'قیف فروش ملک — از سرنخ تا قرارداد در CRM املاک',
+                'crm',
+                'pillar-sales',
+                'راهنمای عملی فروش ملک با CRM املاک: پیگیری سرنخ، بازدید و بستن معامله.',
+                'فروش ملک, CRM املاک, فایلینگ املاک, قیف فروش املاک',
+                8,
+                $this->salesContent(),
+                $this->salesFaq(),
+                ['best-real-estate-crm-software-iran', 'property-customer-matching-system'],
+            ),
+            $this->post(
+                'rental-property-management-crm',
+                'مدیریت اجاره ملک با نرم‌افزار — قرارداد تا پیگیری مستأجر',
+                'contracts',
+                'pillar-rental',
+                'ثبت فایل اجاره، اجاره‌نامه دیجیتال و پیگیری مستأجر در یک پنل.',
+                'اجاره ملک, فروش ملک, CRM املاک, قرارداد اجاره',
+                7,
+                $this->rentalContent(),
+                $this->rentalFaq(),
+                ['mubayaeh-contract-form-125-guide'],
+            ),
+            $this->post(
+                'real-estate-accounting-software-guide',
+                'حسابداری املاک چیست؟ — راهنمای نرم‌افزار مالی دفتر',
+                'accounting',
+                'pillar-accounting',
+                'حسابداری املاک: درآمد، هزینه، کمیسیون و گزارش مالی در پوشه.',
+                'حسابداری املاک, حسابداری دفتر املاک, CRM املاک, فایلینگ املاک',
+                9,
+                $this->accountingSoftwareContent(),
+                $this->accountingFaq(),
+                ['real-estate-accounting-commission-guide'],
+            ),
         ];
 
         foreach ($posts as $i => $post) {
@@ -349,5 +385,60 @@ HTML;
     private function kpiContent(): string
     {
         return '<h2>شاخص‌های کلیدی</h2><p>تعداد فایل فعال، نرخ تبدیل، درآمد ماهانه و عملکرد هر مشاور.</p>';
+    }
+
+    private function salesContent(): string
+    {
+        return <<<'HTML'
+<h2>قیف فروش ملک</h2>
+<p>در <strong>CRM املاک</strong> پوشه، هر سرنخ از مرحله تماس اول تا قرارداد نهایی قابل پیگیری است.</p>
+<h2>مراحل فروش ملک</h2>
+<ul>
+<li>سرنخ و تماس اول</li>
+<li>بازدید و تطبیق فایل</li>
+<li>مذاکره و پیشنهاد قیمت</li>
+<li>قرارداد و تحویل</li>
+</ul>
+<h2>نتیجه</h2>
+<p>با <strong>فایلینگ املاک</strong> دقیق و CRM یکپارچه، نرخ تبدیل فروش ملک بالا می‌رود.</p>
+HTML;
+    }
+
+    private function salesFaq(): array
+    {
+        return [
+            ['question' => 'CRM چطور به فروش ملک کمک می‌کند؟', 'answer' => 'با پیگیری منظم سرنخ، یادآور بازدید و گزارش قیف فروش.'],
+        ];
+    }
+
+    private function rentalContent(): string
+    {
+        return <<<'HTML'
+<h2>مدیریت اجاره ملک</h2>
+<p>ثبت فایل اجاره با جزئیات رهن و اجاره، مالک و مستأجر در <strong>فایلینگ املاک</strong>.</p>
+<h2>اجاره‌نامه دیجیتال</h2>
+<p>قالب اجاره‌نامه با تاریخ شمسی و خروجی PDF.</p>
+<h2>پیگیری تمدید</h2>
+<p>یادآور پایان قرارداد اجاره ملک برای تمدید یا فروش.</p>
+HTML;
+    }
+
+    private function rentalFaq(): array
+    {
+        return [
+            ['question' => 'آیا اجاره ملک و فروش در یک CRM است؟', 'answer' => 'بله، پوشه هر دو نوع معامله را در یک پنل مدیریت می‌کند.'],
+        ];
+    }
+
+    private function accountingSoftwareContent(): string
+    {
+        return <<<'HTML'
+<h2>حسابداری املاک یعنی چه؟</h2>
+<p><strong>حسابداری املاک</strong> ثبت درآمد معاملات، هزینه‌های دفتر و کمیسیون مشاوران است.</p>
+<h2>چرا نرم‌افزار؟</h2>
+<p>اکسل خطا دارد و گزارش لحظه‌ای نمی‌دهد. پوشه حسابداری را به CRM و فایلینگ وصل می‌کند.</p>
+<h2>گزارش مالی</h2>
+<p>درآمد ماهانه، سهم هر مشاور و سود خالص دفتر در یک داشبورد.</p>
+HTML;
     }
 }

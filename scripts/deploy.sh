@@ -170,6 +170,11 @@ fi
   npm run build
 ) || fail "Frontend build failed — try: cd frontend && npm install && npm run build"
 
+if [ -x "$ROOT/scripts/generate-sitemap.sh" ]; then
+  log "Generating static sitemap fallback"
+  "$ROOT/scripts/generate-sitemap.sh" || log "Sitemap fallback skipped (API may be down during build)"
+fi
+
 chmod +x "$ROOT/scripts/verify-panel-build.sh" 2>/dev/null || true
 "$ROOT/scripts/verify-panel-build.sh" || fail "Panel build missing — panel.posheapp.ir needs frontend/dist/panel.html"
 
@@ -233,6 +238,8 @@ Next steps:
   - Check SMS status:     docker compose exec app php artisan system:sms-enable
   - OTP logs:             docker compose exec app tail -50 storage/logs/laravel.log
   - Site URL:            http://YOUR_SERVER_IP/  (or :8000)
+  - Sitemap (Google):    https://posheapp.ir/sitemap.xml
+  - SEO guide:           docs/SEO-SITEMAP.md
   - Admin settings:       /admin/settings
   - If sms_mode=log only: login OTP code is 123456
 
