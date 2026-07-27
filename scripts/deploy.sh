@@ -177,6 +177,10 @@ fi
   npm run build
 ) || fail "Frontend build failed — try: cd frontend && npm install && npm run build"
 
+if [ ! -f frontend/dist/demo/sphere.jpg ]; then
+  log "WARNING: frontend/dist/demo/sphere.jpg missing — virtual tour 360 images will not load"
+fi
+
 chmod +x "$ROOT/scripts/verify-panel-build.sh" 2>/dev/null || true
 "$ROOT/scripts/verify-panel-build.sh" || fail "Panel build missing — panel.posheapp.ir needs frontend/dist/panel.html"
 
@@ -202,6 +206,14 @@ log "10/10 Health check"
 sleep 6
 HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/plans || echo "000")
 printf 'API /plans status: %s\n' "$HTTP_CODE"
+
+DEMO_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/demo/sphere.jpg || echo "000")
+printf 'Demo panorama /demo/sphere.jpg: %s\n' "$DEMO_CODE"
+
+OTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/api/v1/auth/otp/send \
+  -H "Content-Type: application/json" -H "Accept: application/json" \
+  -d '{"mobile":"09120000000","purpose":"login"}' || echo "000")
+printf 'OTP /auth/otp/send: %s\n' "$OTP_CODE"
 
 PANEL_HTML=$(curl -s -H "Host: panel.posheapp.ir" http://localhost:8000/ | head -c 500 || true)
 if echo "$PANEL_HTML" | grep -q 'پنل مدیریت پلتفرم\|__POSHEH_PANEL__'; then
@@ -238,6 +250,7 @@ Next steps:
   - Enable SMS (if needed): SMS_FORCE_LIVE=1 ./scripts/deploy.sh
   - Or manually: docker compose exec app php artisan system:sms-enable --live --from-env
   - OTP test mode (no SMS):  docker compose exec app php artisan system:sms-enable --log
+  - Enable live SMS:         ./scripts/enable-live-sms.sh
   - Test SMS:             docker compose exec app php artisan system:sms-test 09170577873 --otp --debug
   - Check SMS status:     docker compose exec app php artisan system:sms-enable
   - OTP logs:             docker compose exec app tail -50 storage/logs/laravel.log

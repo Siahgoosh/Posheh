@@ -219,9 +219,7 @@ class VirtualTourService
             return $path;
         }
         if (str_starts_with($path, 'demo/')) {
-            $base = rtrim(config('app.frontend_url', config('app.url')), '/');
-
-            return "{$base}/demo/".basename($path);
+            return '/demo/'.basename($path);
         }
 
         return "{$baseUrl}/storage/{$path}";

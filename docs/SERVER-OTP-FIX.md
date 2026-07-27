@@ -1,5 +1,12 @@
 # رفع فوری OTP و تور مجازی روی سرور
 
+## وضعیت فعلی
+
+- **حالت تست (`log`)**: کد ثابت `123456` — برای توسعه و تست پنل
+- **حالت واقعی (`live`)**: کد ۶ رقمی تصادفی از طریق IPPanel
+
+---
+
 ## مشکل ۱: کد OTP نمی‌آید
 
 ### راه‌حل فوری (بدون SMS — کد ثابت ۱۲۳۴۵۶)
@@ -7,24 +14,15 @@
 روی سرور در مسیر `/var/www/posheh`:
 
 ```bash
-docker compose exec app php artisan tinker --execute="app(\App\Services\Settings\SystemSettingsService::class)->set('sms_mode','log'); \Illuminate\Support\Facades\Cache::forget('system_settings');"
-docker compose exec app php artisan config:clear
+docker compose exec app php artisan system:sms-enable --log
 docker compose exec app php artisan cache:clear
 ```
 
 سپس در سایت «دریافت کد» بزنید و با **`123456`** وارد شوید.
 
-**مهم:** کد `123456` فقط در حالت `log` کار می‌کند. اگر `sms_mode=live` باشد، کد تصادفی ۶ رقمی ارسال می‌شود (و اگر SMS نرسد، `123456` قبول نمی‌شود).
+**مهم:** کد `123456` فقط در حالت `log` کار می‌کند.
 
-### بعد از deploy جدید (دستور درست)
-
-```bash
-docker compose exec app php artisan system:sms-enable --log
-```
-
-**توجه:** فلگ `--log` وجود دارد؛ `--live` برای SMS واقعی است.
-
-### فعال‌سازی SMS واقعی
+### فعال‌سازی SMS واقعی (بعد از تست پنل)
 
 ```bash
 # در backend/.env باید باشد:
@@ -32,42 +30,62 @@ docker compose exec app php artisan system:sms-enable --log
 # IPPANEL_PASSWORD=...
 # IPPANEL_OTP_PATTERN_CODE=qhhly1nai3njev0
 
-docker compose exec app php artisan system:sms-enable --live --from-env
+./scripts/enable-live-sms.sh
 docker compose exec app php artisan system:sms-test 09170577873 --otp --debug
 ```
 
-## تغییرات جدید (OTP سریع)
+یا دستی:
 
-API دیگر منتظر ارسال SMS نمی‌ماند. کد OTP **اول** ذخیره می‌شود و SMS در پس‌زمینه ارسال می‌شود — صفحه ورود باید فوراً به مرحله کد برود.
+```bash
+docker compose exec app php artisan system:sms-enable --live --from-env
+docker compose exec app php artisan cache:clear
+```
 
-بعد از deploy، `QUEUE_CONNECTION=redis` تنظیم می‌شود (worker در `docker-compose`).
+### نکات فنی
+
+- API فوراً به مرحله کد می‌رود (کد اول ذخیره، SMS بعد از پاسخ HTTP)
+- SMS دیگر به queue worker وابسته نیست — مستقیم بعد از پاسخ API ارسال می‌شود
+- اگر SMS نمی‌رسد: IP سرور را در پنل MaxSMS/IPPanel whitelist کنید
+- لاگ: `docker compose exec app tail -100 storage/logs/laravel.log | grep OTP`
 
 ---
 
-## مشکل ۲: تور مجازی «یافت نشد»
+## مشکل ۲: تور مجازی
 
-یعنی کد تور مجازی هنوز روی سرور deploy نشده یا seeder اجرا نشده. ابتدا آخرین نسخه را بکشید:
-
-```bash
-cd /var/www/posheh
-git fetch origin
-git checkout cursor/fix-otp-tour-e117
-git pull origin cursor/fix-otp-tour-e117
-./scripts/deploy.sh cursor/fix-otp-tour-e117
-```
-
-یا بعد از merge شدن PR به `main`:
-
-```bash
-git pull origin main
-./scripts/deploy.sh main
-```
-
-سپس:
-
+### «یافت نشد»
 ```bash
 docker compose exec app php artisan migrate --force
 docker compose exec app php artisan db:seed --class=VirtualTourSeeder --force
 ```
 
+### روی Loading می‌ماند
+تصاویر ۳۶۰ باید از `/demo/sphere.jpg` لود شوند (روی خود دامنه). بعد از deploy:
+
+```bash
+curl -I https://posheapp.ir/demo/sphere.jpg
+# باید HTTP 200 برگرداند
+```
+
 دموی تور: `https://posheapp.ir/tour/demo-apartment-pasdaran`
+
+---
+
+## Deploy
+
+```bash
+cd /var/www/posheh
+git pull origin cursor/fix-otp-tour-e117
+./scripts/deploy.sh cursor/fix-otp-tour-e117
+```
+
+برای SMS واقعی بعد از deploy:
+
+```bash
+./scripts/enable-live-sms.sh
+```
+
+یا در همان deploy:
+
+```bash
+SMS_FORCE_LIVE=1 ./scripts/deploy.sh cursor/fix-otp-tour-e117
+```
