@@ -60,6 +60,7 @@ export function VirtualTourViewer({ tour, onSceneChange, className }: Props) {
   useEffect(() => {
     if (!containerRef.current || !tour.scenes.length) return
 
+    const startScene = tour.scenes[0]
     const nodes = tour.scenes.map((scene) => ({
       id: String(scene.id),
       panorama: scene.panorama_url,
@@ -99,11 +100,13 @@ export function VirtualTourViewer({ tour, onSceneChange, className }: Props) {
 
     const viewer = new Viewer({
       container: containerRef.current,
+      panorama: startScene.panorama_url,
       navbar: ['zoom', 'move', 'fullscreen', 'caption'],
-      defaultYaw: `${tour.scenes[0].default_yaw ?? 0}deg`,
-      defaultPitch: `${tour.scenes[0].default_pitch ?? 0}deg`,
+      defaultYaw: `${startScene.default_yaw ?? 0}deg`,
+      defaultPitch: `${startScene.default_pitch ?? 0}deg`,
       touchmoveTwoFingers: true,
       mousewheelCtrlKey: false,
+      loadingTxt: 'در حال بارگذاری...',
       plugins: plugins as never[],
     })
 
@@ -135,7 +138,7 @@ export function VirtualTourViewer({ tour, onSceneChange, className }: Props) {
       viewer.destroy()
       viewerRef.current = null
     }
-  }, [tour, onSceneChange])
+  }, [tour.scenes, onSceneChange, tour.settings?.enable_gyroscope, tour.settings?.show_floor_plan])
 
   const currentScene = tour.scenes.find((s) => s.id === activeScene)
 

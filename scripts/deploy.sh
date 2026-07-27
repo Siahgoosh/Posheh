@@ -153,8 +153,13 @@ fi
 log "6/10 Clearing caches and enabling SMS"
 clear_laravel_cache
 $COMPOSE exec -T app php artisan optimize:clear --no-interaction || true
-$COMPOSE exec -T app php artisan system:sms-enable --live --from-env --no-interaction 2>/dev/null \
-  || log "Run manually: docker compose exec app php artisan system:sms-enable --live --from-env"
+if [ "${SMS_FORCE_LIVE:-0}" = "1" ]; then
+  $COMPOSE exec -T app php artisan system:sms-enable --live --from-env --no-interaction 2>/dev/null \
+    || log "Run manually: docker compose exec app php artisan system:sms-enable --live --from-env"
+else
+  $COMPOSE exec -T app php artisan system:sms-enable --log --from-env --no-interaction 2>/dev/null \
+    || log "Run manually: docker compose exec app php artisan system:sms-enable --log"
+fi
 $COMPOSE exec -T app php artisan storage:link --force --no-interaction 2>/dev/null || true
 
 log "7/10 Building frontend"
@@ -230,7 +235,8 @@ Next steps:
   - Run scheduler: docker compose up -d scheduler
   - Seed contracts: docker compose exec app php artisan db:seed --class=ContractTemplateSeeder --force
   - OTP also needs: IPPANEL_USERNAME, IPPANEL_PASSWORD, IPPANEL_OTP_PATTERN_CODE=qhhly1nai3njev0
-  - Enable SMS (if needed): docker compose exec app php artisan system:sms-enable --live --from-env
+  - Enable SMS (if needed): SMS_FORCE_LIVE=1 ./scripts/deploy.sh
+  - Or manually: docker compose exec app php artisan system:sms-enable --live --from-env
   - OTP test mode (no SMS):  docker compose exec app php artisan system:sms-enable --log
   - Test SMS:             docker compose exec app php artisan system:sms-test 09170577873 --otp --debug
   - Check SMS status:     docker compose exec app php artisan system:sms-enable

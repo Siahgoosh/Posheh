@@ -109,19 +109,19 @@ class SystemSettingsService
 
     public function isSmsLive(): bool
     {
+        $dbMode = strtolower(trim((string) $this->get('sms_mode', '')));
+        if ($dbMode === 'live') {
+            return true;
+        }
+        if ($dbMode === 'log') {
+            return false;
+        }
+
         $envMode = strtolower(trim((string) config('services.ippanel.sms_mode', env('SMS_MODE', ''))));
         if ($envMode === 'live') {
             return true;
         }
         if ($envMode === 'log') {
-            return false;
-        }
-
-        if ($this->get('sms_mode') === 'live') {
-            return true;
-        }
-
-        if ($this->get('sms_mode') === 'log') {
             return false;
         }
 

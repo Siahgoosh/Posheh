@@ -219,12 +219,9 @@ class VirtualTourService
             return $path;
         }
         if (str_starts_with($path, 'demo/')) {
-            $map = [
-                'demo/sphere.jpg' => 'https://photo-sphere-viewer-data.netlify.app/assets/sphere.jpg',
-                'demo/sphere-small.jpg' => 'https://photo-sphere-viewer-data.netlify.app/assets/sphere-small.jpg',
-            ];
+            $base = rtrim(config('app.frontend_url', config('app.url')), '/');
 
-            return $map[$path] ?? 'https://photo-sphere-viewer-data.netlify.app/assets/sphere.jpg';
+            return "{$base}/demo/".basename($path);
         }
 
         return "{$baseUrl}/storage/{$path}";
