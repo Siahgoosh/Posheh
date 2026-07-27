@@ -72,7 +72,21 @@ class PropertyService
             ]);
         }
 
+        $oldPrice = $property->price;
+        $oldRent = $property->rent;
+
         $updated = $this->propertyRepository->update($property, $data);
+
+        if (isset($data['price']) && $data['price'] != $oldPrice) {
+            \App\Models\PropertyPriceHistory::create([
+                'property_id' => $property->id,
+                'changed_by' => $user->id,
+                'old_price' => $oldPrice,
+                'new_price' => $data['price'],
+                'old_rent' => $oldRent,
+                'new_rent' => $data['rent'] ?? $oldRent,
+            ]);
+        }
 
         $this->activityLogger->log($user, 'property.updated', $updated, 'ملک ویرایش شد');
 

@@ -1,17 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard,
-  Building2,
-  Search,
-  Users,
-  Settings,
-  CreditCard,
-  Star,
-  LogOut,
-  Moon,
-  Sun,
-  Menu,
-  X,
+  LayoutDashboard, Building2, Search, Users, Settings, CreditCard, Star,
+  LogOut, Moon, Sun, Menu, X, Box, Kanban, Calculator, Calendar, Shield,
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -21,6 +11,10 @@ import { Button } from '@/components/ui/button'
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'داشبورد' },
   { to: '/properties', icon: Building2, label: 'املاک' },
+  { to: '/virtual-tours', icon: Box, label: 'تور مجازی ۳۶۰' },
+  { to: '/crm', icon: Kanban, label: 'CRM فروش' },
+  { to: '/commissions', icon: Calculator, label: 'حسابداری' },
+  { to: '/rentals', icon: Calendar, label: 'اجاره ملک' },
   { to: '/search', icon: Search, label: 'جستجو' },
   { to: '/favorites', icon: Star, label: 'علاقه‌مندی‌ها' },
   { to: '/team', icon: Users, label: 'تیم' },
@@ -32,6 +26,10 @@ export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { user, logout } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
+
+  const items = user?.role === 'super_admin'
+    ? [...navItems, { to: '/admin', icon: Shield, label: 'پنل ادمین' }]
+    : navItems
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -45,8 +43,8 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3">
-        {navItems.map((item) => (
+      <nav className="flex-1 space-y-1 px-3 overflow-y-auto">
+        {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -54,9 +52,7 @@ export function Sidebar() {
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200',
-                isActive
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-muted hover:bg-white/5 hover:text-foreground'
+                isActive ? 'bg-primary/15 text-primary' : 'text-muted hover:bg-white/5 hover:text-foreground'
               )
             }
           >
@@ -90,25 +86,16 @@ export function Sidebar() {
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-4 right-4 z-50 lg:hidden"
-        onClick={() => setMobileOpen(!mobileOpen)}
-      >
+      <Button variant="ghost" size="icon" className="fixed top-4 right-4 z-50 lg:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
         {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
-
       <aside className="hidden lg:fixed lg:inset-y-0 lg:right-0 lg:flex lg:w-64 lg:flex-col glass border-l border-card-border">
         {sidebarContent}
       </aside>
-
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute inset-y-0 right-0 w-72 glass animate-fade-in">
-            {sidebarContent}
-          </aside>
+          <aside className="absolute inset-y-0 right-0 w-72 glass animate-fade-in">{sidebarContent}</aside>
         </div>
       )}
     </>

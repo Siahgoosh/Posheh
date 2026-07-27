@@ -139,5 +139,7 @@ class DatabaseSeeder extends Seeder
                 'mobile_verified_at' => now(),
             ]
         );
+
+        $this->call(VirtualTourSeeder::class);
     }
 }

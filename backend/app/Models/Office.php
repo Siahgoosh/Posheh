@@ -73,6 +73,16 @@ class Office extends Model
         return $this->hasMany(OfficeInvitation::class);
     }
 
+    public function healthScore(): HasOne
+    {
+        return $this->hasOne(OfficeHealthScore::class);
+    }
+
+    public function virtualTours(): HasMany
+    {
+        return $this->hasMany(VirtualTour::class);
+    }
+
     public function hasActiveSubscription(): bool
     {
         return $this->subscription()
