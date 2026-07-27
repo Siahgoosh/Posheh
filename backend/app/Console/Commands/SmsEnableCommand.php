@@ -9,11 +9,12 @@ use Illuminate\Support\Facades\Cache;
 class SmsEnableCommand extends Command
 {
     protected $signature = 'system:sms-enable
-                            {--live : Force sms_mode=live}
+                            {--live : Force sms_mode=live (real SMS)}
+                            {--log : Force sms_mode=log (OTP code 123456, no SMS)}
                             {--from-env : Sync SMS credentials from .env into database}
                             {--show : Only print current SMS status}';
 
-    protected $description = 'Enable live SMS / sync MaxSMS settings without admin panel';
+    protected $description = 'Enable live SMS / test log mode / sync MaxSMS settings';
 
     public function handle(SystemSettingsService $settings): int
     {
@@ -27,7 +28,10 @@ class SmsEnableCommand extends Command
             $this->syncFromEnv($settings);
         }
 
-        if ($this->option('live') || ! $this->option('show')) {
+        if ($this->option('log')) {
+            $settings->set('sms_mode', 'log');
+            $this->info('sms_mode set to log — OTP test code: 123456');
+        } elseif ($this->option('live')) {
             $settings->set('sms_mode', 'live');
             $this->info('sms_mode set to live');
         }
