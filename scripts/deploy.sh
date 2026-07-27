@@ -200,6 +200,8 @@ else
 fi
 
 log "9/10 Restarting services"
+$COMPOSE up -d redis queue app nginx scheduler 2>/dev/null || $COMPOSE up -d redis queue app nginx
+$COMPOSE exec -T app php artisan queue:restart --no-interaction 2>/dev/null || true
 $COMPOSE restart app queue nginx scheduler 2>/dev/null || $COMPOSE restart app queue nginx
 
 log "10/10 Health check"
@@ -214,6 +216,11 @@ OTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/
   -H "Content-Type: application/json" -H "Accept: application/json" \
   -d '{"mobile":"09120000000","purpose":"login"}' || echo "000")
 printf 'OTP /auth/otp/send: %s\n' "$OTP_CODE"
+
+REDIS_PING=$($COMPOSE exec -T redis redis-cli ping 2>/dev/null || echo "FAIL")
+printf 'Redis ping: %s\n' "$REDIS_PING"
+QUEUE_RUNNING=$($COMPOSE ps --status running --services 2>/dev/null | grep -c '^queue$' || echo "0")
+printf 'Queue worker running: %s\n' "$QUEUE_RUNNING"
 
 PANEL_HTML=$(curl -s -H "Host: panel.posheapp.ir" http://localhost:8000/ | head -c 500 || true)
 if echo "$PANEL_HTML" | grep -q 'پنل مدیریت پلتفرم\|__POSHEH_PANEL__'; then

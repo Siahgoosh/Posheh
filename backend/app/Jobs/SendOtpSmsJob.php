@@ -4,17 +4,19 @@ namespace App\Jobs;
 
 use App\Services\Sms\IpPanelSmsService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Runs via dispatchAfterResponse() — after the HTTP response is sent.
- * Intentionally not queued: OTP SMS must not depend on a separate queue worker.
- */
-class SendOtpSmsJob
+class SendOtpSmsJob implements ShouldQueue
 {
-    use Dispatchable, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 3;
+
+    public int $timeout = 30;
 
     public function __construct(
         public string $mobile,
@@ -40,11 +42,15 @@ class SendOtpSmsJob
                 'message' => $result['message'] ?? null,
                 'method' => $result['method'] ?? null,
             ]);
+
+            $this->fail(new \RuntimeException($result['message'] ?? 'OTP SMS failed'));
         } catch (\Throwable $e) {
             Log::error('OTP SMS job exception', [
                 'mobile' => $this->maskMobile($this->mobile),
                 'error' => $e->getMessage(),
             ]);
+
+            throw $e;
         }
     }
 

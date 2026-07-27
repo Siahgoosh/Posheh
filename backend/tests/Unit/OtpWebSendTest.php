@@ -43,7 +43,7 @@ class OtpWebSendTest extends TestCase
             'mobile' => '09170577873',
         ]);
 
-        Bus::assertDispatchedAfterResponse(SendOtpSmsJob::class, function (SendOtpSmsJob $job) {
+        Bus::assertDispatched(SendOtpSmsJob::class, function (SendOtpSmsJob $job) {
             return $job->mobile === '09170577873' && strlen($job->code) === 6;
         });
     }

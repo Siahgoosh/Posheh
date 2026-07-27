@@ -76,7 +76,7 @@ class OtpService
         );
 
         if ($this->settings->isSmsLive()) {
-            SendOtpSmsJob::dispatchAfterResponse($mobile, $code);
+            $this->queueOtpSms($mobile, $code);
         } else {
             Log::info("OTP SMS [log] to {$mobile}: {$code}");
         }
@@ -101,6 +101,29 @@ class OtpService
         }
 
         return (string) random_int(100000, 999999);
+    }
+
+    private function queueOtpSms(string $mobile, string $code): void
+    {
+        $connection = config('queue.default');
+
+        if (in_array($connection, ['redis', 'database'], true)) {
+            SendOtpSmsJob::dispatch($mobile, $code)->onConnection($connection);
+
+            Log::info('OTP SMS queued', [
+                'mobile' => $this->maskMobile($mobile),
+                'connection' => $connection,
+            ]);
+
+            return;
+        }
+
+        SendOtpSmsJob::dispatchSync($mobile, $code);
+
+        Log::info('OTP SMS sent synchronously', [
+            'mobile' => $this->maskMobile($mobile),
+            'connection' => $connection,
+        ]);
     }
 
     private function maskMobile(string $mobile): string

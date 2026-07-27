@@ -43,9 +43,9 @@ docker compose exec app php artisan cache:clear
 
 ### نکات فنی
 
-- API فوراً به مرحله کد می‌رود (کد اول ذخیره، SMS بعد از پاسخ HTTP)
-- SMS دیگر به queue worker وابسته نیست — مستقیم بعد از پاسخ API ارسال می‌شود
-- اگر SMS نمی‌رسد: IP سرور را در پنل MaxSMS/IPPanel whitelist کنید
+- API فوراً به مرحله کد می‌رود (کد اول ذخیره، SMS از طریق **صف redis**)
+- حتماً container `queue` باید running باشد: `docker compose ps queue`
+- اگر در پنل SMS چیزی ثبت نمی‌شود: `docker compose logs queue --tail=50`
 - لاگ: `docker compose exec app tail -100 storage/logs/laravel.log | grep OTP`
 
 ---
