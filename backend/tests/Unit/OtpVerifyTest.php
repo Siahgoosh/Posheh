@@ -5,7 +5,9 @@ namespace Tests\Unit;
 use App\Models\OtpCode;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Auth\OtpService;
+use App\Services\Auth\RegistrationService;
 use App\Services\Settings\SystemSettingsService;
+use App\Services\Subscription\SubscriptionAccessService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Mockery;
@@ -26,9 +28,13 @@ class OtpVerifyTest extends TestCase
 
         $settings = Mockery::mock(SystemSettingsService::class);
         $users = Mockery::mock(UserRepositoryInterface::class);
-        $sms = Mockery::mock(\App\Services\Sms\IpPanelSmsService::class);
 
-        $service = new OtpService($users, $settings, $sms);
+        $service = new OtpService(
+            $users,
+            $settings,
+            Mockery::mock(RegistrationService::class),
+            Mockery::mock(SubscriptionAccessService::class),
+        );
 
         $this->expectException(ValidationException::class);
 

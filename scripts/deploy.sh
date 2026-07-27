@@ -51,7 +51,7 @@ ensure_env_file() {
   }
 
   set_env_var CACHE_STORE file
-  set_env_var QUEUE_CONNECTION sync
+  set_env_var QUEUE_CONNECTION redis
   set_env_var SESSION_DRIVER file
   set_env_var REDIS_HOST redis
   set_env_var REDIS_PORT 6379
@@ -139,6 +139,8 @@ $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --
   || fail "SystemSettingsSeeder failed"
 $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
   || log "BlogSeeder warning (may already be seeded)"
+$COMPOSE exec -T app php artisan db:seed --class=VirtualTourSeeder --force --no-interaction 2>/dev/null \
+  || log "VirtualTourSeeder skipped (virtual tour module not deployed yet)"
 $COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \
   || log "AppReleaseSeeder warning (may already be seeded)"
 if [ "${SKIP_DEMO_SEED:-1}" = "1" ]; then
@@ -229,6 +231,7 @@ Next steps:
   - Seed contracts: docker compose exec app php artisan db:seed --class=ContractTemplateSeeder --force
   - OTP also needs: IPPANEL_USERNAME, IPPANEL_PASSWORD, IPPANEL_OTP_PATTERN_CODE=qhhly1nai3njev0
   - Enable SMS (if needed): docker compose exec app php artisan system:sms-enable --live --from-env
+  - OTP test mode (no SMS):  docker compose exec app php artisan system:sms-enable --log
   - Test SMS:             docker compose exec app php artisan system:sms-test 09170577873 --otp --debug
   - Check SMS status:     docker compose exec app php artisan system:sms-enable
   - OTP logs:             docker compose exec app tail -50 storage/logs/laravel.log

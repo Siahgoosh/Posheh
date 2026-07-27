@@ -2,25 +2,20 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRole;
 use App\Models\Office;
 use App\Models\Property;
 use App\Models\User;
 use App\Models\VirtualTour;
 use App\Models\VirtualTourHotspot;
-use App\Models\VirtualTourScene;
 use Illuminate\Database\Seeder;
 
 class VirtualTourSeeder extends Seeder
 {
     public function run(): void
     {
-        $office = Office::first();
-        $user = User::where('office_id', $office?->id)->first();
-        $property = Property::where('office_id', $office?->id)->first();
-
-        if (! $office || ! $user) {
-            return;
-        }
+        [$office, $user] = $this->ensureDemoContext();
+        $property = Property::where('office_id', $office->id)->first();
 
         $tour = VirtualTour::updateOrCreate(
             ['slug' => 'demo-apartment-pasdaran'],
@@ -115,5 +110,39 @@ class VirtualTourSeeder extends Seeder
             'title' => 'بازگشت به پذیرایی',
             'icon' => 'arrow',
         ]);
+    }
+
+    /** @return array{0: Office, 1: User} */
+    private function ensureDemoContext(): array
+    {
+        $office = Office::where('slug', 'demo-office')->first() ?? Office::first();
+
+        if (! $office) {
+            $office = Office::create([
+                'slug' => 'demo-office',
+                'name' => 'دفتر املاک نمونه',
+                'phone' => '02112345678',
+                'city' => 'تهران',
+                'address' => 'خیابان ولیعصر',
+                'is_active' => true,
+            ]);
+        }
+
+        $user = User::where('office_id', $office->id)->first();
+
+        if (! $user) {
+            $user = User::updateOrCreate(
+                ['mobile' => '09129999998'],
+                [
+                    'name' => 'نماینده تور مجازی',
+                    'office_id' => $office->id,
+                    'role' => UserRole::OfficeManager,
+                    'is_active' => true,
+                    'mobile_verified_at' => now(),
+                ]
+            );
+        }
+
+        return [$office, $user];
     }
 }

@@ -34,11 +34,17 @@ docker compose exec app php artisan system:sms-enable --live --from-env
 docker compose exec app php artisan system:sms-test 09170577873 --otp --debug
 ```
 
+## تغییرات جدید (OTP سریع)
+
+API دیگر منتظر ارسال SMS نمی‌ماند. کد OTP **اول** ذخیره می‌شود و SMS در پس‌زمینه ارسال می‌شود — صفحه ورود باید فوراً به مرحله کد برود.
+
+بعد از deploy، `QUEUE_CONNECTION=redis` تنظیم می‌شود (worker در `docker-compose`).
+
 ---
 
-## مشکل ۲: VirtualTourSeeder does not exist
+## مشکل ۲: تور مجازی «یافت نشد»
 
-یعنی کد تور مجازی هنوز روی سرور deploy نشده. ابتدا آخرین نسخه را بکشید:
+یعنی کد تور مجازی هنوز روی سرور deploy نشده یا seeder اجرا نشده. ابتدا آخرین نسخه را بکشید:
 
 ```bash
 cd /var/www/posheh
