@@ -75,6 +75,11 @@ class Office extends Model
         return $this->hasMany(Property::class);
     }
 
+    public function virtualTours(): HasMany
+    {
+        return $this->hasMany(VirtualTour::class);
+    }
+
     public function subscription(): HasOne
     {
         return $this->hasOne(Subscription::class)->latestOfMany();

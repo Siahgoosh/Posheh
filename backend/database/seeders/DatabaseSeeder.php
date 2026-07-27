@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(SystemSettingsSeeder::class);
         $this->call(BlogSeeder::class);
+        $this->call(VirtualTourSeeder::class);
         $this->call(ContractTemplateSeeder::class);
         $this->seedPlans();
         $this->seedSuperAdmin();

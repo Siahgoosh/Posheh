@@ -44,8 +44,12 @@ export function LoginPage({ panelMode = false }: { panelMode?: boolean }) {
         })
       }, 1000)
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
-      setError(axiosErr.response?.data?.errors?.mobile?.[0] || axiosErr.response?.data?.message || 'خطا در ارسال کد')
+      const axiosErr = err as { code?: string; response?: { status?: number; data?: { message?: string; errors?: Record<string, string[]> } } }
+      if (axiosErr.code === 'ECONNABORTED' || axiosErr.response?.status === 504) {
+        setError('ارسال کد زمان‌بر شد. لطفاً چند ثانیه صبر کنید و دوباره تلاش کنید.')
+      } else {
+        setError(axiosErr.response?.data?.errors?.mobile?.[0] || axiosErr.response?.data?.message || 'خطا در ارسال کد')
+      }
     } finally {
       setLoading(false)
     }

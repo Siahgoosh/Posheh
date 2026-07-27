@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Building2, Search, Users, Settings, CreditCard, Star, LogOut,
   Moon, Sun, Menu, X, BookOpen, Download, Shield, BarChart3, Building,
-  Kanban, Wallet, FileText, LifeBuoy, UserCircle, CalendarDays, Contact, Globe, ChevronDown,
+  Kanban, Wallet, FileText, LifeBuoy, UserCircle, CalendarDays, Contact, Globe, ChevronDown, Box,
 } from 'lucide-react'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
 import { useEffect, useState } from 'react'
@@ -29,6 +29,7 @@ export function Sidebar() {
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'داشبورد' },
     { to: '/properties', icon: Building2, label: 'املاک' },
+    { to: '/virtual-tours', icon: Box, label: 'تور مجازی ۳۶۰' },
     { to: '/owners', icon: UserCircle, label: 'مالکین' },
     { to: '/customers', icon: Contact, label: 'مشتریان' },
     { to: '/visits', icon: CalendarDays, label: 'بازدیدها' },

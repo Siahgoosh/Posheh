@@ -40,6 +40,8 @@ use App\Http\Controllers\Api\Property\PropertyPublicController;
 use App\Http\Controllers\Api\Owner\OwnerController;
 use App\Http\Controllers\Api\Customer\CustomerController;
 use App\Http\Controllers\Api\Visit\VisitController;
+use App\Http\Controllers\Api\VirtualTour\PublicVirtualTourController;
+use App\Http\Controllers\Api\VirtualTour\VirtualTourController;
 use App\Http\Controllers\Api\PublicApiController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
@@ -73,6 +75,9 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/public/properties', [PublicApiController::class, 'properties'])->middleware('throttle:60,1');
     Route::get('/p/qr/{token}', [PropertyPublicController::class, 'byQr']);
+
+    Route::get('/tour/{slug}', [PublicVirtualTourController::class, 'show']);
+    Route::post('/tour/{slug}/lead', [PublicVirtualTourController::class, 'submitLead'])->middleware('throttle:20,1');
 
     Route::middleware(['auth:sanctum', EnsureOfficeIsActive::class, EnsureSubscriptionAccess::class])->group(function () {
         Route::prefix('auth')->group(function () {
@@ -129,6 +134,19 @@ Route::prefix('v1')->group(function () {
         Route::put('/commissions/settings', [CommissionController::class, 'updateSettings']);
         Route::post('/commissions', [CommissionController::class, 'store']);
         Route::post('/commissions/{id}/pay', [CommissionController::class, 'markPaid']);
+
+        Route::prefix('virtual-tours')->group(function () {
+            Route::get('/', [VirtualTourController::class, 'index']);
+            Route::post('/', [VirtualTourController::class, 'store']);
+            Route::get('/{id}', [VirtualTourController::class, 'show']);
+            Route::put('/{id}', [VirtualTourController::class, 'update']);
+            Route::get('/{id}/analytics', [VirtualTourController::class, 'analytics']);
+            Route::post('/{id}/scenes', [VirtualTourController::class, 'addScene']);
+            Route::put('/{id}/scenes/{sceneId}', [VirtualTourController::class, 'updateScene']);
+            Route::delete('/{id}/scenes/{sceneId}', [VirtualTourController::class, 'deleteScene']);
+            Route::put('/{id}/scenes/{sceneId}/hotspots', [VirtualTourController::class, 'syncHotspots']);
+            Route::post('/{id}/media', [VirtualTourController::class, 'uploadMedia']);
+        });
 
         Route::get('/contracts/templates', [ContractController::class, 'templates']);
         Route::get('/contracts/fields', [ContractController::class, 'fields']);

@@ -15,9 +15,9 @@ class IpPanelSmsService
 
   private const OTP_FROM_NUMBER = '+9810008721297974';
 
-  private const OTP_CONNECT_TIMEOUT = 30;
+  private const OTP_CONNECT_TIMEOUT = 5;
 
-  private const OTP_REQUEST_TIMEOUT = 60;
+  private const OTP_REQUEST_TIMEOUT = 15;
 
   public function __construct(
     private readonly SystemSettingsService $settings,
@@ -47,12 +47,28 @@ class IpPanelSmsService
 
     $params = ['code' => $code];
     $attempts = [];
+    $deadline = microtime(true) + 22;
 
     foreach ($credentialSets as $creds) {
+      if (microtime(true) >= $deadline) {
+        break;
+      }
+
       $credConfig = array_merge($otpConfig, [
         'username' => $creds['username'],
         'password' => $creds['password'],
       ]);
+
+      $jspdResult = $this->sendOtpJspdPattern($mobile, $patternCode, $params, $credConfig);
+      $jspdResult['method'] = ($jspdResult['method'] ?? 'jspd_otp').'_'.$creds['label'];
+      $attempts[] = $jspdResult;
+      if ($jspdResult['success']) {
+        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
+      }
+
+      if (microtime(true) >= $deadline) {
+        break;
+      }
 
       if ($creds['label'] === 'panel') {
         $classicResult = $this->sendOtpClassicPattern($mobile, $patternCode, $params, $credConfig);
@@ -61,13 +77,6 @@ class IpPanelSmsService
         if ($classicResult['success']) {
           return $this->otpSuccess($mobile, $patternCode, $otpConfig, $classicResult);
         }
-      }
-
-      $jspdResult = $this->sendOtpJspdPattern($mobile, $patternCode, $params, $credConfig);
-      $jspdResult['method'] = ($jspdResult['method'] ?? 'jspd_otp').'_'.$creds['label'];
-      $attempts[] = $jspdResult;
-      if ($jspdResult['success']) {
-        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
       }
     }
 
