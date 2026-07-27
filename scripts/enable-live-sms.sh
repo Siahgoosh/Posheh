@@ -13,6 +13,11 @@ echo "==> Clearing caches"
 $COMPOSE exec -T app php artisan cache:clear --no-interaction
 $COMPOSE exec -T app php artisan config:clear --no-interaction
 
+echo "==> Restarting queue worker"
+$COMPOSE up -d redis queue
+$COMPOSE exec -T app php artisan queue:restart --no-interaction 2>/dev/null || true
+$COMPOSE restart queue
+
 echo ""
 echo "==> Current SMS status"
 $COMPOSE exec -T app php artisan system:sms-enable --show --no-interaction
