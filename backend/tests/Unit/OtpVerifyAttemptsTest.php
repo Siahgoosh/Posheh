@@ -10,7 +10,7 @@ use App\Models\User;
 use App\Repositories\Eloquent\UserRepository;
 use App\Services\Auth\OtpService;
 use App\Services\Auth\RegistrationService;
-use App\Services\Subscription\SubscriptionAccessService;
+use App\Services\Sms\OtpSmsDispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Mockery;
@@ -115,6 +115,7 @@ class OtpVerifyAttemptsTest extends TestCase
             Mockery::mock(SystemSettingsService::class),
             Mockery::mock(RegistrationService::class),
             Mockery::mock(SubscriptionAccessService::class),
+            Mockery::mock(OtpSmsDispatcher::class),
         );
     }
 }

@@ -41,11 +41,24 @@ docker compose exec app php artisan system:sms-enable --live --from-env
 docker compose exec app php artisan cache:clear
 ```
 
+### اگر SMS نمی‌رسد و لاگ خالی است
+
+```bash
+./scripts/diagnose-otp.sh
+docker compose exec app tail -30 storage/logs/otp-sms.log
+```
+
+تست مستقیم (بدون وب):
+```bash
+docker compose exec app php artisan otp:send-sms 09170577873 123456
+docker compose exec app php artisan system:sms-test 09170577873 --otp --debug
+```
+
 ### نکات فنی
 
-- API فوراً به مرحله کد می‌رود (کد اول ذخیره، SMS از طریق **صف redis**)
-- حتماً container `queue` باید running باشد: `docker compose ps queue`
-- اگر در پنل SMS چیزی ثبت نمی‌شود: `docker compose logs queue --tail=50`
+- SMS از طریق **process پس‌زمینه** (`otp:send-sms`) ارسال می‌شود — مستقل از queue worker
+- لاگ اختصاصی: `storage/logs/otp-sms.log` (همیشه نوشته می‌شود)
+- اگر `otp-sms.log` خالی است → کد جدید deploy نشده
 - لاگ: `docker compose exec app tail -100 storage/logs/laravel.log | grep OTP`
 
 ---

@@ -6,7 +6,7 @@ use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Auth\OtpService;
 use App\Services\Auth\RegistrationService;
 use App\Services\Settings\SystemSettingsService;
-use App\Services\Subscription\SubscriptionAccessService;
+use App\Services\Sms\OtpSmsDispatcher;
 use Mockery;
 use ReflectionMethod;
 use Tests\TestCase;
@@ -20,6 +20,7 @@ class OtpCodeMatchTest extends TestCase
             Mockery::mock(SystemSettingsService::class),
             Mockery::mock(RegistrationService::class),
             Mockery::mock(SubscriptionAccessService::class),
+            Mockery::mock(OtpSmsDispatcher::class),
         );
 
         $method = new ReflectionMethod(OtpService::class, 'codesMatch');
@@ -40,6 +41,7 @@ class OtpCodeMatchTest extends TestCase
             $settings,
             Mockery::mock(RegistrationService::class),
             Mockery::mock(SubscriptionAccessService::class),
+            Mockery::mock(OtpSmsDispatcher::class),
         );
 
         $method = new ReflectionMethod(OtpService::class, 'generateOtpCode');

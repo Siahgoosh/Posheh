@@ -10,7 +10,7 @@ use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Auth\RegistrationService;
 use App\Services\Settings\SystemSettingsService;
-use App\Jobs\SendOtpSmsJob;
+use App\Services\Sms\OtpSmsDispatcher;
 use App\Services\Subscription\SubscriptionAccessService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -27,6 +27,7 @@ class OtpService
         private readonly SystemSettingsService $settings,
         private readonly RegistrationService $registrationService,
         private readonly SubscriptionAccessService $subscriptionAccess,
+        private readonly OtpSmsDispatcher $otpSmsDispatcher,
     ) {}
 
     public function send(SendOtpDTO $dto): array
@@ -76,7 +77,7 @@ class OtpService
         );
 
         if ($this->settings->isSmsLive()) {
-            $this->queueOtpSms($mobile, $code);
+            $this->otpSmsDispatcher->dispatch($mobile, $code);
         } else {
             Log::info("OTP SMS [log] to {$mobile}: {$code}");
         }
@@ -101,29 +102,6 @@ class OtpService
         }
 
         return (string) random_int(100000, 999999);
-    }
-
-    private function queueOtpSms(string $mobile, string $code): void
-    {
-        $connection = config('queue.default');
-
-        if (in_array($connection, ['redis', 'database'], true)) {
-            SendOtpSmsJob::dispatch($mobile, $code)->onConnection($connection);
-
-            Log::info('OTP SMS queued', [
-                'mobile' => $this->maskMobile($mobile),
-                'connection' => $connection,
-            ]);
-
-            return;
-        }
-
-        SendOtpSmsJob::dispatchSync($mobile, $code);
-
-        Log::info('OTP SMS sent synchronously', [
-            'mobile' => $this->maskMobile($mobile),
-            'connection' => $connection,
-        ]);
     }
 
     private function maskMobile(string $mobile): string
