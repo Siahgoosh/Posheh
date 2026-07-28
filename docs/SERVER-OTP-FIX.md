@@ -41,6 +41,24 @@ docker compose exec app php artisan system:sms-enable --live --from-env
 docker compose exec app php artisan cache:clear
 ```
 
+### اگر timeout یا deny در لاگ است
+
+1. IP سرور را ببینید: `docker compose exec app php artisan otp:diagnose` (خط Server outbound IP)
+2. همان IP را در **پنل مکث/IPPANEL → تنظیمات API → Whitelist** اضافه کنید
+3. مطمئن شوید این مقادیر در `.env` درست است:
+
+```env
+IPPANEL_USERNAME=...
+IPPANEL_PASSWORD=...
+IPPANEL_FROM_NUMBER=+983000505
+IPPANEL_OTP_FROM_NUMBER=+9810008721297974
+IPPANEL_OTP_PATTERN_CODE=qhhly1nai3njev0
+```
+
+4. تست: `docker compose exec app php artisan system:sms-test 09170577873 --otp --debug`
+
+**نکته:** کد پترن OTP (`qhhly1nai3njev0`) در نرم‌افزار ثبت شده. لاگ‌های قدیمی نشان می‌دهند ارسال موفق از خط `+983000505` با روش `classic_otp` بوده است.
+
 ### اگر SMS نمی‌رسد و لاگ خالی است
 
 ```bash

@@ -47,7 +47,30 @@ class IpPanelSmsService
 
     $params = ['code' => $code];
     $attempts = [];
-    $deadline = microtime(true) + 22;
+    $deadline = microtime(true) + 25;
+
+    // Classic pattern first — production history shows classic_otp via +983000505 works.
+    foreach ($credentialSets as $creds) {
+      if ($creds['label'] !== 'panel') {
+        continue;
+      }
+
+      if (microtime(true) >= $deadline) {
+        break;
+      }
+
+      $credConfig = array_merge($otpConfig, [
+        'username' => $creds['username'],
+        'password' => $creds['password'],
+      ]);
+
+      $classicResult = $this->sendOtpClassicPattern($mobile, $patternCode, $params, $credConfig);
+      $classicResult['method'] = ($classicResult['method'] ?? 'classic_otp').'_'.$creds['label'];
+      $attempts[] = $classicResult;
+      if ($classicResult['success']) {
+        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $classicResult);
+      }
+    }
 
     foreach ($credentialSets as $creds) {
       if (microtime(true) >= $deadline) {
@@ -68,15 +91,6 @@ class IpPanelSmsService
 
       if (microtime(true) >= $deadline) {
         break;
-      }
-
-      if ($creds['label'] === 'panel') {
-        $classicResult = $this->sendOtpClassicPattern($mobile, $patternCode, $params, $credConfig);
-        $classicResult['method'] = ($classicResult['method'] ?? 'classic_otp').'_'.$creds['label'];
-        $attempts[] = $classicResult;
-        if ($classicResult['success']) {
-          return $this->otpSuccess($mobile, $patternCode, $otpConfig, $classicResult);
-        }
       }
     }
 
@@ -192,9 +206,9 @@ class IpPanelSmsService
 
   private function otpHttp(): \Illuminate\Http\Client\PendingRequest
   {
+    // No retry on OTP — fail fast and try the next API path (classic → jspd → edge).
     return Http::connectTimeout(self::OTP_CONNECT_TIMEOUT)
-      ->timeout(self::OTP_REQUEST_TIMEOUT)
-      ->retry(2, 2000, throw: false);
+      ->timeout(self::OTP_REQUEST_TIMEOUT);
   }
 
   /** @param array<string, mixed> $config */
@@ -313,6 +327,7 @@ class IpPanelSmsService
   /** @return list<string> */
   private function otpFromCandidates(array $config): array
   {
+    // General line (+983000505) first — production logs show classic_otp via this line.
     return array_values(array_unique(array_filter([
       trim((string) ($config['from_number'] ?? '')),
       trim((string) ($config['otp_from_number'] ?? '')),

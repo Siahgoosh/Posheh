@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\Settings\SystemSettingsService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Redis;
 
 class OtpDiagnoseCommand extends Command
@@ -15,6 +16,7 @@ class OtpDiagnoseCommand extends Command
     public function handle(SystemSettingsService $settings): int
     {
         $status = $settings->smsStatus();
+        $config = $settings->ippanelConfig();
         $logFile = storage_path('logs/otp-sms.log');
 
         $this->info('=== OTP / SMS diagnosis ===');
@@ -23,17 +25,36 @@ class OtpDiagnoseCommand extends Command
             ['SMS_MODE (.env)', (string) env('SMS_MODE', '—')],
             ['is_live', ($status['is_live'] ?? false) ? 'YES' : 'NO'],
             ['credentials ready', ($status['is_ready'] ?? false) ? 'YES' : 'NO'],
+            ['otp_pattern_code', (string) ($config['otp_pattern_code'] ?? '—')],
+            ['from_number', (string) ($config['from_number'] ?? '—')],
+            ['otp_from_number', (string) ($config['otp_from_number'] ?? '—')],
+            ['api_mode', (string) ($config['api_mode'] ?? '—')],
             ['queue.default', (string) config('queue.default')],
             ['exec enabled', function_exists('exec') && ! in_array('exec', array_map('trim', explode(',', (string) ini_get('disable_functions'))), true) ? 'yes' : 'NO'],
             ['LOG_LEVEL', (string) env('LOG_LEVEL', 'debug')],
             ['otp-sms.log', is_file($logFile) ? 'exists ('.filesize($logFile).' bytes)' : 'missing'],
         ]);
 
+        $this->line('Server outbound IP (whitelist this in MaxSMS panel): '.$this->detectServerIp());
+
         try {
             $ping = Redis::connection()->ping();
             $this->line('Redis: '.(is_string($ping) ? $ping : 'PONG'));
         } catch (\Throwable $e) {
             $this->warn('Redis: FAIL — '.$e->getMessage());
+        }
+
+        $this->newLine();
+        $this->info('IPPanel connectivity:');
+        foreach (['https://ippanel.com', 'https://edge.ippanel.com'] as $url) {
+            try {
+                $start = microtime(true);
+                $response = Http::connectTimeout(5)->timeout(8)->get($url);
+                $ms = (int) round((microtime(true) - $start) * 1000);
+                $this->line("  {$url} → HTTP {$response->status()} ({$ms}ms)");
+            } catch (\Throwable $e) {
+                $this->error("  {$url} → FAIL: ".$e->getMessage());
+            }
         }
 
         if (is_file($logFile)) {
@@ -58,5 +79,19 @@ class OtpDiagnoseCommand extends Command
         $this->line('Enable live SMS:    php artisan system:sms-enable --live --from-env');
 
         return self::SUCCESS;
+    }
+
+    private function detectServerIp(): string
+    {
+        try {
+            $ip = trim((string) Http::timeout(5)->get('https://api.ipify.org')->body());
+            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $ip;
+            }
+        } catch (\Throwable) {
+            // fall through
+        }
+
+        return 'unknown (run: curl -s https://api.ipify.org)';
     }
 }
