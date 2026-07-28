@@ -8,6 +8,7 @@ use App\Services\Auth\OtpService;
 use App\Services\Auth\RegistrationService;
 use App\Services\Settings\SystemSettingsService;
 use App\Services\Sms\OtpSmsDispatcher;
+use App\Services\Subscription\SubscriptionAccessService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Mockery;
