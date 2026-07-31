@@ -19,6 +19,10 @@ class IpPanelSmsService
 
   private const OTP_REQUEST_TIMEOUT = 60;
 
+  private const OTP_PATTERN_CONNECT_TIMEOUT = 8;
+
+  private const OTP_PATTERN_REQUEST_TIMEOUT = 12;
+
   public function __construct(
     private readonly SystemSettingsService $settings,
     private readonly SmsRelayClient $relay,
@@ -46,6 +50,7 @@ class IpPanelSmsService
     $patternCode = $this->resolveOtpPatternCode($config);
     $otpConfig = $this->otpPatternConfig($config);
     $credentialSets = $this->otpCredentialSets($config);
+    $mode = $this->resolveApiMode($otpConfig);
 
     if ($credentialSets === []) {
       Log::warning('OTP SMS credentials missing', ['mobile' => $mobile]);
@@ -59,13 +64,22 @@ class IpPanelSmsService
     $params = ['code' => $code];
     $attempts = [];
 
+    // JSPD mode on NL servers: pattern API returns deny; plain webservice works — send immediately.
+    if ($mode === 'jspd') {
+      $plainResult = $this->sendOtpPlainWebservice($mobile, $code, $config);
+      $attempts[] = $plainResult;
+      if ($plainResult['success']) {
+        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $plainResult);
+      }
+    }
+
     foreach ($credentialSets as $creds) {
       $credConfig = array_merge($otpConfig, [
         'username' => $creds['username'],
         'password' => $creds['password'],
       ]);
 
-      if ($creds['label'] === 'panel') {
+      if ($creds['label'] === 'panel' && $mode !== 'jspd') {
         $classicResult = $this->sendOtpClassicPattern($mobile, $patternCode, $params, $credConfig);
         $classicResult['method'] = ($classicResult['method'] ?? 'classic_otp').'_'.$creds['label'];
         $attempts[] = $classicResult;
@@ -80,15 +94,18 @@ class IpPanelSmsService
       if ($jspdResult['success']) {
         return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
       }
+      if ($this->isJspdDeny($jspdResult)) {
+        break;
+      }
     }
 
-    $mode = $this->resolveApiMode($otpConfig);
-
-    // Pattern API often returns "deny" from abroad while plain JSPD webservice works.
-    $plainResult = $this->sendOtpPlainWebservice($mobile, $code, $config);
-    $attempts[] = $plainResult;
-    if ($plainResult['success']) {
-      return $this->otpSuccess($mobile, $patternCode, $otpConfig, $plainResult);
+    if ($mode !== 'jspd') {
+      // Pattern API often returns "deny" from abroad while plain JSPD webservice works.
+      $plainResult = $this->sendOtpPlainWebservice($mobile, $code, $config);
+      $attempts[] = $plainResult;
+      if ($plainResult['success']) {
+        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $plainResult);
+      }
     }
 
     if ($mode !== 'jspd' && ! empty($config['api_key'])) {
@@ -207,11 +224,14 @@ class IpPanelSmsService
     return $messages[0] ?? 'ارسال پترن OTP ناموفق بود. تنظیمات پنل مکث را بررسی کنید.';
   }
 
-  private function otpHttp(): \Illuminate\Http\Client\PendingRequest
+  private function otpHttp(bool $pattern = true): \Illuminate\Http\Client\PendingRequest
   {
-    $request = Http::connectTimeout(self::OTP_CONNECT_TIMEOUT)
-      ->timeout(self::OTP_REQUEST_TIMEOUT)
-      ->retry(2, 2000, throw: false);
+    $connect = $pattern ? self::OTP_PATTERN_CONNECT_TIMEOUT : self::OTP_CONNECT_TIMEOUT;
+    $timeout = $pattern ? self::OTP_PATTERN_REQUEST_TIMEOUT : self::OTP_REQUEST_TIMEOUT;
+
+    $request = Http::connectTimeout($connect)
+      ->timeout($timeout)
+      ->retry($pattern ? 0 : 2, 2000, throw: false);
 
     $proxy = trim((string) (config('services.ippanel.http_proxy') ?? env('IPPANEL_HTTP_PROXY', '')));
     if ($proxy !== '') {
@@ -337,6 +357,10 @@ class IpPanelSmsService
             }
 
             $lastResult = $result;
+
+            if ($this->isJspdDeny($result)) {
+              return $result;
+            }
           } catch (\Throwable $e) {
             $lastResult = [
               'success' => false,
@@ -349,6 +373,14 @@ class IpPanelSmsService
     }
 
     return $lastResult;
+  }
+
+  /** @param array<string, mixed> $result */
+  private function isJspdDeny(array $result): bool
+  {
+    $code = (string) ($result['details']['code'] ?? $result['details']['raw'] ?? '');
+
+    return strcasecmp($code, 'deny') === 0;
   }
 
   /** @return list<string> */

@@ -58,6 +58,7 @@ ensure_env_file() {
   grep -q '^SMS_MODE=' "$ENV_FILE" || set_env_var SMS_MODE log
   grep -q '^SMS_PROVIDER=' "$ENV_FILE" || set_env_var SMS_PROVIDER maxsms
   grep -q '^IPPANEL_API_MODE=' "$ENV_FILE" || set_env_var IPPANEL_API_MODE jspd
+  grep -q '^APP_TIMEZONE=' "$ENV_FILE" || set_env_var APP_TIMEZONE Asia/Tehran
   grep -q '^CAFE_BAZAAR_PACKAGE_NAME=' "$ENV_FILE" || set_env_var CAFE_BAZAAR_PACKAGE_NAME ir.posheapp.posheh
   grep -q '^CAFE_BAZAAR_SKU_SOLO=' "$ENV_FILE" || set_env_var CAFE_BAZAAR_SKU_SOLO solo01
   grep -q '^CAFE_BAZAAR_SKU_OFFICE=' "$ENV_FILE" || set_env_var CAFE_BAZAAR_SKU_OFFICE office01

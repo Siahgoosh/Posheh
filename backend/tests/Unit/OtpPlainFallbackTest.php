@@ -11,13 +11,10 @@ use Tests\TestCase;
 
 class OtpPlainFallbackTest extends TestCase
 {
-    public function test_send_otp_falls_back_to_plain_webservice_when_pattern_denied(): void
+    public function test_send_otp_uses_plain_webservice_first_in_jspd_mode(): void
     {
         Http::fake([
-            'https://ippanel.com/patterns/pattern*' => Http::response('deny', 200),
-            'https://ippanel.com/services.jspd' => Http::sequence()
-                ->push('deny', 200)
-                ->push(json_encode(['0', '12345']), 200),
+            'https://ippanel.com/services.jspd' => Http::response(json_encode(['0', '12345']), 200),
         ]);
 
         $settings = Mockery::mock(SystemSettingsService::class);
@@ -42,5 +39,6 @@ class OtpPlainFallbackTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertStringContainsString('otp_plain', (string) ($result['method'] ?? ''));
+        Http::assertSentCount(1);
     }
 }
