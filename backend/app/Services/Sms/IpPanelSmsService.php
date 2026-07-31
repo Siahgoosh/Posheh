@@ -50,101 +50,9 @@ class IpPanelSmsService
 
     $patternCode = $this->resolveOtpPatternCode($config);
     $otpConfig = $this->otpPatternConfig($config);
-    $credentialSets = $this->otpCredentialSets($config);
-    $mode = $this->resolveApiMode($otpConfig);
-    $params = ['code' => $code];
-    $attempts = [];
 
-    // Netherlands / abroad: JSPD webservice API (op=send) is the reliable OTP path — no Iran relay needed.
-    if ($mode === 'jspd') {
-      return $this->sendOtpViaJspdApi($mobile, $code, $config, $patternCode, $otpConfig);
-    }
-
-    // auto mode with panel credentials: plain JSPD first (fast), then Edge/pattern fallbacks.
-    if ($mode === 'auto' && $this->hasPanelCredentials($config)) {
-      $plainResult = $this->sendOtpPlainWebservice($mobile, $code, $config);
-      $attempts[] = $plainResult;
-      if ($plainResult['success']) {
-        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $plainResult);
-      }
-    }
-
-    if (! empty($config['api_key']) && ($mode === 'edge' || $mode === 'auto')) {
-      $auth = $this->resolveAuth($otpConfig, 'edge', 'ippanel');
-      $edgeResult = $this->sendOtpViaEdge($mobile, $patternCode, $params, $otpConfig, $auth);
-      $edgeResult['method'] = 'edge_api_pattern';
-      $attempts[] = $edgeResult;
-      if ($edgeResult['success']) {
-        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $edgeResult);
-      }
-    }
-
-    if ($credentialSets === []) {
-      Log::warning('OTP SMS credentials missing', ['mobile' => $mobile]);
-
-      return [
-        'success' => false,
-        'message' => $mode === 'edge'
-          ? 'تنظیمات OTP ناقص است. IPPANEL_API_KEY را در .env قرار دهید.'
-          : 'تنظیمات OTP ناقص است. IPPANEL_USERNAME و IPPANEL_PASSWORD را در .env قرار دهید.',
-      ];
-    }
-
-    foreach ($credentialSets as $creds) {
-      $credConfig = array_merge($otpConfig, [
-        'username' => $creds['username'],
-        'password' => $creds['password'],
-      ]);
-
-      if ($creds['label'] === 'panel' && $mode !== 'jspd') {
-        $classicResult = $this->sendOtpClassicPattern($mobile, $patternCode, $params, $credConfig);
-        $classicResult['method'] = ($classicResult['method'] ?? 'classic_otp').'_'.$creds['label'];
-        $attempts[] = $classicResult;
-        if ($classicResult['success']) {
-          return $this->otpSuccess($mobile, $patternCode, $otpConfig, $classicResult);
-        }
-      }
-
-      $jspdResult = $this->sendOtpJspdPattern($mobile, $patternCode, $params, $credConfig);
-      $jspdResult['method'] = ($jspdResult['method'] ?? 'jspd_otp').'_'.$creds['label'];
-      $attempts[] = $jspdResult;
-      if ($jspdResult['success']) {
-        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
-      }
-      if ($this->isJspdDeny($jspdResult)) {
-        break;
-      }
-    }
-
-    if ($mode !== 'jspd') {
-      // Pattern API often returns "deny" from abroad while plain JSPD webservice works.
-      $plainResult = $this->sendOtpPlainWebservice($mobile, $code, $config);
-      $attempts[] = $plainResult;
-      if ($plainResult['success']) {
-        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $plainResult);
-      }
-    }
-
-    $last = end($attempts) ?: ['success' => false, 'message' => 'ارسال OTP ناموفق بود'];
-
-    Log::error('OTP send failed on all paths', [
-      'mobile' => $mobile,
-      'pattern' => $patternCode,
-      'from' => $otpConfig['from_number'],
-      'credential_labels' => array_column($credentialSets, 'label'),
-      'attempts' => array_map(fn ($a) => [
-        'method' => $a['method'] ?? null,
-        'message' => $a['message'] ?? null,
-      ], $attempts),
-    ]);
-
-    return [
-      'success' => false,
-      'message' => $this->otpFailureMessage($attempts),
-      'method' => $last['method'] ?? null,
-      'details' => $last['details'] ?? null,
-      'attempts' => $attempts,
-    ];
+    // OTP only via webservice API (op=send) — no IPPanel patterns, no Edge API.
+    return $this->sendOtpViaWebservice($mobile, $code, $config, $patternCode, $otpConfig);
   }
 
   /** @param array<string, mixed> $config */
@@ -199,16 +107,16 @@ class IpPanelSmsService
   }
 
   /**
-   * OTP via MaxSMS JSPD webservice API (op=send) — works from Netherlands without Iran relay.
+   * OTP via MaxSMS webservice API only (ippanel.com/services.jspd, op=send).
    *
    * @param  array<string, mixed>  $config
    * @param  array<string, mixed>  $otpConfig
    * @return array<string, mixed>
    */
-  private function sendOtpViaJspdApi(string $mobile, string $code, array $config, string $patternCode, array $otpConfig): array
+  private function sendOtpViaWebservice(string $mobile, string $code, array $config, string $patternCode, array $otpConfig): array
   {
     if (! $this->hasPanelCredentials($config)) {
-      Log::warning('OTP JSPD API credentials missing', ['mobile' => $mobile]);
+      Log::warning('OTP webservice credentials missing', ['mobile' => $mobile]);
 
       return [
         'success' => false,
@@ -222,7 +130,7 @@ class IpPanelSmsService
       return $this->otpSuccess($mobile, $patternCode, $otpConfig, $plainResult);
     }
 
-    Log::error('OTP JSPD API send failed', [
+    Log::error('OTP webservice send failed', [
       'mobile' => $mobile,
       'message' => $plainResult['message'] ?? null,
       'method' => $plainResult['method'] ?? null,
@@ -231,7 +139,7 @@ class IpPanelSmsService
     return [
       'success' => false,
       'message' => $this->otpFailureMessage([$plainResult]),
-      'method' => $plainResult['method'] ?? 'otp_plain_webservice',
+      'method' => $plainResult['method'] ?? 'otp_webservice',
       'details' => $plainResult['details'] ?? null,
       'attempts' => [$plainResult],
     ];

@@ -36,17 +36,11 @@ class SmsTestCommand extends Command
             $this->line('Has API key: '.(! empty($config['api_key']) ? 'yes' : 'no'));
 
             if ($this->option('debug')) {
-                $mode = strtolower((string) ($config['api_mode'] ?? 'edge'));
-                if ($mode === 'edge') {
-                    $this->warn('OTP path: Edge API pattern only (IPPANEL_API_MODE=edge)');
-                    $this->line('API key set: '.(! empty($config['api_key']) ? 'yes' : 'NO — required for abroad server'));
-                } else {
-                    $this->warn('OTP path order: 1) classic pattern  2) JSPD  3) Edge API');
-                    $this->line('Username set: '.(! empty($config['username']) ? 'yes' : 'NO'));
-                    $this->line('Password set: '.(! empty($config['password']) ? 'yes' : 'NO'));
-                }
-                $this->line('OTP from: '.($config['otp_from_number'] ?? $config['from_number'] ?? '—'));
-                $this->line('Base URL: '.($config['base_url'] ?? '—'));
+                $this->warn('OTP path: webservice only (ippanel.com/services.jspd, op=send)');
+                $this->line('Username set: '.(! empty($config['username']) ? 'yes' : 'NO'));
+                $this->line('Password set: '.(! empty($config['password']) ? 'yes' : 'NO'));
+                $this->line('API mode: '.($config['api_mode'] ?? '—').' (patterns/Edge ignored for OTP)');
+                $this->line('OTP from: '.($config['from_number'] ?? '—'));
             }
 
             $result = $sms->sendOtp($mobile, $code);

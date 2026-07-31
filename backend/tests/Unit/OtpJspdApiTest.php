@@ -45,7 +45,7 @@ class OtpJspdApiTest extends TestCase
             && ($request->data()['op'] ?? '') === 'send');
     }
 
-    public function test_jspd_mode_does_not_call_edge_api(): void
+    public function test_otp_uses_webservice_only_even_in_edge_mode(): void
     {
         Http::fake([
             'https://edge.ippanel.com/*' => Http::response(['meta' => ['status' => true]], 200),
@@ -60,7 +60,7 @@ class OtpJspdApiTest extends TestCase
             'password' => 'pass',
             'api_key' => 'test-api-key',
             'from_number' => '+983000505',
-            'api_mode' => 'jspd',
+            'api_mode' => 'edge',
             'sms_provider' => 'maxsms',
         ]);
 
@@ -68,8 +68,10 @@ class OtpJspdApiTest extends TestCase
         $relay->shouldReceive('isConfigured')->andReturn(false);
 
         $service = new IpPanelSmsService($settings, $relay);
-        $service->sendOtp('09170577873', '654321');
+        $result = $service->sendOtp('09170577873', '654321');
 
+        $this->assertTrue($result['success']);
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'edge.ippanel.com'));
+        Http::assertSent(fn ($request) => ($request->data()['op'] ?? '') === 'send');
     }
 }

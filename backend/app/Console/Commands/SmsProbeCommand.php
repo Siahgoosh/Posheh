@@ -29,7 +29,7 @@ class SmsProbeCommand extends Command
             ['sms_mode (DB)', (string) $settings->get('sms_mode', '—')],
             ['SMS_MODE (.env)', (string) env('SMS_MODE', '—')],
             ['is_live (effective)', ($status['is_live'] ?? false) ? 'YES ✓' : 'NO ✗ — SMS disabled!'],
-            ['api_mode', (string) ($config['api_mode'] ?? '—').' (OTP: JSPD webservice API on jspd/auto)'],
+            ['api_mode', (string) ($config['api_mode'] ?? '—').' (OTP: webservice only, no pattern)'],
             ['has_api_key', ! empty($config['api_key']) ? 'yes ('.strlen((string) $config['api_key']).' chars)' : 'NO ✗'],
             ['has_username', ($status['has_username'] ?? false) ? 'yes' : 'no'],
             ['from_number', (string) ($config['from_number'] ?? '—')],
@@ -206,7 +206,7 @@ class SmsProbeCommand extends Command
 
             if (! $this->option('plain-only')) {
                 $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-                $this->line("OTP pattern test with code: {$code}");
+                $this->line("OTP webservice test with code: {$code}");
                 $otpResult = $sms->sendOtp($mobile, $code);
                 $this->printResult('OTP', $otpResult);
             }

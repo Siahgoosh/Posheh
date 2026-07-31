@@ -1,8 +1,22 @@
 # SMS از سرور خارج از ایران (هلند)
 
-سرور پوشه در هلند است. **نیازی به VPS ایران یا relay نیست** — OTP از همان API وب‌سرویس مکث (`ippanel.com/services.jspd`) ارسال می‌شود.
+## تست API — اول این را اجرا کن
 
-## تنظیم `.env` (سرور هلند)
+```bash
+docker compose exec app php artisan system:sms-api-test 09170577873
+```
+
+این دستور بدون ارسال واقعی، دو مسیر را تست می‌کند:
+- **Edge API** (`edge.ippanel.com`) — معمولاً از هلند **502 / timeout**
+- **JSPD webservice** (`ippanel.com/services.jspd`, `op=send`) — معمولاً **کار می‌کند**
+
+برای ارسال واقعی:
+
+```bash
+docker compose exec app php artisan system:sms-api-test 09170577873 --send
+```
+
+## تنظیم `.env` (بعد از تأیید webservice)
 
 ```env
 SMS_MODE=live
@@ -10,51 +24,26 @@ IPPANEL_API_MODE=jspd
 IPPANEL_USERNAME=...
 IPPANEL_PASSWORD=...
 IPPANEL_FROM_NUMBER=+983000505
-IPPANEL_OTP_FROM_NUMBER=+9810008721297974
 ```
 
-با `IPPANEL_API_MODE=jspd`، کد ورود مستقیم از **JSPD webservice API** (`op=send`) فرستاده می‌شود — بدون Edge API و بدون پترن (که از IP خارج `deny` می‌دهد).
+**OTP فقط از webservice** ارسال می‌شود — بدون پترن IPPanel، بدون Edge API، بدون relay ایران.
 
 پیام OTP: `کد تأیید پوشه: 123456`
 
-## فعال‌سازی روی سرور
+## فعال‌سازی
 
 ```bash
 ./scripts/force-sms-jspd.sh
-
-# تست
 docker compose exec app php artisan system:sms-probe 09170577873 --send
 ```
 
-## علت رایج: deploy هر بار SMS را خاموش می‌کند
-
-**علائم:**
-- API می‌گوید «کد ارسال شد» ولی SMS نمی‌آید
-- کد `123456` کار می‌کند
-- در پنل مکث چیزی ثبت نمی‌شود
-
-**رفع فوری:**
-
-```bash
-./scripts/enable-live-sms.sh
-docker compose exec app php artisan system:sms-probe 09170577873 --send
-```
-
-## Edge API و پترن
-
-- `edge.ippanel.com` از هلند معمولاً **timeout / 502** می‌دهد — برای OTP استفاده نمی‌شود.
-- API پترن JSPD از IP خارج اغلب **`deny`** برمی‌گرداند.
-- **وب‌سرویس plain** (`op=send`) همان APIای است که از هلند کار کرده (مثلاً پیامک ۱۸:۲۱).
-
-اگر می‌خواهید OTP با **پترن** (متن قالب‌دار) برود، باید IP سرور را در پنل مکث whitelist کنید یا از [SMS Relay](SMS-RELAY.md) روی VPS ایران استفاده کنید (اختیاری).
-
-## حالت log (توسعه / بدون SMS واقعی)
+## حالت log (توسعه)
 
 ```bash
 docker compose exec app php artisan system:sms-enable --log
 # کد OTP: 123456
 ```
 
-## سرور داخل ایران
+## نکته
 
-اگر سرور IP ایران دارد، می‌توانید `IPPANEL_API_MODE=auto` یا `jspd` با username/password + whitelist IP استفاده کنید. در صورت دسترسی به Edge، `IPPANEL_API_KEY` و `IPPANEL_API_MODE=edge` هم ممکن است.
+پترن و Edge API برای OTP استفاده نمی‌شوند. پیامک‌های دیگر (دعوت، یادآوری) همچنان از webservice یا پترن (در صورت نیاز) می‌روند.
