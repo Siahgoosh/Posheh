@@ -57,7 +57,7 @@ ensure_env_file() {
   set_env_var REDIS_PORT 6379
   grep -q '^SMS_MODE=' "$ENV_FILE" || set_env_var SMS_MODE log
   grep -q '^SMS_PROVIDER=' "$ENV_FILE" || set_env_var SMS_PROVIDER maxsms
-  grep -q '^IPPANEL_API_MODE=' "$ENV_FILE" || set_env_var IPPANEL_API_MODE edge
+  grep -q '^IPPANEL_API_MODE=' "$ENV_FILE" || set_env_var IPPANEL_API_MODE jspd
   grep -q '^CAFE_BAZAAR_PACKAGE_NAME=' "$ENV_FILE" || set_env_var CAFE_BAZAAR_PACKAGE_NAME ir.posheapp.posheh
   grep -q '^CAFE_BAZAAR_SKU_SOLO=' "$ENV_FILE" || set_env_var CAFE_BAZAAR_SKU_SOLO solo01
   grep -q '^CAFE_BAZAAR_SKU_OFFICE=' "$ENV_FILE" || set_env_var CAFE_BAZAAR_SKU_OFFICE office01
@@ -257,7 +257,7 @@ Next steps:
   - After token change: docker compose exec app php artisan config:clear
   - Run scheduler: docker compose up -d scheduler
   - Seed contracts: docker compose exec app php artisan db:seed --class=ContractTemplateSeeder --force
-  - SMS (abroad server): IPPANEL_API_MODE=edge, IPPANEL_API_KEY, IPPANEL_OTP_PATTERN_CODE=qhhly1nai3njev0
+  - SMS (MaxSMS panel): IPPANEL_API_MODE=jspd, IPPANEL_USERNAME, IPPANEL_PASSWORD, IPPANEL_OTP_PATTERN_CODE=qhhly1nai3njev0
   - SMS docs: docs/SMS-EDGE-ABROAD.md
   - SMS relay (Netherlands server): docs/SMS-RELAY.md
   - Fix SMS after deploy:    ./scripts/fix-sms-now.sh

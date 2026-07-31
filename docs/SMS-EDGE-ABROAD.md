@@ -41,20 +41,15 @@ docker compose exec app php artisan system:sms-probe 09170577873 --send
 
 ```env
 SMS_MODE=live
-# اگر username/password مکث دارید (حالت قبلی که کار می‌کرد):
-IPPANEL_API_MODE=auto
+IPPANEL_API_MODE=jspd
 IPPANEL_USERNAME=...
 IPPANEL_PASSWORD=...
-# یا برای Edge API (فقط اگر مستقیم به edge.ippanel.com دسترسی دارید):
-# IPPANEL_API_MODE=edge
-# IPPANEL_API_KEY=your-access-key-from-panel
 IPPANEL_FROM_NUMBER=+983000505
 IPPANEL_OTP_FROM_NUMBER=+9810008721297974
 IPPANEL_OTP_PATTERN_CODE=qhhly1nai3njev0
-IPPANEL_BASE_URL=https://edge.ippanel.com/v1
 ```
 
-**مهم:** اسکریپت‌های قبلی `api_mode=edge` را اجباری می‌کردند و JSPD را غیرفعال می‌کردند. اگر قبلاً با username/password کار می‌کردید، `IPPANEL_API_MODE=auto` بگذارید و `./scripts/fix-sms-now.sh` را اجرا کنید.
+**مهم:** قبل از فاز ۱، deploy به‌صورت پیش‌فرض `IPPANEL_API_MODE=jspd` می‌گذاشت و OTP از طریق `ippanel.com/services.jspd` با username/password مکث ارسال می‌شد. اسکریپت‌های بعدی اشتباهاً `edge` را اجباری کردند.
 
 کلید API: پنل مکث → **Developers** → **Access Keys**
 

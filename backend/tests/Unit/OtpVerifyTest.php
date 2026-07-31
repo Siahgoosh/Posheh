@@ -7,7 +7,7 @@ use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Auth\OtpService;
 use App\Services\Auth\RegistrationService;
 use App\Services\Settings\SystemSettingsService;
-use App\Services\Sms\OtpSmsDispatcher;
+use App\Services\Sms\IpPanelSmsService;
 use App\Services\Subscription\SubscriptionAccessService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -33,9 +33,9 @@ class OtpVerifyTest extends TestCase
         $service = new OtpService(
             $users,
             $settings,
+            Mockery::mock(IpPanelSmsService::class),
             Mockery::mock(RegistrationService::class),
             Mockery::mock(SubscriptionAccessService::class),
-            Mockery::mock(OtpSmsDispatcher::class),
         );
 
         $this->expectException(ValidationException::class);

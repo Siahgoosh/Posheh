@@ -10,7 +10,7 @@ use App\Models\User;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\Auth\RegistrationService;
 use App\Services\Settings\SystemSettingsService;
-use App\Services\Sms\OtpSmsDispatcher;
+use App\Services\Sms\IpPanelSmsService;
 use App\Services\Subscription\SubscriptionAccessService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -25,9 +25,9 @@ class OtpService
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly SystemSettingsService $settings,
+        private readonly IpPanelSmsService $sms,
         private readonly RegistrationService $registrationService,
         private readonly SubscriptionAccessService $subscriptionAccess,
-        private readonly OtpSmsDispatcher $otpSmsDispatcher,
     ) {}
 
     public function send(SendOtpDTO $dto): array
@@ -51,11 +51,25 @@ class OtpService
 
         $code = $this->generateOtpCode();
 
-        Log::info('OTP saving before SMS dispatch', [
+        Log::info('OTP dispatching', [
             'mobile' => $this->maskMobile($mobile),
             'code_length' => strlen($code),
-            'sms_live' => $this->settings->isSmsLive(),
         ]);
+
+        $smsResult = $this->dispatchOtpSms($mobile, $code);
+
+        if (! ($smsResult['success'] ?? false)) {
+            Log::error('OTP SMS failed — code not saved', [
+                'mobile' => $this->maskMobile($mobile),
+                'message' => $smsResult['message'] ?? null,
+            ]);
+
+            $userMessage = $this->sanitizeSmsError($smsResult['message'] ?? null);
+
+            throw ValidationException::withMessages([
+                'mobile' => [$userMessage],
+            ]);
+        }
 
         OtpCode::query()
             ->whereIn('mobile', $this->mobileVariants($mobile))
@@ -76,34 +90,65 @@ class OtpService
             now()->addSeconds(self::SEND_COOLDOWN_SECONDS)
         );
 
-        $isLive = $this->settings->isSmsLive();
+        Log::info('OTP saved after SMS', [
+            'mobile' => $this->maskMobile($mobile),
+            'method' => $smsResult['method'] ?? null,
+        ]);
 
-        if ($isLive) {
-            $this->otpSmsDispatcher->dispatch($mobile, $code);
-        } else {
-            Log::info("OTP SMS [log] to {$mobile}: {$code}");
-        }
-
-        $response = [
-            'message' => $isLive ? 'کد تأیید ارسال شد.' : 'کد تأیید ارسال شد (حالت تست).',
+        return [
+            'message' => 'کد تأیید ارسال شد.',
             'expires_in' => 300,
-            'sms_sent' => $isLive,
+            'sms_sent' => true,
+            'sms_debug' => config('app.debug') ? ($smsResult['method'] ?? null) : null,
         ];
-
-        if (! $isLive) {
-            $response['dev_hint'] = 'حالت تست: کد ۱۲۳۴۵۶';
-        }
-
-        return $response;
     }
 
     private function generateOtpCode(): string
     {
-        if (! $this->settings->isSmsLive()) {
+        if (! $this->settings->isSmsLive() && ! app()->environment('production')) {
             return '123456';
         }
 
         return (string) random_int(100000, 999999);
+    }
+
+    /** @return array{success: bool, message?: string, method?: string} */
+    private function dispatchOtpSms(string $mobile, string $code): array
+    {
+        try {
+            $result = $this->sms->sendOtp($mobile, $code);
+
+            if (($result['success'] ?? false)) {
+                Log::info('OTP SMS sent', [
+                    'mobile' => $this->maskMobile($mobile),
+                    'method' => $result['method'] ?? null,
+                ]);
+
+                return [
+                    'success' => true,
+                    'method' => $result['method'] ?? null,
+                ];
+            }
+
+            $message = $result['message'] ?? 'SMS failed';
+
+            Log::error('OTP SMS failed', [
+                'mobile' => $this->maskMobile($mobile),
+                'message' => $message,
+                'method' => $result['method'] ?? null,
+                'sms_mode' => $this->settings->get('sms_mode'),
+                'is_live' => $this->settings->isSmsLive(),
+            ]);
+
+            return ['success' => false, 'message' => $message];
+        } catch (\Throwable $e) {
+            Log::error('OTP SMS exception', [
+                'mobile' => $this->maskMobile($mobile),
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
     }
 
     private function maskMobile(string $mobile): string
@@ -342,6 +387,31 @@ class OtpService
         }
 
         return $mobile;
+    }
+
+    private function sanitizeSmsError(?string $message): string
+    {
+        $generic = 'ارسال پیامک ناموفق بود. لطفاً چند دقیقه بعد دوباره تلاش کنید.';
+
+        if ($message === null || trim($message) === '') {
+            return $generic;
+        }
+
+        $message = preg_replace('/https?:\/\/\S+/', '[sms-api]', $message) ?? $message;
+        $message = preg_replace('/password=\S+/i', 'password=***', $message) ?? $message;
+
+        $hints = ['IPPANEL', 'نام کاربری', 'رمز', 'پترن', 'مکث', 'whitelist', 'deny', 'تنظیمات OTP'];
+        foreach ($hints as $hint) {
+            if (str_contains($message, $hint)) {
+                return mb_strlen($message) > 200 ? $generic : $message;
+            }
+        }
+
+        if (config('app.debug')) {
+            return mb_strlen($message) > 200 ? $generic : $message;
+        }
+
+        return $generic;
     }
 
     private function otpCacheKey(string $mobile): string

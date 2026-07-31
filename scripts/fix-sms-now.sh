@@ -1,5 +1,5 @@
 #!/bin/sh
-# One-command SMS fix for production — restores JSPD-first + live mode
+# One-command SMS fix — restore pre-phase-1 MaxSMS JSPD settings
 set -eu
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

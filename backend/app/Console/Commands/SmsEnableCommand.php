@@ -30,7 +30,7 @@ class SmsEnableCommand extends Command
             $settings->set('sms_mode', 'live');
             $apiMode = strtolower(trim((string) env('IPPANEL_API_MODE', '')));
             if ($apiMode === '') {
-                $apiMode = $this->hasPanelCredentialsInEnv() ? 'auto' : 'edge';
+                $apiMode = $this->hasPanelCredentialsInEnv() ? 'jspd' : 'auto';
                 $settings->set('ippanel_api_mode', $apiMode);
             }
             Cache::forget('system_settings');
@@ -54,7 +54,7 @@ class SmsEnableCommand extends Command
         } elseif ($this->option('live')) {
             $settings->set('sms_mode', 'live');
             if (! env('IPPANEL_API_MODE') && ! $settings->hasValue('ippanel_api_mode')) {
-                $settings->set('ippanel_api_mode', $this->hasPanelCredentialsInEnv() ? 'auto' : 'edge');
+                $settings->set('ippanel_api_mode', $this->hasPanelCredentialsInEnv() ? 'jspd' : 'auto');
             }
             $this->info('sms_mode set to live');
         }
@@ -105,8 +105,8 @@ class SmsEnableCommand extends Command
         }
 
         if (! env('IPPANEL_API_MODE') && ! $settings->hasValue('ippanel_api_mode')) {
-            $settings->set('ippanel_api_mode', $this->hasPanelCredentialsInEnv() ? 'auto' : 'edge');
-            $this->line('  set ippanel_api_mode='.($this->hasPanelCredentialsInEnv() ? 'auto' : 'edge'));
+            $settings->set('ippanel_api_mode', $this->hasPanelCredentialsInEnv() ? 'jspd' : 'auto');
+            $this->line('  set ippanel_api_mode='.($this->hasPanelCredentialsInEnv() ? 'jspd' : 'auto'));
         }
 
         if (! env('sms_provider') && ! $settings->hasValue('sms_provider')) {
