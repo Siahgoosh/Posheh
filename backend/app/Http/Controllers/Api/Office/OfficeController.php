@@ -7,6 +7,7 @@ use App\Http\Resources\PropertyResource;
 use App\Http\Resources\UserResource;
 use App\Services\Office\OfficeService;
 use App\Services\Office\OfficeSiteService;
+use App\Services\Office\DomainService;
 use App\Services\Property\PropertyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class OfficeController extends Controller
     public function __construct(
         private readonly OfficeService $officeService,
         private readonly OfficeSiteService $siteService,
+        private readonly DomainService $domainService,
         private readonly PropertyService $propertyService,
     ) {}
 
@@ -47,20 +49,20 @@ class OfficeController extends Controller
 
     public function invite(Request $request): JsonResponse
     {
-        $request->validate([
+        $data = $request->validate([
             'mobile' => ['required', 'string', 'regex:/^09\d{9}$/'],
+            'name' => ['nullable', 'string', 'max:100'],
+            'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
+            'username' => ['nullable', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9_]+$/', 'unique:users,username'],
+            'password' => ['nullable', 'string', 'min:8'],
             'role' => ['nullable', 'string', 'in:consultant,office_manager'],
         ]);
 
-        $invitation = $this->officeService->inviteConsultant(
-            $request->user(),
-            $request->input('mobile'),
-            $request->input('role', 'consultant')
-        );
+        $invitation = $this->officeService->inviteConsultant($request->user(), $data);
 
         return response()->json([
             'data' => $invitation,
-            'message' => 'دعوتنامه با موفقیت ارسال شد.',
+            'message' => 'عضو جدید با موفقیت اضافه شد.',
         ], 201);
     }
 
@@ -121,13 +123,58 @@ class OfficeController extends Controller
         $office = $request->user()->office;
 
         return response()->json([
-            'data' => [
+            'data' => array_merge([
                 'subdomain' => $office->subdomain,
                 'website_status' => $office->website_status,
                 'website_description' => $office->website_description,
                 'website_published_at' => $office->website_published_at?->toIso8601String(),
                 'url' => $office->subdomain ? 'https://'.$office->subdomain.'.posheapp.ir' : null,
-            ],
+            ], $this->domainService->status($office)),
+        ]);
+    }
+
+    public function domainStatus(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->domainService->status($request->user()->office)]);
+    }
+
+    public function orderDomain(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'domain_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $order = $this->domainService->orderDomain($request->user(), $data['domain_name']);
+
+        return response()->json([
+            'data' => $order,
+            'message' => 'سفارش دامنه ثبت شد. پس از پردازش توسط مدیر، دامنه فعال می‌شود.',
+        ], 201);
+    }
+
+    public function connectDomain(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'domain_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $office = $this->domainService->connectDomain($request->user(), $data['domain_name']);
+
+        return response()->json([
+            'data' => $this->domainService->status($office),
+            'message' => 'دامنه ثبت شد. رکوردهای DNS را تنظیم کنید.',
+        ]);
+    }
+
+    public function verifyDomain(Request $request): JsonResponse
+    {
+        $office = $request->user()->office;
+        $verified = $this->domainService->verifyDns($office);
+
+        return response()->json([
+            'verified' => $verified,
+            'data' => $this->domainService->status($office->fresh()),
+            'message' => $verified ? 'دامنه تأیید شد.' : 'تأیید DNS ناموفق بود.',
         ]);
     }
 

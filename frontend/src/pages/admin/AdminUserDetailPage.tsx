@@ -18,24 +18,48 @@ const roles = [
 export function AdminUserDetailPage() {
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
-  const [name, setName] = useState('')
-  const [role, setRole] = useState('')
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    username: '',
+    mobile: '',
+    role: '',
+    password: '',
+  })
+  const [msg, setMsg] = useState('')
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['admin-user', id],
     queryFn: async () => {
       const res = await api.get(`/admin/users/${id}`)
       const u = res.data.data
-      setName(u.name ?? '')
-      setRole(u.role ?? '')
+      setForm({
+        name: u.name ?? '',
+        email: u.email ?? '',
+        username: u.username ?? '',
+        mobile: u.mobile ?? '',
+        role: u.role ?? '',
+        password: '',
+      })
       return u
     },
     enabled: !!id,
   })
 
   const updateMutation = useMutation({
-    mutationFn: () => api.put(`/admin/users/${id}`, { name, role }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-user', id] }),
+    mutationFn: () => api.put(`/admin/users/${id}`, {
+      name: form.name,
+      email: form.email || null,
+      username: form.username || null,
+      mobile: form.mobile || null,
+      role: form.role,
+      ...(form.password ? { password: form.password } : {}),
+    }),
+    onSuccess: () => {
+      setMsg('ذخیره شد.')
+      setForm((f) => ({ ...f, password: '' }))
+      queryClient.invalidateQueries({ queryKey: ['admin-user', id] })
+    },
   })
 
   const logoutAll = useMutation({
@@ -58,16 +82,30 @@ export function AdminUserDetailPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-2xl">
-      <AdminPageHeader title={user.name} description={user.mobile} backTo="/users" />
+      <AdminPageHeader
+        title={user.name}
+        description={[user.email, user.username && `@${user.username}`, user.mobile].filter(Boolean).join(' · ')}
+        backTo="/users"
+      />
 
       <Card>
-        <CardHeader><CardTitle>ویرایش</CardTitle></CardHeader>
+        <CardHeader><CardTitle>ویرایش کاربر</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
-          <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full rounded-xl border border-card-border bg-background px-3 py-2 text-sm">
+          <Input placeholder="نام" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <Input placeholder="ایمیل" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" />
+          <Input placeholder="نام کاربری" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} dir="ltr" />
+          <Input placeholder="موبایل" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} dir="ltr" />
+          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="w-full rounded-xl border border-card-border bg-background px-3 py-2 text-sm">
             {roles.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
-          <Button onClick={() => updateMutation.mutate()}>ذخیره</Button>
+          <Input
+            type="password"
+            placeholder="رمز عبور جدید (اختیاری)"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+          />
+          {msg && <p className="text-sm text-success">{msg}</p>}
+          <Button onClick={() => updateMutation.mutate()}>ذخیره تغییرات</Button>
         </CardContent>
       </Card>
 
@@ -75,7 +113,6 @@ export function AdminUserDetailPage() {
         <CardHeader><CardTitle>اطلاعات</CardTitle></CardHeader>
         <CardContent className="text-sm space-y-2">
           <p>دفتر: {user.office?.name ?? '—'}</p>
-          <p>ایمیل: {user.email ?? '—'}</p>
           <p>آخرین ورود: {user.last_login_at ? formatJalaliDate(user.last_login_at) : '—'}</p>
           <Badge>{user.is_active ? 'فعال' : 'غیرفعال'}</Badge>
         </CardContent>

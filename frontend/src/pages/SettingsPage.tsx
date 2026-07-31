@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { LogOut, Moon, Sun, Smartphone, User, Key, Bot } from 'lucide-react'
-import { useState } from 'react'
+import { LogOut, Moon, Sun, Smartphone, User, Key, Bot, Save, Lock } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '@/lib/api'
 import { useAuthStore, useThemeStore } from '@/stores/auth'
@@ -17,11 +17,27 @@ interface Device {
 }
 
 export function SettingsPage() {
-  const { user, logout, logoutAll } = useAuthStore()
+  const { user, logout, logoutAll, refreshUser } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const canManage = user?.role === 'office_manager' || user?.role === 'super_admin'
+
+  const [profile, setProfile] = useState({
+    name: '',
+    email: '',
+    username: '',
+    mobile: '',
+  })
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    password: '',
+    password_confirmation: '',
+  })
+  const [profileMsg, setProfileMsg] = useState('')
+  const [passwordMsg, setPasswordMsg] = useState('')
+  const [profileError, setProfileError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
 
   const [officeForm, setOfficeForm] = useState({
     telegram_bot_token: '',
@@ -33,6 +49,17 @@ export function SettingsPage() {
   })
   const [newKeyName, setNewKeyName] = useState('')
   const [plainKey, setPlainKey] = useState('')
+
+  useEffect(() => {
+    if (user) {
+      setProfile({
+        name: user.name || '',
+        email: user.email || '',
+        username: user.username || '',
+        mobile: user.mobile || '',
+      })
+    }
+  }, [user])
 
   const { data: apiKeys } = useQuery({
     queryKey: ['api-keys'],
@@ -51,6 +78,38 @@ export function SettingsPage() {
       setPlainKey(res.data.plain_key)
       setNewKeyName('')
       queryClient.invalidateQueries({ queryKey: ['api-keys'] })
+    },
+  })
+
+  const profileMutation = useMutation({
+    mutationFn: () => api.put('/auth/profile', profile),
+    onSuccess: async () => {
+      setProfileMsg('پروفایل ذخیره شد.')
+      setProfileError('')
+      await refreshUser()
+    },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { errors?: Record<string, string[]> } } }
+      setProfileError(
+        Object.values(axiosErr.response?.data?.errors || {}).flat()[0] || 'خطا در ذخیره پروفایل.'
+      )
+    },
+  })
+
+  const passwordMutation = useMutation({
+    mutationFn: () => api.put('/auth/password', passwordForm),
+    onSuccess: () => {
+      setPasswordMsg('رمز عبور تغییر کرد.')
+      setPasswordError('')
+      setPasswordForm({ current_password: '', password: '', password_confirmation: '' })
+    },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { errors?: Record<string, string[]> } } }
+      setPasswordError(
+        axiosErr.response?.data?.errors?.current_password?.[0]
+          || Object.values(axiosErr.response?.data?.errors || {}).flat()[0]
+          || 'خطا در تغییر رمز.'
+      )
     },
   })
 
@@ -88,12 +147,68 @@ export function SettingsPage() {
             <div className="text-white">
               <p className="text-lg font-bold">{user?.name}</p>
               <p className="text-white/80 text-sm">{user?.office?.name}</p>
-              <p className="text-white/60 text-xs mt-1" dir="ltr">{user?.mobile && toPersianDigits(user.mobile)}</p>
+              {user?.email && <p className="text-white/70 text-xs mt-1" dir="ltr">{user.email}</p>}
+              {user?.username && <p className="text-white/60 text-xs" dir="ltr">@{user.username}</p>}
             </div>
           </div>
         </div>
         <CardContent className="p-4">
           <p className="text-sm text-muted">نقش: {user?.role_label}</p>
+          {user?.mobile && (
+            <p className="text-sm text-muted mt-1">موبایل: <span dir="ltr">{toPersianDigits(user.mobile)}</span></p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <User className="h-4 w-4" /> ویرایش پروفایل
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Input placeholder="نام" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} />
+          <Input placeholder="ایمیل" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} dir="ltr" />
+          <Input placeholder="نام کاربری" value={profile.username} onChange={(e) => setProfile({ ...profile, username: e.target.value.toLowerCase() })} dir="ltr" />
+          <Input placeholder="موبایل" value={profile.mobile} onChange={(e) => setProfile({ ...profile, mobile: e.target.value })} dir="ltr" />
+          {profileMsg && <p className="text-sm text-success">{profileMsg}</p>}
+          {profileError && <p className="text-sm text-danger">{profileError}</p>}
+          <Button onClick={() => profileMutation.mutate()} disabled={profileMutation.isPending}>
+            <Save className="h-4 w-4" /> ذخیره پروفایل
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Lock className="h-4 w-4" /> تغییر رمز عبور
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Input
+            type="password"
+            placeholder="رمز عبور فعلی"
+            value={passwordForm.current_password}
+            onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
+          />
+          <Input
+            type="password"
+            placeholder="رمز عبور جدید"
+            value={passwordForm.password}
+            onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })}
+          />
+          <Input
+            type="password"
+            placeholder="تکرار رمز جدید"
+            value={passwordForm.password_confirmation}
+            onChange={(e) => setPasswordForm({ ...passwordForm, password_confirmation: e.target.value })}
+          />
+          {passwordMsg && <p className="text-sm text-success">{passwordMsg}</p>}
+          {passwordError && <p className="text-sm text-danger">{passwordError}</p>}
+          <Button variant="outline" onClick={() => passwordMutation.mutate()} disabled={passwordMutation.isPending}>
+            تغییر رمز عبور
+          </Button>
         </CardContent>
       </Card>
 
@@ -113,14 +228,9 @@ export function SettingsPage() {
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><Bot className="h-4 w-4" /> ربات‌ها و برند</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <Input placeholder="توکن ربات تلگرام" value={officeForm.telegram_bot_token} onChange={(e) => setOfficeForm((f) => ({ ...f, telegram_bot_token: e.target.value }))} dir="ltr" />
-              <p className="text-xs text-muted">Webhook تلگرام: /api/v1/bots/telegram/{user?.office?.slug}</p>
               <Input placeholder="شماره واتساپ" value={officeForm.whatsapp_phone} onChange={(e) => setOfficeForm((f) => ({ ...f, whatsapp_phone: e.target.value }))} dir="ltr" />
               <Input placeholder="نام برند" value={officeForm.brand_name} onChange={(e) => setOfficeForm((f) => ({ ...f, brand_name: e.target.value }))} />
               <Input placeholder="رنگ برند" value={officeForm.brand_color} onChange={(e) => setOfficeForm((f) => ({ ...f, brand_color: e.target.value }))} dir="ltr" />
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={officeForm.show_on_website} onChange={(e) => setOfficeForm((f) => ({ ...f, show_on_website: e.target.checked }))} />
-                نمایش در وبسایت
-              </label>
               <Button onClick={() => saveOfficeMutation.mutate()} disabled={saveOfficeMutation.isPending}>ذخیره</Button>
             </CardContent>
           </Card>

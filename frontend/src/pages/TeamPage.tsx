@@ -11,11 +11,19 @@ interface TeamMember {
   id: number
   name: string
   mobile: string
+  email?: string
+  username?: string
   role_label: string
 }
 
 export function TeamPage() {
-  const [mobile, setMobile] = useState('')
+  const [form, setForm] = useState({
+    name: '',
+    mobile: '',
+    email: '',
+    username: '',
+    password: '',
+  })
   const [error, setError] = useState('')
   const queryClient = useQueryClient()
 
@@ -28,15 +36,19 @@ export function TeamPage() {
   })
 
   const inviteMutation = useMutation({
-    mutationFn: (m: string) => api.post('/office/invite', { mobile: m }),
+    mutationFn: () => api.post('/office/invite', form),
     onSuccess: () => {
-      setMobile('')
+      setForm({ name: '', mobile: '', email: '', username: '', password: '' })
       setError('')
       queryClient.invalidateQueries({ queryKey: ['team'] })
     },
     onError: (err: unknown) => {
-      const axiosErr = err as { response?: { data?: { message?: string } } }
-      setError(axiosErr.response?.data?.message || 'خطا در دعوت')
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      setError(
+        Object.values(axiosErr.response?.data?.errors || {}).flat()[0]
+          || axiosErr.response?.data?.message
+          || 'خطا در افزودن عضو'
+      )
     },
   })
 
@@ -47,30 +59,26 @@ export function TeamPage() {
           <Users className="h-6 w-6 text-primary" />
           مدیریت تیم
         </h1>
-        <p className="text-muted mt-1">اعضای دفتر و دعوت مشاور جدید</p>
+        <p className="text-muted mt-1">اعضای دفتر — ورود با ایمیل/نام کاربری و رمز عبور</p>
       </div>
 
       <Card>
-        <CardContent className="p-4">
-          <p className="text-sm font-medium mb-3 flex items-center gap-2">
-            <UserPlus className="h-4 w-4" /> دعوت عضو جدید
+        <CardContent className="p-4 space-y-3">
+          <p className="text-sm font-medium flex items-center gap-2">
+            <UserPlus className="h-4 w-4" /> افزودن عضو جدید
           </p>
-          <div className="flex gap-2">
-            <Input
-              placeholder="09121234567"
-              value={mobile}
-              onChange={(e) => setMobile(e.target.value)}
-              dir="ltr"
-              className="flex-1"
-            />
-            <Button
-              disabled={mobile.length < 11 || inviteMutation.isPending}
-              onClick={() => inviteMutation.mutate(mobile)}
-            >
-              دعوت
-            </Button>
-          </div>
-          {error && <p className="text-sm text-danger mt-2">{error}</p>}
+          <Input placeholder="نام" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <Input placeholder="موبایل (۰۹...)" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} dir="ltr" />
+          <Input placeholder="ایمیل" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" />
+          <Input placeholder="نام کاربری" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} dir="ltr" />
+          <Input placeholder="رمز عبور (حداقل ۸ کاراکتر)" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          <Button
+            disabled={form.mobile.length < 11 || inviteMutation.isPending}
+            onClick={() => inviteMutation.mutate()}
+          >
+            افزودن عضو
+          </Button>
+          {error && <p className="text-sm text-danger">{error}</p>}
         </CardContent>
       </Card>
 
@@ -81,14 +89,13 @@ export function TeamPage() {
       ) : (
         <div className="grid gap-3">
           {members?.map((m) => (
-            <Card key={m.id} className="glass-hover">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/20 text-primary font-bold">
-                  {m.name?.charAt(0)}
-                </div>
-                <div className="flex-1">
+            <Card key={m.id}>
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
                   <p className="font-medium">{m.name}</p>
-                  <p className="text-sm text-muted" dir="ltr">{m.mobile}</p>
+                  <p className="text-sm text-muted" dir="ltr">
+                    {[m.email, m.username && `@${m.username}`, m.mobile].filter(Boolean).join(' · ')}
+                  </p>
                 </div>
                 <Badge variant="outline">{m.role_label}</Badge>
               </CardContent>

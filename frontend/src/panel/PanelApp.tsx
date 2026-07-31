@@ -5,6 +5,8 @@ import { useAuthStore } from '@/stores/auth'
 import { isPlatformStaffRole } from '@/lib/subdomain'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { PanelLoginPage } from '@/pages/admin/PanelLoginPage'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { AdminSuperPanelPage } from '@/pages/admin/AdminSuperPanelPage'
 import { AdminOfficesPage } from '@/pages/admin/AdminOfficesPage'
 import { AdminOfficeDetailPage } from '@/pages/admin/AdminOfficeDetailPage'
@@ -42,6 +44,7 @@ import { AdminExportsPage } from '@/pages/admin/AdminExportsPage'
 import { AdminChurnPage } from '@/pages/admin/AdminChurnPage'
 import { AdminHealthPage } from '@/pages/admin/AdminHealthPage'
 import { AdminVirtualToursStatsPage } from '@/pages/admin/AdminVirtualToursStatsPage'
+import { AdminDomainOrdersPage } from '@/pages/admin/AdminDomainOrdersPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -78,6 +81,8 @@ export function PanelApp() {
       <AuthBootstrap>
         <Routes>
           <Route path="/login" element={<PanelGuestOnly><PanelLoginPage /></PanelGuestOnly>} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<PanelProtected><AdminLayout /></PanelProtected>}>
             <Route index element={<AdminSuperPanelPage />} />
             <Route path="tenants" element={<AdminOfficesPage />} />
@@ -117,6 +122,7 @@ export function PanelApp() {
             <Route path="churn" element={<AdminChurnPage />} />
             <Route path="health" element={<AdminHealthPage />} />
             <Route path="virtual-tours" element={<AdminVirtualToursStatsPage />} />
+            <Route path="domain-orders" element={<AdminDomainOrdersPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

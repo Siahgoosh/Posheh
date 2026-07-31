@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { Shield, KeyRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -87,6 +88,9 @@ export function PanelLoginPage() {
               <KeyRound className="h-4 w-4" />
               {loading ? 'ورود…' : 'ورود'}
             </Button>
+            <p className="text-center text-sm">
+              <Link to="/forgot-password" className="text-primary hover:underline">فراموشی رمز عبور</Link>
+            </p>
           </form>
         </CardContent>
       </Card>

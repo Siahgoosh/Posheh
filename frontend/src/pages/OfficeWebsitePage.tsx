@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Globe, Plus, ExternalLink, CalendarClock, Phone, CheckCircle2, XCircle, FileCheck } from 'lucide-react'
+import { Globe, Plus, ExternalLink, CalendarClock, Phone, CheckCircle2, XCircle, FileCheck, Link2 } from 'lucide-react'
 import { useState } from 'react'
 import api from '@/lib/api'
 import { formatJalaliDate, toPersianDigits, formatPrice } from '@/lib/utils'
@@ -23,12 +23,18 @@ export function OfficeWebsitePage() {
   const [description, setDescription] = useState('')
   const [postTitle, setPostTitle] = useState('')
   const [postBody, setPostBody] = useState('')
+  const [domainName, setDomainName] = useState('')
+  const [ownDomain, setOwnDomain] = useState('')
 
   const { data: status } = useQuery({
     queryKey: ['office-website'],
     queryFn: async () => (await api.get('/office/website')).data.data as {
       subdomain?: string; website_status: string; website_description?: string
       website_published_at?: string; url?: string
+      custom_domain?: string; custom_domain_status?: string
+      dns_instructions?: { type: string; host: string; value: string; note?: string }[]
+      latest_order?: { domain_name: string; status: string; price: number }
+      ir_domain_price?: number
     },
     enabled: hasWebsite,
   })
@@ -67,6 +73,26 @@ export function OfficeWebsitePage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['office-pending-properties'] }),
   })
 
+  const orderDomainMutation = useMutation({
+    mutationFn: () => api.post('/office/domain/order', { domain_name: domainName }),
+    onSuccess: () => {
+      setDomainName('')
+      queryClient.invalidateQueries({ queryKey: ['office-website'] })
+    },
+  })
+
+  const connectDomainMutation = useMutation({
+    mutationFn: () => api.post('/office/domain/connect', { domain_name: ownDomain }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['office-website'] })
+    },
+  })
+
+  const verifyDomainMutation = useMutation({
+    mutationFn: () => api.post('/office/domain/verify'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['office-website'] }),
+  })
+
   if (!hasWebsite) {
     return <div className="p-8 text-center text-muted">وبسایت اختصاصی در پلن حرفه‌ای فعال است.</div>
   }
@@ -90,6 +116,78 @@ export function OfficeWebsitePage() {
             <a href={`/site/${status.subdomain}`} target="_blank" rel="noreferrer">
               <Button variant="outline" size="sm"><ExternalLink className="h-3 w-3 ml-1" /> مشاهده</Button>
             </a>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-primary" /> دامنه اختصاصی .ir
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted">
+            با پلن حرفه‌ای می‌توانید دامنه .ir بخرید و به وبسایت دفتر وصل کنید.
+            {status?.ir_domain_price && ` قیمت تقریبی: ${formatPrice(status.ir_domain_price)}`}
+          </p>
+
+          {status?.custom_domain && (
+            <div className="rounded-xl bg-muted/10 p-3 text-sm">
+              <p dir="ltr" className="font-medium">{status.custom_domain}</p>
+              <p className="text-muted text-xs mt-1">وضعیت: {status.custom_domain_status}</p>
+            </div>
+          )}
+
+          {status?.latest_order && (
+            <p className="text-xs text-muted">
+              آخرین سفارش: {status.latest_order.domain_name} — {status.latest_order.status}
+            </p>
+          )}
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium">خرید دامنه .ir (ثبت سفارش)</p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="myoffice.ir"
+                value={domainName}
+                onChange={(e) => setDomainName(e.target.value.toLowerCase())}
+                dir="ltr"
+              />
+              <Button onClick={() => orderDomainMutation.mutate()} disabled={!domainName.endsWith('.ir')}>
+                ثبت سفارش
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2 border-t border-card-border pt-4">
+            <p className="text-sm font-medium">دامنه دارید؟ اتصال مستقیم</p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="yourdomain.ir"
+                value={ownDomain}
+                onChange={(e) => setOwnDomain(e.target.value.toLowerCase())}
+                dir="ltr"
+              />
+              <Button variant="outline" onClick={() => connectDomainMutation.mutate()} disabled={!ownDomain}>
+                اتصال
+              </Button>
+            </div>
+          </div>
+
+          {status?.dns_instructions && status.dns_instructions.length > 0 && (
+            <div className="rounded-xl border border-card-border p-3 text-xs space-y-2">
+              <p className="font-medium">تنظیمات DNS:</p>
+              {status.dns_instructions.map((d, i) => (
+                <div key={i} dir="ltr" className="bg-muted/10 p-2 rounded">
+                  {d.type} {d.host} → {d.value}
+                  {d.note && <span className="text-muted block text-[10px]">{d.note}</span>}
+                </div>
+              ))}
+              <Button size="sm" variant="outline" onClick={() => verifyDomainMutation.mutate()}>
+                تأیید DNS
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>

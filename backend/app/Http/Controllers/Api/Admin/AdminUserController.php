@@ -10,6 +10,7 @@ use App\Services\Admin\AuditLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class AdminUserController extends Controller
 {
@@ -37,17 +38,60 @@ class AdminUserController extends Controller
         return response()->json(['data' => $user]);
     }
 
+    public function store(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'username' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9_]+$/', 'unique:users,username'],
+            'mobile' => ['required', 'string', 'regex:/^09\d{9}$/', 'unique:users,mobile'],
+            'password' => ['required', 'string', Password::min(8)],
+            'office_id' => ['required', 'integer', 'exists:offices,id'],
+            'role' => ['required', Rule::in([UserRole::Consultant->value, UserRole::OfficeManager->value])],
+        ]);
+
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'username' => strtolower($data['username']),
+            'mobile' => $data['mobile'],
+            'password' => $data['password'],
+            'office_id' => $data['office_id'],
+            'role' => $data['role'],
+            'is_active' => true,
+            'mobile_verified_at' => now(),
+            'email_verified_at' => now(),
+        ]);
+
+        $this->audit->log('user.created', User::class, $user->id, 'ایجاد کاربر توسط مدیر');
+
+        return response()->json(['data' => $user->load('office'), 'message' => 'کاربر ایجاد شد.'], 201);
+    }
+
     public function update(Request $request, int $id): JsonResponse
     {
         $user = User::findOrFail($id);
-        $old = $user->only(['name', 'role', 'is_active', 'email']);
+        $old = $user->only(['name', 'role', 'is_active', 'email', 'username', 'mobile']);
 
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'max:100'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'username' => ['nullable', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9_]+$/', Rule::unique('users', 'username')->ignore($user->id)],
+            'mobile' => ['nullable', 'string', 'regex:/^09\d{9}$/', Rule::unique('users', 'mobile')->ignore($user->id)],
+            'password' => ['nullable', 'string', Password::min(8)],
             'role' => ['sometimes', 'string', Rule::in(array_column(UserRole::cases(), 'value'))],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+
+        if (! empty($data['password'])) {
+            // hashed via User model cast
+        } else {
+            unset($data['password']);
+        }
+
+        if (isset($data['username'])) {
+            $data['username'] = strtolower($data['username']);
+        }
 
         $user->update($data);
         $this->audit->log('user.updated', User::class, $user->id, 'ویرایش کاربر', $old, $data);

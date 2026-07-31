@@ -40,7 +40,7 @@ class OfficeService
         return $office->load('wallet');
     }
 
-    public function inviteConsultant(User $manager, string $mobile, string $role = 'consultant'): OfficeInvitation
+    public function inviteConsultant(User $manager, array $data): OfficeInvitation
     {
         if (! $manager->canManageOffice()) {
             throw ValidationException::withMessages([
@@ -59,7 +59,8 @@ class OfficeService
             ]);
         }
 
-        $mobile = $this->normalizeMobile($mobile);
+        $mobile = $this->normalizeMobile($data['mobile']);
+        $role = $data['role'] ?? 'consultant';
 
         $existingUser = $this->userRepository->findByMobile($mobile);
         if ($existingUser && $existingUser->office_id === $manager->office_id) {
@@ -78,18 +79,26 @@ class OfficeService
         ]);
 
         if (! $existingUser) {
-            $this->userRepository->create([
-                'name' => 'مشاور',
+            $this->userRepository->create(array_filter([
+                'name' => $data['name'] ?? 'مشاور',
                 'mobile' => $mobile,
+                'email' => $data['email'] ?? null,
+                'username' => isset($data['username']) ? strtolower($data['username']) : null,
+                'password' => $data['password'] ?? null,
                 'office_id' => $manager->office_id,
                 'role' => UserRole::from($role),
                 'is_active' => true,
-            ]);
+                'mobile_verified_at' => now(),
+                'email_verified_at' => ! empty($data['email']) ? now() : null,
+            ]));
         } elseif (! $existingUser->office_id) {
-            $existingUser->update([
+            $existingUser->update(array_filter([
                 'office_id' => $manager->office_id,
                 'role' => UserRole::from($role),
-            ]);
+                'email' => $data['email'] ?? $existingUser->email,
+                'username' => isset($data['username']) ? strtolower($data['username']) : $existingUser->username,
+                'password' => $data['password'] ?? null,
+            ]));
         }
 
         $this->activityLogger->log($manager, 'office.invitation_sent', $invitation, "دعوتنامه برای {$mobile} ارسال شد");

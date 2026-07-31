@@ -149,6 +149,9 @@ export function LoginPage({ panelMode = false }: { panelMode?: boolean }) {
               <Button type="submit" className="w-full" disabled={loading || !login || !password}>
                 {loading ? 'در حال ورود...' : 'ورود'}
               </Button>
+              <p className="text-center text-sm">
+                <Link to="/forgot-password" className="text-primary hover:underline">فراموشی رمز عبور</Link>
+              </p>
               <p className="text-center text-xs text-muted">
                 اگر قبلاً فقط با شماره موبایل ثبت‌نام کرده‌اید، ایمیل و نام کاربری را از پشتیبانی بگیرید و رمز تنظیم کنید.
               </p>

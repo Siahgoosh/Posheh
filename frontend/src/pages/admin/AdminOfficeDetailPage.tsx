@@ -14,6 +14,9 @@ export function AdminOfficeDetailPage() {
   const queryClient = useQueryClient()
   const [planId, setPlanId] = useState('')
   const [trialDate, setTrialDate] = useState('')
+  const [walletAmount, setWalletAmount] = useState('')
+  const [walletDesc, setWalletDesc] = useState('')
+  const [walletType, setWalletType] = useState<'credit' | 'debit'>('credit')
 
   const { data: office, isLoading } = useQuery({
     queryKey: ['admin-office', id],
@@ -29,6 +32,19 @@ export function AdminOfficeDetailPage() {
   const assignPlan = useMutation({
     mutationFn: () => api.post(`/admin/offices/${id}/assign-plan`, { plan_id: parseInt(planId, 10) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-office', id] }),
+  })
+
+  const walletMutation = useMutation({
+    mutationFn: () => api.post(`/admin/offices/${id}/wallet/adjust`, {
+      amount: parseInt(walletAmount, 10),
+      type: walletType,
+      description: walletDesc || (walletType === 'credit' ? 'شارژ دستی' : 'برداشت دستی'),
+    }),
+    onSuccess: () => {
+      setWalletAmount('')
+      setWalletDesc('')
+      queryClient.invalidateQueries({ queryKey: ['admin-office', id] })
+    },
   })
 
   if (isLoading || !office) return <p className="text-muted p-6">بارگذاری…</p>
@@ -53,12 +69,30 @@ export function AdminOfficeDetailPage() {
       </div>
 
       <Card>
+        <CardHeader><CardTitle>شارژ / برداشت کیف پول</CardTitle></CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <select
+            value={walletType}
+            onChange={(e) => setWalletType(e.target.value as 'credit' | 'debit')}
+            className="rounded-xl border border-card-border bg-background px-3 py-2 text-sm"
+          >
+            <option value="credit">شارژ (واریز)</option>
+            <option value="debit">برداشت</option>
+          </select>
+          <Input placeholder="مبلغ (تومان)" value={walletAmount} onChange={(e) => setWalletAmount(e.target.value)} className="w-40" dir="ltr" />
+          <Input placeholder="توضیح" value={walletDesc} onChange={(e) => setWalletDesc(e.target.value)} className="flex-1 min-w-[160px]" />
+          <Button onClick={() => walletMutation.mutate()} disabled={!walletAmount}>اعمال</Button>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle>وضعیت</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
             <Badge>{office.is_active ? 'فعال' : 'غیرفعال'}</Badge>
             <Badge variant="outline">{office.subscription?.plan?.name ?? 'بدون پلن'}</Badge>
             {office.trial_ends_at && <Badge variant="outline">trial تا {formatJalaliDate(office.trial_ends_at)}</Badge>}
+            {office.custom_domain && <Badge variant="outline" dir="ltr">{office.custom_domain}</Badge>}
           </div>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => statusMutation.mutate({ is_active: !office.is_active })}>
@@ -79,10 +113,12 @@ export function AdminOfficeDetailPage() {
       <Card>
         <CardHeader><CardTitle>کاربران دفتر</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          {(office.users ?? []).map((u: { id: number; name: string; mobile: string; role: string }) => (
+          {(office.users ?? []).map((u: { id: number; name: string; mobile: string; email?: string; username?: string; role: string }) => (
             <div key={u.id} className="flex justify-between text-sm border-b border-card-border pb-2">
               <Link to={`/users/${u.id}`} className="text-primary hover:underline">{u.name}</Link>
-              <span className="text-muted" dir="ltr">{u.mobile}</span>
+              <span className="text-muted text-xs" dir="ltr">
+                {[u.email, u.username && `@${u.username}`, u.mobile].filter(Boolean).join(' · ')}
+              </span>
             </div>
           ))}
         </CardContent>

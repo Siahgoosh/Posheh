@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Admin\AdminSearchController;
 use App\Http\Controllers\Api\Admin\AdminSettingsController;
 use App\Http\Controllers\Api\Admin\AdminSubscriptionController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
+use App\Http\Controllers\Api\Admin\AdminDomainController;
 use App\Http\Controllers\Api\Admin\AdminWalletController;
 use App\Http\Middleware\EnsurePlatformStaff;
 use App\Http\Controllers\Api\Admin\AdminOfficeController;
@@ -26,6 +27,8 @@ use App\Http\Controllers\Api\ApiKeyController;
 use App\Http\Controllers\Api\Auth\RegistrationController;
 use App\Http\Controllers\Api\Blog\BlogController;
 use App\Http\Controllers\Api\Auth\AuthController;
+use App\Http\Controllers\Api\Auth\PasswordResetController;
+use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\BotWebhookController;
 use App\Http\Controllers\Api\ConsultantDirectoryController;
 use App\Http\Controllers\Api\ContractController;
@@ -47,6 +50,7 @@ use App\Http\Controllers\Api\PublicApiController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
 use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\WalletController;
 use App\Http\Middleware\EnsureOfficeIsActive;
 use App\Http\Middleware\EnsureSubscriptionAccess;
 use App\Http\Middleware\EnsureUserHasRole;
@@ -71,6 +75,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/sites/{subdomain}/visit-request', [OfficeSiteController::class, 'visitRequest'])->middleware('throttle:20,1');
     Route::post('/analytics/track', [AnalyticsController::class, 'track'])->middleware('throttle:120,1');
     Route::post('/auth/register', [RegistrationController::class, 'register'])->middleware('throttle:10,1');
+    Route::post('/auth/password/forgot', [PasswordResetController::class, 'forgot'])->middleware('throttle:10,1');
+    Route::post('/auth/password/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:10,1');
     Route::get('/payments/zibal/callback', [SubscriptionController::class, 'zibalCallback'])->middleware('throttle:30,1');
 
     Route::post('/bots/telegram/{officeSlug}', [BotWebhookController::class, 'telegram']);
@@ -85,10 +91,15 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', EnsureOfficeIsActive::class, EnsureSubscriptionAccess::class])->group(function () {
         Route::prefix('auth')->group(function () {
             Route::get('/me', [AuthController::class, 'me']);
+            Route::put('/profile', [ProfileController::class, 'update']);
+            Route::put('/password', [ProfileController::class, 'changePassword']);
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::post('/logout-all', [AuthController::class, 'logoutAll']);
             Route::get('/devices', [AuthController::class, 'devices']);
         });
+
+        Route::get('/wallet', [WalletController::class, 'show'])
+            ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
 
         Route::get('/dashboard', [DashboardController::class, 'index']);
 
@@ -178,6 +189,13 @@ Route::prefix('v1')->group(function () {
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/website/posts', [OfficeController::class, 'createSitePost'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::get('/domain', [OfficeController::class, 'domainStatus']);
+            Route::post('/domain/order', [OfficeController::class, 'orderDomain'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::post('/domain/connect', [OfficeController::class, 'connectDomain'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::post('/domain/verify', [OfficeController::class, 'verifyDomain'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
         });
 
         Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])
@@ -192,6 +210,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/search', AdminSearchController::class);
 
             Route::get('/users', [AdminUserController::class, 'index']);
+            Route::post('/users', [AdminUserController::class, 'store']);
             Route::get('/users/platform-staff', [AdminUserController::class, 'platformStaff']);
             Route::post('/users/platform-staff', [AdminUserController::class, 'storePlatformStaff']);
             Route::get('/users/{id}', [AdminUserController::class, 'show']);
@@ -208,6 +227,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/wallets', [AdminWalletController::class, 'index']);
             Route::get('/wallet-transactions', [AdminWalletController::class, 'transactions']);
             Route::post('/offices/{officeId}/wallet/adjust', [AdminWalletController::class, 'adjust']);
+
+            Route::get('/domain-orders', [AdminDomainController::class, 'index']);
+            Route::put('/domain-orders/{id}', [AdminDomainController::class, 'update']);
 
             Route::get('/coupons', [AdminCouponController::class, 'index']);
             Route::post('/coupons', [AdminCouponController::class, 'store']);

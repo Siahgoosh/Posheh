@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Plus } from 'lucide-react'
 import api from '@/lib/api'
 import { formatJalaliDate, formatNumber } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,6 +15,7 @@ interface UserRow {
   name: string
   mobile: string
   email?: string
+  username?: string
   role: string
   role_label?: string
   is_active: boolean
@@ -33,6 +35,16 @@ const roleLabels: Record<string, string> = {
 export function AdminUsersPage() {
   const [q, setQ] = useState('')
   const [role, setRole] = useState('')
+  const [showCreate, setShowCreate] = useState(false)
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    email: '',
+    username: '',
+    mobile: '',
+    password: '',
+    office_id: '',
+    role: 'consultant',
+  })
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -40,6 +52,18 @@ export function AdminUsersPage() {
     queryFn: async () => {
       const res = await api.get('/admin/users', { params: { q: q || undefined, role: role || undefined } })
       return { users: res.data.data as UserRow[], total: res.data.total as number }
+    },
+  })
+
+  const createMutation = useMutation({
+    mutationFn: () => api.post('/admin/users', {
+      ...createForm,
+      office_id: parseInt(createForm.office_id, 10),
+    }),
+    onSuccess: () => {
+      setShowCreate(false)
+      setCreateForm({ name: '', email: '', username: '', mobile: '', password: '', office_id: '', role: 'consultant' })
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
     },
   })
 
@@ -61,7 +85,6 @@ export function AdminUsersPage() {
     },
     onSuccess: (data) => {
       if (data.token) {
-        localStorage.setItem('impersonation_banner', data.impersonation?.banner ?? '')
         window.open(`https://posheapp.ir/dashboard?token=${data.token}`, '_blank')
       }
     },
@@ -71,10 +94,34 @@ export function AdminUsersPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <AdminPageHeader title="مدیریت کاربران" description={`${formatNumber(data?.total ?? users.length)} کاربر`} />
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <AdminPageHeader title="مدیریت کاربران" description={`${formatNumber(data?.total ?? users.length)} کاربر`} />
+        <Button onClick={() => setShowCreate(!showCreate)}>
+          <Plus className="h-4 w-4" /> افزودن کاربر
+        </Button>
+      </div>
+
+      {showCreate && (
+        <Card>
+          <CardHeader><CardTitle>ایجاد کاربر جدید</CardTitle></CardHeader>
+          <CardContent className="grid sm:grid-cols-2 gap-3">
+            <Input placeholder="نام" value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} />
+            <Input placeholder="ایمیل" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} dir="ltr" />
+            <Input placeholder="نام کاربری" value={createForm.username} onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })} dir="ltr" />
+            <Input placeholder="موبایل" value={createForm.mobile} onChange={(e) => setCreateForm({ ...createForm, mobile: e.target.value })} dir="ltr" />
+            <Input placeholder="رمز عبور" type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} />
+            <Input placeholder="شناسه دفتر" value={createForm.office_id} onChange={(e) => setCreateForm({ ...createForm, office_id: e.target.value })} dir="ltr" />
+            <select value={createForm.role} onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })} className="rounded-xl border border-card-border bg-background px-3 py-2 text-sm">
+              <option value="consultant">مشاور</option>
+              <option value="office_manager">مدیر دفتر</option>
+            </select>
+            <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>ایجاد</Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex flex-wrap gap-2">
-        <Input placeholder="جستجو نام یا موبایل…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
+        <Input placeholder="جستجو نام، ایمیل، موبایل…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
         <select
           value={role}
           onChange={(e) => setRole(e.target.value)}
@@ -94,7 +141,10 @@ export function AdminUsersPage() {
             <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-card-border p-3 text-sm">
               <div>
                 <Link to={`/users/${u.id}`} className="font-medium text-primary hover:underline">{u.name}</Link>
-                <p className="text-muted">{u.mobile} · {roleLabels[u.role] ?? u.role}</p>
+                <p className="text-muted" dir="ltr">
+                  {[u.email, u.username && `@${u.username}`, u.mobile].filter(Boolean).join(' · ')}
+                </p>
+                <p className="text-muted text-xs">{roleLabels[u.role] ?? u.role}</p>
                 {u.office && <p className="text-xs text-muted">دفتر: {u.office.name}</p>}
                 {u.last_login_at && <p className="text-xs text-muted">آخرین ورود: {formatJalaliDate(u.last_login_at)}</p>}
               </div>
