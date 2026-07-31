@@ -35,9 +35,11 @@ else
   echo "OK: New login UI in dist"
 fi
 
-echo "==> 5/5 Reload nginx"
-$COMPOSE exec -T nginx nginx -s reload 2>/dev/null || $COMPOSE restart nginx
+echo "==> 5/6 Restart nginx (full restart)"
+$COMPOSE restart nginx
 
+echo "==> 6/6 Verify API"
+curl -sS "http://localhost:8000/api/v1/auth/capabilities" 2>/dev/null | head -c 200 || true
 echo ""
 echo "Done. Hard-refresh browser: Ctrl+Shift+R"
 echo "Login: /login  |  Register: /register"

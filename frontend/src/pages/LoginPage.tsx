@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Building2, KeyRound, Mail } from 'lucide-react'
@@ -19,8 +19,26 @@ export function LoginPage({ panelMode = false }: { panelMode?: boolean }) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [deployWarning, setDeployWarning] = useState('')
+  const [buildInfo, setBuildInfo] = useState('')
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    fetch(`/version.json?t=${Date.now()}`)
+      .then((r) => r.json())
+      .then((v) => setBuildInfo(`${v.auth ?? '?'} · ${v.git ?? ''}`))
+      .catch(() => setBuildInfo(''))
+    api.get('/auth/capabilities')
+      .then((r) => {
+        if (r.data?.login_method !== 'password') {
+          setDeployWarning('سرور هنوز نسخه قدیمی OTP است. روی سرور: ./scripts/deploy-password-auth.sh')
+        }
+      })
+      .catch(() => {
+        setDeployWarning('API قدیمی است یا در دسترس نیست. ./scripts/deploy-password-auth.sh را روی سرور اجرا کنید.')
+      })
+  }, [])
 
   const looksLikeMobile = (value: string) => /^09\d{9}$/.test(normalizeMobile(value))
 
@@ -126,6 +144,7 @@ export function LoginPage({ panelMode = false }: { panelMode?: boolean }) {
                   required
                 />
               </div>
+              {deployWarning && <p className="text-sm text-warning">{deployWarning}</p>}
               {error && <p className="text-sm text-danger">{error}</p>}
               <Button type="submit" className="w-full" disabled={loading || !login || !password}>
                 {loading ? 'در حال ورود...' : 'ورود'}
@@ -136,6 +155,9 @@ export function LoginPage({ panelMode = false }: { panelMode?: boolean }) {
               <p className="text-center text-sm text-muted">
                 حساب ندارید؟ <Link to="/register" className="text-primary hover:underline">ثبت‌نام</Link>
               </p>
+              {buildInfo && (
+                <p className="text-center text-[10px] text-muted/60 pt-2" dir="ltr">{buildInfo}</p>
+              )}
             </form>
           </CardContent>
         </Card>

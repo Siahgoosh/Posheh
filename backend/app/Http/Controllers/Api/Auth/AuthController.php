@@ -20,8 +20,18 @@ class AuthController extends Controller
         private readonly UserRepositoryInterface $users,
     ) {}
 
-    public function login(Request $request): JsonResponse
-    {
+  public function capabilities(): JsonResponse
+  {
+    return response()->json([
+      'login_method' => 'password',
+      'otp_enabled' => false,
+      'register_fields' => ['email', 'username', 'password', 'mobile', 'office_name', 'office_address'],
+      'api_version' => 'auth-password-v2',
+    ]);
+  }
+
+  public function login(Request $request): JsonResponse
+  {
         $request->validate([
             'login' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
