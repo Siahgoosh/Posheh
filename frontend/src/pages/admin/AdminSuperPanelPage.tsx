@@ -14,6 +14,9 @@ import {
   MessageSquare,
   Settings,
   Shield,
+  Activity,
+  Globe,
+  Heart,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { formatNumber } from '@/lib/utils'
@@ -89,6 +92,16 @@ export function AdminSuperPanelPage() {
     refetchInterval: 60000,
   })
 
+  const { data: phase2 } = useQuery({
+    queryKey: ['admin-phase2-summary'],
+    queryFn: async () => (await api.get('/admin/phase2/summary')).data.data as {
+      mrr_estimate: number
+      health: { avg_score: number; low_score_offices: number }
+      virtual_tours?: { published: number; views: number; leads: number }
+      crm_follow_ups_due: number
+    },
+  })
+
   if (isLoading || !data) {
     return <div className="p-8 text-center text-muted">بارگذاری پنل مارکتینگ…</div>
   }
@@ -146,6 +159,21 @@ export function AdminSuperPanelPage() {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Wallet} label="درآمد ماه" value={formatNumber(data.revenue.monthly)} sub={`${formatNumber(data.revenue.paid_count)} پرداخت موفق`} />
+      </div>
+
+      {phase2 && (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard icon={TrendingUp} label="MRR تخمینی" value={formatNumber(phase2.mrr_estimate)} sub="۳۰ روز اخیر" />
+          <StatCard icon={Heart} label="Health میانگین" value={phase2.health.avg_score} sub={`${phase2.health.low_score_offices} دفتر ضعیف`} />
+          <StatCard icon={Globe} label="تور منتشرشده" value={phase2.virtual_tours?.published ?? 0} sub={`${formatNumber(phase2.virtual_tours?.views ?? 0)} بازدید`} />
+          <StatCard icon={Activity} label="پیگیری CRM" value={phase2.crm_follow_ups_due} sub="عقب‌افتاده" />
+        </div>
+      )}
+
+      <div className="flex gap-2 flex-wrap">
+        <Link to="/health"><Button variant="outline" size="sm">Health Score</Button></Link>
+        <Link to="/virtual-tours"><Button variant="outline" size="sm">تور مجازی</Button></Link>
+        <Link to="/system"><Button variant="outline" size="sm">Feature Flags</Button></Link>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

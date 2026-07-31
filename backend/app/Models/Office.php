@@ -100,6 +100,11 @@ class Office extends Model
         return $this->hasMany(OfficeInvitation::class);
     }
 
+    public function healthScore(): HasOne
+    {
+        return $this->hasOne(OfficeHealthScore::class);
+    }
+
     public function hasActiveSubscription(): bool
     {
         return $this->subscription()

@@ -4,7 +4,7 @@ use App\Http\Controllers\Api\AccountingController;
 use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AdminAuditController;
 use App\Http\Controllers\Api\Admin\AdminDataController;
-use App\Http\Controllers\Api\Admin\AdminOperationsController;
+use App\Http\Controllers\Api\Admin\AdminPhase2Controller;
 use App\Http\Controllers\Api\Admin\AdminCouponController;
 use App\Http\Controllers\Api\Admin\AdminImpersonationController;
 use App\Http\Controllers\Api\Admin\AdminPaymentController;
@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\Admin\AdminWalletController;
 use App\Http\Middleware\EnsurePlatformStaff;
 use App\Http\Controllers\Api\Admin\AdminOfficeController;
+use App\Http\Controllers\Api\Admin\AdminOperationsController;
 use App\Http\Controllers\Api\Admin\AppReleaseAdminController;
 use App\Http\Controllers\Api\Admin\BlogAdminController;
 use App\Http\Controllers\Api\Admin\MarketingDashboardController;
@@ -242,6 +243,15 @@ Route::prefix('v1')->group(function () {
             Route::get('/platform/maintenance', [AdminOperationsController::class, 'maintenance']);
             Route::put('/platform/maintenance', [AdminOperationsController::class, 'updateMaintenance']);
             Route::get('/export/{type}', [AdminOperationsController::class, 'export']);
+
+            Route::get('/health-scores', [AdminPhase2Controller::class, 'healthScores']);
+            Route::get('/virtual-tour-stats', [AdminPhase2Controller::class, 'virtualTourStats']);
+            Route::get('/feature-flags', [AdminPhase2Controller::class, 'featureFlags']);
+            Route::put('/feature-flags/{key}', [AdminPhase2Controller::class, 'updateFeatureFlag']);
+            Route::get('/commissions/kpi', [AdminPhase2Controller::class, 'commissionKpi']);
+            Route::get('/crm/follow-ups', [AdminPhase2Controller::class, 'crmFollowUps']);
+            Route::get('/phase2/summary', [AdminPhase2Controller::class, 'phase2Summary']);
+            Route::post('/system/sms-test', [AdminPhase2Controller::class, 'testSms']);
 
             Route::get('/customers', [AdminDataController::class, 'customers']);
             Route::get('/owners', [AdminDataController::class, 'owners']);

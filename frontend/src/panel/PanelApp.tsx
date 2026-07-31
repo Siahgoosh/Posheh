@@ -40,6 +40,8 @@ import { AdminAnalyticsPage } from '@/pages/admin/AdminAnalyticsPage'
 import { AdminSystemPage } from '@/pages/admin/AdminSystemPage'
 import { AdminExportsPage } from '@/pages/admin/AdminExportsPage'
 import { AdminChurnPage } from '@/pages/admin/AdminChurnPage'
+import { AdminHealthPage } from '@/pages/admin/AdminHealthPage'
+import { AdminVirtualToursStatsPage } from '@/pages/admin/AdminVirtualToursStatsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -113,6 +115,8 @@ export function PanelApp() {
             <Route path="analytics" element={<AdminAnalyticsPage />} />
             <Route path="revenue" element={<AdminRevenuePage />} />
             <Route path="churn" element={<AdminChurnPage />} />
+            <Route path="health" element={<AdminHealthPage />} />
+            <Route path="virtual-tours" element={<AdminVirtualToursStatsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
