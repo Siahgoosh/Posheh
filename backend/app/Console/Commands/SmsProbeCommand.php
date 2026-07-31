@@ -55,6 +55,38 @@ class SmsProbeCommand extends Command
         }
 
         $this->newLine();
+        $this->info('JSPD connectivity (MaxSMS / ippanel.com):');
+        $jspdReachable = false;
+        if (($status['has_username'] ?? false) && ($status['has_password'] ?? false)) {
+            try {
+                $start = microtime(true);
+                $response = $this->probeHttp($config)
+                    ->asForm()
+                    ->post('https://ippanel.com/services.jspd', [
+                        'uname' => (string) ($config['username'] ?? ''),
+                        'pass' => (string) ($config['password'] ?? ''),
+                        'from' => '10008721297974',
+                        'to' => '["9170000000"]',
+                        'op' => 'sendPattern',
+                        'pattern_code' => $config['otp_pattern_code'] ?? 'qhhly1nai3njev0',
+                        'input_data' => '["000000"]',
+                    ]);
+                $ms = (int) round((microtime(true) - $start) * 1000);
+                $raw = trim($response->body());
+                $icon = $raw !== '' && strcasecmp($raw, 'deny') !== 0 ? '✓' : ($raw === 'deny' ? '⚠' : '✗');
+                $this->line("  {$icon} services.jspd → HTTP {$response->status()} ({$ms}ms) body: ".mb_substr($raw, 0, 80));
+                $jspdReachable = $raw !== '';
+                if (strcasecmp($raw, 'deny') === 0) {
+                    $this->warn('  JSPD returned deny — IP may not be whitelisted in MaxSMS panel.');
+                }
+            } catch (\Throwable $e) {
+                $this->error('  ✗ services.jspd → FAIL: '.$e->getMessage());
+            }
+        } else {
+            $this->line('  skipped (no panel username/password)');
+        }
+
+        $this->newLine();
         $this->info('Edge API connectivity:');
         $baseUrl = rtrim((string) ($config['base_url'] ?? 'https://edge.ippanel.com/v1'), '/');
         $sendUrl = str_ends_with($baseUrl, '/api') ? "{$baseUrl}/send" : "{$baseUrl}/api/send";
@@ -75,11 +107,11 @@ class SmsProbeCommand extends Command
             }
         }
 
-        if (! $edgeReachable && empty($config['relay_url'])) {
+        if (! $edgeReachable && ! $jspdReachable && empty($config['relay_url'])) {
             $this->newLine();
-            $this->error('ROOT CAUSE: سرور به edge.ippanel.com دسترسی شبکه ندارد (timeout).');
-            $this->line('این مشکل whitelist نیست — مسیر شبکه هلند→ایران بسته است.');
-            $this->line('راه‌حل: SMS Relay روی سرور ایران — docs/SMS-RELAY.md');
+            $this->error('ROOT CAUSE: سرور به ippanel.com و edge.ippanel.com دسترسی شبکه ندارد (timeout).');
+            $this->line('اگر قبلاً JSPD کار می‌کرد: IPPANEL_API_MODE=auto در .env بگذارید و ./scripts/fix-sms-now.sh را اجرا کنید.');
+            $this->line('اگر هر دو timeout می‌شوند: SMS Relay روی سرور ایران — docs/SMS-RELAY.md');
             $this->line('  1) scripts/sms-relay/relay.php را روی VPS ایران deploy کنید');
             $this->line('  2) در .env هلند: SMS_RELAY_URL و SMS_RELAY_SECRET');
             $this->line('  3) ./scripts/fix-sms-now.sh && system:sms-probe --send');
@@ -171,7 +203,12 @@ class SmsProbeCommand extends Command
             }
         }
 
-        return ($status['is_live'] ?? false) && (! empty($config['relay_url']) || ! empty($config['api_key'])) ? self::SUCCESS : self::FAILURE;
+        return ($status['is_live'] ?? false) && (
+            ! empty($config['relay_url'])
+            || $jspdReachable
+            || $edgeReachable
+            || ! empty($config['api_key'])
+        ) ? self::SUCCESS : self::FAILURE;
     }
 
     /** @param array<string, mixed> $config */

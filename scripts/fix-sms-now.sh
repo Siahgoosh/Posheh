@@ -1,5 +1,5 @@
 #!/bin/sh
-# One-command SMS fix for production (Netherlands server + IPPanel Edge API)
+# One-command SMS fix for production — restores JSPD-first + live mode
 set -eu
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

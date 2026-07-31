@@ -156,7 +156,7 @@ class SystemSettingsService
             'otp_pattern_code' => $this->get('ippanel_otp_pattern_code'),
             'invite_pattern_code' => $this->get('ippanel_invite_pattern_code'),
             'base_url' => $this->get('ippanel_base_url', 'https://edge.ippanel.com/v1'),
-            'api_mode' => $this->get('ippanel_api_mode', 'edge'),
+            'api_mode' => $this->get('ippanel_api_mode', 'auto'),
             'sms_provider' => $this->normalizeSmsProvider((string) $this->get('sms_provider', 'maxsms')),
             'relay_url' => $this->get('sms_relay_url'),
             'relay_secret' => $this->get('sms_relay_secret'),
@@ -188,11 +188,6 @@ class SystemSettingsService
 
         if (empty($config['otp_from_number'])) {
             $config['otp_from_number'] = '+9810008721297974';
-        }
-
-        // API key always uses Edge API (works from Netherlands / abroad without IP whitelist)
-        if (! empty($config['api_key']) && ! $this->isMaskedSecret($config['api_key'])) {
-            $config['api_mode'] = 'edge';
         }
 
         return $config;

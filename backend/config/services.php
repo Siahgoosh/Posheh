@@ -64,7 +64,7 @@ return [
         'otp_pattern_code' => env('IPPANEL_OTP_PATTERN_CODE', 'qhhly1nai3njev0'),
         'invite_pattern_code' => env('IPPANEL_INVITE_PATTERN_CODE'),
         'base_url' => env('IPPANEL_BASE_URL', 'https://edge.ippanel.com/v1'),
-        'api_mode' => env('IPPANEL_API_MODE', 'edge'),
+        'api_mode' => env('IPPANEL_API_MODE', 'auto'),
         'sms_mode' => env('SMS_MODE', 'live'),
         'relay_url' => env('SMS_RELAY_URL'),
         'relay_secret' => env('SMS_RELAY_SECRET'),

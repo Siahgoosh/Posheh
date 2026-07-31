@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Services\Settings\SystemSettingsService;
 use App\Services\Sms\IpPanelSmsService;
+use App\Services\Sms\SmsRelayClient;
 use Illuminate\Http\Client\Response;
 use Mockery;
 use ReflectionMethod;
@@ -14,7 +15,8 @@ class ClassicPatternResponseTest extends TestCase
     public function test_classic_pattern_error_code_is_not_treated_as_success(): void
     {
         $settings = Mockery::mock(SystemSettingsService::class);
-        $service = new IpPanelSmsService($settings);
+        $relay = Mockery::mock(SmsRelayClient::class);
+        $service = new IpPanelSmsService($settings, $relay);
 
         $response = new Response(new \GuzzleHttp\Psr7\Response(200, [], '["962","the username or password is incorrect"]'));
 
@@ -30,7 +32,8 @@ class ClassicPatternResponseTest extends TestCase
     public function test_classic_pattern_success_codes(): void
     {
         $settings = Mockery::mock(SystemSettingsService::class);
-        $service = new IpPanelSmsService($settings);
+        $relay = Mockery::mock(SmsRelayClient::class);
+        $service = new IpPanelSmsService($settings, $relay);
 
         $response = new Response(new \GuzzleHttp\Psr7\Response(200, [], '["0","123456789"]'));
 
@@ -45,7 +48,8 @@ class ClassicPatternResponseTest extends TestCase
     public function test_classic_pattern_numeric_tracking_is_success(): void
     {
         $settings = Mockery::mock(SystemSettingsService::class);
-        $service = new IpPanelSmsService($settings);
+        $relay = Mockery::mock(SmsRelayClient::class);
+        $service = new IpPanelSmsService($settings, $relay);
 
         $response = new Response(new \GuzzleHttp\Psr7\Response(200, [], '1441216818'));
 

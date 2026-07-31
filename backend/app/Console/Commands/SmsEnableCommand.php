@@ -28,9 +28,13 @@ class SmsEnableCommand extends Command
         if ($this->option('fix')) {
             $this->syncFromEnv($settings);
             $settings->set('sms_mode', 'live');
-            $settings->set('ippanel_api_mode', 'edge');
+            $apiMode = strtolower(trim((string) env('IPPANEL_API_MODE', '')));
+            if ($apiMode === '') {
+                $apiMode = $this->hasPanelCredentialsInEnv() ? 'auto' : 'edge';
+                $settings->set('ippanel_api_mode', $apiMode);
+            }
             Cache::forget('system_settings');
-            $this->info('SMS fix applied: sms_mode=live, ippanel_api_mode=edge');
+            $this->info("SMS fix applied: sms_mode=live, ippanel_api_mode={$apiMode}");
             $this->newLine();
             $this->printStatus($settings);
             $this->newLine();
@@ -49,8 +53,8 @@ class SmsEnableCommand extends Command
             $this->info('sms_mode set to log — OTP test code: 123456');
         } elseif ($this->option('live')) {
             $settings->set('sms_mode', 'live');
-            if (! empty(env('IPPANEL_API_KEY'))) {
-                $settings->set('ippanel_api_mode', 'edge');
+            if (! env('IPPANEL_API_MODE') && ! $settings->hasValue('ippanel_api_mode')) {
+                $settings->set('ippanel_api_mode', $this->hasPanelCredentialsInEnv() ? 'auto' : 'edge');
             }
             $this->info('sms_mode set to live');
         }
@@ -101,11 +105,8 @@ class SmsEnableCommand extends Command
         }
 
         if (! env('IPPANEL_API_MODE') && ! $settings->hasValue('ippanel_api_mode')) {
-            $settings->set('ippanel_api_mode', 'edge');
-            $this->line('  set ippanel_api_mode=edge (Edge API — works from abroad without IP whitelist)');
-        } elseif (env('IPPANEL_API_KEY') && strtolower((string) env('IPPANEL_API_MODE', '')) !== 'jspd') {
-            $settings->set('ippanel_api_mode', 'edge');
-            $this->line('  set ippanel_api_mode=edge (API key present)');
+            $settings->set('ippanel_api_mode', $this->hasPanelCredentialsInEnv() ? 'auto' : 'edge');
+            $this->line('  set ippanel_api_mode='.($this->hasPanelCredentialsInEnv() ? 'auto' : 'edge'));
         }
 
         if (! env('sms_provider') && ! $settings->hasValue('sms_provider')) {
@@ -122,6 +123,14 @@ class SmsEnableCommand extends Command
             $settings->set('ippanel_otp_from_number', '+9810008721297974');
             $this->line('  set ippanel_otp_from_number=+9810008721297974');
         }
+    }
+
+    private function hasPanelCredentialsInEnv(): bool
+    {
+        $username = trim((string) env('IPPANEL_USERNAME', ''));
+        $password = trim((string) env('IPPANEL_PASSWORD', ''));
+
+        return $username !== '' && $password !== '';
     }
 
     private function printStatus(SystemSettingsService $settings): void

@@ -47,71 +47,73 @@ class IpPanelSmsService
     $otpConfig = $this->otpPatternConfig($config);
     $mode = $this->resolveApiMode($otpConfig);
     $params = ['code' => $code];
-
-    if ($mode === 'edge') {
-      return $this->sendOtpViaEdgeOnly($mobile, $code, $patternCode, $params, $otpConfig);
-    }
-
     $credentialSets = $this->otpCredentialSets($config);
 
-    if ($credentialSets === []) {
+    if ($credentialSets === [] && empty($config['api_key'])) {
       Log::warning('OTP SMS credentials missing', ['mobile' => $mobile]);
 
       return [
         'success' => false,
-        'message' => 'تنظیمات OTP ناقص است. IPPANEL_API_KEY (سرور خارج) یا IPPANEL_USERNAME و IPPANEL_PASSWORD (سرور ایران) را در .env قرار دهید.',
+        'message' => 'تنظیمات OTP ناقص است. IPPANEL_USERNAME و IPPANEL_PASSWORD (مکث/ماکس‌اس‌ام‌اس) یا IPPANEL_API_KEY را در .env قرار دهید.',
       ];
     }
 
     $attempts = [];
-    $deadline = microtime(true) + 25;
+    $deadline = microtime(true) + 28;
 
-    foreach ($credentialSets as $creds) {
-      if ($creds['label'] !== 'panel') {
-        continue;
-      }
+    // JSPD first — this was the working path before phase 1 forced edge-only mode.
+    if ($mode !== 'legacy' && ($mode !== 'edge' || $this->hasPanelCredentials($otpConfig))) {
+      foreach ($credentialSets as $creds) {
+        if ($creds['label'] !== 'panel' || microtime(true) >= $deadline) {
+          continue;
+        }
 
-      if (microtime(true) >= $deadline) {
-        break;
-      }
+        $credConfig = array_merge($otpConfig, [
+          'username' => $creds['username'],
+          'password' => $creds['password'],
+        ]);
 
-      $credConfig = array_merge($otpConfig, [
-        'username' => $creds['username'],
-        'password' => $creds['password'],
-      ]);
+        $jspdResult = $this->sendOtpJspdPattern($mobile, $patternCode, $params, $credConfig);
+        $jspdResult['method'] = ($jspdResult['method'] ?? 'jspd_otp').'_'.$creds['label'];
+        $attempts[] = $jspdResult;
+        if ($jspdResult['success']) {
+          return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
+        }
 
-      $classicResult = $this->sendOtpClassicPattern($mobile, $patternCode, $params, $credConfig);
-      $classicResult['method'] = ($classicResult['method'] ?? 'classic_otp').'_'.$creds['label'];
-      $attempts[] = $classicResult;
-      if ($classicResult['success']) {
-        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $classicResult);
-      }
-    }
-
-    foreach ($credentialSets as $creds) {
-      if (microtime(true) >= $deadline) {
-        break;
-      }
-
-      $credConfig = array_merge($otpConfig, [
-        'username' => $creds['username'],
-        'password' => $creds['password'],
-      ]);
-
-      $jspdResult = $this->sendOtpJspdPattern($mobile, $patternCode, $params, $credConfig);
-      $jspdResult['method'] = ($jspdResult['method'] ?? 'jspd_otp').'_'.$creds['label'];
-      $attempts[] = $jspdResult;
-      if ($jspdResult['success']) {
-        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
+        if ($mode === 'jspd') {
+          break;
+        }
       }
     }
 
-    if (! empty($config['api_key'])) {
-      $auth = $this->resolveAuth($otpConfig, 'edge', 'ippanel');
-      $edgeResult = $this->sendOtpViaEdge($mobile, $patternCode, $params, $otpConfig, $auth);
-      $attempts[] = $edgeResult;
-      if ($edgeResult['success']) {
-        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $edgeResult);
+    if ($mode !== 'edge' && $mode !== 'jspd') {
+      foreach ($credentialSets as $creds) {
+        if ($creds['label'] !== 'panel' || microtime(true) >= $deadline) {
+          continue;
+        }
+
+        $credConfig = array_merge($otpConfig, [
+          'username' => $creds['username'],
+          'password' => $creds['password'],
+        ]);
+
+        $classicResult = $this->sendOtpClassicPattern($mobile, $patternCode, $params, $credConfig);
+        $classicResult['method'] = ($classicResult['method'] ?? 'classic_otp').'_'.$creds['label'];
+        $attempts[] = $classicResult;
+        if ($classicResult['success']) {
+          return $this->otpSuccess($mobile, $patternCode, $otpConfig, $classicResult);
+        }
+      }
+    }
+
+    if ($mode !== 'jspd' && $mode !== 'legacy' && ! empty($config['api_key'])) {
+      if (microtime(true) < $deadline) {
+        $auth = $this->resolveAuth($otpConfig, 'edge', 'ippanel');
+        $edgeResult = $this->sendOtpViaEdge($mobile, $patternCode, $params, $otpConfig, $auth);
+        $attempts[] = $edgeResult;
+        if ($edgeResult['success']) {
+          return $this->otpSuccess($mobile, $patternCode, $otpConfig, $edgeResult);
+        }
       }
     }
 
@@ -139,43 +141,18 @@ class IpPanelSmsService
   }
 
   /** @param array<string, mixed> $config */
-  /** @param array<string, string> $params */
-  private function sendOtpViaEdgeOnly(string $mobile, string $code, string $patternCode, array $params, array $config): array
+  private function resolveApiMode(array $config): string
   {
-    if (empty($config['api_key'])) {
-      return [
-        'success' => false,
-        'message' => 'برای ارسال OTP از سرور خارج از ایران، IPPANEL_API_KEY الزامی است. از پنل مکث → Developers → Access Keys کلید بسازید و IPPANEL_API_MODE=edge تنظیم کنید.',
-      ];
-    }
-
-    $auth = $this->resolveAuth($config, 'edge', 'ippanel');
-    $edgeResult = $this->sendOtpViaEdge($mobile, $patternCode, $params, $config, $auth);
-
-    if ($edgeResult['success']) {
-      return $this->otpSuccess($mobile, $patternCode, $config, $edgeResult);
-    }
-
-    Log::error('OTP Edge send failed', [
-      'mobile' => $mobile,
-      'pattern' => $patternCode,
-      'from' => $config['from_number'],
-      'message' => $edgeResult['message'] ?? null,
-    ]);
-
-    return [
-      'success' => false,
-      'message' => $this->otpFailureMessage([$edgeResult], 'edge'),
-      'method' => $edgeResult['method'] ?? 'edge_otp',
-      'details' => $edgeResult['details'] ?? null,
-      'attempts' => [$edgeResult],
-    ];
+    return strtolower(trim((string) ($config['api_mode'] ?? 'auto')));
   }
 
   /** @param array<string, mixed> $config */
-  private function resolveApiMode(array $config): string
+  private function hasPanelCredentials(array $config): bool
   {
-    return strtolower(trim((string) ($config['api_mode'] ?? 'edge')));
+    $username = trim((string) ($config['username'] ?? ''));
+    $password = trim((string) ($config['password'] ?? ''));
+
+    return $username !== '' && $password !== '' && $password !== '********';
   }
 
   /** @param array<string, mixed> $config */
@@ -272,14 +249,19 @@ class IpPanelSmsService
 
   private function smsHttp(int $timeout = 15, int $connect = 5): \Illuminate\Http\Client\PendingRequest
   {
-    $request = Http::connectTimeout($connect)->timeout($timeout);
-    $proxy = trim((string) (config('services.ippanel.http_proxy') ?? env('IPPANEL_HTTP_PROXY', '')));
+    $options = [
+      'curl' => [
+        CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+      ],
+    ];
 
+    $proxy = trim((string) (config('services.ippanel.http_proxy') ?? env('IPPANEL_HTTP_PROXY', '')));
     if ($proxy !== '') {
-      $request = $request->withOptions(['proxy' => $proxy]);
+      $options['proxy'] = $proxy;
     }
 
-    return $request;
+    return Http::connectTimeout($connect)->timeout($timeout)->withOptions($options);
   }
 
   /** @param array<string, mixed> $config */

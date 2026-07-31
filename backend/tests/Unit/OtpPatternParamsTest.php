@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Services\Settings\SystemSettingsService;
 use App\Services\Sms\IpPanelSmsService;
+use App\Services\Sms\SmsRelayClient;
 use Mockery;
 use ReflectionMethod;
 use Tests\TestCase;
@@ -13,7 +14,8 @@ class OtpPatternParamsTest extends TestCase
     public function test_otp_pattern_values_use_named_code_key_first(): void
     {
         $settings = Mockery::mock(SystemSettingsService::class);
-        $service = new IpPanelSmsService($settings);
+        $relay = Mockery::mock(SmsRelayClient::class);
+        $service = new IpPanelSmsService($settings, $relay);
 
         $method = new ReflectionMethod(IpPanelSmsService::class, 'patternValueVariants');
         $method->setAccessible(true);
