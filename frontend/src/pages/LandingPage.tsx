@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Building2, Smartphone, Shield, Users, Search, BarChart3, Kanban, Calculator,
+  Building2, Shield, Users, Search, BarChart3, Kanban, Calculator,
   ArrowLeft, CheckCircle2, Sparkles, Calendar, QrCode, UserCircle, Target,
   FileText, MessageSquare, Zap, Cloud, Headphones, ChevronDown,
-  Wallet, Bot, Globe, Star,
+  Wallet, Bot, Globe, Star, Menu, X, KeyRound, UserPlus,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
@@ -49,11 +49,11 @@ const allFeatures = [
   { icon: BarChart3, title: 'گزارش KPI', desc: 'نمودار درآمد و عملکرد مشاوران' },
   { icon: Shield, title: 'نقش و دسترسی', desc: 'کنترل دقیق سطح دسترسی هر مشاور' },
   { icon: Search, title: 'جستجوی پیشرفته', desc: 'فیلتر قیمت، متراژ، محله و نوع' },
-  { icon: Cloud, title: 'ابری و امن', desc: 'بک‌آپ، OTP و جداسازی داده هر دفتر' },
+  { icon: Cloud, title: 'ابری و امن', desc: 'بک‌آپ، ورود امن و جداسازی داده هر دفتر' },
 ]
 
 const steps = [
-  { n: '۱', title: 'ثبت‌نام و انتخاب پلن', desc: 'پنل فردی: ۴۸ ساعت رایگان — بدون کارت بانکی' },
+  { n: '۱', title: 'ثبت‌نام با ایمیل', desc: 'نام دفتر، آدرس، موبایل و رمز عبور — بدون پیامک و کد تأیید' },
   { n: '۲', title: 'راه‌اندازی خودکار', desc: 'پنل اختصاصی دفتر شما در کمتر از ۳ دقیقه آماده می‌شود' },
   { n: '۳', title: 'شروع فایلینگ', desc: 'مشاوران را دعوت کنید و اولین ملک را ثبت کنید' },
 ]
@@ -73,6 +73,7 @@ const faqs = [
 
 export function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   const { data: apiPlans } = useQuery({
     queryKey: ['plans'],
@@ -118,14 +119,38 @@ export function LandingPage() {
             <Link to="/blog" className="hover:text-primary transition-colors">وبلاگ</Link>
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/login"><Button variant="ghost" size="sm">ورود</Button></Link>
-            <Link to="/register">
+            <Link to="/login" className="hidden sm:inline-flex"><Button variant="ghost" size="sm">ورود</Button></Link>
+            <Link to="/register" className="hidden sm:inline-flex">
               <Button size="sm" className="shadow-lg shadow-primary/25">
-                شروع رایگان <ArrowLeft className="h-4 w-4" />
+                ثبت‌نام <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
+            <button
+              type="button"
+              className="md:hidden p-2 rounded-lg border border-card-border"
+              onClick={() => setMobileNavOpen((o) => !o)}
+              aria-label="منو"
+            >
+              {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
+        {mobileNavOpen && (
+          <div className="md:hidden border-t border-card-border bg-background/95 backdrop-blur px-4 py-4 space-y-3">
+            <a href="#features" className="block text-sm text-muted" onClick={() => setMobileNavOpen(false)}>امکانات</a>
+            <a href="#pricing" className="block text-sm text-muted" onClick={() => setMobileNavOpen(false)}>تعرفه</a>
+            <a href="#auth" className="block text-sm text-muted" onClick={() => setMobileNavOpen(false)}>ورود / ثبت‌نام</a>
+            <Link to="/blog" className="block text-sm text-muted" onClick={() => setMobileNavOpen(false)}>وبلاگ</Link>
+            <div className="flex gap-2 pt-2">
+              <Link to="/login" className="flex-1" onClick={() => setMobileNavOpen(false)}>
+                <Button variant="outline" className="w-full" size="sm">ورود</Button>
+              </Link>
+              <Link to="/register" className="flex-1" onClick={() => setMobileNavOpen(false)}>
+                <Button className="w-full" size="sm">ثبت‌نام</Button>
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero */}
@@ -145,9 +170,12 @@ export function LandingPage() {
             </p>
             <div className="flex flex-wrap gap-3 mb-6">
               <Link to="/register">
-                <Button size="lg" className="shadow-lg shadow-primary/30">شروع ۴۸ ساعت رایگان</Button>
+                <Button size="lg" className="shadow-lg shadow-primary/30">ثبت‌نام رایگان</Button>
               </Link>
-              <a href="#pricing"><Button variant="outline" size="lg">مشاهده پلن‌ها</Button></a>
+              <Link to="/login">
+                <Button variant="outline" size="lg">ورود به حساب</Button>
+              </Link>
+              <a href="#pricing"><Button variant="ghost" size="lg">مشاهده پلن‌ها</Button></a>
             </div>
             <div className="flex flex-wrap gap-4 text-xs text-muted">
               {['بدون کارت بانکی', 'لغو هر زمان', 'پشتیبانی فارسی'].map((t) => (
@@ -343,13 +371,38 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Auth — ورود و ثبت‌نام */}
+      <section id="auth" className="container mx-auto max-w-6xl px-4 py-16">
+        <h2 className="text-2xl font-bold text-center mb-3">ورود و ثبت‌نام</h2>
+        <p className="text-center text-muted text-sm mb-10 max-w-xl mx-auto">
+          با ایمیل یا نام کاربری و رمز عبور — بدون نیاز به پیامک
+        </p>
+        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          <Card className="p-8 glass-hover border-primary/20">
+            <KeyRound className="h-10 w-10 text-primary mb-4" />
+            <h3 className="text-lg font-bold mb-2">ورود</h3>
+            <p className="text-sm text-muted mb-6">حساب دارید؟ با ایمیل یا نام کاربری وارد شوید.</p>
+            <Link to="/login"><Button className="w-full">ورود به پوشه</Button></Link>
+          </Card>
+          <Card className="p-8 glass-hover border-accent/20">
+            <UserPlus className="h-10 w-10 text-accent mb-4" />
+            <h3 className="text-lg font-bold mb-2">ثبت‌نام</h3>
+            <p className="text-sm text-muted mb-6">دفتر جدید؟ پلن را انتخاب کنید و در چند دقیقه شروع کنید.</p>
+            <Link to="/register"><Button className="w-full" variant="outline">ایجاد حساب جدید</Button></Link>
+          </Card>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="container mx-auto max-w-6xl px-4 py-16">
         <Card className="p-10 md:p-14 text-center bg-gradient-to-br from-primary/15 to-accent/10 border-primary/30">
           <Headphones className="h-10 w-10 text-primary mx-auto mb-4" />
           <h2 className="text-2xl md:text-3xl font-bold mb-3">همین امروز دفترتان را حرفه‌ای کنید</h2>
-          <p className="text-muted max-w-lg mx-auto mb-8">ثبت‌نام رایگان — راه‌اندازی زیر ۳ دقیقه — پشتیبانی فارسی</p>
-          <Link to="/register"><Button size="lg" className="shadow-lg shadow-primary/30">شروع رایگان <ArrowLeft className="h-4 w-4" /></Button></Link>
+          <p className="text-muted max-w-lg mx-auto mb-8">ثبت‌نام رایگان — ورود با ایمیل — پشتیبانی فارسی</p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link to="/register"><Button size="lg" className="shadow-lg shadow-primary/30">ثبت‌نام <ArrowLeft className="h-4 w-4" /></Button></Link>
+            <Link to="/login"><Button size="lg" variant="outline">ورود</Button></Link>
+          </div>
         </Card>
       </section>
 
