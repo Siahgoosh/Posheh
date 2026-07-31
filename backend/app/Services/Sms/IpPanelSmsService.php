@@ -782,33 +782,53 @@ class IpPanelSmsService
     $lastResult = ['success' => false, 'message' => 'هیچ روش ارسالی موفق نشد'];
 
     foreach ($strategies as $strategy) {
-      try {
-        $response = $this->executeStrategy($strategy);
-        $result = $strategy['type'] === 'jspd'
-          ? $this->parseJspdResponse($response)
-          : $this->parseResponse($response);
-        $result['method'] = $strategy['name'];
+      $maxAttempts = ($strategy['type'] ?? '') === 'jspd' ? 3 : 1;
 
-        if ($result['success']) {
-          Log::info('IPPanel SMS sent', ['method' => $strategy['name'], 'mobile' => $mobile]);
+      for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+        try {
+          $response = $this->executeStrategy($strategy);
+          $result = $strategy['type'] === 'jspd'
+            ? $this->parseJspdResponse($response)
+            : $this->parseResponse($response);
+          $result['method'] = $strategy['name'].($attempt > 1 ? '_retry'.$attempt : '');
 
-          return $result;
-        }
+          if ($result['success']) {
+            Log::info('IPPanel SMS sent', ['method' => $result['method'], 'mobile' => $mobile, 'attempt' => $attempt]);
 
-        $lastResult = $result;
+            return $result;
+          }
 
-        if (! $this->shouldRetryWithNextStrategy($response, $mode, $strategy['type'] ?? '')) {
+          $lastResult = $result;
+
+          if (! $this->shouldRetryWithNextStrategy($response, $mode, $strategy['type'] ?? '')) {
+            break 2;
+          }
+
+          Log::warning('IPPanel strategy failed, trying next', [
+            'method' => $strategy['name'],
+            'status' => $response->status(),
+            'message' => $result['message'] ?? null,
+            'attempt' => $attempt,
+          ]);
           break;
-        }
+        } catch (\Throwable $e) {
+          $lastResult = ['success' => false, 'message' => 'خطای اتصال: '.$e->getMessage(), 'method' => $strategy['name']];
+          Log::warning('IPPanel webservice exception', [
+            'method' => $strategy['name'],
+            'error' => $e->getMessage(),
+            'attempt' => $attempt,
+          ]);
 
-        Log::warning('IPPanel strategy failed, trying next', [
-          'method' => $strategy['name'],
-          'status' => $response->status(),
-          'message' => $result['message'] ?? null,
-        ]);
-      } catch (\Throwable $e) {
-        $lastResult = ['success' => false, 'message' => 'خطای اتصال: '.$e->getMessage(), 'method' => $strategy['name']];
-        Log::error('IPPanel webservice exception', ['method' => $strategy['name'], 'error' => $e->getMessage()]);
+          if ($attempt < $maxAttempts && $this->isRetryableConnectionError($e)) {
+            usleep(2_000_000);
+
+            continue;
+          }
+
+          if (($strategy['type'] ?? '') !== 'jspd' || $attempt >= $maxAttempts) {
+            break 2;
+          }
+        }
       }
     }
 
@@ -1156,10 +1176,11 @@ class IpPanelSmsService
 
   private function executeStrategy(array $strategy): Response
   {
-    $request = Http::timeout(30)->acceptJson();
+    $request = Http::connectTimeout(10)->timeout(25)->acceptJson();
 
     if ($strategy['type'] === 'jspd') {
-      return Http::timeout(30)
+      return Http::connectTimeout(10)
+        ->timeout(25)
         ->asForm()
         ->post($strategy['url'], $strategy['options']['form'] ?? []);
     }
@@ -1169,6 +1190,16 @@ class IpPanelSmsService
     }
 
     return $request->get($strategy['url'], $strategy['options']['query'] ?? []);
+  }
+
+  private function isRetryableConnectionError(\Throwable $e): bool
+  {
+    $message = $e->getMessage();
+
+    return str_contains($message, 'timed out')
+      || str_contains($message, 'Timeout')
+      || str_contains($message, 'cURL error 28')
+      || str_contains($message, 'Could not resolve host');
   }
 
   private function parseJspdResponse(Response $response): array

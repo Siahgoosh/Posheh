@@ -57,7 +57,33 @@ class SmsProbeCommand extends Command
         $this->newLine();
         $this->info('JSPD connectivity (MaxSMS / ippanel.com):');
         $jspdReachable = false;
+        $jspdDeny = false;
         if (($status['has_username'] ?? false) && ($status['has_password'] ?? false)) {
+            try {
+                $start = microtime(true);
+                $credit = $this->probeHttp($config)
+                    ->asForm()
+                    ->post('https://ippanel.com/services.jspd', [
+                        'uname' => (string) ($config['username'] ?? ''),
+                        'pass' => (string) ($config['password'] ?? ''),
+                        'op' => 'getcredit',
+                    ]);
+                $ms = (int) round((microtime(true) - $start) * 1000);
+                $creditRaw = trim($credit->body());
+                if ($creditRaw !== '' && strcasecmp($creditRaw, 'deny') !== 0) {
+                    $jspdReachable = true;
+                    $this->line("  ✓ getcredit → HTTP {$credit->status()} ({$ms}ms) — JSPD reachable");
+                } elseif (strcasecmp($creditRaw, 'deny') === 0) {
+                    $jspdDeny = true;
+                    $this->warn("  ⚠ getcredit → deny ({$ms}ms) — panel blocks this IP for some ops");
+                } else {
+                    $this->error("  ✗ getcredit → empty response ({$ms}ms)");
+                }
+            } catch (\Throwable $e) {
+                $this->error('  ✗ getcredit → FAIL: '.$e->getMessage());
+                $this->warn('  شبکه به ippanel.com ناپایدار است — گاهی کار می‌کند گاهی timeout (مثل پیامک ۱۸:۲۱).');
+            }
+
             try {
                 $start = microtime(true);
                 $response = $this->probeHttp($config)
@@ -109,9 +135,14 @@ class SmsProbeCommand extends Command
 
         if (! $edgeReachable && ! $jspdReachable && empty($config['relay_url'])) {
             $this->newLine();
-            $this->error('ROOT CAUSE: سرور به ippanel.com و edge.ippanel.com دسترسی شبکه ندارد (timeout).');
-            $this->line('اگر قبلاً JSPD کار می‌کرد: IPPANEL_API_MODE=auto در .env بگذارید و ./scripts/fix-sms-now.sh را اجرا کنید.');
-            $this->line('اگر هر دو timeout می‌شوند: SMS Relay روی سرور ایران — docs/SMS-RELAY.md');
+            if ($jspdDeny) {
+                $this->error('ROOT CAUSE: JSPD deny — IP سرور در پنل مکث whitelist نیست برای برخی APIها.');
+                $this->line('OTP از plain webservice ارسال می‌شود (اگر شبکه وصل باشد).');
+            } else {
+                $this->error('ROOT CAUSE: اتصال به ippanel.com ناپایدار است (گاهی timeout).');
+                $this->line('پیامک ۱۸:۲۱ از webservice plain رفت — وقتی شبکه وصل بود.');
+            }
+            $this->line('راه‌حل پایدار: SMS Relay روی VPS ایران — docs/SMS-RELAY.md');
             $this->line('  1) scripts/sms-relay/relay.php را روی VPS ایران deploy کنید');
             $this->line('  2) در .env هلند: SMS_RELAY_URL و SMS_RELAY_SECRET');
             $this->line('  3) ./scripts/fix-sms-now.sh && system:sms-probe --send');
