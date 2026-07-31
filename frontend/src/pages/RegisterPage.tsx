@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Building2, User, Users, Crown, CheckCircle2, Smartphone, RefreshCw, AlertCircle } from 'lucide-react'
+import { Building2, User, Users, Crown, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -18,23 +18,23 @@ const planIcons: Record<string, typeof User> = {
   premium: Crown,
 }
 
-type Step = 'plan' | 'mobile' | 'otp' | 'details'
+type Step = 'plan' | 'details'
 
 export function RegisterPage() {
   const navigate = useNavigate()
   const { setAuth } = useAuthStore()
   const [step, setStep] = useState<Step>('plan')
   const [selectedPlan, setSelectedPlan] = useState<PlanOption | null>(null)
-  const [mobile, setMobile] = useState('')
-  const [otp, setOtp] = useState('')
-  const [registrationToken, setRegistrationToken] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [countdown, setCountdown] = useState(0)
-  const [devHint, setDevHint] = useState('')
   const logoRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
+    email: '',
+    username: '',
+    password: '',
+    password_confirmation: '',
+    mobile: '',
     first_name: '',
     last_name: '',
     manager_name: '',
@@ -60,72 +60,35 @@ export function RegisterPage() {
   })
 
   const displayPlans = plans?.length ? plans : FALLBACK_PLANS
-
-  const sendOtp = async () => {
-    setError('')
-    setDevHint('')
-    setLoading(true)
-    try {
-      const res = await api.post('/auth/otp/send', { mobile: normalizeMobile(mobile), purpose: 'register' }, { timeout: 12000 })
-      if (res.data.dev_hint) setDevHint(res.data.dev_hint)
-      setMobile(normalizeMobile(mobile))
-      setStep('otp')
-      setCountdown(120)
-      const timer = setInterval(() => {
-        setCountdown((c) => { if (c <= 1) { clearInterval(timer); return 0 } return c - 1 })
-      }, 1000)
-    } catch (err: unknown) {
-      const e = err as { code?: string; response?: { status?: number; data?: { errors?: Record<string, string[]>; message?: string } } }
-      if (e.code === 'ECONNABORTED' || e.response?.status === 504) {
-        setError('سرور پاسخ نداد. اگر کد رسید ادامه دهید؛ وگرنه دوباره تلاش کنید.')
-        setMobile(normalizeMobile(mobile))
-        setStep('otp')
-        setCountdown(120)
-      } else {
-        setError(e.response?.data?.errors?.mobile?.[0] || e.response?.data?.message || 'خطا در ارسال کد')
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const verifyOtp = async () => {
-    setError('')
-    setLoading(true)
-    try {
-      const { data } = await api.post('/auth/otp/verify', {
-        mobile: normalizeMobile(mobile),
-        code: toEnglishDigits(otp).replace(/\D/g, '').slice(0, 6).padStart(6, '0'),
-        purpose: 'register',
-      })
-      if (data.needs_registration) {
-        setRegistrationToken(data.registration_token)
-        setStep('details')
-      } else if (data.token) {
-        setAuth(data.user, data.token)
-        navigate(data.subscription_expired ? '/renew' : '/dashboard')
-      }
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } }
-      setError(e.response?.data?.errors?.code?.[0] || e.response?.data?.message || 'کد نامعتبر')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const isSolo = selectedPlan?.slug === 'solo'
 
   const submitRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedPlan || !registrationToken) return
+    if (!selectedPlan) return
     setError('')
     setLoading(true)
     try {
       const body = new FormData()
-      body.append('registration_token', registrationToken)
       body.append('plan_slug', selectedPlan.slug)
+      body.append('email', form.email.trim().toLowerCase())
+      body.append('username', form.username.trim().toLowerCase())
+      body.append('password', form.password)
+      body.append('password_confirmation', form.password_confirmation)
+      body.append('mobile', normalizeMobile(form.mobile))
+      body.append('office_name', form.office_name)
+      body.append('office_address', form.office_address)
       body.append('device_id', getDeviceId())
       body.append('device_name', getDeviceName())
       body.append('platform', getPlatform())
-      Object.entries(form).forEach(([k, v]) => { if (v) body.append(k, v) })
+
+      const optionalFields = [
+        'first_name', 'last_name', 'manager_name', 'office_phone',
+        'office_city', 'office_description', 'telegram_bot_token', 'whatsapp_phone',
+      ] as const
+      optionalFields.forEach((k) => {
+        if (form[k]) body.append(k, form[k])
+      })
+
       const logo = logoRef.current?.files?.[0]
       if (logo) body.append('logo', logo)
 
@@ -146,8 +109,6 @@ export function RegisterPage() {
     }
   }
 
-  const isSolo = selectedPlan?.slug === 'solo'
-
   return (
     <div className="min-h-screen bg-background p-4 py-10">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -162,7 +123,7 @@ export function RegisterPage() {
             <Building2 className="h-7 w-7 text-primary-foreground" />
           </div>
           <h1 className="text-3xl font-bold gradient-text">ثبت‌نام در پوشه</h1>
-          <p className="text-muted mt-2">پلن مناسب خود را انتخاب کنید — {toPersianDigits('3')} روز تست رایگان</p>
+          <p className="text-muted mt-2">پلن مناسب خود را انتخاب کنید — بدون نیاز به پیامک</p>
         </div>
 
         {step === 'plan' && (
@@ -230,7 +191,7 @@ export function RegisterPage() {
                   })}
                 </div>
                 <div className="md:col-span-3 flex justify-center">
-                  <Button size="lg" disabled={!selectedPlan} onClick={() => setStep('mobile')}>
+                  <Button size="lg" disabled={!selectedPlan} onClick={() => setStep('details')}>
                     ادامه با {selectedPlan?.name ?? 'پلن انتخابی'}
                   </Button>
                 </div>
@@ -239,86 +200,84 @@ export function RegisterPage() {
           </>
         )}
 
-        {step === 'mobile' && (
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Smartphone className="h-5 w-5" />
-                شماره موبایل
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted">پلن انتخابی: <strong>{selectedPlan?.name}</strong></p>
-              <Input
-                type="tel"
-                placeholder="۰۹۱۲۱۲۳۴۵۶۷"
-                value={mobile}
-                onChange={(e) => setMobile(toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 11))}
-                dir="ltr"
-                className="text-center text-lg tracking-widest"
-              />
-              {error && <p className="text-sm text-danger">{error}</p>}
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setStep('plan')}>بازگشت</Button>
-                <Button className="flex-1" disabled={loading || mobile.length < 11} onClick={sendOtp}>
-                  {loading ? 'ارسال…' : 'دریافت کد'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === 'otp' && (
-          <Card className="max-w-md mx-auto">
-            <CardHeader><CardTitle>تأیید کد</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              {devHint && <p className="text-sm text-warning text-center">{devHint}</p>}
-              <Input
-                placeholder="کد ۶ رقمی"
-                value={otp}
-                onChange={(e) => setOtp(toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 6))}
-                dir="ltr"
-                className="text-center text-2xl tracking-widest font-mono"
-                autoFocus
-              />
-              {error && <p className="text-sm text-danger">{error}</p>}
-              <Button className="w-full" disabled={loading || otp.length < 6} onClick={verifyOtp}>
-                {loading ? 'بررسی…' : 'تأیید'}
-              </Button>
-              {countdown > 0 ? (
-                <p className="text-center text-sm text-muted">ارسال مجدد ({toPersianDigits(String(countdown))})</p>
-              ) : (
-                <button type="button" onClick={sendOtp} className="w-full text-sm text-primary">ارسال مجدد</button>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
         {step === 'details' && selectedPlan && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
             <Card className="max-w-xl mx-auto">
               <CardHeader>
-                <CardTitle>{isSolo ? 'اطلاعات شخصی' : 'اطلاعات دفتر املاک'}</CardTitle>
+                <CardTitle>اطلاعات حساب و دفتر — {selectedPlan.name}</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={submitRegistration} className="space-y-4">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <Input
+                      type="email"
+                      placeholder="ایمیل *"
+                      value={form.email}
+                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                      dir="ltr"
+                      required
+                    />
+                    <Input
+                      placeholder="نام کاربری (انگلیسی) *"
+                      value={form.username}
+                      onChange={(e) => setForm((f) => ({ ...f, username: toEnglishDigits(e.target.value).replace(/[^a-zA-Z0-9._-]/g, '') }))}
+                      dir="ltr"
+                      required
+                    />
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <Input
+                      type="password"
+                      placeholder="رمز عبور (حداقل ۸ کاراکتر) *"
+                      value={form.password}
+                      onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                      required
+                      minLength={8}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="تکرار رمز عبور *"
+                      value={form.password_confirmation}
+                      onChange={(e) => setForm((f) => ({ ...f, password_confirmation: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <Input
+                    type="tel"
+                    placeholder="شماره موبایل *"
+                    value={form.mobile}
+                    onChange={(e) => setForm((f) => ({ ...f, mobile: toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 11) }))}
+                    dir="ltr"
+                    required
+                  />
+
                   {isSolo ? (
-                    <>
-                      <Input placeholder="نام" value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} required />
-                      <Input placeholder="نام خانوادگی" value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} required />
-                    </>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <Input placeholder="نام *" value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} required />
+                      <Input placeholder="نام خانوادگی *" value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} required />
+                    </div>
                   ) : (
+                    <Input placeholder="نام مدیر دفتر" value={form.manager_name} onChange={(e) => setForm((f) => ({ ...f, manager_name: e.target.value }))} />
+                  )}
+
+                  <Input
+                    placeholder="نام دفتر املاک *"
+                    value={form.office_name}
+                    onChange={(e) => setForm((f) => ({ ...f, office_name: e.target.value }))}
+                    required
+                  />
+                  <Input placeholder="شهر" value={form.office_city} onChange={(e) => setForm((f) => ({ ...f, office_city: e.target.value }))} />
+                  <textarea
+                    className="w-full min-h-[72px] rounded-xl border border-card-border bg-background/50 p-3 text-sm"
+                    placeholder="آدرس دفتر *"
+                    value={form.office_address}
+                    onChange={(e) => setForm((f) => ({ ...f, office_address: e.target.value }))}
+                    required
+                  />
+
+                  {!isSolo && (
                     <>
-                      <Input placeholder="نام دفتر املاک *" value={form.office_name} onChange={(e) => setForm((f) => ({ ...f, office_name: e.target.value }))} required />
-                      <Input placeholder="نام مدیر دفتر" value={form.manager_name} onChange={(e) => setForm((f) => ({ ...f, manager_name: e.target.value }))} />
                       <Input placeholder="تلفن دفتر" value={form.office_phone} onChange={(e) => setForm((f) => ({ ...f, office_phone: e.target.value }))} dir="ltr" />
-                      <Input placeholder="شهر" value={form.office_city} onChange={(e) => setForm((f) => ({ ...f, office_city: e.target.value }))} />
-                      <textarea
-                        className="w-full min-h-[72px] rounded-xl border border-card-border bg-background/50 p-3 text-sm"
-                        placeholder="آدرس دفتر"
-                        value={form.office_address}
-                        onChange={(e) => setForm((f) => ({ ...f, office_address: e.target.value }))}
-                      />
                       <textarea
                         className="w-full min-h-[72px] rounded-xl border border-card-border bg-background/50 p-3 text-sm"
                         placeholder="توضیحات دفتر (اختیاری)"
@@ -337,16 +296,20 @@ export function RegisterPage() {
                       )}
                     </>
                   )}
+
                   {error && <p className="text-sm text-danger">{error}</p>}
+                  <div className="flex gap-2">
+                    <Button type="button" variant="ghost" onClick={() => setStep('plan')}>بازگشت</Button>
+                    <Button type="submit" className="flex-1" disabled={loading}>
+                      {loading ? 'ثبت‌نام…' : 'ایجاد حساب'}
+                    </Button>
+                  </div>
                   <p className="text-xs text-muted text-center">
                     با ثبت‌نام، <Link to="/terms" className="text-primary hover:underline">قوانین</Link>
                     {' '}و{' '}
                     <Link to="/privacy" className="text-primary hover:underline">حریم خصوصی</Link>
                     {' '}را می‌پذیرید.
                   </p>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'ثبت‌نام…' : selectedPlan?.slug === 'solo' ? 'شروع ۴۸ ساعت رایگان' : 'ادامه ثبت‌نام'}
-                  </Button>
                 </form>
               </CardContent>
             </Card>

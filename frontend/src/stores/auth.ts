@@ -7,6 +7,8 @@ export interface User {
   id: number
   name: string
   mobile: string
+  email?: string
+  username?: string
   role: string
   role_label: string
   avatar_url?: string

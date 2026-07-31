@@ -8,6 +8,8 @@ interface UserRepositoryInterface
 {
     public function findByMobile(string $mobile): ?User;
 
+    public function findByLogin(string $login): ?User;
+
     public function findById(int $id): ?User;
 
     public function create(array $data): User;

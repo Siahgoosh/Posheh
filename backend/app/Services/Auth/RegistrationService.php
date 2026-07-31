@@ -42,10 +42,30 @@ class RegistrationService
 
         if (! $mobile) {
             throw ValidationException::withMessages([
-                'registration_token' => ['نشست ثبت‌نام منقضی شده. دوباره کد تأیید بگیرید.'],
+                'registration_token' => ['نشست ثبت‌نام منقضی شده. دوباره ثبت‌نام کنید.'],
             ]);
         }
 
+        return $this->createAccount($mobile, $data, $device);
+    }
+
+    /** @return array<string, mixed> */
+    public function registerWithPassword(array $data, ?VerifyOtpDTO $device = null): array
+    {
+        $mobile = $this->normalizeMobile((string) ($data['mobile'] ?? ''));
+
+        if ($mobile === '' || ! preg_match('/^09\d{9}$/', $mobile)) {
+            throw ValidationException::withMessages([
+                'mobile' => ['شماره موبایل معتبر وارد کنید.'],
+            ]);
+        }
+
+        return $this->createAccount($mobile, $data, $device);
+    }
+
+    /** @return array<string, mixed> */
+    private function createAccount(string $mobile, array $data, ?VerifyOtpDTO $device): array
+    {
         if (User::where('mobile', $mobile)->exists()) {
             throw ValidationException::withMessages([
                 'mobile' => ['این شماره قبلاً ثبت شده است. وارد شوید.'],
@@ -59,8 +79,8 @@ class RegistrationService
         $panelType = PanelType::from($plan->panel_type);
         $soloTrialHours = (int) $this->settings->get('trial_hours_solo', 48);
 
-        return DB::transaction(function () use ($mobile, $data, $plan, $panelType, $device, $registrationToken, $soloTrialHours) {
-            $officeData = $this->buildOfficeData($data, $plan, $panelType, $soloTrialHours);
+        return DB::transaction(function () use ($mobile, $data, $plan, $panelType, $device, $soloTrialHours) {
+            $officeData = $this->buildOfficeData($data, $plan, $panelType, $soloTrialHours, $mobile);
             $office = Office::create($officeData);
 
             if (! empty($data['logo']) && $data['logo'] instanceof \Illuminate\Http\UploadedFile) {
@@ -72,19 +92,25 @@ class RegistrationService
 
             $userName = $panelType->isSolo()
                 ? trim(($data['first_name'] ?? '').' '.($data['last_name'] ?? ''))
-                : ($data['manager_name'] ?? $office->name);
+                : ($data['manager_name'] ?? $data['office_name'] ?? $office->name);
 
             $user = User::create([
                 'name' => $userName,
                 'mobile' => $mobile,
+                'email' => strtolower(trim((string) $data['email'])),
+                'username' => strtolower(trim((string) $data['username'])),
+                'password' => $data['password'],
                 'office_id' => $office->id,
                 'role' => UserRole::OfficeManager,
                 'is_active' => true,
                 'mobile_verified_at' => now(),
+                'email_verified_at' => now(),
                 'last_login_at' => now(),
             ]);
 
-            Cache::forget($this->tokenKey($registrationToken));
+            if (! empty($data['registration_token'])) {
+                Cache::forget($this->tokenKey((string) $data['registration_token']));
+            }
 
             $token = $user->createToken(
                 $device?->deviceName ?? 'web',
@@ -103,16 +129,20 @@ class RegistrationService
     }
 
     /** @return array<string, mixed> */
-    private function buildOfficeData(array $data, SubscriptionPlan $plan, PanelType $panelType, int $soloTrialHours): array
+    private function buildOfficeData(array $data, SubscriptionPlan $plan, PanelType $panelType, int $soloTrialHours, string $mobile): array
     {
         $trialEndsAt = $panelType->isSolo() ? now()->addHours($soloTrialHours) : null;
+        $officeName = trim((string) ($data['office_name'] ?? ''));
+        $officeAddress = trim((string) ($data['office_address'] ?? ''));
 
         if ($panelType->isSolo()) {
-            $name = trim(($data['first_name'] ?? '').' '.($data['last_name'] ?? ''));
+            $personName = trim(($data['first_name'] ?? '').' '.($data['last_name'] ?? ''));
 
             return [
-                'name' => $name,
-                'phone' => $this->normalizeMobile($data['mobile'] ?? ''),
+                'name' => $officeName !== '' ? $officeName : $personName,
+                'phone' => $mobile,
+                'address' => $officeAddress,
+                'city' => $data['office_city'] ?? null,
                 'subscription_plan_id' => $plan->id,
                 'panel_type' => $panelType->value,
                 'is_active' => true,
@@ -123,9 +153,9 @@ class RegistrationService
         }
 
         return [
-            'name' => $data['office_name'],
-            'phone' => $data['office_phone'] ?? null,
-            'address' => $data['office_address'] ?? null,
+            'name' => $officeName,
+            'phone' => $data['office_phone'] ?? $mobile,
+            'address' => $officeAddress,
             'city' => $data['office_city'] ?? null,
             'description' => $data['office_description'] ?? null,
             'subscription_plan_id' => $plan->id,

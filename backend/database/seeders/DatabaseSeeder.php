@@ -104,13 +104,19 @@ class DatabaseSeeder extends Seeder
 
     private function seedSuperAdmin(): void
     {
+        $defaultPassword = env('SEED_ADMIN_PASSWORD', 'Posheh@2026');
+
         User::updateOrCreate(
             ['mobile' => '09120000000'],
             [
                 'name' => 'مدیر سیستم',
+                'email' => 'admin@posheapp.ir',
+                'username' => 'admin',
+                'password' => $defaultPassword,
                 'role' => UserRole::SuperAdmin,
                 'is_active' => true,
                 'mobile_verified_at' => now(),
+                'email_verified_at' => now(),
             ]
         );
 
@@ -118,9 +124,13 @@ class DatabaseSeeder extends Seeder
             ['mobile' => '09170577873'],
             [
                 'name' => 'مدیر پوشه',
+                'email' => 'info@posheapp.ir',
+                'username' => 'posheh',
+                'password' => $defaultPassword,
                 'role' => UserRole::SuperAdmin,
                 'is_active' => true,
                 'mobile_verified_at' => now(),
+                'email_verified_at' => now(),
             ]
         );
     }
@@ -159,14 +169,20 @@ class DatabaseSeeder extends Seeder
             'trial_ends_at' => now()->addDays(3),
         ]);
 
+        $demoPassword = env('SEED_ADMIN_PASSWORD', 'Posheh@2026');
+
         User::updateOrCreate(
             ['mobile' => '09121111111'],
             [
                 'name' => 'علی محمدی',
+                'email' => 'demo.manager@posheapp.ir',
+                'username' => 'demo_manager',
+                'password' => $demoPassword,
                 'office_id' => $office->id,
                 'role' => UserRole::OfficeManager,
                 'is_active' => true,
                 'mobile_verified_at' => now(),
+                'email_verified_at' => now(),
             ]
         );
 
@@ -174,10 +190,14 @@ class DatabaseSeeder extends Seeder
             ['mobile' => '09122222222'],
             [
                 'name' => 'سارا احمدی',
+                'email' => 'demo.consultant@posheapp.ir',
+                'username' => 'demo_consultant',
+                'password' => $demoPassword,
                 'office_id' => $office->id,
                 'role' => UserRole::Consultant,
                 'is_active' => true,
                 'mobile_verified_at' => now(),
+                'email_verified_at' => now(),
             ]
         );
 

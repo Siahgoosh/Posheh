@@ -27,6 +27,21 @@ class UserRepository implements UserRepositoryInterface
             ->first();
     }
 
+    public function findByLogin(string $login): ?User
+    {
+        $login = trim($login);
+
+        if ($login === '') {
+            return null;
+        }
+
+        if (str_contains($login, '@')) {
+            return User::query()->whereRaw('LOWER(email) = ?', [strtolower($login)])->first();
+        }
+
+        return User::query()->whereRaw('LOWER(username) = ?', [strtolower($login)])->first();
+    }
+
     public function findById(int $id): ?User
     {
         return User::find($id);
