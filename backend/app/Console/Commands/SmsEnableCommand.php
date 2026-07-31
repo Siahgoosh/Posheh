@@ -79,8 +79,8 @@ class SmsEnableCommand extends Command
         }
 
         if (! env('IPPANEL_API_MODE') && ! $settings->hasValue('ippanel_api_mode')) {
-            $settings->set('ippanel_api_mode', 'jspd');
-            $this->line('  set ippanel_api_mode=jspd (OTP uses classic pattern + JSPD)');
+            $settings->set('ippanel_api_mode', 'edge');
+            $this->line('  set ippanel_api_mode=edge (Edge API — works from abroad without IP whitelist)');
         }
 
         if (! env('sms_provider') && ! $settings->hasValue('sms_provider')) {

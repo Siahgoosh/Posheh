@@ -111,20 +111,7 @@ export function VirtualTourPublicPage() {
 
       {/* 360 Viewer */}
       <div className="flex-1 relative" style={{ minHeight: '65vh' }}>
-        <VirtualTourViewer tour={tour} className="h-full" />
-
-        {/* Scene navigation sidebar */}
-        <div className="absolute top-4 left-4 z-20 flex flex-col gap-1 max-h-[50vh] overflow-y-auto">
-          {tour.scenes.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              className="px-3 py-1.5 text-xs rounded-lg bg-black/50 backdrop-blur border border-white/10 hover:bg-primary/30 text-right"
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
+        <VirtualTourViewer tour={tour} className="h-full" showSceneList />
       </div>
 
       {/* Property info bar */}

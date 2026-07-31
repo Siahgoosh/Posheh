@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Plus, Eye, Users, ExternalLink, Box } from 'lucide-react'
+import { Plus, Eye, Users, ExternalLink, Box, BookOpen } from 'lucide-react'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -31,7 +31,12 @@ export function VirtualToursPage() {
           </h1>
           <p className="text-muted text-sm mt-1">ساخت و مدیریت تور مجازی املاک — مشابه ۳۶۰نما</p>
         </div>
-        <Button onClick={createTour}><Plus className="h-4 w-4" />تور جدید</Button>
+        <div className="flex gap-2">
+          <a href="/virtual-tour-guide.html" target="_blank" rel="noreferrer">
+            <Button variant="outline"><BookOpen className="h-4 w-4" />راهنما</Button>
+          </a>
+          <Button onClick={createTour}><Plus className="h-4 w-4" />تور جدید</Button>
+        </div>
       </div>
 
       {isLoading ? (

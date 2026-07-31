@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { ArrowRight, Plus, Trash2, Globe } from 'lucide-react'
+import { ArrowRight, Plus, Trash2, Globe, BookOpen } from 'lucide-react'
 import api from '@/lib/api'
 import { VirtualTourViewer } from '@/components/virtual-tour/VirtualTourViewer'
 import { Button } from '@/components/ui/button'
@@ -55,6 +55,9 @@ export function VirtualTourEditorPage() {
             <Button variant="outline">مشاهده عمومی</Button>
           </a>
         )}
+        <a href="/virtual-tour-guide.html" target="_blank" rel="noreferrer">
+          <Button variant="ghost" size="sm"><BookOpen className="h-4 w-4" />راهنما</Button>
+        </a>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

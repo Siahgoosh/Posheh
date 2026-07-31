@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>راهنمای تور مجازی ۳۶۰ درجه — پوشه</title>
+  <meta name="description" content="راهنمای کامل ساخت و انتشار تور مجازی ۳۶۰ درجه املاک در نرم‌افزار پوشه — مشابه ۳۶۰نما" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --card: #1a1a26;
+      --border: rgba(255,255,255,0.08);
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --accent: #22d3ee;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --radius: 16px;
+      --shadow: 0 20px 50px rgba(0,0,0,0.45);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.8;
+      font-size: 16px;
+    }
+
+    .hero {
+      position: relative;
+      padding: 4rem 1.5rem 5rem;
+      text-align: center;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -20%, rgba(99,102,241,0.35), transparent),
+        radial-gradient(ellipse 50% 40% at 80% 50%, rgba(34,211,238,0.12), transparent),
+        var(--bg);
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('/demo/sphere-small.jpg') center/cover;
+      opacity: 0.08;
+      filter: blur(2px);
+    }
+
+    .hero-inner { position: relative; max-width: 800px; margin: 0 auto; }
+
+    .badge {
+      display: inline-block;
+      padding: 0.35rem 1rem;
+      border-radius: 999px;
+      background: rgba(99,102,241,0.2);
+      border: 1px solid rgba(99,102,241,0.4);
+      color: var(--primary-light);
+      font-size: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+
+    h1 {
+      font-size: clamp(1.75rem, 5vw, 2.75rem);
+      font-weight: 800;
+      line-height: 1.3;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #fff 0%, #c7d2fe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p { color: var(--muted); font-size: 1.05rem; max-width: 600px; margin: 0 auto 2rem; }
+
+    .hero-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #4f46e5);
+      color: white;
+      box-shadow: 0 8px 24px rgba(99,102,241,0.35);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn:hover { transform: translateY(-2px); }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 0 1.5rem 4rem; }
+
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem 2rem;
+      margin: -2.5rem auto 3rem;
+      position: relative;
+      box-shadow: var(--shadow);
+    }
+
+    .toc h2 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--primary-light); }
+
+    .toc ol {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.5rem 1.5rem;
+    }
+
+    .toc a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.15s;
+    }
+
+    .toc a:hover { color: var(--primary-light); }
+
+    section {
+      margin-bottom: 3rem;
+      scroll-margin-top: 2rem;
+    }
+
+    section h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    section h2 .num {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: rgba(99,102,241,0.2);
+      color: var(--primary-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    section h3 { font-size: 1.1rem; margin: 1.5rem 0 0.75rem; color: var(--primary-light); }
+
+    p, li { color: var(--muted); }
+
+    ul, ol { padding-right: 1.25rem; margin: 0.75rem 0; }
+
+    li { margin-bottom: 0.5rem; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin: 1rem 0;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin: 1.25rem 0;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem;
+    }
+
+    .feature-card .icon {
+      font-size: 1.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .feature-card h4 { font-size: 1rem; margin-bottom: 0.5rem; color: var(--text); }
+
+    .feature-card p { font-size: 0.9rem; }
+
+    .tip {
+      border-right: 4px solid var(--success);
+      background: rgba(34,197,94,0.08);
+      padding: 1rem 1.25rem;
+      border-radius: 0 12px 12px 0;
+      margin: 1rem 0;
+    }
+
+    .tip strong { color: var(--success); }
+
+    .warn {
+      border-right: 4px solid var(--warning);
+      background: rgba(245,158,11,0.08);
+      padding: 1rem 1.25rem;
+      border-radius: 0 12px 12px 0;
+      margin: 1rem 0;
+    }
+
+    .warn strong { color: var(--warning); }
+
+    code {
+      background: rgba(255,255,255,0.06);
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+      font-size: 0.88em;
+      direction: ltr;
+      display: inline-block;
+    }
+
+    pre {
+      background: #0d0d14;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      direction: ltr;
+      text-align: left;
+      font-size: 0.85rem;
+      margin: 1rem 0;
+      color: #e4e4e7;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      text-align: right;
+    }
+
+    th { background: var(--surface); color: var(--text); }
+
+    .demo-preview {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin: 1.5rem 0;
+      aspect-ratio: 16/9;
+      background: #000;
+      position: relative;
+    }
+
+    .demo-preview img { width: 100%; height: 100%; object-fit: cover; opacity: 0.85; }
+
+    .demo-preview .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.4);
+    }
+
+    .demo-preview a {
+      background: var(--primary);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .steps { counter-reset: step; list-style: none; padding: 0; }
+
+    .steps li {
+      counter-increment: step;
+      position: relative;
+      padding-right: 3rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .steps li:last-child { border-bottom: none; }
+
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 2rem; height: 2rem;
+      background: var(--primary);
+      color: white;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    footer a { color: var(--primary-light); }
+
+    @media (max-width: 600px) {
+      .toc { margin-top: -1.5rem; padding: 1.25rem; }
+      .toc ol { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <span class="badge">راهنمای تور مجازی پوشه</span>
+      <h1>ساخت تور مجازی ۳۶۰ درجه حرفه‌ای برای املاک</h1>
+      <p>
+        با تور مجازی پوشه، مشتریان بدون مراجعه حضوری از تمام فضای ملک بازدید می‌کنند —
+        مشابه ۳۶۰نما، اما یکپارچه با CRM و فایلینگ املاک شما.
+      </p>
+      <div class="hero-actions">
+        <a href="/virtual-tours" class="btn btn-primary">شروع ساخت تور</a>
+        <a href="/tour/demo-apartment-pasdaran" class="btn btn-outline" target="_blank">مشاهده نمونه</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <nav class="toc">
+      <h2>فهرست مطالب</h2>
+      <ol>
+        <li><a href="#intro">تور مجازی چیست؟</a></li>
+        <li><a href="#features">امکانات</a></li>
+        <li><a href="#requirements">نیازمندی‌های تصویر</a></li>
+        <li><a href="#create">ساخت تور</a></li>
+        <li><a href="#scenes">صحنه‌ها و هات‌اسپات</a></li>
+        <li><a href="#publish">انتشار و اشتراک</a></li>
+        <li><a href="#leads">دریافت سرنخ</a></li>
+        <li><a href="#tips">نکات حرفه‌ای</a></li>
+        <li><a href="#faq">سوالات متداول</a></li>
+      </ol>
+    </nav>
+
+    <div class="demo-preview">
+      <img src="/demo/sphere.jpg" alt="نمونه تور ۳۶۰ درجه" />
+      <div class="overlay">
+        <a href="/tour/demo-apartment-pasdaran" target="_blank">باز کردن تور نمونه</a>
+      </div>
+    </div>
+
+    <section id="intro">
+      <h2><span class="num">۱</span> تور مجازی چیست؟</h2>
+      <p>
+        تور مجازی ۳۶۰ درجه، تجربه‌ای تعاملی از فضای داخلی ملک است. کاربر با ماوس یا لمس صفحه
+        می‌چرخد، بین اتاق‌ها جابه‌جا می‌شود و روی نقاط اطلاعاتی کلیک می‌کند.
+      </p>
+      <div class="card-grid">
+        <div class="feature-card">
+          <div class="icon">🏠</div>
+          <h4>برای مشاور املاک</h4>
+          <p>کاهش بازدیدهای بی‌نتیجه، افزایش اعتماد مشتری و تمایز از رقبا</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📱</div>
+          <h4>برای مشتری</h4>
+          <p>بازدید آنلاین از هرجا، روی موبایل و دسکتاپ، با ژیروسکوپ</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📊</div>
+          <h4>برای دفتر</h4>
+          <p>آمار بازدید، ثبت سرنخ و اتصال به فایل ملک</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <h2><span class="num">۲</span> امکانات تور مجازی پوشه</h2>
+      <div class="card">
+        <ul>
+          <li>چند صحنه (پذیرایی، آشپزخانه، اتاق خواب و …) با جابه‌جایی تعاملی</li>
+          <li>هات‌اسپات اطلاعاتی، لینک و انتقال بین صحنه‌ها</li>
+          <li>پلان طبقه با نشانگر موقعیت هر اتاق</li>
+          <li>گالری تصاویر، نقشه گوگل، واتساپ و تماس مستقیم</li>
+          <li>فرم درخواست بازدید / مشاوره</li>
+          <li>لینک اختصاصی قابل اشتراک در دیوار، اینستاگرام و واتساپ</li>
+          <li>پشتیبانی از ژیروسکوپ موبایل</li>
+          <li>رنگ برند و لوگوی دفتر</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="requirements">
+      <h2><span class="num">۳</span> نیازمندی‌های تصویر پانوراما</h2>
+      <p>تصویر باید از نوع <strong>equirectangular</strong> (پروجکشن ۳۶۰ درجه) باشد:</p>
+
+      <table>
+        <thead>
+          <tr><th>مورد</th><th>توصیه</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>نسبت تصویر</td><td>۲:۱ (مثلاً ۶۰۰۰×۳۰۰۰)</td></tr>
+          <tr><td>حداقل کیفیت</td><td>۴۰۰۰×۲۰۰۰ پیکسل</td></tr>
+          <tr><td>فرمت</td><td>JPG یا PNG</td></tr>
+          <tr><td>منبع</td><td>دوربین ۳۶۰، Insta360، Ricoh Theta یا رندر ۳D</td></tr>
+        </tbody>
+      </table>
+
+      <div class="tip">
+        <strong>نکته:</strong>
+        نور طبیعی یکنواخت و بستن درها بین اتاق‌ها قبل از عکاسی، کیفیت تور را چند برابر می‌کند.
+      </div>
+
+      <div class="warn">
+        <strong>توجه:</strong>
+        تصاویر معمولی (غیر ۳۶۰) در viewer کشیده و نامناسب نمایش داده می‌شوند.
+      </div>
+    </section>
+
+    <section id="create">
+      <h2><span class="num">۴</span> ساخت تور — گام به گام</h2>
+      <ol class="steps">
+        <li>
+          <strong>ورود به پنل</strong><br />
+          از منوی اصلی به بخش <code>تور مجازی ۳۶۰ درجه</code> بروید.
+        </li>
+        <li>
+          <strong>ایجاد تور جدید</strong><br />
+          روی «تور جدید» کلیک کنید و عنوان ملک را وارد کنید (مثلاً «آپارتمان ۱۲۰ متری پاسداران»).
+        </li>
+        <li>
+          <strong>افزودن صحنه</strong><br />
+          در صفحه ویرایش، «افزودن صحنه» را بزنید. برای هر فضا یک صحنه جدا بسازید.
+        </li>
+        <li>
+          <strong>آپلود پانوراما</strong><br />
+          فایل equirectangular هر اتاق را آپلود کنید. تا زمان آپلود، از تصویر نمونه استفاده می‌شود.
+        </li>
+        <li>
+          <strong>تنظیمات تماس</strong><br />
+          شماره تماس، واتساپ و رنگ برند را در بخش تنظیمات وارد کنید.
+        </li>
+        <li>
+          <strong>انتشار</strong><br />
+          روی «انتشار» کلیک کنید. لینک عمومی به شکل <code>/tour/نام-تور</code> فعال می‌شود.
+        </li>
+      </ol>
+    </section>
+
+    <section id="scenes">
+      <h2><span class="num">۵</span> صحنه‌ها و هات‌اسپات</h2>
+
+      <h3>صحنه (Scene)</h3>
+      <p>هر اتاق یا فضا یک صحنه جداگانه است. کاربر از لیست سمت چپ یا پلان طبقه بین صحنه‌ها جابه‌جا می‌شود.</p>
+
+      <h3>هات‌اسپات (Hotspot)</h3>
+      <div class="card-grid">
+        <div class="feature-card">
+          <h4>🔗 انتقال (Scene)</h4>
+          <p>فلش برای رفتن به اتاق دیگر — مثل در بین پذیرایی و آشپزخانه</p>
+        </div>
+        <div class="feature-card">
+          <h4>ℹ️ اطلاعات (Info)</h4>
+          <p>نمایش توضیحات — مثلاً «کف پارکت لمینت» یا «نورگیر جنوبی»</p>
+        </div>
+        <div class="feature-card">
+          <h4>🌐 لینک (Link)</h4>
+          <p>باز کردن URL خارجی — مثلاً آگهی دیوار یا ویدیو</p>
+        </div>
+      </div>
+
+      <div class="tip">
+        <strong>پلان طبقه:</strong>
+        مختصات X و Y هر صحنه را در ویرایشگر تنظیم کنید تا نقطه‌ها روی پلان نمایش داده شوند.
+      </div>
+    </section>
+
+    <section id="publish">
+      <h2><span class="num">۶</span> انتشار و اشتراک‌گذاری</h2>
+      <p>پس از انتشار، لینک تور را می‌توانید:</p>
+      <ul>
+        <li>در آگهی دیوار، شیپور و شبکه‌های اجتماعی قرار دهید</li>
+        <li>در واتساپ برای مشتریان ارسال کنید</li>
+        <li>در سایت اختصاصی دفتر (پوشه سایت) لینک دهید</li>
+        <li>به فایل CRM ملک متصل کنید</li>
+      </ul>
+      <pre>https://your-domain.ir/tour/apartment-pasdaran-120m</pre>
+      <p>دکمه اشتراک‌گذاری در صفحه تور، لینک را کپی یا از Share API موبایل استفاده می‌کند.</p>
+    </section>
+
+    <section id="leads">
+      <h2><span class="num">۷</span> دریافت سرنخ (Lead)</h2>
+      <p>
+        دکمه «درخواست بازدید» در پایین تور، فرم نام و شماره موبایل را نمایش می‌دهد.
+        درخواست‌ها در پنل مدیریت و آمار تور ثبت می‌شوند.
+      </p>
+      <div class="card">
+        <p>برای غیرفعال کردن فرم: در تنظیمات تور، <code>show_contact_form</code> را false قرار دهید.</p>
+      </div>
+    </section>
+
+    <section id="tips">
+      <h2><span class="num">۸</span> نکات حرفه‌ای</h2>
+      <ul>
+        <li>حداقل ۳ صحنه (پذیرایی + آشپزخانه + اتاق خواب) برای تور کامل</li>
+        <li>عنوان هر صحنه را واضح بنویسید — در لیست ناوبری نمایش داده می‌شود</li>
+        <li>هات‌اسپات انتقال را دقیقاً روی درب یا راهرو قرار دهید</li>
+        <li>قبل از انتشار، تور را روی موبایل خود تست کنید</li>
+        <li>برای ملک‌های لوکس، گالری تصاویر تکمیلی فعال کنید</li>
+        <li>موقعیت GPS را در تنظیمات وارد کنید تا دکمه نقشه فعال شود</li>
+      </ul>
+    </section>
+
+    <section id="faq">
+      <h2><span class="num">۹</span> سوالات متداول</h2>
+
+      <h3>تور نمونه کجاست؟</h3>
+      <p>
+        تور دمو با آدرس <a href="/tour/demo-apartment-pasdaran">/tour/demo-apartment-pasdaran</a>
+        همیشه در دسترس است. برای seed مجدد: <code>php artisan db:seed --class=VirtualTourSeeder</code>
+      </p>
+
+      <h3>پیام «تور مجازی یافت نشد» می‌بینم</h3>
+      <p>تور باید وضعیت «منتشر شده» داشته باشد و slug درست باشد. seeder را اجرا کنید یا از پنل منتشر کنید.</p>
+
+      <h3>تصویر لود نمی‌شود</h3>
+      <p>فرمت equirectangular را بررسی کنید. فایل باید از طریق <code>/storage/</code> یا مسیر <code>/demo/</code> قابل دسترسی باشد.</p>
+
+      <h3>آیا روی موبایل کار می‌کند؟</h3>
+      <p>بله — ژیروسکوپ، لمس دو انگشتی برای زوم و حالت تمام‌صفحه پشتیبانی می‌شود.</p>
+
+      <h3>چند تور می‌توانم بسازم؟</h3>
+      <p>بسته به پلن اشتراک دفتر. هر ملک می‌تواند یک تور مجازی داشته باشد.</p>
+    </section>
+  </div>
+
+  <footer>
+    <p>تور مجازی ۳۶۰ درجه — <a href="/">پوشه</a> | CRM و فایلینگ املاک</p>
+    <p style="margin-top:0.5rem"><a href="/virtual-tours">بازگشت به پنل تور مجازی</a></p>
+  </footer>
+
+</body>
+</html>

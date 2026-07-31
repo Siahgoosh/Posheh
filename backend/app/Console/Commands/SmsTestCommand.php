@@ -36,11 +36,17 @@ class SmsTestCommand extends Command
             $this->line('Has API key: '.(! empty($config['api_key']) ? 'yes' : 'no'));
 
             if ($this->option('debug')) {
-                $this->warn('OTP path order: 1) classic pattern (from_number first)  2) JSPD  3) Edge API');
+                $mode = strtolower((string) ($config['api_mode'] ?? 'edge'));
+                if ($mode === 'edge') {
+                    $this->warn('OTP path: Edge API pattern only (IPPANEL_API_MODE=edge)');
+                    $this->line('API key set: '.(! empty($config['api_key']) ? 'yes' : 'NO — required for abroad server'));
+                } else {
+                    $this->warn('OTP path order: 1) classic pattern  2) JSPD  3) Edge API');
+                    $this->line('Username set: '.(! empty($config['username']) ? 'yes' : 'NO'));
+                    $this->line('Password set: '.(! empty($config['password']) ? 'yes' : 'NO'));
+                }
                 $this->line('OTP from: '.($config['otp_from_number'] ?? $config['from_number'] ?? '—'));
                 $this->line('Base URL: '.($config['base_url'] ?? '—'));
-                $this->line('Username set: '.(! empty($config['username']) ? 'yes' : 'NO — required for OTP'));
-                $this->line('Password set: '.(! empty($config['password']) ? 'yes' : 'NO — required for OTP'));
             }
 
             $result = $sms->sendOtp($mobile, $code);
@@ -74,8 +80,8 @@ class SmsTestCommand extends Command
                             $this->line("  {$n}. [{$method}] {$msg}");
                         }
                     }
-                    $this->warn('Classic pattern needs IPPANEL_USERNAME + IPPANEL_PASSWORD in .env');
-                    $this->line('JSPD deny = whitelist server IP in MaxSMS panel');
+                    $this->warn('Edge mode: set IPPANEL_API_KEY from MaxSMS panel → Developers → Access Keys');
+                    $this->line('Docs: https://docs.ippanel.com/docs/');
                 }
             }
 

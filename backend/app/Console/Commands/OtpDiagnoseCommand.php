@@ -35,7 +35,7 @@ class OtpDiagnoseCommand extends Command
             ['otp-sms.log', is_file($logFile) ? 'exists ('.filesize($logFile).' bytes)' : 'missing'],
         ]);
 
-        $this->line('Server outbound IP (whitelist this in MaxSMS panel): '.$this->detectServerIp());
+        $this->line('Server outbound IP (for JSPD whitelist on Iran servers only): '.$this->detectServerIp());
 
         try {
             $ping = Redis::connection()->ping();
@@ -74,6 +74,7 @@ class OtpDiagnoseCommand extends Command
         }
 
         $this->newLine();
+        $this->line('Abroad server: use IPPANEL_API_MODE=edge + IPPANEL_API_KEY (no IP whitelist)');
         $this->line('Test SMS directly:  php artisan otp:send-sms 09170577873 123456');
         $this->line('Test via IPPanel:   php artisan system:sms-test 09170577873 --otp --debug');
         $this->line('Enable live SMS:    php artisan system:sms-enable --live --from-env');

@@ -34,6 +34,13 @@ class IpPanelSmsService
     $config = $this->settings->ippanelConfig();
     $patternCode = $this->resolveOtpPatternCode($config);
     $otpConfig = $this->otpPatternConfig($config);
+    $mode = $this->resolveApiMode($otpConfig);
+    $params = ['code' => $code];
+
+    if ($mode === 'edge') {
+      return $this->sendOtpViaEdgeOnly($mobile, $code, $patternCode, $params, $otpConfig);
+    }
+
     $credentialSets = $this->otpCredentialSets($config);
 
     if ($credentialSets === []) {
@@ -41,15 +48,13 @@ class IpPanelSmsService
 
       return [
         'success' => false,
-        'message' => 'تنظیمات OTP ناقص است. IPPANEL_USERNAME و IPPANEL_PASSWORD (یا IPPANEL_API_KEY) را در .env قرار دهید.',
+        'message' => 'تنظیمات OTP ناقص است. IPPANEL_API_KEY (سرور خارج) یا IPPANEL_USERNAME و IPPANEL_PASSWORD (سرور ایران) را در .env قرار دهید.',
       ];
     }
 
-    $params = ['code' => $code];
     $attempts = [];
     $deadline = microtime(true) + 25;
 
-    // Classic pattern first — production history shows classic_otp via +983000505 works.
     foreach ($credentialSets as $creds) {
       if ($creds['label'] !== 'panel') {
         continue;
@@ -88,10 +93,6 @@ class IpPanelSmsService
       if ($jspdResult['success']) {
         return $this->otpSuccess($mobile, $patternCode, $otpConfig, $jspdResult);
       }
-
-      if (microtime(true) >= $deadline) {
-        break;
-      }
     }
 
     if (! empty($config['api_key'])) {
@@ -109,6 +110,7 @@ class IpPanelSmsService
       'mobile' => $mobile,
       'pattern' => $patternCode,
       'from' => $otpConfig['from_number'],
+      'api_mode' => $mode,
       'credential_labels' => array_column($credentialSets, 'label'),
       'attempts' => array_map(fn ($a) => [
         'method' => $a['method'] ?? null,
@@ -118,11 +120,51 @@ class IpPanelSmsService
 
     return [
       'success' => false,
-      'message' => $this->otpFailureMessage($attempts),
+      'message' => $this->otpFailureMessage($attempts, $mode),
       'method' => $last['method'] ?? null,
       'details' => $last['details'] ?? null,
       'attempts' => $attempts,
     ];
+  }
+
+  /** @param array<string, mixed> $config */
+  /** @param array<string, string> $params */
+  private function sendOtpViaEdgeOnly(string $mobile, string $code, string $patternCode, array $params, array $config): array
+  {
+    if (empty($config['api_key'])) {
+      return [
+        'success' => false,
+        'message' => 'برای ارسال OTP از سرور خارج از ایران، IPPANEL_API_KEY الزامی است. از پنل مکث → Developers → Access Keys کلید بسازید و IPPANEL_API_MODE=edge تنظیم کنید.',
+      ];
+    }
+
+    $auth = $this->resolveAuth($config, 'edge', 'ippanel');
+    $edgeResult = $this->sendOtpViaEdge($mobile, $patternCode, $params, $config, $auth);
+
+    if ($edgeResult['success']) {
+      return $this->otpSuccess($mobile, $patternCode, $config, $edgeResult);
+    }
+
+    Log::error('OTP Edge send failed', [
+      'mobile' => $mobile,
+      'pattern' => $patternCode,
+      'from' => $config['from_number'],
+      'message' => $edgeResult['message'] ?? null,
+    ]);
+
+    return [
+      'success' => false,
+      'message' => $this->otpFailureMessage([$edgeResult], 'edge'),
+      'method' => $edgeResult['method'] ?? 'edge_otp',
+      'details' => $edgeResult['details'] ?? null,
+      'attempts' => [$edgeResult],
+    ];
+  }
+
+  /** @param array<string, mixed> $config */
+  private function resolveApiMode(array $config): string
+  {
+    return strtolower(trim((string) ($config['api_mode'] ?? 'edge')));
   }
 
   /** @param array<string, mixed> $config */
@@ -175,7 +217,7 @@ class IpPanelSmsService
   }
 
   /** @param list<array<string, mixed>> $attempts */
-  private function otpFailureMessage(array $attempts): string
+  private function otpFailureMessage(array $attempts, string $mode = 'auto'): string
   {
     $messages = array_values(array_filter(array_map(
       fn ($a) => trim((string) ($a['message'] ?? '')),
@@ -192,12 +234,20 @@ class IpPanelSmsService
     }
 
     if ($deny) {
-      return 'ارسال OTP ناموفق: IP سرور در پنل مکث whitelist نیست (JSPD deny). IP سرور را در پنل مکث اضافه کنید.';
+      return 'ارسال OTP ناموفق: IP سرور در پنل مکث whitelist نیست (JSPD deny). برای سرور خارج از ایران از IPPANEL_API_MODE=edge و کلید API استفاده کنید.';
     }
 
     foreach ($messages as $message) {
       if (str_contains($message, 'timed out') || str_contains($message, 'Timeout')) {
-        return 'ارسال OTP ناموفق: اتصال به سرور مکث timeout شد. IP سرور را در پنل whitelist کنید یا چند دقیقه بعد دوباره تلاش کنید.';
+        if ($mode === 'edge') {
+          return 'ارسال OTP ناموفق: اتصال به Edge API مکث timeout شد. کلید API (IPPANEL_API_KEY) و دسترسی شبکه سرور را بررسی کنید.';
+        }
+
+        return 'ارسال OTP ناموفق: اتصال به سرور مکث timeout شد. برای سرور خارج از ایران IPPANEL_API_MODE=edge و کلید API تنظیم کنید.';
+      }
+
+      if (str_contains($message, '401') || str_contains($message, 'صحیح نمی')) {
+        return 'ارسال OTP ناموفق: کلید API مکث نامعتبر است. IPPANEL_API_KEY را از پنل مکث → Developers → Access Keys بروزرسانی کنید.';
       }
     }
 
@@ -504,8 +554,8 @@ class IpPanelSmsService
     $apiKey = trim((string) ($config['api_key'] ?? $auth['api_key'] ?? ''));
     if ($apiKey !== '') {
       $apiKey = $this->normalizeApiKey($apiKey);
-      $headers['api_key'] = ['Authorization' => $apiKey];
       $headers['access_key'] = ['Authorization' => 'AccessKey '.$apiKey];
+      $headers['api_key'] = ['Authorization' => $apiKey];
       $headers['apikey_header'] = ['ApiKey' => $apiKey, 'Authorization' => $apiKey];
     }
 
@@ -630,13 +680,13 @@ class IpPanelSmsService
 
     $config = $this->settings->ippanelConfig();
 
-    if (! empty($config['invite_pattern_code']) && ($config['sms_provider'] ?? '') === 'ippanel') {
+    if (! empty($config['invite_pattern_code'])) {
       $patternResult = $this->sendPattern($mobile, $config['invite_pattern_code'], ['office' => $officeName], $config);
       if ($patternResult['success']) {
         return true;
       }
 
-      Log::warning('Invite pattern failed, falling back to webservice/JSPD', [
+      Log::warning('Invite pattern failed, falling back to webservice', [
         'mobile' => $mobile,
         'message' => $patternResult['message'] ?? null,
       ]);
@@ -681,7 +731,7 @@ class IpPanelSmsService
     }
 
     $provider = $config['sms_provider'] ?? $this->settings->get('sms_provider', 'maxsms');
-    $mode = $config['api_mode'] ?? $this->settings->get('ippanel_api_mode', 'auto');
+    $mode = $this->resolveApiMode($config);
     $auth = $this->resolveAuth($config, $mode, $provider);
 
     if (! $this->hasSendCredentials($auth, $config, $mode, $provider)) {
@@ -727,7 +777,7 @@ class IpPanelSmsService
   private function sendPattern(string $mobile, string $patternCode, array $params, array $config, bool $otpMode = false): array
   {
     $provider = $config['sms_provider'] ?? $this->settings->get('sms_provider', 'maxsms');
-    $mode = $config['api_mode'] ?? $this->settings->get('ippanel_api_mode', 'auto');
+    $mode = $this->resolveApiMode($config);
     $auth = $this->resolveAuth($config, $mode, $provider);
 
     if (! $this->hasSendCredentials($auth, $config, $mode, $provider)) {
@@ -735,6 +785,10 @@ class IpPanelSmsService
     }
 
     $lastResult = ['success' => false, 'message' => 'ارسال پترن ناموفق بود'];
+
+    if ($mode === 'edge') {
+      return $this->sendPatternEdge($mobile, $patternCode, $params, $config, $auth);
+    }
 
     if ($provider === 'maxsms' || $mode === 'jspd' || $mode === 'auto' || $mode === 'legacy') {
       $jspdResult = $this->sendPatternJspd($mobile, $patternCode, $params, $config, $auth, $otpMode);
@@ -971,16 +1025,16 @@ class IpPanelSmsService
 
     $jspdStrategies = $this->jspdStrategies($config, $mobile, $message, $auth);
 
+    $edgeHeaders = $this->edgeAuthHeaders($token);
     $edgePost = [
       'name' => 'edge_post',
       'type' => 'post',
       'url' => "{$edgeBase}/send",
       'options' => [
-        'headers' => [
-          'Authorization' => $token,
+        'headers' => array_merge([
           'Content-Type' => 'application/json',
           'Accept' => 'application/json',
-        ],
+        ], $edgeHeaders),
         'json' => [
           'sending_type' => 'webservice',
           'from_number' => $from,
@@ -1204,6 +1258,10 @@ class IpPanelSmsService
       return true;
     }
 
+    if ($mode === 'edge') {
+      return false;
+    }
+
     if (! empty($auth['panel_auth'])) {
       return true;
     }
@@ -1214,6 +1272,20 @@ class IpPanelSmsService
     }
 
     return false;
+  }
+
+  /** @return array<string, string> */
+  private function edgeAuthHeaders(?string $token): array
+  {
+    if ($token === null || $token === '') {
+      return [];
+    }
+
+    if (str_starts_with($token, 'AccessKey ')) {
+      return ['Authorization' => $token];
+    }
+
+    return ['Authorization' => 'AccessKey '.$token];
   }
 
   private function resolveAuth(array $config, string $mode = 'auto', string $provider = 'maxsms'): array
