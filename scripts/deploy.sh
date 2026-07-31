@@ -259,8 +259,9 @@ Next steps:
   - Seed contracts: docker compose exec app php artisan db:seed --class=ContractTemplateSeeder --force
   - SMS (abroad server): IPPANEL_API_MODE=edge, IPPANEL_API_KEY, IPPANEL_OTP_PATTERN_CODE=qhhly1nai3njev0
   - SMS docs: docs/SMS-EDGE-ABROAD.md
-  - Enable SMS (if needed): SMS_FORCE_LIVE=1 ./scripts/deploy.sh
-  - Or manually: docker compose exec app php artisan system:sms-enable --live --from-env
+  - Fix SMS after deploy:    ./scripts/fix-sms-now.sh
+  - Or: docker compose exec app php artisan system:sms-enable --fix
+  - Probe + test send:       docker compose exec app php artisan system:sms-probe 09170577873 --send
   - OTP test mode (no SMS):  docker compose exec app php artisan system:sms-enable --log
   - Enable live SMS:         ./scripts/enable-live-sms.sh
   - Test SMS:             docker compose exec app php artisan system:sms-test 09170577873 --otp --debug
