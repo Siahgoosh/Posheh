@@ -75,6 +75,9 @@ class SmsEnableCommand extends Command
             'IPPANEL_OTP_FROM_NUMBER' => 'ippanel_otp_from_number',
             'IPPANEL_OTP_PATTERN_CODE' => 'ippanel_otp_pattern_code',
             'IPPANEL_BASE_URL' => 'ippanel_base_url',
+            'SMS_RELAY_URL' => 'sms_relay_url',
+            'SMS_RELAY_SECRET' => 'sms_relay_secret',
+            'IPPANEL_HTTP_PROXY' => 'ippanel_http_proxy',
         ];
 
         foreach ($map as $envKey => $settingKey) {

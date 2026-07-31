@@ -21,6 +21,7 @@ class IpPanelSmsService
 
   public function __construct(
     private readonly SystemSettingsService $settings,
+    private readonly SmsRelayClient $relay,
   ) {}
 
   public function sendOtp(string $mobile, string $code): array
@@ -32,6 +33,16 @@ class IpPanelSmsService
     }
 
     $config = $this->settings->ippanelConfig();
+
+    if ($this->relay->isConfigured($config)) {
+      $patternCode = $this->resolveOtpPatternCode($config);
+      $result = $this->relay->sendOtp($mobile, $code, $config);
+
+      return ($result['success'] ?? false)
+        ? $this->otpSuccess($mobile, $patternCode, $config, $result)
+        : $result;
+    }
+
     $patternCode = $this->resolveOtpPatternCode($config);
     $otpConfig = $this->otpPatternConfig($config);
     $mode = $this->resolveApiMode($otpConfig);
@@ -240,10 +251,10 @@ class IpPanelSmsService
     foreach ($messages as $message) {
       if (str_contains($message, 'timed out') || str_contains($message, 'Timeout')) {
         if ($mode === 'edge') {
-          return 'ارسال OTP ناموفق: اتصال به Edge API مکث timeout شد. کلید API (IPPANEL_API_KEY) و دسترسی شبکه سرور را بررسی کنید.';
-        }
+        return 'ارسال OTP ناموفق: سرور به edge.ippanel.com دسترسی ندارد (timeout). SMS_RELAY_URL را روی یک سرور ایران تنظیم کنید — راهنما: docs/SMS-RELAY.md';
+      }
 
-        return 'ارسال OTP ناموفق: اتصال به سرور مکث timeout شد. برای سرور خارج از ایران IPPANEL_API_MODE=edge و کلید API تنظیم کنید.';
+      return 'ارسال OTP ناموفق: اتصال به سرور مکث timeout شد. برای سرور خارج از ایران SMS_RELAY_URL یا IPPANEL_HTTP_PROXY تنظیم کنید.';
       }
 
       if (str_contains($message, '401') || str_contains($message, 'صحیح نمی')) {
@@ -256,9 +267,19 @@ class IpPanelSmsService
 
   private function otpHttp(): \Illuminate\Http\Client\PendingRequest
   {
-    // No retry on OTP — fail fast and try the next API path (classic → jspd → edge).
-    return Http::connectTimeout(self::OTP_CONNECT_TIMEOUT)
-      ->timeout(self::OTP_REQUEST_TIMEOUT);
+    return $this->smsHttp(self::OTP_REQUEST_TIMEOUT, self::OTP_CONNECT_TIMEOUT);
+  }
+
+  private function smsHttp(int $timeout = 15, int $connect = 5): \Illuminate\Http\Client\PendingRequest
+  {
+    $request = Http::connectTimeout($connect)->timeout($timeout);
+    $proxy = trim((string) (config('services.ippanel.http_proxy') ?? env('IPPANEL_HTTP_PROXY', '')));
+
+    if ($proxy !== '') {
+      $request = $request->withOptions(['proxy' => $proxy]);
+    }
+
+    return $request;
   }
 
   /** @param array<string, mixed> $config */
@@ -728,6 +749,13 @@ class IpPanelSmsService
       Log::info("SMS [log] to {$mobile}: {$message}");
 
       return ['success' => true, 'message' => 'logged', 'method' => 'log'];
+    }
+
+    if ($this->relay->isConfigured($config)) {
+      $result = $this->relay->sendPlain($mobile, $message, $config);
+      $result['method'] = 'sms_relay';
+
+      return $result;
     }
 
     $provider = $config['sms_provider'] ?? $this->settings->get('sms_provider', 'maxsms');

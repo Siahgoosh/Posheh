@@ -26,6 +26,10 @@ docker compose exec app php artisan system:sms-probe 09170577873 --send
 
 ## راه‌حل
 
+اگر `system:sms-probe` نشان می‌دهد `edge.ippanel.com` با **timeout و 0 bytes** fail می‌شود، سرور شما به IPPanel دسترسی شبکه ندارد. **راه‌حل:** [SMS Relay](SMS-RELAY.md) روی یک VPS ایران.
+
+برای سروری که مستقیم به Edge دسترسی دارد:
+
 از **Edge API** مکث با **Access Key** استفاده کنید:
 
 - **OTP (کد تأیید):** پترن از طریق `POST /api/send` با `sending_type: pattern`

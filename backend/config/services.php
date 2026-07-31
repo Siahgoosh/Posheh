@@ -66,6 +66,9 @@ return [
         'base_url' => env('IPPANEL_BASE_URL', 'https://edge.ippanel.com/v1'),
         'api_mode' => env('IPPANEL_API_MODE', 'edge'),
         'sms_mode' => env('SMS_MODE', 'live'),
+        'relay_url' => env('SMS_RELAY_URL'),
+        'relay_secret' => env('SMS_RELAY_SECRET'),
+        'http_proxy' => env('IPPANEL_HTTP_PROXY'),
     ],
 
 ];

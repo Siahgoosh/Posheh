@@ -158,6 +158,9 @@ class SystemSettingsService
             'base_url' => $this->get('ippanel_base_url', 'https://edge.ippanel.com/v1'),
             'api_mode' => $this->get('ippanel_api_mode', 'edge'),
             'sms_provider' => $this->normalizeSmsProvider((string) $this->get('sms_provider', 'maxsms')),
+            'relay_url' => $this->get('sms_relay_url'),
+            'relay_secret' => $this->get('sms_relay_secret'),
+            'http_proxy' => $this->get('ippanel_http_proxy'),
         ];
 
         return $this->mergeIppanelEnvConfig($config);
@@ -171,6 +174,7 @@ class SystemSettingsService
         foreach ([
             'api_key', 'username', 'password', 'from_number', 'otp_from_number',
             'otp_pattern_code', 'invite_pattern_code', 'base_url', 'api_mode',
+            'relay_url', 'relay_secret', 'http_proxy',
         ] as $key) {
             $value = $envConfig[$key] ?? null;
             if ($value !== null && $value !== '' && ! $this->isMaskedSecret($value)) {
@@ -305,6 +309,9 @@ class SystemSettingsService
             'ippanel_invite_pattern_code' => $ippanel['invite_pattern_code'] ?? $default,
             'ippanel_base_url' => $ippanel['base_url'] ?? $default ?? 'https://edge.ippanel.com/v1',
             'ippanel_api_mode' => $ippanel['api_mode'] ?? $default,
+            'sms_relay_url' => env('SMS_RELAY_URL', $default),
+            'sms_relay_secret' => env('SMS_RELAY_SECRET', $default),
+            'ippanel_http_proxy' => env('IPPANEL_HTTP_PROXY', $default),
             'aqayepardakht_pin' => env('AQAYEPARDAKHT_PIN', $default),
             'aqayepardakht_sandbox' => env('AQAYEPARDAKHT_SANDBOX', $default ?? true),
             'zibal_merchant' => env('ZIBAL_MERCHANT', $default),

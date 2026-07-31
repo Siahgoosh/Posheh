@@ -36,6 +36,8 @@ class SmsProbeCommand extends Command
             ['otp_from_number', (string) ($config['otp_from_number'] ?? '—')],
             ['otp_pattern', (string) ($config['otp_pattern_code'] ?? '—')],
             ['base_url', (string) ($config['base_url'] ?? '—')],
+            ['sms_relay', ! empty($config['relay_url']) ? 'YES ✓ '.($config['relay_url']) : 'NO — required for NL server'],
+            ['http_proxy', ! empty($config['http_proxy']) ? 'yes' : 'no'],
             ['queue', (string) config('queue.default')],
         ]);
 
@@ -57,23 +59,48 @@ class SmsProbeCommand extends Command
         $baseUrl = rtrim((string) ($config['base_url'] ?? 'https://edge.ippanel.com/v1'), '/');
         $sendUrl = str_ends_with($baseUrl, '/api') ? "{$baseUrl}/send" : "{$baseUrl}/api/send";
 
+        $edgeReachable = false;
         foreach ([$baseUrl, $sendUrl] as $url) {
             try {
                 $start = microtime(true);
-                $response = Http::connectTimeout(8)->timeout(12)->get($url);
+                $response = $this->probeHttp($config)->get($url);
                 $ms = (int) round((microtime(true) - $start) * 1000);
                 $icon = $response->successful() || $response->status() === 401 || $response->status() === 405 ? '✓' : '✗';
                 $this->line("  {$icon} {$url} → HTTP {$response->status()} ({$ms}ms)");
+                if ($response->status() > 0) {
+                    $edgeReachable = true;
+                }
             } catch (\Throwable $e) {
                 $this->error("  ✗ {$url} → FAIL: ".$e->getMessage());
             }
         }
 
-        if (! empty($config['api_key'])) {
+        if (! $edgeReachable && empty($config['relay_url'])) {
+            $this->newLine();
+            $this->error('ROOT CAUSE: سرور به edge.ippanel.com دسترسی شبکه ندارد (timeout).');
+            $this->line('این مشکل whitelist نیست — مسیر شبکه هلند→ایران بسته است.');
+            $this->line('راه‌حل: SMS Relay روی سرور ایران — docs/SMS-RELAY.md');
+            $this->line('  1) scripts/sms-relay/relay.php را روی VPS ایران deploy کنید');
+            $this->line('  2) در .env هلند: SMS_RELAY_URL و SMS_RELAY_SECRET');
+            $this->line('  3) ./scripts/fix-sms-now.sh && system:sms-probe --send');
+        }
+
+        if (! empty($config['relay_url'])) {
+            $this->newLine();
+            $this->info('SMS Relay configured: '.$config['relay_url']);
+            try {
+                $ping = Http::connectTimeout(5)->timeout(10)->get($config['relay_url']);
+                $this->line('  Relay HTTP status: '.$ping->status().' (405/403 expected for GET)');
+            } catch (\Throwable $e) {
+                $this->error('  Relay unreachable: '.$e->getMessage());
+            }
+        }
+
+        if (! empty($config['api_key']) && $edgeReachable) {
             $this->newLine();
             $this->info('Auth probe (invalid payload — checks if API key is accepted):');
             try {
-                $response = Http::connectTimeout(8)->timeout(15)
+                $response = $this->probeHttp($config)
                     ->withHeaders([
                         'Authorization' => (string) $config['api_key'],
                         'Content-Type' => 'application/json',
@@ -144,7 +171,20 @@ class SmsProbeCommand extends Command
             }
         }
 
-        return ($status['is_live'] ?? false) && ! empty($config['api_key']) ? self::SUCCESS : self::FAILURE;
+        return ($status['is_live'] ?? false) && (! empty($config['relay_url']) || ! empty($config['api_key'])) ? self::SUCCESS : self::FAILURE;
+    }
+
+    /** @param array<string, mixed> $config */
+    private function probeHttp(array $config): \Illuminate\Http\Client\PendingRequest
+    {
+        $request = Http::connectTimeout(8)->timeout(12);
+        $proxy = trim((string) ($config['http_proxy'] ?? ''));
+
+        if ($proxy !== '') {
+            $request = $request->withOptions(['proxy' => $proxy]);
+        }
+
+        return $request;
     }
 
     /** @param array<string, mixed> $result */
