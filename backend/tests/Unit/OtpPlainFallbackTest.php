@@ -11,9 +11,10 @@ use Tests\TestCase;
 
 class OtpPlainFallbackTest extends TestCase
 {
-    public function test_send_otp_uses_plain_webservice_first_in_jspd_mode(): void
+    public function test_send_otp_falls_back_to_plain_webservice_when_edge_unavailable(): void
     {
         Http::fake([
+            'https://edge.ippanel.com/*' => Http::response(['meta' => ['status' => false, 'message' => 'error']], 502),
             'https://ippanel.com/services.jspd' => Http::response(json_encode(['0', '12345']), 200),
         ]);
 
@@ -23,6 +24,7 @@ class OtpPlainFallbackTest extends TestCase
         $settings->shouldReceive('ippanelConfig')->andReturn([
             'username' => 'user',
             'password' => 'pass',
+            'api_key' => 'test-api-key',
             'from_number' => '+983000505',
             'otp_from_number' => '+9810008721297974',
             'otp_pattern_code' => 'qhhly1nai3njev0',

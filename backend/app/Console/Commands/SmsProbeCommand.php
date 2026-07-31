@@ -29,7 +29,7 @@ class SmsProbeCommand extends Command
             ['sms_mode (DB)', (string) $settings->get('sms_mode', '—')],
             ['SMS_MODE (.env)', (string) env('SMS_MODE', '—')],
             ['is_live (effective)', ($status['is_live'] ?? false) ? 'YES ✓' : 'NO ✗ — SMS disabled!'],
-            ['api_mode', (string) ($config['api_mode'] ?? '—')],
+            ['api_mode', (string) ($config['api_mode'] ?? '—').' (OTP: Edge API → plain fallback)'],
             ['has_api_key', ! empty($config['api_key']) ? 'yes ('.strlen((string) $config['api_key']).' chars)' : 'NO ✗'],
             ['has_username', ($status['has_username'] ?? false) ? 'yes' : 'no'],
             ['from_number', (string) ($config['from_number'] ?? '—')],
@@ -142,7 +142,8 @@ class SmsProbeCommand extends Command
                 $this->error('ROOT CAUSE: اتصال به ippanel.com ناپایدار است (گاهی timeout).');
                 $this->line('پیامک ۱۸:۲۱ از webservice plain رفت — وقتی شبکه وصل بود.');
             }
-            $this->line('راه‌حل پایدار: SMS Relay روی VPS ایران — docs/SMS-RELAY.md');
+            $this->line('راه‌حل پایدار برای OTP با API: SMS Relay روی VPS ایران — docs/SMS-RELAY.md');
+            $this->line('  relay → Edge API + پترن OTP (بهتر از plain webservice)');
             $this->line('  1) scripts/sms-relay/relay.php را روی VPS ایران deploy کنید');
             $this->line('  2) در .env هلند: SMS_RELAY_URL و SMS_RELAY_SECRET');
             $this->line('  3) ./scripts/fix-sms-now.sh && system:sms-probe --send');

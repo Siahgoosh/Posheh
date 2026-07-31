@@ -41,6 +41,7 @@ class IpPanelSmsService
     if ($this->relay->isConfigured($config)) {
       $patternCode = $this->resolveOtpPatternCode($config);
       $result = $this->relay->sendOtp($mobile, $code, $config);
+      $result['method'] = 'edge_api_relay';
 
       return ($result['success'] ?? false)
         ? $this->otpSuccess($mobile, $patternCode, $config, $result)
@@ -51,21 +52,33 @@ class IpPanelSmsService
     $otpConfig = $this->otpPatternConfig($config);
     $credentialSets = $this->otpCredentialSets($config);
     $mode = $this->resolveApiMode($otpConfig);
+    $params = ['code' => $code];
+    $attempts = [];
+
+    // Edge API + pattern — preferred OTP path (works abroad when relay is set, or if edge is reachable).
+    if (! empty($config['api_key'])) {
+      $auth = $this->resolveAuth($otpConfig, 'edge', 'ippanel');
+      $edgeResult = $this->sendOtpViaEdge($mobile, $patternCode, $params, $otpConfig, $auth);
+      $edgeResult['method'] = 'edge_api_pattern';
+      $attempts[] = $edgeResult;
+      if ($edgeResult['success']) {
+        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $edgeResult);
+      }
+    }
 
     if ($credentialSets === []) {
       Log::warning('OTP SMS credentials missing', ['mobile' => $mobile]);
 
       return [
         'success' => false,
-        'message' => 'تنظیمات OTP ناقص است. IPPANEL_USERNAME و IPPANEL_PASSWORD (یا IPPANEL_API_KEY) را در .env قرار دهید.',
+        'message' => ! empty($config['api_key'])
+          ? 'Edge API از این سرور در دسترس نیست. برای OTP با API پترن، SMS_RELAY_URL را روی VPS ایران تنظیم کنید (docs/SMS-RELAY.md).'
+          : 'تنظیمات OTP ناقص است. IPPANEL_API_KEY یا IPPANEL_USERNAME و IPPANEL_PASSWORD را در .env قرار دهید.',
       ];
     }
 
-    $params = ['code' => $code];
-    $attempts = [];
-
-    // JSPD mode on NL servers: pattern API returns deny; plain webservice works — send immediately.
-    if ($mode === 'jspd') {
+    // Fallback: plain JSPD webservice when Edge API / relay unavailable (unstable from NL).
+    if ($mode === 'jspd' || $mode === 'auto') {
       $plainResult = $this->sendOtpPlainWebservice($mobile, $code, $config);
       $attempts[] = $plainResult;
       if ($plainResult['success']) {
@@ -105,15 +118,6 @@ class IpPanelSmsService
       $attempts[] = $plainResult;
       if ($plainResult['success']) {
         return $this->otpSuccess($mobile, $patternCode, $otpConfig, $plainResult);
-      }
-    }
-
-    if ($mode !== 'jspd' && ! empty($config['api_key'])) {
-      $auth = $this->resolveAuth($otpConfig, 'edge', 'ippanel');
-      $edgeResult = $this->sendOtpViaEdge($mobile, $patternCode, $params, $otpConfig, $auth);
-      $attempts[] = $edgeResult;
-      if ($edgeResult['success']) {
-        return $this->otpSuccess($mobile, $patternCode, $otpConfig, $edgeResult);
       }
     }
 
