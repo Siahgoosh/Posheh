@@ -10,6 +10,10 @@ echo "==> OTP / SMS diagnosis"
 $COMPOSE exec -T app php artisan otp:diagnose "$@" --no-interaction
 
 echo ""
+echo "==> Full SMS probe"
+$COMPOSE exec -T app php artisan system:sms-probe --no-interaction 2>/dev/null || true
+
+echo ""
 echo "==> Laravel log (OTP lines)"
 $COMPOSE exec -T app sh -c "grep -i 'OTP SMS' storage/logs/laravel.log 2>/dev/null | tail -20 || echo '(no OTP lines in laravel.log)'"
 
