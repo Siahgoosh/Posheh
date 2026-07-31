@@ -75,8 +75,15 @@ export function RegisterPage() {
         setCountdown((c) => { if (c <= 1) { clearInterval(timer); return 0 } return c - 1 })
       }, 1000)
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } }
-      setError(e.response?.data?.errors?.mobile?.[0] || e.response?.data?.message || 'خطا در ارسال کد')
+      const e = err as { code?: string; response?: { status?: number; data?: { errors?: Record<string, string[]>; message?: string } } }
+      if (e.code === 'ECONNABORTED' || e.response?.status === 504) {
+        setError('سرور پاسخ نداد. اگر کد رسید ادامه دهید؛ وگرنه دوباره تلاش کنید.')
+        setMobile(normalizeMobile(mobile))
+        setStep('otp')
+        setCountdown(120)
+      } else {
+        setError(e.response?.data?.errors?.mobile?.[0] || e.response?.data?.message || 'خطا در ارسال کد')
+      }
     } finally {
       setLoading(false)
     }
