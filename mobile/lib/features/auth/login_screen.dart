@@ -1,13 +1,9 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api/api_client.dart';
 import '../../core/auth/auth_controller.dart';
-import '../../core/constants/app_urls.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/utils/formatters.dart';
 import '../../core/utils/input_normalizers.dart';
 import '../../core/widgets/app_background.dart';
 import '../../core/widgets/app_logo.dart';
@@ -21,92 +17,47 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-enum _Step { mobile, otp }
-
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _mobileController = TextEditingController();
-  final _otpController = TextEditingController();
-
-  _Step _step = _Step.mobile;
+  final _loginController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _loading = false;
+  bool _obscure = true;
   String? _error;
-  String? _devHint;
-  String _normalizedMobile = '';
-  int _countdown = 0;
-  Timer? _timer;
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _mobileController.dispose();
-    _otpController.dispose();
+    _loginController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
-  void _startCountdown() {
-    _timer?.cancel();
-    setState(() => _countdown = 120);
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (_countdown <= 1) {
-        t.cancel();
-        setState(() => _countdown = 0);
-      } else {
-        setState(() => _countdown--);
-      }
-    });
+  bool _looksLikeMobile(String value) {
+    final m = normalizeMobile(value);
+    return m.length == 11 && m.startsWith('09');
   }
 
-  Future<void> _sendOtp() async {
-    final mobile = normalizeMobile(_mobileController.text);
-    if (mobile.length != 11 || !mobile.startsWith('09')) {
-      setState(() => _error = 'شماره موبایل معتبر نیست');
-      return;
-    }
-    setState(() {
-      _loading = true;
-      _error = null;
-      _devHint = null;
-    });
-    try {
-      final res = await ref.read(apiClientProvider).sendOtp(mobile);
-      _otpController.clear();
-      setState(() {
-        _normalizedMobile = mobile;
-        _step = _Step.otp;
-        final hint = res['dev_hint'];
-        _devHint = hint is String && hint.isNotEmpty ? hint : null;
-      });
-      _startCountdown();
-    } on ApiException catch (e) {
-      setState(() => _error = e.message);
-    } catch (_) {
-      setState(() => _error = 'خطا در ارسال کد');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
+  Future<void> _submit() async {
+    final login = _loginController.text.trim();
+    final password = _passwordController.text;
 
-  Future<void> _verifyOtp() async {
-    final code = normalizeOtpCode(_otpController.text);
-    if (code.length != 6) {
-      setState(() => _error = 'کد ۶ رقمی را کامل وارد کنید');
+    if (login.isEmpty || password.isEmpty) {
+      setState(() => _error = 'ایمیل/نام کاربری و رمز عبور را وارد کنید');
       return;
     }
+
+    if (_looksLikeMobile(login)) {
+      setState(() => _error =
+          'ورود با شماره موبایل غیرفعال است. از ایمیل یا نام کاربری استفاده کنید.');
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
     });
+
     try {
-      final res =
-          await ref.read(apiClientProvider).verifyOtp(_normalizedMobile, code);
-
-      if (res['needs_registration'] == true) {
-        _otpController.clear();
-        setState(() => _error =
-            'این شماره ثبت‌نام نشده. روی «ثبت‌نام رایگان» بزنید یا به ${AppUrls.register} بروید.');
-        return;
-      }
-
+      final res = await ref.read(apiClientProvider).login(login, password);
       final token = res['token']?.toString();
       final user = res['user'];
       if (token == null || user is! Map) {
@@ -118,11 +69,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           .onLoggedIn(token, Map<String, dynamic>.from(user));
       if (mounted) context.go('/dashboard');
     } on ApiException catch (e) {
-      _otpController.clear();
       setState(() => _error = e.message);
     } catch (_) {
-      _otpController.clear();
-      setState(() => _error = 'خطا در تأیید کد. دوباره تلاش کنید.');
+      setState(() => _error = 'خطا در ورود. دوباره تلاش کنید.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -158,9 +107,75 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 28),
                     GlassCard(
                       padding: const EdgeInsets.all(20),
-                      child: _step == _Step.mobile
-                          ? _buildMobileForm()
-                          : _buildOtpForm(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(Icons.key_rounded,
+                                  size: 20, color: AppColors.primary),
+                              SizedBox(width: 8),
+                              Text('ورود به حساب',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          const Text('ایمیل یا نام کاربری',
+                              style:
+                                  TextStyle(color: AppColors.muted, fontSize: 13)),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _loginController,
+                            keyboardType: TextInputType.emailAddress,
+                            textDirection: TextDirection.ltr,
+                            autocorrect: false,
+                            decoration: const InputDecoration(
+                              hintText: 'email@example.com یا username',
+                            ),
+                            onSubmitted: (_) => _loading ? null : _submit(),
+                          ),
+                          const SizedBox(height: 14),
+                          const Text('رمز عبور',
+                              style:
+                                  TextStyle(color: AppColors.muted, fontSize: 13)),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _passwordController,
+                            obscureText: _obscure,
+                            decoration: InputDecoration(
+                              hintText: 'رمز عبور',
+                              suffixIcon: IconButton(
+                                icon: Icon(_obscure
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined),
+                                onPressed: () =>
+                                    setState(() => _obscure = !_obscure),
+                              ),
+                            ),
+                            onSubmitted: (_) => _loading ? null : _submit(),
+                          ),
+                          if (_error != null) ...[
+                            const SizedBox(height: 12),
+                            _ErrorText(_error!),
+                          ],
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _loading ? null : _submit,
+                            child: _loading
+                                ? const _BtnSpinner()
+                                : const Text('ورود'),
+                          ),
+                          const SizedBox(height: 14),
+                          Center(
+                            child: TextButton(
+                              onPressed: _loading ? null : () => context.go('/register'),
+                              child: const Text('حساب ندارید؟ ثبت‌نام'),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -169,141 +184,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _sectionTitle(String text) {
-    return Row(
-      children: [
-        const Icon(Icons.smartphone_rounded,
-            size: 20, color: AppColors.primary),
-        const SizedBox(width: 8),
-        Text(text,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-      ],
-    );
-  }
-
-  Widget _buildMobileForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _sectionTitle('ورود با موبایل'),
-        const SizedBox(height: 18),
-        const Text('شماره موبایل',
-            style: TextStyle(color: AppColors.muted, fontSize: 13)),
-        const SizedBox(height: 8),
-        TextField(
-          controller: _mobileController,
-          keyboardType: TextInputType.phone,
-          textDirection: TextDirection.ltr,
-          textAlign: TextAlign.center,
-          maxLength: 11,
-          style: const TextStyle(fontSize: 18, letterSpacing: 3),
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: const InputDecoration(
-            counterText: '',
-            hintText: '09121234567',
-          ),
-          onSubmitted: (_) => _loading ? null : _sendOtp(),
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          _ErrorText(_error!),
-        ],
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: _loading ? null : _sendOtp,
-          child: _loading
-              ? const _BtnSpinner()
-              : const Text('دریافت کد تأیید'),
-        ),
-        const SizedBox(height: 14),
-        Center(
-          child: TextButton(
-            onPressed: _loading ? null : () => context.go('/register'),
-            child: const Text('ثبت‌نام رایگان ۴۸ ساعته'),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOtpForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _sectionTitle('تأیید کد'),
-        const SizedBox(height: 18),
-        Text(
-          'کد تأیید به ${toPersianDigits(_normalizedMobile)} ارسال شد',
-          style: const TextStyle(color: AppColors.muted, fontSize: 13),
-        ),
-        if (_devHint != null) ...[
-          const SizedBox(height: 10),
-          Center(
-            child: Text(_devHint!,
-                style: const TextStyle(
-                    color: AppColors.warning, fontWeight: FontWeight.w600)),
-          ),
-        ],
-        const SizedBox(height: 14),
-        TextField(
-          controller: _otpController,
-          keyboardType: TextInputType.number,
-          textDirection: TextDirection.ltr,
-          textAlign: TextAlign.center,
-          maxLength: 6,
-          autofocus: true,
-          style: const TextStyle(
-              fontSize: 26, letterSpacing: 8, fontWeight: FontWeight.bold),
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: const InputDecoration(
-            counterText: '',
-            hintText: '––––––',
-          ),
-          onSubmitted: (_) => _loading ? null : _verifyOtp(),
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          _ErrorText(_error!),
-        ],
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: _loading ? null : _verifyOtp,
-          child: _loading ? const _BtnSpinner() : const Text('ورود'),
-        ),
-        const SizedBox(height: 14),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton(
-              onPressed: _loading
-                  ? null
-                  : () {
-                      _otpController.clear();
-                      setState(() {
-                        _step = _Step.mobile;
-                        _error = null;
-                        _devHint = null;
-                      });
-                    },
-              style: TextButton.styleFrom(foregroundColor: AppColors.muted),
-              child: const Text('تغییر شماره'),
-            ),
-            if (_countdown > 0)
-              Text(
-                'ارسال مجدد (${toPersianDigits(_countdown.toString())})',
-                style: const TextStyle(color: AppColors.muted, fontSize: 13),
-              )
-            else
-              TextButton(
-                onPressed: _loading ? null : _sendOtp,
-                child: const Text('ارسال مجدد'),
-              ),
-          ],
-        ),
-      ],
     );
   }
 }

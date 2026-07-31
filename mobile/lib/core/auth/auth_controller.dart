@@ -4,6 +4,8 @@ import '../api/api_client.dart';
 class AppUser {
   final String name;
   final String mobile;
+  final String? email;
+  final String? username;
   final String? roleLabel;
   final String role;
   final String? officeName;
@@ -15,6 +17,8 @@ class AppUser {
   const AppUser({
     required this.name,
     required this.mobile,
+    this.email,
+    this.username,
     this.roleLabel,
     this.role = '',
     this.officeName,
@@ -34,6 +38,8 @@ class AppUser {
     return AppUser(
       name: (json['name'] ?? '').toString(),
       mobile: (json['mobile'] ?? '').toString(),
+      email: json['email']?.toString(),
+      username: json['username']?.toString(),
       roleLabel: json['role_label']?.toString(),
       role: (json['role'] ?? '').toString(),
       officeName: office is Map ? office['name']?.toString() : null,

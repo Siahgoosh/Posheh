@@ -6,7 +6,7 @@ import {
   Building2, Shield, Users, Search, BarChart3, Kanban, Calculator,
   ArrowLeft, CheckCircle2, Sparkles, Calendar, QrCode, UserCircle, Target,
   FileText, MessageSquare, Zap, Cloud, Headphones, ChevronDown,
-  Wallet, Bot, Globe, Star, Menu, X, KeyRound, UserPlus,
+  Wallet, Bot, Globe, Star, Menu, X, KeyRound, UserPlus, Smartphone,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { formatPrice } from '@/lib/utils'

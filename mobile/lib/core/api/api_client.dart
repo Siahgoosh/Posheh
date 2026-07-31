@@ -152,6 +152,21 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> login(String login, String password) {
+    return _guard(
+      () => _dio.post('/auth/login', data: {
+        'login': login.contains('@') ? login.trim() : login.trim().toLowerCase(),
+        'password': password,
+        'device_id': 'posheh-$clientPlatform',
+        'device_name': 'Posheh ${clientPlatform.toUpperCase()}',
+        'platform': clientPlatform,
+      }),
+      'خطا در ورود',
+      ok: (res) => Map<String, dynamic>.from(res.data as Map),
+    );
+  }
+
+  @Deprecated('Use login() — OTP auth disabled')
   Future<Map<String, dynamic>> sendOtp(String mobile) {
     return _guard(
       () => _dio.post('/auth/otp/send',

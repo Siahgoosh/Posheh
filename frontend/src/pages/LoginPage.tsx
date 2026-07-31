@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import api from '@/lib/api'
 import { getDeviceId, getDeviceName, getPlatform } from '@/lib/device'
 import { useAuthStore } from '@/stores/auth'
-import { toEnglishDigits, normalizeMobile } from '@/lib/utils'
+import { normalizeMobile } from '@/lib/utils'
 import { isPanelSubdomain, isPlatformStaffRole } from '@/lib/subdomain'
 
 const LEGACY_MOBILE_HINT =
