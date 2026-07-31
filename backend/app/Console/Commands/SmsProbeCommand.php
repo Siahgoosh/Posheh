@@ -77,7 +77,7 @@ class SmsProbeCommand extends Command
                 $this->line("  {$icon} services.jspd → HTTP {$response->status()} ({$ms}ms) body: ".mb_substr($raw, 0, 80));
                 $jspdReachable = $raw !== '';
                 if (strcasecmp($raw, 'deny') === 0) {
-                    $this->warn('  JSPD returned deny — IP may not be whitelisted in MaxSMS panel.');
+                    $this->warn('  JSPD pattern returned deny — OTP will use plain webservice fallback if enabled.');
                 }
             } catch (\Throwable $e) {
                 $this->error('  ✗ services.jspd → FAIL: '.$e->getMessage());

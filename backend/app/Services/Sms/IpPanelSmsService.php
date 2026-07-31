@@ -82,7 +82,16 @@ class IpPanelSmsService
       }
     }
 
-    if (! empty($config['api_key'])) {
+    $mode = $this->resolveApiMode($otpConfig);
+
+    // Pattern API often returns "deny" from abroad while plain JSPD webservice works.
+    $plainResult = $this->sendOtpPlainWebservice($mobile, $code, $config);
+    $attempts[] = $plainResult;
+    if ($plainResult['success']) {
+      return $this->otpSuccess($mobile, $patternCode, $otpConfig, $plainResult);
+    }
+
+    if ($mode !== 'jspd' && ! empty($config['api_key'])) {
       $auth = $this->resolveAuth($otpConfig, 'edge', 'ippanel');
       $edgeResult = $this->sendOtpViaEdge($mobile, $patternCode, $params, $otpConfig, $auth);
       $attempts[] = $edgeResult;
@@ -186,7 +195,7 @@ class IpPanelSmsService
     }
 
     if ($deny) {
-      return 'ارسال OTP ناموفق: IP سرور در پنل مکث whitelist نیست (JSPD deny). IP سرور را در پنل مکث اضافه کنید.';
+      return 'ارسال OTP ناموفق: پترن مکث از این IP رد شد (deny). IP سرور را در پنل مکث whitelist کنید، یا از ارسال plain webservice استفاده کنید.';
     }
 
     foreach ($messages as $message) {
@@ -622,6 +631,31 @@ class IpPanelSmsService
     }
 
     return $config;
+  }
+
+  /** Plain SMS fallback when pattern/JSPD deny but webservice send works (common on NL servers). */
+  /** @param array<string, mixed> $config */
+  private function sendOtpPlainWebservice(string $mobile, string $code, array $config): array
+  {
+    $message = "کد تأیید پوشه: {$code}";
+
+    $plainConfig = $config;
+    $generalFrom = trim((string) ($config['from_number'] ?? ''));
+    if ($generalFrom !== '') {
+      $plainConfig['from_number'] = $generalFrom;
+    }
+
+    $result = $this->sendWebservice($mobile, $message, $plainConfig, forceLive: true);
+    $result['method'] = 'otp_plain_'.($result['method'] ?? 'webservice');
+
+    if ($result['success']) {
+      Log::info('OTP sent via plain webservice fallback', [
+        'mobile' => $mobile,
+        'method' => $result['method'],
+      ]);
+    }
+
+    return $result;
   }
 
   public function sendPlain(string $mobile, string $message): array
