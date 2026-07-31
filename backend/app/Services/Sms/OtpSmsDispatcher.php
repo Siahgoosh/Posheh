@@ -7,29 +7,28 @@ use Illuminate\Support\Facades\Log;
 
 class OtpSmsDispatcher
 {
+    /**
+     * Queue OTP SMS without blocking the HTTP response.
+     * Never call sendOtp synchronously here — JSPD/classic APIs timeout from abroad.
+     */
     public function dispatch(string $mobile, string $code): void
     {
         $this->trace('dispatch_requested', $mobile, ['code_length' => strlen($code)]);
 
-        // Prefer Laravel queue (after HTTP response) — reliable in Docker with queue worker
+        if ($this->spawnBackgroundSend($mobile, $code)) {
+            return;
+        }
+
         try {
             SendOtpSmsJob::dispatch($mobile, $code)->afterResponse();
             $this->trace('queued_after_response', $mobile);
-
-            return;
         } catch (\Throwable $e) {
             $this->trace('queue_failed', $mobile, ['error' => $e->getMessage()]);
+            Log::error('OTP SMS could not be queued — user still gets OTP step', [
+                'mobile' => $this->mask($mobile),
+                'error' => $e->getMessage(),
+            ]);
         }
-
-        if ($this->spawnBackgroundSend($mobile, $code)) {
-            $this->trace('background_spawned', $mobile);
-
-            return;
-        }
-
-        $this->trace('sync_fallback', $mobile);
-        SendOtpSmsJob::dispatchSync($mobile, $code);
-        $this->trace('sync_completed', $mobile);
     }
 
     private function spawnBackgroundSend(string $mobile, string $code): bool
@@ -41,20 +40,22 @@ class OtpSmsDispatcher
         }
 
         $logFile = storage_path('logs/otp-sms.log');
+        $php = escapeshellarg(PHP_BINARY);
+        $artisan = escapeshellarg(base_path('artisan'));
         $command = sprintf(
-            'cd %s && nohup php artisan otp:send-sms %s %s >> %s 2>&1 &',
+            'cd %s && nohup %s %s otp:send-sms %s %s >> %s 2>&1 &',
             escapeshellarg(base_path()),
+            $php,
+            $artisan,
             escapeshellarg($mobile),
             escapeshellarg($code),
             escapeshellarg($logFile),
         );
 
-        $output = [];
-        $exitCode = 1;
-        exec($command, $output, $exitCode);
-        $this->trace('exec_called', $mobile, ['exit_code' => $exitCode]);
+        @exec($command);
+        $this->trace('background_spawned', $mobile);
 
-        return $exitCode === 0;
+        return true;
     }
 
     private function canExec(): bool
@@ -71,11 +72,15 @@ class OtpSmsDispatcher
     /** @param array<string, mixed> $context */
     private function trace(string $event, string $mobile, array $context = []): void
     {
-        $masked = substr($mobile, 0, 4).'***'.substr($mobile, -2);
-        $payload = array_merge(['event' => $event, 'mobile' => $masked], $context);
+        $payload = array_merge(['event' => $event, 'mobile' => $this->mask($mobile)], $context);
         $line = sprintf("[%s] %s\n", now()->toIso8601String(), json_encode($payload, JSON_UNESCAPED_UNICODE));
 
         @file_put_contents(storage_path('logs/otp-sms.log'), $line, FILE_APPEND | LOCK_EX);
-        Log::warning('OTP SMS trace', $payload);
+        Log::info('OTP SMS trace', $payload);
+    }
+
+    private function mask(string $mobile): string
+    {
+        return substr($mobile, 0, 4).'***'.substr($mobile, -2);
     }
 }

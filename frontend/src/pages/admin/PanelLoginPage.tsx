@@ -32,7 +32,7 @@ export function PanelLoginPage() {
     setLoading(true)
     const normalizedMobile = normalizeMobile(mobile)
     try {
-      const res = await api.post('/auth/otp/send', { mobile: normalizedMobile })
+      const res = await api.post('/auth/otp/send', { mobile: normalizedMobile }, { timeout: 12000 })
       if (res.data.dev_hint) setDevHint(res.data.dev_hint)
       setMobile(normalizedMobile)
       setStep('otp')

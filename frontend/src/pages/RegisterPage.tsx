@@ -66,7 +66,7 @@ export function RegisterPage() {
     setDevHint('')
     setLoading(true)
     try {
-      const res = await api.post('/auth/otp/send', { mobile: normalizeMobile(mobile), purpose: 'register' })
+      const res = await api.post('/auth/otp/send', { mobile: normalizeMobile(mobile), purpose: 'register' }, { timeout: 12000 })
       if (res.data.dev_hint) setDevHint(res.data.dev_hint)
       setMobile(normalizeMobile(mobile))
       setStep('otp')

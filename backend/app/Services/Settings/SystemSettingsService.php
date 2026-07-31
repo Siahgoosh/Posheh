@@ -186,6 +186,11 @@ class SystemSettingsService
             $config['otp_from_number'] = '+9810008721297974';
         }
 
+        // API key always uses Edge API (works from Netherlands / abroad without IP whitelist)
+        if (! empty($config['api_key']) && ! $this->isMaskedSecret($config['api_key'])) {
+            $config['api_mode'] = 'edge';
+        }
+
         return $config;
     }
 

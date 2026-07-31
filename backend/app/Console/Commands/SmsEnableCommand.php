@@ -11,6 +11,7 @@ class SmsEnableCommand extends Command
     protected $signature = 'system:sms-enable
                             {--live : Force sms_mode=live (real SMS)}
                             {--log : Force sms_mode=log (OTP code 123456, no SMS)}
+                            {--fix : One-shot fix: live + edge + sync .env + clear cache}
                             {--from-env : Sync SMS credentials from .env into database}
                             {--show : Only print current SMS status}';
 
@@ -24,6 +25,21 @@ class SmsEnableCommand extends Command
             return self::SUCCESS;
         }
 
+        if ($this->option('fix')) {
+            $this->syncFromEnv($settings);
+            $settings->set('sms_mode', 'live');
+            $settings->set('ippanel_api_mode', 'edge');
+            Cache::forget('system_settings');
+            $this->info('SMS fix applied: sms_mode=live, ippanel_api_mode=edge');
+            $this->newLine();
+            $this->printStatus($settings);
+            $this->newLine();
+            $this->line('Test: php artisan system:sms-test 09170577873 --otp --debug');
+            $this->line('Probe: php artisan system:sms-probe 09170577873 --send');
+
+            return self::SUCCESS;
+        }
+
         if ($this->option('from-env')) {
             $this->syncFromEnv($settings);
         }
@@ -33,6 +49,9 @@ class SmsEnableCommand extends Command
             $this->info('sms_mode set to log — OTP test code: 123456');
         } elseif ($this->option('live')) {
             $settings->set('sms_mode', 'live');
+            if (! empty(env('IPPANEL_API_KEY'))) {
+                $settings->set('ippanel_api_mode', 'edge');
+            }
             $this->info('sms_mode set to live');
         }
 
