@@ -7,7 +7,7 @@ cd "$ROOT"
 
 COMPOSE="docker compose"
 
-echo "==> SMS fix: live mode + edge API + sync .env"
+echo "==> SMS fix: live mode + JSPD (MaxSMS) + sync .env"
 $COMPOSE exec -T app php artisan system:sms-enable --fix --no-interaction
 
 echo "==> Clear caches"
