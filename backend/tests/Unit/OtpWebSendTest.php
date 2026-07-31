@@ -36,6 +36,7 @@ class OtpWebSendTest extends TestCase
         ));
 
         $this->assertSame('کد تأیید ارسال شد.', $result['message']);
+        $this->assertTrue($result['sms_sent']);
         $this->assertDatabaseHas('otp_codes', [
             'mobile' => '09170577873',
         ]);
@@ -57,6 +58,7 @@ class OtpWebSendTest extends TestCase
         ));
 
         $this->assertSame('حالت تست: کد ۱۲۳۴۵۶', $result['dev_hint']);
+        $this->assertFalse($result['sms_sent']);
         $this->assertDatabaseHas('otp_codes', [
             'mobile' => '09170577873',
             'code' => '123456',

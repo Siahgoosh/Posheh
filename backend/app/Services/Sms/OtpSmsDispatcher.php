@@ -11,6 +11,16 @@ class OtpSmsDispatcher
     {
         $this->trace('dispatch_requested', $mobile, ['code_length' => strlen($code)]);
 
+        // Prefer Laravel queue (after HTTP response) — reliable in Docker with queue worker
+        try {
+            SendOtpSmsJob::dispatch($mobile, $code)->afterResponse();
+            $this->trace('queued_after_response', $mobile);
+
+            return;
+        } catch (\Throwable $e) {
+            $this->trace('queue_failed', $mobile, ['error' => $e->getMessage()]);
+        }
+
         if ($this->spawnBackgroundSend($mobile, $code)) {
             $this->trace('background_spawned', $mobile);
 
@@ -39,10 +49,12 @@ class OtpSmsDispatcher
             escapeshellarg($logFile),
         );
 
-        @exec($command, $output, $exitCode);
+        $output = [];
+        $exitCode = 1;
+        exec($command, $output, $exitCode);
         $this->trace('exec_called', $mobile, ['exit_code' => $exitCode]);
 
-        return true;
+        return $exitCode === 0;
     }
 
     private function canExec(): bool

@@ -377,10 +377,9 @@ class IpPanelSmsService
   /** @return list<string> */
   private function otpFromCandidates(array $config): array
   {
-    // General line (+983000505) first — production logs show classic_otp via this line.
     return array_values(array_unique(array_filter([
-      trim((string) ($config['from_number'] ?? '')),
       trim((string) ($config['otp_from_number'] ?? '')),
+      trim((string) ($config['from_number'] ?? '')),
       self::OTP_FROM_NUMBER,
     ])));
   }
@@ -506,9 +505,9 @@ class IpPanelSmsService
     }
 
     $fromCandidates = array_values(array_unique(array_filter([
-      trim((string) ($config['from_number'] ?? '')),
       trim((string) ($config['otp_from_number'] ?? '')),
-      '+9810008721297974',
+      trim((string) ($config['from_number'] ?? '')),
+      self::OTP_FROM_NUMBER,
     ])));
 
     $paramVariants = [
@@ -554,8 +553,9 @@ class IpPanelSmsService
     $apiKey = trim((string) ($config['api_key'] ?? $auth['api_key'] ?? ''));
     if ($apiKey !== '') {
       $apiKey = $this->normalizeApiKey($apiKey);
-      $headers['access_key'] = ['Authorization' => 'AccessKey '.$apiKey];
+      // Official SDK + docs: Authorization: {api_key} (bare token)
       $headers['api_key'] = ['Authorization' => $apiKey];
+      $headers['access_key'] = ['Authorization' => 'AccessKey '.$apiKey];
       $headers['apikey_header'] = ['ApiKey' => $apiKey, 'Authorization' => $apiKey];
     }
 
@@ -645,10 +645,10 @@ class IpPanelSmsService
     $otpFrom = trim((string) ($config['otp_from_number'] ?? ''));
     $generalFrom = trim((string) ($config['from_number'] ?? ''));
 
-    if ($generalFrom !== '') {
-      $config['from_number'] = $generalFrom;
-    } elseif ($otpFrom !== '') {
+    if ($otpFrom !== '') {
       $config['from_number'] = $otpFrom;
+    } elseif ($generalFrom !== '') {
+      $config['from_number'] = $generalFrom;
     } else {
       $config['from_number'] = self::OTP_FROM_NUMBER;
     }
@@ -1285,7 +1285,8 @@ class IpPanelSmsService
       return ['Authorization' => $token];
     }
 
-    return ['Authorization' => 'AccessKey '.$token];
+    // IPPanel Edge docs + Python SDK: bare API key in Authorization header
+    return ['Authorization' => $token];
   }
 
   private function resolveAuth(array $config, string $mode = 'auto', string $provider = 'maxsms'): array
@@ -1348,10 +1349,15 @@ class IpPanelSmsService
     $body = str_contains($contentType, 'json') ? ($response->json() ?? []) : [];
 
     if (empty($body) && ! $response->successful()) {
+      $status = $response->status();
+      $hint = $status === 502
+        ? 'سرور Edge مکث در دسترس نیست (HTTP 502). اتصال شبکه یا وضعیت سرویس مکث را بررسی کنید.'
+        : "سرور IPPanel در دسترس نیست (HTTP {$status}).";
+
       return [
         'success' => false,
-        'message' => "خطای IPPanel (HTTP {$response->status()}): سرور IPPanel در دسترس نیست. حالت legacy امتحان می‌شود.",
-        'details' => ['http_status' => $response->status()],
+        'message' => "خطای IPPanel: {$hint}",
+        'details' => ['http_status' => $status, 'raw' => mb_substr(trim($response->body()), 0, 200)],
       ];
     }
 

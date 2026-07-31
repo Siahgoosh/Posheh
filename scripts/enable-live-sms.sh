@@ -23,6 +23,10 @@ echo "==> Current SMS status"
 $COMPOSE exec -T app php artisan system:sms-enable --show --no-interaction
 
 echo ""
+echo "==> Probe SMS pipeline (config + Edge API)"
+$COMPOSE exec -T app php artisan system:sms-probe --no-interaction 2>/dev/null || true
+
+echo ""
 echo "==> Test OTP SMS (replace mobile if needed)"
 echo "    docker compose exec app php artisan system:sms-test 09170577873 --otp --debug"
 echo ""

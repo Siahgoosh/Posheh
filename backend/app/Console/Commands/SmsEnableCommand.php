@@ -81,6 +81,9 @@ class SmsEnableCommand extends Command
         if (! env('IPPANEL_API_MODE') && ! $settings->hasValue('ippanel_api_mode')) {
             $settings->set('ippanel_api_mode', 'edge');
             $this->line('  set ippanel_api_mode=edge (Edge API — works from abroad without IP whitelist)');
+        } elseif (env('IPPANEL_API_KEY') && strtolower((string) env('IPPANEL_API_MODE', '')) !== 'jspd') {
+            $settings->set('ippanel_api_mode', 'edge');
+            $this->line('  set ippanel_api_mode=edge (API key present)');
         }
 
         if (! env('sms_provider') && ! $settings->hasValue('sms_provider')) {

@@ -156,9 +156,13 @@ $COMPOSE exec -T app php artisan optimize:clear --no-interaction || true
 if [ "${SMS_FORCE_LIVE:-0}" = "1" ]; then
   $COMPOSE exec -T app php artisan system:sms-enable --live --from-env --no-interaction 2>/dev/null \
     || log "Run manually: docker compose exec app php artisan system:sms-enable --live --from-env"
+elif grep -qE '^SMS_MODE=live' "$ENV_FILE" 2>/dev/null; then
+  $COMPOSE exec -T app php artisan system:sms-enable --live --from-env --no-interaction 2>/dev/null \
+    || log "Run manually: docker compose exec app php artisan system:sms-enable --live --from-env"
 else
-  $COMPOSE exec -T app php artisan system:sms-enable --log --from-env --no-interaction 2>/dev/null \
-    || log "Run manually: docker compose exec app php artisan system:sms-enable --log"
+  # Sync credentials only — do NOT reset sms_mode to log on every deploy
+  $COMPOSE exec -T app php artisan system:sms-enable --from-env --no-interaction 2>/dev/null \
+    || log "Run manually: docker compose exec app php artisan system:sms-enable --from-env"
 fi
 $COMPOSE exec -T app php artisan storage:link --force --no-interaction 2>/dev/null || true
 

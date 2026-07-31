@@ -76,19 +76,21 @@ class OtpService
             now()->addSeconds(self::SEND_COOLDOWN_SECONDS)
         );
 
-        if ($this->settings->isSmsLive()) {
+        $isLive = $this->settings->isSmsLive();
+
+        if ($isLive) {
             $this->otpSmsDispatcher->dispatch($mobile, $code);
         } else {
             Log::info("OTP SMS [log] to {$mobile}: {$code}");
         }
 
         $response = [
-            'message' => 'کد تأیید ارسال شد.',
+            'message' => $isLive ? 'کد تأیید ارسال شد.' : 'کد تأیید ارسال شد (حالت تست).',
             'expires_in' => 300,
-            'sms_sent' => true,
+            'sms_sent' => $isLive,
         ];
 
-        if (! $this->settings->isSmsLive()) {
+        if (! $isLive) {
             $response['dev_hint'] = 'حالت تست: کد ۱۲۳۴۵۶';
         }
 
