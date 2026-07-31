@@ -25,10 +25,11 @@ class SmsApiTestCommand extends Command
         $this->line('Server egress IP: '.$this->detectEgressIp());
         $this->newLine();
 
-        $results['edge_connectivity'] = $this->testEdgeConnectivity($config);
+        // JSPD first — Edge often times out from NL and blocks the probe for 15s+.
         $results['jspd_connectivity'] = $this->testJspdConnectivity($config);
-        $results['edge_webservice'] = $this->testEdgeWebserviceApi($config);
         $results['jspd_webservice'] = $this->testJspdWebserviceApi($config);
+        $results['edge_connectivity'] = $this->testEdgeConnectivity($config);
+        $results['edge_webservice'] = $this->testEdgeWebserviceApi($config);
 
         $this->newLine();
         $this->info('=== Summary ===');
@@ -53,8 +54,10 @@ class SmsApiTestCommand extends Command
             $this->info('✓ RECOMMENDED: Edge API webservice (IPPANEL_API_MODE=edge + API key)');
         } else {
             $this->error('✗ No working API path from this server.');
-            $this->line('  Check IPPANEL_USERNAME/PASSWORD or IPPANEL_API_KEY in .env');
-            $this->line('  Edge often returns 502 from abroad; JSPD webservice is the NL path.');
+            $this->line('  Check IPPANEL_USERNAME/PASSWORD in .env');
+            if (($results['edge_connectivity']['ok'] ?? false) === false) {
+                $this->line('  Edge timeout/502 from abroad is normal — use JSPD webservice (jspd mode).');
+            }
         }
 
         if ($this->option('send')) {
@@ -88,7 +91,7 @@ class SmsApiTestCommand extends Command
 
         try {
             $start = microtime(true);
-            $response = $this->http($config)->get($baseUrl);
+            $response = $this->edgeHttp($config)->get($baseUrl);
             $ms = (int) round((microtime(true) - $start) * 1000);
             $ok = in_array($response->status(), [200, 401, 405], true);
 
@@ -99,9 +102,9 @@ class SmsApiTestCommand extends Command
                 'detail' => "HTTP {$response->status()} ({$ms}ms)",
             ];
         } catch (\Throwable $e) {
-            $this->error('Edge connectivity: '.$e->getMessage());
+            $this->warn('Edge connectivity: timeout/unreachable (expected from NL) — '.$this->shortError($e));
 
-            return ['ok' => false, 'detail' => $e->getMessage()];
+            return ['ok' => false, 'detail' => 'timeout/unreachable (normal abroad)'];
         }
     }
 
@@ -155,7 +158,7 @@ class SmsApiTestCommand extends Command
 
         try {
             $start = microtime(true);
-            $response = $this->http($config)
+            $response = $this->edgeHttp($config)
                 ->withHeaders([
                     'Authorization' => (string) $config['api_key'],
                     'Content-Type' => 'application/json',
@@ -182,9 +185,9 @@ class SmsApiTestCommand extends Command
                 'detail' => "HTTP {$response->status()}: ".mb_substr($metaMsg, 0, 100),
             ];
         } catch (\Throwable $e) {
-            $this->error('Edge webservice API: '.$e->getMessage());
+            $this->warn('Edge webservice API: timeout/unreachable (expected from NL)');
 
-            return ['ok' => false, 'detail' => $e->getMessage()];
+            return ['ok' => false, 'detail' => 'timeout/unreachable (normal abroad)'];
         }
     }
 
@@ -246,17 +249,47 @@ class SmsApiTestCommand extends Command
 
     private function detectEgressIp(): string
     {
-        try {
-            return trim(Http::connectTimeout(3)->timeout(5)->get('https://ifconfig.me')->body()) ?: 'unknown';
-        } catch (\Throwable) {
-            return 'unknown';
+        foreach (['https://api.ipify.org', 'https://icanhazip.com', 'https://ifconfig.me/ip'] as $url) {
+            try {
+                $body = trim(Http::connectTimeout(3)->timeout(5)->get($url)->body());
+                if (preg_match('/\b(?:\d{1,3}\.){3}\d{1,3}\b/', $body, $matches)) {
+                    return $matches[0];
+                }
+            } catch (\Throwable) {
+                continue;
+            }
         }
+
+        return 'unknown';
+    }
+
+    private function shortError(\Throwable $e): string
+    {
+        $msg = $e->getMessage();
+        if (str_contains($msg, 'timed out') || str_contains($msg, 'Timeout')) {
+            return 'timeout';
+        }
+
+        return mb_substr($msg, 0, 80);
     }
 
     /** @param array<string, mixed> $config */
     private function http(array $config): \Illuminate\Http\Client\PendingRequest
     {
-        $request = Http::connectTimeout(8)->timeout(15);
+        $request = Http::connectTimeout(8)->timeout(25);
+        $proxy = trim((string) ($config['http_proxy'] ?? ''));
+
+        if ($proxy !== '') {
+            $request = $request->withOptions(['proxy' => $proxy]);
+        }
+
+        return $request;
+    }
+
+    /** @param array<string, mixed> $config */
+    private function edgeHttp(array $config): \Illuminate\Http\Client\PendingRequest
+    {
+        $request = Http::connectTimeout(4)->timeout(6);
         $proxy = trim((string) ($config['http_proxy'] ?? ''));
 
         if ($proxy !== '') {
