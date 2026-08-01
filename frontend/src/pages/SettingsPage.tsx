@@ -41,12 +41,16 @@ export function SettingsPage() {
 
   const [officeForm, setOfficeForm] = useState({
     telegram_bot_token: '',
+    telegram_admin_chat_id: '',
     whatsapp_phone: '',
     whatsapp_auto_reply: '',
     brand_color: '#6366f1',
     brand_name: '',
     show_on_website: false,
+    office_slug: '',
+    webhook_url: '',
   })
+  const [telegramMsg, setTelegramMsg] = useState('')
   const [newKeyName, setNewKeyName] = useState('')
   const [plainKey, setPlainKey] = useState('')
 
@@ -67,9 +71,22 @@ export function SettingsPage() {
     enabled: canManage,
   })
 
+  const { data: officeSettings } = useQuery({
+    queryKey: ['office-settings'],
+    queryFn: async () => (await api.get('/office/settings')).data.data as typeof officeForm,
+    enabled: canManage,
+  })
+
+  useEffect(() => {
+    if (officeSettings) setOfficeForm((f) => ({ ...f, ...officeSettings }))
+  }, [officeSettings])
+
   const saveOfficeMutation = useMutation({
     mutationFn: () => api.put('/office/settings', officeForm),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['auth'] }),
+    onSuccess: (res) => {
+      setTelegramMsg(res.data.telegram?.message || res.data.message || 'ذخیره شد.')
+      queryClient.invalidateQueries({ queryKey: ['auth'] })
+    },
   })
 
   const createKeyMutation = useMutation({
@@ -225,12 +242,28 @@ export function SettingsPage() {
       {canManage && (
         <>
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Bot className="h-4 w-4" /> ربات‌ها و برند</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Bot className="h-4 w-4" /> ربات تلگرام</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              <Input placeholder="توکن ربات تلگرام" value={officeForm.telegram_bot_token} onChange={(e) => setOfficeForm((f) => ({ ...f, telegram_bot_token: e.target.value }))} dir="ltr" />
+              <p className="text-xs text-muted">
+                <a href="/telegram-bot-guide.html" target="_blank" rel="noreferrer" className="text-primary hover:underline">راهنمای کامل ساخت ربات و دریافت توکن</a>
+              </p>
+              <Input placeholder="توکن ربات (از BotFather)" value={officeForm.telegram_bot_token} onChange={(e) => setOfficeForm((f) => ({ ...f, telegram_bot_token: e.target.value }))} dir="ltr" />
+              <Input placeholder="شناسه چت مدیر (User ID)" value={officeForm.telegram_admin_chat_id} onChange={(e) => setOfficeForm((f) => ({ ...f, telegram_admin_chat_id: e.target.value }))} dir="ltr" />
+              {officeForm.webhook_url && <p className="text-[10px] text-muted break-all" dir="ltr">Webhook: {officeForm.webhook_url}</p>}
+              {telegramMsg && <p className="text-sm text-success">{telegramMsg}</p>}
+              <Button onClick={() => saveOfficeMutation.mutate()} disabled={saveOfficeMutation.isPending}>ذخیره و اتصال webhook</Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Bot className="h-4 w-4" /> واتساپ و برند</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
               <Input placeholder="شماره واتساپ" value={officeForm.whatsapp_phone} onChange={(e) => setOfficeForm((f) => ({ ...f, whatsapp_phone: e.target.value }))} dir="ltr" />
               <Input placeholder="نام برند" value={officeForm.brand_name} onChange={(e) => setOfficeForm((f) => ({ ...f, brand_name: e.target.value }))} />
               <Input placeholder="رنگ برند" value={officeForm.brand_color} onChange={(e) => setOfficeForm((f) => ({ ...f, brand_color: e.target.value }))} dir="ltr" />
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={officeForm.show_on_website} onChange={(e) => setOfficeForm((f) => ({ ...f, show_on_website: e.target.checked }))} />
+                نمایش در وبسایت
+              </label>
               <Button onClick={() => saveOfficeMutation.mutate()} disabled={saveOfficeMutation.isPending}>ذخیره</Button>
             </CardContent>
           </Card>

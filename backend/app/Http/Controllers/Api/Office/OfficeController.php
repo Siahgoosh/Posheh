@@ -8,6 +8,7 @@ use App\Http\Resources\UserResource;
 use App\Services\Office\OfficeService;
 use App\Services\Office\OfficeSiteService;
 use App\Services\Office\DomainService;
+use App\Services\Office\TelegramBotService;
 use App\Services\Property\PropertyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ class OfficeController extends Controller
         private readonly OfficeService $officeService,
         private readonly OfficeSiteService $siteService,
         private readonly DomainService $domainService,
+        private readonly TelegramBotService $telegramBot,
         private readonly PropertyService $propertyService,
     ) {}
 
@@ -66,6 +68,28 @@ class OfficeController extends Controller
         ], 201);
     }
 
+    public function settings(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->canManageOffice(), 403);
+        $office = $user->office;
+        $wa = $office->whatsapp_config ?? [];
+
+        return response()->json([
+            'data' => [
+                'telegram_bot_token' => $office->telegram_bot_token,
+                'telegram_admin_chat_id' => $office->telegram_admin_chat_id,
+                'whatsapp_phone' => $wa['phone'] ?? '',
+                'whatsapp_auto_reply' => $wa['auto_reply'] ?? '',
+                'brand_color' => ($office->settings ?? [])['brand_color'] ?? '#6366f1',
+                'brand_name' => ($office->settings ?? [])['brand_name'] ?? '',
+                'show_on_website' => $office->show_on_website,
+                'office_slug' => $office->slug,
+                'webhook_url' => rtrim(config('app.url'), '/').'/api/v1/bots/telegram/'.$office->slug,
+            ],
+        ]);
+    }
+
     public function updateSettings(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -73,6 +97,7 @@ class OfficeController extends Controller
 
         $data = $request->validate([
             'telegram_bot_token' => ['nullable', 'string', 'max:255'],
+            'telegram_admin_chat_id' => ['nullable', 'string', 'max:50'],
             'whatsapp_phone' => ['nullable', 'string', 'max:20'],
             'whatsapp_auto_reply' => ['nullable', 'string', 'max:500'],
             'brand_color' => ['nullable', 'string', 'max:20'],
@@ -90,8 +115,12 @@ class OfficeController extends Controller
             $settings['brand_name'] = $data['brand_name'];
         }
 
+        $tokenChanged = isset($data['telegram_bot_token'])
+            && $data['telegram_bot_token'] !== $office->telegram_bot_token;
+
         $office->update([
             'telegram_bot_token' => $data['telegram_bot_token'] ?? $office->telegram_bot_token,
+            'telegram_admin_chat_id' => $data['telegram_admin_chat_id'] ?? $office->telegram_admin_chat_id,
             'whatsapp_config' => array_merge($office->whatsapp_config ?? [], array_filter([
                 'phone' => $data['whatsapp_phone'] ?? null,
                 'auto_reply' => $data['whatsapp_auto_reply'] ?? null,
@@ -100,7 +129,20 @@ class OfficeController extends Controller
             'show_on_website' => $data['show_on_website'] ?? $office->show_on_website,
         ]);
 
-        return response()->json(['data' => $office->fresh(), 'message' => 'تنظیمات ذخیره شد.']);
+        $office = $office->fresh();
+        $telegramResult = null;
+
+        if ($tokenChanged && $office->telegram_bot_token) {
+            $telegramResult = $this->telegramBot->configureWebhook($office);
+        }
+
+        return response()->json([
+            'data' => $office,
+            'message' => $telegramResult['ok'] ?? false
+                ? ($telegramResult['message'] ?? 'تنظیمات ذخیره شد.')
+                : 'تنظیمات ذخیره شد.',
+            'telegram' => $telegramResult,
+        ]);
     }
 
     public function requestWebsite(Request $request): JsonResponse
@@ -138,18 +180,26 @@ class OfficeController extends Controller
         return response()->json(['data' => $this->domainService->status($request->user()->office)]);
     }
 
-    public function orderDomain(Request $request): JsonResponse
+    public function checkDomain(Request $request): JsonResponse
     {
         $data = $request->validate([
             'domain_name' => ['required', 'string', 'max:255'],
         ]);
 
-        $order = $this->domainService->orderDomain($request->user(), $data['domain_name']);
+        $result = $this->domainService->checkAvailability($data['domain_name']);
 
-        return response()->json([
-            'data' => $order,
-            'message' => 'سفارش دامنه ثبت شد. پس از پردازش توسط مدیر، دامنه فعال می‌شود.',
-        ], 201);
+        return response()->json(['data' => $result]);
+    }
+
+    public function payDomain(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'domain_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $result = $this->domainService->initiatePayment($request->user(), $data['domain_name']);
+
+        return response()->json(['data' => $result]);
     }
 
     public function connectDomain(Request $request): JsonResponse

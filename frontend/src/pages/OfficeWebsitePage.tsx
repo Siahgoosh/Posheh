@@ -23,7 +23,8 @@ export function OfficeWebsitePage() {
   const [description, setDescription] = useState('')
   const [postTitle, setPostTitle] = useState('')
   const [postBody, setPostBody] = useState('')
-  const [domainName, setDomainName] = useState('')
+  const [domainQuery, setDomainQuery] = useState('')
+  const [domainCheck, setDomainCheck] = useState<{ available: boolean | null; message: string; domain_name: string } | null>(null)
   const [ownDomain, setOwnDomain] = useState('')
 
   const { data: status } = useQuery({
@@ -73,11 +74,22 @@ export function OfficeWebsitePage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['office-pending-properties'] }),
   })
 
-  const orderDomainMutation = useMutation({
-    mutationFn: () => api.post('/office/domain/order', { domain_name: domainName }),
-    onSuccess: () => {
-      setDomainName('')
-      queryClient.invalidateQueries({ queryKey: ['office-website'] })
+  const checkDomainMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post('/office/domain/check', { domain_name: domainQuery })
+      return res.data.data as { available: boolean | null; message: string; domain_name: string }
+    },
+    onSuccess: (data) => setDomainCheck(data),
+  })
+
+  const payDomainMutation = useMutation({
+    mutationFn: async () => {
+      const name = domainCheck?.domain_name || domainQuery
+      const res = await api.post('/office/domain/pay', { domain_name: name })
+      return res.data.data as { redirect_url: string }
+    },
+    onSuccess: (data) => {
+      if (data.redirect_url) window.location.href = data.redirect_url
     },
   })
 
@@ -128,8 +140,7 @@ export function OfficeWebsitePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted">
-            با پلن حرفه‌ای می‌توانید دامنه .ir بخرید و به وبسایت دفتر وصل کنید.
-            {status?.ir_domain_price && ` قیمت تقریبی: ${formatPrice(status.ir_domain_price)}`}
+            دامنه .ir را جستجو کنید (بررسی از whois.nic.ir). پس از پرداخت {status?.ir_domain_price ? formatPrice(status.ir_domain_price) : '۱۱۰٬۰۰۰ تومان'}، دامنه توسط پوشه خریداری و به وبسایت متصل می‌شود.
           </p>
 
           {status?.custom_domain && (
@@ -146,18 +157,36 @@ export function OfficeWebsitePage() {
           )}
 
           <div className="space-y-2">
-            <p className="text-sm font-medium">خرید دامنه .ir (ثبت سفارش)</p>
+            <p className="text-sm font-medium">جستجوی دامنه .ir</p>
             <div className="flex gap-2">
               <Input
-                placeholder="myoffice.ir"
-                value={domainName}
-                onChange={(e) => setDomainName(e.target.value.toLowerCase())}
+                placeholder="myoffice یا myoffice.ir"
+                value={domainQuery}
+                onChange={(e) => { setDomainQuery(e.target.value.toLowerCase()); setDomainCheck(null) }}
                 dir="ltr"
               />
-              <Button onClick={() => orderDomainMutation.mutate()} disabled={!domainName.endsWith('.ir')}>
-                ثبت سفارش
+              <Button variant="outline" onClick={() => checkDomainMutation.mutate()} disabled={!domainQuery || checkDomainMutation.isPending}>
+                بررسی
               </Button>
             </div>
+            {domainCheck && (
+              <div className={`text-sm p-3 rounded-xl ${domainCheck.available === true ? 'bg-success/10 text-success' : domainCheck.available === false ? 'bg-danger/10 text-danger' : 'bg-warning/10 text-warning'}`}>
+                <p dir="ltr" className="font-medium">{domainCheck.domain_name}</p>
+                <p className="mt-1">{domainCheck.message}</p>
+                <a href={`https://www.nic.ir/Whois/?domain=${domainCheck.domain_name}`} target="_blank" rel="noreferrer" className="text-xs underline mt-2 inline-block">
+                  بررسی در nic.ir
+                </a>
+              </div>
+            )}
+            {domainCheck?.available !== false && (
+              <Button
+                className="w-full"
+                onClick={() => payDomainMutation.mutate()}
+                disabled={!domainCheck || payDomainMutation.isPending}
+              >
+                پرداخت و ثبت دامنه ({formatPrice(status?.ir_domain_price || 110000)})
+              </Button>
+            )}
           </div>
 
           <div className="space-y-2 border-t border-card-border pt-4">

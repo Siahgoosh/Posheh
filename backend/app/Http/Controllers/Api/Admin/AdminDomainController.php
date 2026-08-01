@@ -18,11 +18,52 @@ class AdminDomainController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = DomainOrder::with(['office:id,name,slug', 'requester:id,name,email'])
+        $query = DomainOrder::with(['office:id,name,slug,subdomain', 'requester:id,name,email,mobile'])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->latest();
 
         return response()->json($query->paginate(20));
+    }
+
+    public function dnsGuide(): JsonResponse
+    {
+        return response()->json([
+            'data' => [
+                'records' => $this->domainService->platformDnsRecords(),
+                'note' => 'این رکوردها را در پنل nic.ir برای دامنه مشتری تنظیم کنید، سپس دامنه را به دفتر متصل کنید.',
+            ],
+        ]);
+    }
+
+    public function assign(Request $request, int $id): JsonResponse
+    {
+        $order = DomainOrder::with('office')->findOrFail($id);
+
+        $data = $request->validate([
+            'domain_name' => ['sometimes', 'string', 'max:255'],
+            'admin_notes' => ['nullable', 'string', 'max:1000'],
+            'order_status' => ['sometimes', 'in:paid,purchasing,purchased,dns_pending,connected,rejected'],
+            'activate' => ['sometimes', 'boolean'],
+        ]);
+
+        $office = $this->domainService->assignDomainByAdmin($order, $data);
+
+        if ($request->boolean('activate')) {
+            $this->domainService->activateDomain($office);
+            $order->update(['status' => 'connected', 'connected_at' => now()]);
+        }
+
+        $this->audit->log('domain_order.assigned', DomainOrder::class, $order->id, 'اتصال دامنه به دفتر', null, $data);
+
+        return response()->json([
+            'data' => [
+                'order' => $order->fresh(['office', 'requester']),
+                'office' => $office,
+                'dns_instructions' => $this->domainService->dnsInstructions($office),
+                'platform_dns' => $this->domainService->platformDnsRecords(),
+            ],
+            'message' => 'دامنه به دفتر متصل شد. DNS را در nic.ir تنظیم کنید.',
+        ]);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -30,17 +71,17 @@ class AdminDomainController extends Controller
         $order = DomainOrder::with('office')->findOrFail($id);
 
         $data = $request->validate([
-            'status' => ['required', 'in:pending,paid,purchasing,purchased,rejected,connected'],
+            'status' => ['required', 'in:pending_payment,paid,purchasing,purchased,dns_pending,connected,rejected,pending'],
             'admin_notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $order->update([
             'status' => $data['status'],
             'admin_notes' => $data['admin_notes'] ?? $order->admin_notes,
-            'purchased_at' => in_array($data['status'], ['purchased', 'connected']) ? now() : $order->purchased_at,
+            'purchased_at' => in_array($data['status'], ['purchased', 'connected', 'dns_pending']) ? ($order->purchased_at ?? now()) : $order->purchased_at,
         ]);
 
-        if ($data['status'] === 'purchased' && $order->office) {
+        if (in_array($data['status'], ['purchased', 'dns_pending']) && $order->office) {
             $order->office->update([
                 'custom_domain' => $order->domain_name,
                 'custom_domain_status' => 'dns_pending',

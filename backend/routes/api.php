@@ -177,6 +177,8 @@ Route::prefix('v1')->group(function () {
         Route::prefix('office')->group(function () {
             Route::post('/', [OfficeController::class, 'store']);
             Route::get('/team', [OfficeController::class, 'team']);
+            Route::get('/settings', [OfficeController::class, 'settings'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::put('/settings', [OfficeController::class, 'updateSettings'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/invite', [OfficeController::class, 'invite'])
@@ -190,7 +192,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/website/posts', [OfficeController::class, 'createSitePost'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::get('/domain', [OfficeController::class, 'domainStatus']);
-            Route::post('/domain/order', [OfficeController::class, 'orderDomain'])
+            Route::post('/domain/check', [OfficeController::class, 'checkDomain'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::post('/domain/pay', [OfficeController::class, 'payDomain'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/domain/connect', [OfficeController::class, 'connectDomain'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
@@ -229,6 +233,8 @@ Route::prefix('v1')->group(function () {
             Route::post('/offices/{officeId}/wallet/adjust', [AdminWalletController::class, 'adjust']);
 
             Route::get('/domain-orders', [AdminDomainController::class, 'index']);
+            Route::get('/domain-orders/dns-guide', [AdminDomainController::class, 'dnsGuide']);
+            Route::post('/domain-orders/{id}/assign', [AdminDomainController::class, 'assign']);
             Route::put('/domain-orders/{id}', [AdminDomainController::class, 'update']);
 
             Route::get('/coupons', [AdminCouponController::class, 'index']);

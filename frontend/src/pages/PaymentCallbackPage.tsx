@@ -5,7 +5,9 @@ import { Card, CardContent } from '@/components/ui/card'
 
 export function PaymentCallbackPage() {
   const [params] = useSearchParams()
+  const type = params.get('type')
   const success = params.get('status') === 'success'
+  const isDomain = type === 'domain_order'
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -15,7 +17,12 @@ export function PaymentCallbackPage() {
             <>
               <CheckCircle2 className="h-16 w-16 text-success mx-auto" />
               <h1 className="text-xl font-bold">پرداخت موفق</h1>
-              <p className="text-muted">اشتراک شما فعال شد. کد پیگیری: {params.get('ref') || '—'}</p>
+              <p className="text-muted">
+                {isDomain
+                  ? 'پرداخت دامنه ثبت شد. طی ۲۴ ساعت دامنه خریداری و به وبسایت شما متصل می‌شود.'
+                  : 'اشتراک شما فعال شد.'}
+                {' '}کد پیگیری: {params.get('ref') || '—'}
+              </p>
             </>
           ) : (
             <>
@@ -24,8 +31,8 @@ export function PaymentCallbackPage() {
               <p className="text-muted">{params.get('message') || 'پرداخت انجام نشد یا لغو شد.'}</p>
             </>
           )}
-          <Link to={success ? '/dashboard' : '/renew'}>
-            <Button className="w-full">{success ? 'رفتن به داشبورد' : 'تلاش مجدد'}</Button>
+          <Link to={success ? (isDomain ? '/office-website' : '/dashboard') : (isDomain ? '/office-website' : '/renew')}>
+            <Button className="w-full">{success ? (isDomain ? 'بازگشت به وبسایت' : 'رفتن به داشبورد') : 'تلاش مجدد'}</Button>
           </Link>
         </CardContent>
       </Card>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>راهنمای ربات تلگرام — پوشه</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#1a1a26; --border:rgba(255,255,255,.08); --text:#f4f4f5; --muted:#a1a1aa; --primary:#6366f1; --success:#22c55e; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family: system-ui, Tahoma, sans-serif; background:var(--bg); color:var(--text); line-height:1.8; }
+    .wrap { max-width:800px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+    h1 { font-size:1.75rem; margin-bottom:.5rem; }
+    h2 { font-size:1.2rem; color:var(--primary); margin:2rem 0 .75rem; }
+    p, li { color:var(--muted); }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:1.25rem; margin:1rem 0; }
+    .steps { list-style:none; counter-reset:s; }
+    .steps li { counter-increment:s; padding-right:2.5rem; position:relative; margin-bottom:1rem; }
+    .steps li::before { content:counter(s); position:absolute; right:0; width:1.75rem; height:1.75rem; background:var(--primary); color:#fff; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.85rem; }
+    code { background:rgba(255,255,255,.06); padding:.15rem .4rem; border-radius:6px; direction:ltr; display:inline-block; }
+    pre { background:#0d0d14; border:1px solid var(--border); border-radius:10px; padding:1rem; overflow-x:auto; direction:ltr; text-align:left; font-size:.85rem; margin:.75rem 0; }
+    .tip { border-right:4px solid var(--success); background:rgba(34,197,94,.08); padding:1rem; border-radius:0 10px 10px 0; margin:1rem 0; }
+    a { color:#818cf8; }
+    .btn { display:inline-block; background:var(--primary); color:#fff; padding:.6rem 1.2rem; border-radius:10px; text-decoration:none; font-weight:600; margin-top:.5rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>راهنمای اتصال ربات تلگرام به پوشه</h1>
+    <p>با این راهنما ربات اختصاصی دفتر خود را بسازید، توکن را در پوشه وارد کنید، و webhook به‌صورت خودکار تنظیم می‌شود.</p>
+
+    <h2>۱. ساخت ربات در BotFather</h2>
+    <div class="card">
+      <ol class="steps">
+        <li>در تلگرام به <a href="https://t.me/BotFather" target="_blank">@BotFather</a> بروید و <code>/start</code> بزنید.</li>
+        <li>دستور <code>/newbot</code> را ارسال کنید.</li>
+        <li>یک <strong>نام نمایشی</strong> برای ربات وارد کنید (مثلاً «املاک پاسداران»).</li>
+        <li>یک <strong>username</strong> یکتا انتخاب کنید که به <code>bot</code> ختم شود (مثلاً <code>PasdaranAmlak_bot</code>).</li>
+        <li>BotFather یک <strong>توکن</strong> می‌دهد — شبیه این:</li>
+      </ol>
+      <pre>7123456789:AAHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</pre>
+      <p>این توکن را کپی کنید و به کسی ندهید.</p>
+    </div>
+
+    <h2>۲. وارد کردن توکن در پوشه</h2>
+    <div class="card">
+      <ol class="steps">
+        <li>وارد پنل پوشه شوید → <strong>تنظیمات</strong></li>
+        <li>بخش <strong>ربات تلگرام</strong> → توکن را در فیلد «توکن ربات» paste کنید</li>
+        <li>روی <strong>«ذخیره و اتصال webhook»</strong> کلیک کنید</li>
+      </ol>
+      <div class="tip">
+        <strong>خودکار:</strong> پس از ذخیره، پوشه webhook را روی آدرس سرور شما ثبت می‌کند. نیازی به تنظیم دستی webhook نیست.
+      </div>
+    </div>
+
+    <h2>۳. دریافت شناسه چت (User ID) برای مدیریت</h2>
+    <p>برای دریافت اعلان‌ها و مدیریت، به شناسه عددی تلگرام خود نیاز دارید:</p>
+    <div class="card">
+      <ol class="steps">
+        <li>به ربات <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> بروید و <code>/start</code> بزنید.</li>
+        <li>عدد <strong>Id</strong> را کپی کنید (مثلاً <code>123456789</code>).</li>
+        <li>در پوشه → تنظیمات → فیلد <strong>«شناسه چت مدیر»</strong> را پر کنید و ذخیره کنید.</li>
+      </ol>
+      <p>این شناسه برای ارسال گزارش بازدید و پیام‌های مدیریتی به شما استفاده می‌شود.</p>
+    </div>
+
+    <h2>۴. تست ربات</h2>
+    <div class="card">
+      <ol class="steps">
+        <li>در تلگرام username ربات خود را جستجو کنید (مثلاً <code>@PasdaranAmlak_bot</code>)</li>
+        <li><code>/start</code> بزنید — باید پیام خوش‌آمد ببینید</li>
+        <li><code>/list</code> — لیست آخرین املاک فعال دفتر</li>
+        <li><code>/help</code> — راهنمای دستورات</li>
+      </ol>
+    </div>
+
+    <h2>۵. عیب‌یابی</h2>
+    <div class="card">
+      <p><strong>ربات پاسخ نمی‌دهد:</strong> توکن را دوباره از BotFather بگیرید و در تنظیمات ذخیره کنید. مطمئن شوید دکمه «ذخیره و اتصال webhook» را زده‌اید.</p>
+      <p style="margin-top:.75rem"><strong>خطای توکن نامعتبر:</strong> توکن را کامل کپی کنید، بدون فاصله اضافه.</p>
+      <p style="margin-top:.75rem"><strong>Webhook:</strong> آدرس webhook به‌صورت خودکار ثبت می‌شود:</p>
+      <pre>https://posheapp.ir/api/v1/bots/telegram/SLUG-دفتر-شما</pre>
+    </div>
+
+    <a href="/settings" class="btn">بازگشت به تنظیمات پوشه</a>
+  </div>
+</body>
+</html>

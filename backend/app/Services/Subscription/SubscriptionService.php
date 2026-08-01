@@ -141,6 +141,17 @@ class SubscriptionService
             'paid_at' => now(),
         ]);
 
+        if (($payment->metadata['type'] ?? '') === 'domain_order') {
+            app(\App\Services\Office\DomainService::class)->markOrderPaid($payment);
+
+            return [
+                'message' => 'پرداخت دامنه با موفقیت انجام شد. دامنه طی ۲۴ ساعت فعال می‌شود.',
+                'payment' => $payment,
+                'success' => true,
+                'type' => 'domain_order',
+            ];
+        }
+
         $this->activateSubscription($payment);
 
         return ['message' => 'پرداخت با موفقیت انجام شد.', 'payment' => $payment, 'success' => true];

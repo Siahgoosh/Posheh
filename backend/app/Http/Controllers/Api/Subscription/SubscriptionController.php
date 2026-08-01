@@ -87,7 +87,10 @@ class SubscriptionController extends Controller
                 (string) $request->input('success') === '1'
             );
 
-            return redirect($frontend.'/payment/callback?status=success&ref='.($result['payment']->ref_id ?? ''));
+            $type = $result['type'] ?? 'subscription';
+            $query = 'status=success&ref='.urlencode((string) ($result['payment']->ref_id ?? '')).'&type='.$type;
+
+            return redirect($frontend.'/payment/callback?'.$query);
         } catch (\Throwable $e) {
             return redirect($frontend.'/payment/callback?status=failed&message='.urlencode($e->getMessage()));
         }

@@ -37,6 +37,7 @@ class Office extends Model
         'custom_domain_status',
         'domain_dns_token',
         'telegram_bot_token',
+        'telegram_admin_chat_id',
         'whatsapp_config',
         'description',
         'trial_ends_at',
