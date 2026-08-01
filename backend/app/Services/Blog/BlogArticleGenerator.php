@@ -210,9 +210,9 @@ class BlogArticleGenerator
 
         $result = [];
         foreach (array_keys(self::CATEGORIES) as $cat) {
-            $result[$cat] = array_map(function ($t) use ($cat) {
+            $result[$cat] = array_map(function ($t) {
                 return [
-                    'slug' => $cat.'-'.$t['slug'],
+                    'slug' => $t['slug'],
                     'title' => $t['title'],
                     'excerpt' => $t['excerpt'],
                     'keywords' => $t['keywords'],

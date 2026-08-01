@@ -31,11 +31,14 @@ class SeedBlogArticlesCommand extends Command
         $minWords = PHP_INT_MAX;
         $maxWords = 0;
 
+        $validSlugs = [];
+
         foreach ($articles as $data) {
             BlogPost::updateOrCreate(
                 ['slug' => $data['slug']],
                 $data,
             );
+            $validSlugs[] = $data['slug'];
 
             $words = count(preg_split('/\s+/u', trim(strip_tags($data['content'])), -1, PREG_SPLIT_NO_EMPTY));
             $minWords = min($minWords, $words);
@@ -43,8 +46,16 @@ class SeedBlogArticlesCommand extends Command
             $bar->advance();
         }
 
+        $removed = BlogPost::query()
+            ->where('author_name', 'تیم پوشه')
+            ->whereNotIn('slug', $validSlugs)
+            ->delete();
+
         $bar->finish();
         $this->newLine(2);
+        if ($removed > 0) {
+            $this->warn("Removed {$removed} outdated auto-generated posts (stale slugs).");
+        }
         $total = BlogPost::where('is_published', true)->count();
         $this->info("Done. Published posts in DB: {$total}");
         $this->info("Word count range (approx): {$minWords} – {$maxWords}");

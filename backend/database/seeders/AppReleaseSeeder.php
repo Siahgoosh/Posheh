@@ -16,25 +16,25 @@ class AppReleaseSeeder extends Seeder
                 'title' => 'اپلیکیشن اندروید پوشه',
                 'description' => 'فایلینگ، CRM، حسابداری — ورود OTP، حریم خصوصی کامل، پرداخت درون‌برنامه‌ای کافه‌بازار، ۴۸ ساعت رایگان پنل فردی.',
                 'download_url' => '/downloads/posheh-android.apk',
-                'file_size' => '~۵۵ مگابایت',
+                'file_size' => '~۵۳ مگابایت',
                 'is_published' => true,
                 'published_at' => now(),
             ],
             [
                 'platform' => 'windows',
                 'version' => '1.0.2',
-                'title' => 'نسخه دسکتاپ پوشه',
-                'description' => 'نسخه ویندوز Flutter — فایلینگ، CRM و گزارش با همگام‌سازی ابری.',
+                'title' => 'نسخه دسکتاپ ویندوز',
+                'description' => 'نسخه ویندوز Flutter — فایلینگ، CRM، تور مجازی و گزارش با همگام‌سازی ابری.',
                 'download_url' => '/downloads/posheh-windows.zip',
-                'file_size' => 'سبک',
+                'file_size' => '~۱۳ مگابایت',
                 'is_published' => true,
                 'published_at' => now(),
             ],
             [
                 'platform' => 'pwa',
-                'version' => '1.0.1',
-                'title' => 'نسخه PWA (وب‌اپ)',
-                'description' => 'نصب پوشه روی موبایل یا دسکتاپ از مرورگر — بدون نیاز به استور.',
+                'version' => '1.0.2',
+                'title' => 'نسخه PWA — iPhone و مرورگر',
+                'description' => 'نصب پوشه روی آیفون (Safari → اشتراک‌گذاری → Add to Home Screen) یا دسکتاپ از مرورگر — بدون نیاز به استور.',
                 'download_url' => '/',
                 'file_size' => 'سبک',
                 'is_published' => true,
@@ -44,7 +44,7 @@ class AppReleaseSeeder extends Seeder
 
         foreach ($releases as $release) {
             AppRelease::updateOrCreate(
-                ['platform' => $release['platform'], 'version' => $release['version']],
+                ['platform' => $release['platform']],
                 $release
             );
         }
