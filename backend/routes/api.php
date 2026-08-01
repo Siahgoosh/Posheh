@@ -181,6 +181,8 @@ Route::prefix('v1')->group(function () {
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::put('/settings', [OfficeController::class, 'updateSettings'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::post('/settings/telegram/webhook', [OfficeController::class, 'reconnectTelegramWebhook'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/invite', [OfficeController::class, 'invite'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::get('/website', [OfficeController::class, 'websiteStatus']);

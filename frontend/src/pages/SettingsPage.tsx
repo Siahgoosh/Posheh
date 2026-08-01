@@ -51,6 +51,7 @@ export function SettingsPage() {
     webhook_url: '',
   })
   const [telegramMsg, setTelegramMsg] = useState('')
+  const [telegramError, setTelegramError] = useState('')
   const [newKeyName, setNewKeyName] = useState('')
   const [plainKey, setPlainKey] = useState('')
 
@@ -84,8 +85,42 @@ export function SettingsPage() {
   const saveOfficeMutation = useMutation({
     mutationFn: () => api.put('/office/settings', officeForm),
     onSuccess: (res) => {
-      setTelegramMsg(res.data.telegram?.message || res.data.message || 'ذخیره شد.')
+      const tg = res.data.telegram
+      if (tg?.ok === false) {
+        setTelegramError(tg.message || 'خطا در اتصال webhook')
+        setTelegramMsg('')
+      } else {
+        setTelegramMsg(tg?.message || res.data.message || 'ذخیره شد.')
+        setTelegramError('')
+      }
       queryClient.invalidateQueries({ queryKey: ['auth'] })
+    },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string } } }
+      setTelegramError(axiosErr.response?.data?.message || 'خطا در ذخیره تنظیمات.')
+      setTelegramMsg('')
+    },
+  })
+
+  const reconnectWebhookMutation = useMutation({
+    mutationFn: () => api.post('/office/settings/telegram/webhook'),
+    onSuccess: (res) => {
+      if (res.data.telegram?.ok === false) {
+        setTelegramError(res.data.telegram.message || 'خطا در اتصال webhook')
+        setTelegramMsg('')
+      } else {
+        setTelegramMsg(res.data.telegram?.message || res.data.message || 'webhook ثبت شد.')
+        setTelegramError('')
+      }
+    },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { telegram?: { message?: string }; message?: string } } }
+      setTelegramError(
+        axiosErr.response?.data?.telegram?.message
+          || axiosErr.response?.data?.message
+          || 'خطا در اتصال webhook.'
+      )
+      setTelegramMsg('')
     },
   })
 
@@ -251,7 +286,21 @@ export function SettingsPage() {
               <Input placeholder="شناسه چت مدیر (User ID)" value={officeForm.telegram_admin_chat_id} onChange={(e) => setOfficeForm((f) => ({ ...f, telegram_admin_chat_id: e.target.value }))} dir="ltr" />
               {officeForm.webhook_url && <p className="text-[10px] text-muted break-all" dir="ltr">Webhook: {officeForm.webhook_url}</p>}
               {telegramMsg && <p className="text-sm text-success">{telegramMsg}</p>}
-              <Button onClick={() => saveOfficeMutation.mutate()} disabled={saveOfficeMutation.isPending}>ذخیره و اتصال webhook</Button>
+              {telegramError && <p className="text-sm text-danger">{telegramError}</p>}
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => saveOfficeMutation.mutate()} disabled={saveOfficeMutation.isPending}>
+                  ذخیره و اتصال webhook
+                </Button>
+                {officeForm.telegram_bot_token && (
+                  <Button
+                    variant="outline"
+                    onClick={() => reconnectWebhookMutation.mutate()}
+                    disabled={reconnectWebhookMutation.isPending}
+                  >
+                    اتصال مجدد webhook
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
           <Card>

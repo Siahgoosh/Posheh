@@ -2,11 +2,12 @@
 
 namespace App\Services\Office;
 
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class IrNicWhoisService
 {
-    /** @return array{available: bool|null, message: string, raw?: string} */
+    /** @return array{available: bool|null, message: string, raw?: string}> */
     public function checkAvailability(string $domain): array
     {
         $domain = strtolower(trim($domain));
@@ -19,24 +20,23 @@ class IrNicWhoisService
 
         $response = $this->whoisQuery($domain);
         if ($response === null) {
+            $response = $this->whoisHttpFallback($domain);
+        }
+
+        if ($response === null) {
             return [
                 'available' => null,
                 'message' => 'اتصال به whois.nic.ir برقرار نشد. در nic.ir دستی بررسی کنید.',
             ];
         }
 
-        $lower = strtolower($response);
+        return $this->parseWhoisResponse($response);
+    }
 
-        $unavailablePatterns = [
-            'domain name:',
-            'domain:',
-            'holder:',
-            'nic-hdl:',
-            'nserver:',
-            'status: active',
-            'status:ok',
-            'registered',
-        ];
+    /** @return array{available: bool|null, message: string, raw?: string}> */
+    private function parseWhoisResponse(string $response): array
+    {
+        $lower = strtolower($response);
 
         $availablePatterns = [
             'no matching record',
@@ -47,6 +47,19 @@ class IrNicWhoisService
             'available for registration',
             'یافت نشد',
             'موجود نیست',
+            'no data found',
+        ];
+
+        $unavailablePatterns = [
+            'domain name:',
+            'domain:',
+            'holder:',
+            'nic-hdl:',
+            'nserver:',
+            'status: active',
+            'status:ok',
+            'registered',
+            'registrar:',
         ];
 
         foreach ($availablePatterns as $pattern) {
@@ -104,5 +117,25 @@ class IrNicWhoisService
         fclose($fp);
 
         return trim($response) !== '' ? $response : null;
+    }
+
+    private function whoisHttpFallback(string $domain): ?string
+    {
+        try {
+            $response = Http::timeout(15)
+                ->withHeaders(['User-Agent' => 'Posheh/1.0'])
+                ->get('https://www.nic.ir/Whois', ['domain' => $domain]);
+
+            if ($response->successful()) {
+                $body = strip_tags($response->body());
+                $body = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+                return trim($body) !== '' ? $body : null;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('IRNIC HTTP whois fallback failed', ['domain' => $domain, 'error' => $e->getMessage()]);
+        }
+
+        return null;
     }
 }

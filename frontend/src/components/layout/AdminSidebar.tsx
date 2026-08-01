@@ -45,6 +45,7 @@ const navGroups = [
       { to: '/subscriptions', icon: CreditCard, label: 'اشتراک‌ها' },
       { to: '/plans', icon: Shield, label: 'پلن‌ها' },
       { to: '/payments', icon: Wallet, label: 'پرداخت‌ها' },
+      { to: '/domain-orders', icon: Globe, label: 'سفارش دامنه .ir' },
       { to: '/wallets', icon: Wallet, label: 'کیف پول' },
       { to: '/wallet-transactions', icon: Database, label: 'تراکنش‌ها' },
       { to: '/coupons', icon: Tag, label: 'کوپن‌ها' },

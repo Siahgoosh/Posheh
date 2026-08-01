@@ -115,12 +115,13 @@ class OfficeController extends Controller
             $settings['brand_name'] = $data['brand_name'];
         }
 
-        $tokenChanged = isset($data['telegram_bot_token'])
-            && $data['telegram_bot_token'] !== $office->telegram_bot_token;
-
         $office->update([
-            'telegram_bot_token' => $data['telegram_bot_token'] ?? $office->telegram_bot_token,
-            'telegram_admin_chat_id' => $data['telegram_admin_chat_id'] ?? $office->telegram_admin_chat_id,
+            'telegram_bot_token' => array_key_exists('telegram_bot_token', $data)
+                ? $data['telegram_bot_token']
+                : $office->telegram_bot_token,
+            'telegram_admin_chat_id' => array_key_exists('telegram_admin_chat_id', $data)
+                ? $data['telegram_admin_chat_id']
+                : $office->telegram_admin_chat_id,
             'whatsapp_config' => array_merge($office->whatsapp_config ?? [], array_filter([
                 'phone' => $data['whatsapp_phone'] ?? null,
                 'auto_reply' => $data['whatsapp_auto_reply'] ?? null,
@@ -132,17 +133,38 @@ class OfficeController extends Controller
         $office = $office->fresh();
         $telegramResult = null;
 
-        if ($tokenChanged && $office->telegram_bot_token) {
+        if (trim((string) $office->telegram_bot_token) !== '') {
             $telegramResult = $this->telegramBot->configureWebhook($office);
         }
 
         return response()->json([
             'data' => $office,
-            'message' => $telegramResult['ok'] ?? false
+            'message' => $telegramResult
                 ? ($telegramResult['message'] ?? 'تنظیمات ذخیره شد.')
                 : 'تنظیمات ذخیره شد.',
             'telegram' => $telegramResult,
         ]);
+    }
+
+    public function reconnectTelegramWebhook(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user->canManageOffice(), 403);
+
+        $office = $user->office;
+        if (! trim((string) $office->telegram_bot_token)) {
+            return response()->json([
+                'message' => 'ابتدا توکن ربات را ذخیره کنید.',
+                'telegram' => ['ok' => false, 'message' => 'توکن ربات خالی است.'],
+            ], 422);
+        }
+
+        $result = $this->telegramBot->configureWebhook($office);
+
+        return response()->json([
+            'message' => $result['message'],
+            'telegram' => $result,
+        ], $result['ok'] ? 200 : 422);
     }
 
     public function requestWebsite(Request $request): JsonResponse
