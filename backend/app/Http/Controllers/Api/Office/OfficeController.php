@@ -85,7 +85,7 @@ class OfficeController extends Controller
                 'brand_name' => ($office->settings ?? [])['brand_name'] ?? '',
                 'show_on_website' => $office->show_on_website,
                 'office_slug' => $office->slug,
-                'webhook_url' => rtrim(config('app.url'), '/').'/api/v1/bots/telegram/'.$office->slug,
+                'webhook_url' => TelegramBotService::buildWebhookUrl($office),
             ],
         ]);
     }

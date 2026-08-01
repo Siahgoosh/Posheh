@@ -8,7 +8,22 @@ use Illuminate\Support\Facades\Log;
 
 class TelegramBotService
 {
-    /** @return array{ok: bool, message: string, bot_username?: string}> */
+    public static function buildWebhookUrl(Office $office): string
+    {
+        $base = config('services.telegram.webhook_base_url')
+            ?? config('app.webhook_url')
+            ?? config('app.url');
+
+        $base = rtrim((string) $base, '/');
+
+        if (config('services.telegram.force_https', true) && str_starts_with($base, 'http://')) {
+            $base = 'https://'.substr($base, 7);
+        }
+
+        return $base.'/api/v1/bots/telegram/'.$office->slug;
+    }
+
+    /** @return array{ok: bool, message: string, bot_username?: string, webhook_url?: string}> */
     public function configureWebhook(Office $office): array
     {
         $token = trim((string) $office->telegram_bot_token);
@@ -21,7 +36,15 @@ class TelegramBotService
             return $me;
         }
 
-        $webhookUrl = rtrim(config('app.url'), '/').'/api/v1/bots/telegram/'.$office->slug;
+        $webhookUrl = self::buildWebhookUrl($office);
+
+        if (! str_starts_with($webhookUrl, 'https://')) {
+            return [
+                'ok' => false,
+                'message' => 'آدرس webhook باید HTTPS باشد. APP_URL یا TELEGRAM_WEBHOOK_BASE_URL را روی https تنظیم کنید.',
+                'webhook_url' => $webhookUrl,
+            ];
+        }
 
         try {
             $response = Http::timeout(20)->post("https://api.telegram.org/bot{$token}/setWebhook", [
@@ -32,11 +55,12 @@ class TelegramBotService
 
             $body = $response->json();
             if (! ($body['ok'] ?? false)) {
-                Log::warning('Telegram setWebhook failed', ['office' => $office->slug, 'body' => $body]);
+                Log::warning('Telegram setWebhook failed', ['office' => $office->slug, 'body' => $body, 'url' => $webhookUrl]);
 
                 return [
                     'ok' => false,
                     'message' => $body['description'] ?? 'خطا در ثبت webhook',
+                    'webhook_url' => $webhookUrl,
                 ];
             }
 

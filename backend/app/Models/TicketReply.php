@@ -7,11 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TicketReply extends Model
 {
-    protected $fillable = ['ticket_id', 'user_id', 'message', 'is_staff'];
+    protected $fillable = ['ticket_id', 'user_id', 'message', 'is_staff', 'is_internal'];
 
     protected function casts(): array
     {
-        return ['is_staff' => 'boolean'];
+        return [
+            'is_staff' => 'boolean',
+            'is_internal' => 'boolean',
+        ];
     }
 
     public function ticket(): BelongsTo

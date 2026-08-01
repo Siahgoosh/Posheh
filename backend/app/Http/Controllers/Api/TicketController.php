@@ -13,7 +13,15 @@ class TicketController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        return response()->json($this->tickets->listForUser($request->user()));
+        return response()->json($this->tickets->listForUser(
+            $request->user(),
+            $request->string('status')->toString() ?: null,
+        ));
+    }
+
+    public function show(Request $request, int $id): JsonResponse
+    {
+        return response()->json(['data' => $this->tickets->getForUser($request->user(), $id)]);
     }
 
     public function store(Request $request): JsonResponse
@@ -22,6 +30,7 @@ class TicketController extends Controller
             'subject' => ['required', 'string', 'max:255'],
             'message' => ['required', 'string'],
             'priority' => ['nullable', 'in:low,medium,high'],
+            'category' => ['nullable', 'string', 'max:50'],
         ]);
 
         $ticket = $this->tickets->create($request->user(), $data);

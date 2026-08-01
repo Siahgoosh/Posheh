@@ -16,6 +16,11 @@ class CrmController extends Controller
         return response()->json(['data' => $this->crm->list($request->user())]);
     }
 
+    public function show(Request $request, int $id): JsonResponse
+    {
+        return response()->json(['data' => $this->crm->get($request->user(), $id)]);
+    }
+
     public function pipeline(Request $request): JsonResponse
     {
         return response()->json(['data' => $this->crm->pipelineSummary($request->user())]);
@@ -61,6 +66,13 @@ class CrmController extends Controller
         ]);
 
         return response()->json(['data' => $this->crm->update($request->user(), $id, $data)]);
+    }
+
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $this->crm->delete($request->user(), $id);
+
+        return response()->json(['message' => 'معامله حذف شد.']);
     }
 
     public function activities(Request $request, int $id): JsonResponse

@@ -34,7 +34,7 @@ export const FALLBACK_PLANS: PlanOption[] = [
     max_users: 5,
     max_properties: 600,
     panel_type: 'office',
-    features: ['filing', 'crm', 'accounting', 'team', 'telegram_bot', 'lead_scoring', 'commissions'],
+    features: ['filing', 'crm', 'accounting', 'team', 'team_chat', 'telegram_bot', 'lead_scoring', 'commissions'],
   },
   {
     id: 3,
@@ -46,7 +46,7 @@ export const FALLBACK_PLANS: PlanOption[] = [
     max_users: 10,
     max_properties: 1500,
     panel_type: 'premium',
-    features: ['filing', 'crm', 'whatsapp_bot', 'website_listing', 'verified_badge', 'advanced_analytics', 'property_compare'],
+    features: ['filing', 'crm', 'whatsapp_bot', 'website_listing', 'verified_badge', 'advanced_analytics', 'property_compare', 'team', 'team_chat'],
   },
 ]
 
@@ -57,6 +57,7 @@ export const PLAN_FEATURE_LABELS: Record<string, string> = {
   favorites: 'علاقه‌مندی‌ها',
   accounting: 'حسابداری دفتر',
   team: 'مدیریت تیم',
+  team_chat: 'چت درون‌تیمی',
   telegram_bot: 'ربات تلگرام',
   whatsapp_bot: 'ربات واتساپ',
   website_listing: 'نمایش در وبسایت',

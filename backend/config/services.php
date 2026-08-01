@@ -40,6 +40,11 @@ return [
         'sandbox' => env('ZIBAL_SANDBOX', false),
     ],
 
+    'telegram' => [
+        'webhook_base_url' => env('TELEGRAM_WEBHOOK_BASE_URL', env('APP_URL')),
+        'force_https' => env('TELEGRAM_WEBHOOK_FORCE_HTTPS', true),
+    ],
+
     'cafe_bazaar' => [
         'api_token' => env('CAFE_BAZAAR_API_TOKEN'),
         'package_name' => env('CAFE_BAZAAR_PACKAGE_NAME', 'ir.posheapp.posheh'),

@@ -10,12 +10,22 @@ class Ticket extends Model
     protected $fillable = [
         'office_id',
         'user_id',
+        'ticket_number',
         'subject',
         'message',
         'status',
         'priority',
+        'category',
         'assigned_to',
+        'closed_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'closed_at' => 'datetime',
+        ];
+    }
 
     public function office(): BelongsTo
     {

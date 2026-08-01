@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\DownloadController;
 use App\Http\Controllers\Api\Office\OfficeController;
+use App\Http\Controllers\Api\Office\TeamChatController;
 use App\Http\Controllers\Api\OfficePublicController;
 use App\Http\Controllers\Api\OfficeSiteController;
 use App\Http\Controllers\Api\Property\PropertyController;
@@ -128,6 +129,7 @@ Route::prefix('v1')->group(function () {
         Route::delete('/visits/{id}', [VisitController::class, 'destroy']);
 
         Route::get('/tickets', [TicketController::class, 'index']);
+        Route::get('/tickets/{id}', [TicketController::class, 'show']);
         Route::post('/tickets', [TicketController::class, 'store']);
         Route::post('/tickets/{id}/reply', [TicketController::class, 'reply']);
 
@@ -139,7 +141,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/crm/pipeline', [CrmController::class, 'pipeline']);
         Route::get('/crm/follow-ups', [CrmController::class, 'followUps']);
         Route::post('/crm/deals', [CrmController::class, 'store']);
+        Route::get('/crm/deals/{id}', [CrmController::class, 'show']);
         Route::put('/crm/deals/{id}', [CrmController::class, 'update']);
+        Route::delete('/crm/deals/{id}', [CrmController::class, 'destroy']);
         Route::get('/crm/deals/{id}/activities', [CrmController::class, 'activities']);
         Route::post('/crm/deals/{id}/activities', [CrmController::class, 'addActivity']);
 
@@ -202,6 +206,8 @@ Route::prefix('v1')->group(function () {
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/domain/verify', [OfficeController::class, 'verifyDomain'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::get('/team-chat', [TeamChatController::class, 'index']);
+            Route::post('/team-chat', [TeamChatController::class, 'store']);
         });
 
         Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])
@@ -262,8 +268,10 @@ Route::prefix('v1')->group(function () {
             Route::put('/offices/{id}/website-status', [AdminOfficeController::class, 'updateWebsiteStatus']);
             Route::get('/analytics', [AdminController::class, 'analytics']);
             Route::get('/tickets', [TicketAdminController::class, 'index']);
+            Route::get('/tickets/{id}', [TicketAdminController::class, 'show']);
             Route::post('/tickets/{id}/reply', [TicketAdminController::class, 'reply']);
             Route::put('/tickets/{id}/status', [TicketAdminController::class, 'updateStatus']);
+            Route::put('/tickets/{id}/assign', [TicketAdminController::class, 'assign']);
             Route::get('/announcements', [AdminController::class, 'announcements']);
             Route::post('/announcements', [AdminController::class, 'createAnnouncement']);
             Route::put('/announcements/{id}', [AdminController::class, 'updateAnnouncement']);

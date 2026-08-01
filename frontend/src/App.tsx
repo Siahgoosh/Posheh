@@ -16,6 +16,7 @@ import { PropertyFormPage } from '@/pages/PropertyFormPage'
 import { SearchPage } from '@/pages/SearchPage'
 import { FavoritesPage } from '@/pages/FavoritesPage'
 import { TeamPage } from '@/pages/TeamPage'
+import { TeamChatPage } from '@/pages/TeamChatPage'
 import { SubscriptionPage } from '@/pages/SubscriptionPage'
 import { BlogListPage } from '@/pages/BlogListPage'
 import { BlogCategoryPage } from '@/pages/BlogCategoryPage'
@@ -125,6 +126,7 @@ export default function App() {
             <Route path="/search" element={<SearchPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/team" element={<TeamPage />} />
+            <Route path="/team-chat" element={<TeamChatPage />} />
             <Route path="/subscription" element={<SubscriptionPage />} />
             <Route path="/renew" element={<RenewSubscriptionPage />} />
             <Route path="/tickets" element={<TicketsPage />} />
