@@ -12,6 +12,8 @@ interface SeoProps {
   path?: string
   image?: string
   type?: 'website' | 'article'
+  publishedTime?: string
+  modifiedTime?: string
   jsonLd?: Record<string, unknown> | Record<string, unknown>[]
   noindex?: boolean
 }
@@ -54,6 +56,8 @@ export function applySeo({
   path = '',
   image,
   type = 'website',
+  publishedTime,
+  modifiedTime,
   jsonLd,
   noindex = false,
 }: SeoProps) {
@@ -73,6 +77,12 @@ export function applySeo({
   setMeta('og:image', ogImage, 'property')
   setMeta('og:locale', 'fa_IR', 'property')
   setMeta('og:site_name', SITE_NAME, 'property')
+  if (type === 'article' && publishedTime) {
+    setMeta('article:published_time', publishedTime, 'property')
+  }
+  if (type === 'article' && modifiedTime) {
+    setMeta('article:modified_time', modifiedTime, 'property')
+  }
 
   setMeta('twitter:card', 'summary_large_image')
   setMeta('twitter:title', fullTitle)

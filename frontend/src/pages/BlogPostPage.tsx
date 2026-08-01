@@ -27,6 +27,8 @@ interface BlogPostDetail {
   category_label?: string
   author_name?: string
   reading_time?: number
+  cover_image?: string
+  published_at?: string
   published_at_jalali?: string
   updated_at?: string
   faq?: FaqItem[]
@@ -76,10 +78,13 @@ export function BlogPostPage() {
 
   if (error || !post) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-muted">مقاله یافت نشد</p>
-        <Link to="/blog"><Button variant="outline">بازگشت به وبلاگ</Button></Link>
-      </div>
+      <>
+        <SeoHead title="مقاله یافت نشد" description="مقاله مورد نظر یافت نشد." path="/blog" noindex />
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+          <p className="text-muted">مقاله یافت نشد</p>
+          <Link to="/blog"><Button variant="outline">بازگشت به وبلاگ</Button></Link>
+        </div>
+      </>
     )
   }
 
@@ -97,11 +102,18 @@ export function BlogPostPage() {
     '@type': 'Article',
     headline: post.title,
     description: post.meta_description || post.excerpt,
+    image: post.cover_image ? [post.cover_image.startsWith('http') ? post.cover_image : `${getSiteUrl()}${post.cover_image}`] : undefined,
     author: { '@type': 'Organization', name: post.author_name || 'تیم پوشه' },
-    datePublished: post.published_at_jalali,
-    dateModified: post.updated_at,
+    publisher: {
+      '@type': 'Organization',
+      name: 'پوشه',
+      logo: { '@type': 'ImageObject', url: `${getSiteUrl()}/favicon.svg` },
+    },
+    datePublished: post.published_at,
+    dateModified: post.updated_at || post.published_at,
     inLanguage: 'fa-IR',
     mainEntityOfPage: `${getSiteUrl()}/blog/${post.slug}`,
+    articleSection: post.category_label,
   }
 
   const faqLd = getFaqJsonLd(post.faq ?? [])
@@ -115,6 +127,9 @@ export function BlogPostPage() {
         keywords={post.keywords}
         path={`/blog/${post.slug}`}
         type="article"
+        image={post.cover_image ? (post.cover_image.startsWith('http') ? post.cover_image : `${getSiteUrl()}${post.cover_image}`) : undefined}
+        publishedTime={post.published_at}
+        modifiedTime={post.updated_at || post.published_at}
         jsonLd={jsonLd}
       />
 

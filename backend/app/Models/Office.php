@@ -126,4 +126,17 @@ class Office extends Model
     {
         return data_get($this->settings, $key, $default);
     }
+
+    public function publicWebsiteUrl(): ?string
+    {
+        if ($this->custom_domain && in_array($this->custom_domain_status, ['active', 'verified'], true)) {
+            return 'https://'.$this->custom_domain;
+        }
+
+        if ($this->subdomain && $this->website_status === 'published' && $this->plan_active && $this->is_active) {
+            return 'https://'.$this->subdomain.'.posheapp.ir';
+        }
+
+        return null;
+    }
 }

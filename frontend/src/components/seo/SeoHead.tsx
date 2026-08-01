@@ -8,6 +8,8 @@ interface SeoHeadProps {
   path?: string
   image?: string
   type?: 'website' | 'article'
+  publishedTime?: string
+  modifiedTime?: string
   jsonLd?: Record<string, unknown> | Record<string, unknown>[]
   noindex?: boolean
 }
@@ -15,7 +17,7 @@ interface SeoHeadProps {
 export function SeoHead(props: SeoHeadProps) {
   useEffect(() => {
     applySeo(props)
-  }, [props.title, props.description, props.keywords, props.path, props.image, props.type, props.noindex])
+  }, [props.title, props.description, props.keywords, props.path, props.image, props.type, props.publishedTime, props.modifiedTime, props.noindex])
 
   return null
 }

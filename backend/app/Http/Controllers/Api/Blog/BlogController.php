@@ -93,6 +93,13 @@ class BlogController extends Controller
             ->orderByDesc('published_at')
             ->get(['slug', 'updated_at', 'published_at', 'category_slug']);
 
+        $categoryCounts = BlogPost::published()
+            ->selectRaw('category_slug, count(*) as total, max(updated_at) as lastmod')
+            ->whereNotNull('category_slug')
+            ->groupBy('category_slug')
+            ->get()
+            ->keyBy('category_slug');
+
         $static = [
             ['path' => '/', 'priority' => 1.0],
             ['path' => '/blog', 'priority' => 0.9],
@@ -101,15 +108,26 @@ class BlogController extends Controller
             ['path' => '/contact', 'priority' => 0.7],
             ['path' => '/privacy', 'priority' => 0.5],
             ['path' => '/terms', 'priority' => 0.5],
-            ['path' => '/login', 'priority' => 0.5],
         ];
 
+        $categories = [];
         foreach (self::CATEGORIES as $slug => $label) {
-            $static[] = ['path' => '/blog/category/'.$slug, 'priority' => 0.75];
+            $count = (int) ($categoryCounts[$slug]->total ?? 0);
+            if ($count < 1) {
+                continue;
+            }
+            $categories[] = [
+                'path' => '/blog/category/'.$slug,
+                'priority' => 0.75,
+                'lastmod' => $categoryCounts[$slug]->lastmod
+                    ? \Illuminate\Support\Carbon::parse($categoryCounts[$slug]->lastmod)->toIso8601String()
+                    : null,
+            ];
         }
 
         return response()->json([
             'static' => $static,
+            'categories' => $categories,
             'posts' => $posts->map(fn (BlogPost $post) => [
                 'path' => '/blog/'.$post->slug,
                 'slug' => $post->slug,

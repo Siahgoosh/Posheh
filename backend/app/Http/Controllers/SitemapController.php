@@ -17,7 +17,11 @@ class SitemapController extends Controller
         $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
 
         foreach ($payload['static'] ?? [] as $item) {
-            $xml .= $this->url($base.$item['path'], $item['priority'] ?? 0.5);
+            $xml .= $this->url($base.$item['path'], $item['priority'] ?? 0.5, $item['lastmod'] ?? null);
+        }
+
+        foreach ($payload['categories'] ?? [] as $cat) {
+            $xml .= $this->url($base.$cat['path'], $cat['priority'] ?? 0.75, $cat['lastmod'] ?? null);
         }
 
         foreach ($payload['posts'] ?? [] as $post) {
@@ -31,8 +35,9 @@ class SitemapController extends Controller
 
     private function url(string $loc, float $priority, ?string $lastmod = null): string
     {
+        $escaped = htmlspecialchars($loc, ENT_XML1);
         $lastmodTag = $lastmod ? '<lastmod>'.substr($lastmod, 0, 10).'</lastmod>' : '';
 
-        return "  <url><loc>{$loc}</loc>{$lastmodTag}<changefreq>weekly</changefreq><priority>{$priority}</priority></url>\n";
+        return "  <url><loc>{$escaped}</loc>{$lastmodTag}<changefreq>weekly</changefreq><priority>{$priority}</priority></url>\n";
     }
 }
