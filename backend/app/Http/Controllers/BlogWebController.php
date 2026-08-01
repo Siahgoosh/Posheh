@@ -112,7 +112,9 @@ class BlogWebController extends Controller
             'post' => $post,
             'related' => $related,
             'publishedJalali' => $post->published_at ? Jalalian::fromDateTime($post->published_at)->format('Y/m/d') : null,
-            'seo' => $this->seo($title, $description, "/blog/{$post->slug}", image: $image, type: 'article'),
+            'seo' => array_merge($this->seo($title, $description, "/blog/{$post->slug}", image: $image, type: 'article'), [
+                'keywords' => $post->keywords,
+            ]),
             'jsonLd' => array_values(array_filter([
                 [
                     '@context' => 'https://schema.org',

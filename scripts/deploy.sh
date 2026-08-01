@@ -142,6 +142,8 @@ $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --
   || fail "SystemSettingsSeeder failed"
 $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
   || log "BlogSeeder warning (may already be seeded)"
+$COMPOSE exec -T app php artisan blog:seed --count=300 --force --no-interaction 2>/dev/null \
+  || log "Run ./scripts/seed-blog.sh to seed 300 SEO articles"
 $COMPOSE exec -T app php artisan db:seed --class=VirtualTourSeeder --force --no-interaction 2>/dev/null \
   || log "VirtualTourSeeder skipped (virtual tour module not deployed yet)"
 $COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \

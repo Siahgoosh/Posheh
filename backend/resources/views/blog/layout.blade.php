@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $seo['title'] }}</title>
     <meta name="description" content="{{ $seo['description'] }}">
-    <meta name="robots" content="{{ ($seo['noindex'] ?? false) ? 'noindex,nofollow' : 'index,follow' }}">
+    @if(!empty($seo['keywords'] ?? null))
+    <meta name="keywords" content="{{ $seo['keywords'] }}">
+    @endif
     <link rel="canonical" href="{{ $seo['url'] }}">
     <meta property="og:title" content="{{ $seo['title'] }}">
     <meta property="og:description" content="{{ $seo['description'] }}">
