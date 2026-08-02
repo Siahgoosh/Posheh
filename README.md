@@ -113,6 +113,10 @@ See [docs/api/README.md](docs/api/README.md)
 
 See [docs/architecture/README.md](docs/architecture/README.md)
 
+## Project Handoff (انتقال پروژه)
+
+If you are taking over this project, read **[docs/CURSOR-HANDOFF-FA.md](docs/CURSOR-HANDOFF-FA.md)** first — full context for continuing work in Cursor (Persian).
+
 ## License
 
 Proprietary — All rights reserved.
