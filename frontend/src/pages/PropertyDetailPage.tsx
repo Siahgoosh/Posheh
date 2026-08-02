@@ -145,7 +145,7 @@ export function PropertyDetailPage() {
             {' · '}{property.permission_label}
           </p>
         </div>
-        <Button variant="outline" size="icon" onClick={() => setShowShare(true)} title="ارسال در واتساپ/تلگرام">
+        <Button variant="outline" size="icon" onClick={() => setShowShare(true)} title="ارسال در واتساپ، روبیکا، بله و تلگرام">
           <Send className="h-4 w-4" />
         </Button>
         <Button variant="outline" size="icon" onClick={loadAdCopy} title="کپی متن آگهی">
