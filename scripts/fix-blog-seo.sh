@@ -20,6 +20,8 @@ foreach (\$slugs as \$s) {
 echo \"Total published: \$total\n\";
 "
 
+echo "==> Sitemap blog URL for Google Search Console:"
+echo "    $BASE/sitemap-blog.xml"
 echo ""
 echo "==> HTTP checks"
 for slug in software-guide-1 best-real-estate-crm-software-iran; do

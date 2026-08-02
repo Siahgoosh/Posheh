@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\BlogPost;
 use App\Services\Blog\BlogArticleGenerator;
+use App\Services\Blog\BlogCoverImageService;
 use Illuminate\Console\Command;
 
 class SeedBlogArticlesCommand extends Command
@@ -12,7 +13,7 @@ class SeedBlogArticlesCommand extends Command
 
     protected $description = 'Seed professional SEO blog articles (500+ words, H2/H3, internal links, images)';
 
-    public function handle(BlogArticleGenerator $generator): int
+    public function handle(BlogArticleGenerator $generator, BlogCoverImageService $covers): int
     {
         $count = max(1, min(500, (int) $this->option('count')));
 
@@ -32,8 +33,16 @@ class SeedBlogArticlesCommand extends Command
         $maxWords = 0;
 
         $validSlugs = [];
+        $sources = BlogArticleGenerator::coverImageSources();
 
-        foreach ($articles as $data) {
+        foreach ($articles as $index => $data) {
+            $data['cover_image'] = $covers->generate(
+                $data['slug'],
+                $data['title'],
+                $sources,
+                $index,
+            );
+
             BlogPost::updateOrCreate(
                 ['slug' => $data['slug']],
                 $data,

@@ -160,6 +160,7 @@ class BlogWebController extends Controller
         $body .= "Allow: /\nAllow: /blog\nAllow: /blog/\nAllow: /register\nAllow: /download\n";
         $body .= "Disallow: /dashboard\nDisallow: /properties\nDisallow: /settings\nDisallow: /admin\nDisallow: /api/\n\n";
         $body .= "Sitemap: {$base}/sitemap.xml\n";
+        $body .= "Sitemap: {$base}/sitemap-blog.xml\n";
 
         return response($body, 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
     }

@@ -189,6 +189,10 @@ Route::prefix('v1')->group(function () {
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/invite', [OfficeController::class, 'invite'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::put('/team/{userId}', [OfficeController::class, 'updateTeamMember'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::delete('/team/{userId}', [OfficeController::class, 'removeTeamMember'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::get('/website', [OfficeController::class, 'websiteStatus']);
             Route::get('/website/visit-requests', [OfficeController::class, 'visitRequests']);
             Route::get('/website/pending-properties', [OfficeController::class, 'pendingWebsiteProperties'])

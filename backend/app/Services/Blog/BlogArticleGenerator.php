@@ -46,6 +46,12 @@ class BlogArticleGenerator
         'https://images.unsplash.com/photo-1582407947302-fd5ed7fb163f?w=1200&h=630&fit=crop',
     ];
 
+    /** @return array<int, string> */
+    public static function coverImageSources(): array
+    {
+        return self::COVER_IMAGES;
+    }
+
     /** @return array<int, array<string, mixed>> */
     public function pillarArticles(): array
     {

@@ -23,6 +23,8 @@ check "$BASE/downloads/posheh-windows.zip" 200
 check "$BASE/blog/best-real-estate-crm-software-iran" 200
 check "$BASE/blog/software-guide-1" 200
 check "$BASE/sitemap.xml" 200
+check "$BASE/sitemap-blog.xml" 200
+check "$BASE/sitemap-pages.xml" 200
 check "$BASE/manifest.json" 200
 
 if curl -s "$BASE/blog/software-guide-1" | grep -q 'مقاله یافت نشد'; then
