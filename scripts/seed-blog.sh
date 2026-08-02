@@ -10,7 +10,8 @@ $COMPOSE exec -T app php artisan blog:seed --count=300 --force
 
 echo ""
 echo "==> Verify SSR (replace SLUG with a real slug from output)"
-echo "curl -s https://posheapp.ir/blog/crm-guide-1 | grep -E '<h1>|<h2>|<h3>' | head -10"
+echo "curl -s https://posheapp.ir/blog/software-guide-1 | grep -E '<h1>|<h2>|<h3>' | head -10"
+echo "curl -s https://posheapp.ir/blog/best-real-estate-crm-software-iran | grep '<h1>'"
 echo ""
 echo "==> Sitemap post count"
 curl -s https://posheapp.ir/sitemap.xml 2>/dev/null | grep -c '/blog/' || true

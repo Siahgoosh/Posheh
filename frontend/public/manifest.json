@@ -1,19 +1,30 @@
 {
-  "name": "پوشه - سامانه ثبت املاک",
+  "name": "پوشه - سامانه مدیریت املاک",
   "short_name": "پوشه",
   "description": "سامانه ابری ثبت و مدیریت املاک برای مشاوران املاک",
-  "start_url": "/",
+  "start_url": "/?utm_source=pwa",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
+  "display_override": ["standalone", "browser"],
   "background_color": "#0a0a0f",
   "theme_color": "#6366f1",
   "orientation": "portrait-primary",
   "lang": "fa",
   "dir": "rtl",
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }

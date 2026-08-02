@@ -156,8 +156,17 @@ class PropertyShareService
         return [
             'whatsapp' => "https://wa.me/{$mobile}?text={$encoded}",
             'telegram' => "https://t.me/share/url?url=&text={$encoded}",
+            'rubika' => $this->androidShareIntent($message, 'ir.resaneh1.rubika'),
+            'bale' => $this->androidShareIntent($message, 'ir.nasim'),
             'sms' => "sms:+{$mobile}?body={$encoded}",
         ];
+    }
+
+    private function androidShareIntent(string $message, string $package): string
+    {
+        $encoded = rawurlencode($message);
+
+        return "intent://send/#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT={$encoded};package={$package};end";
     }
 
     public function logShare(User $user, Property $property, string $channel, ?string $recipientMobile): void

@@ -64,7 +64,7 @@ export const PLAN_FEATURE_LABELS: Record<string, string> = {
   verified_badge: 'تیک تأیید',
   crm: 'مدیریت مشتری و فروش',
   lead_scoring: 'امتیازدهی سرنخ',
-  property_share: 'اشتراک واتساپ/تلگرام',
+  property_share: 'اشتراک واتساپ/روبیکا/بله',
   ad_copy: 'کپی آگهی هوشمند',
   quality_score: 'امتیاز کیفیت فایل',
   commissions: 'کمیسیون خودکار',

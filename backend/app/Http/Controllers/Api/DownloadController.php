@@ -14,6 +14,8 @@ class DownloadController extends Controller
 {
     public function index(): JsonResponse
     {
+        $base = rtrim(config('app.frontend_url', config('app.url')), '/');
+
         $releases = AppRelease::published()
             ->orderByDesc('published_at')
             ->get()
@@ -24,7 +26,7 @@ class DownloadController extends Controller
                 'version' => $release->version,
                 'title' => $release->title,
                 'description' => $release->description,
-                'download_url' => $release->download_url,
+                'download_url' => $this->absoluteUrl($release->download_url, $base),
                 'file_size' => $release->file_size,
                 'published_at' => $release->published_at?->toIso8601String(),
             ])->values());
@@ -69,5 +71,14 @@ class DownloadController extends Controller
         }
 
         abort(404, 'فایل دانلود یافت نشد.');
+    }
+
+    private function absoluteUrl(string $url, string $base): string
+    {
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://')) {
+            return $url;
+        }
+
+        return $base.'/'.ltrim($url, '/');
     }
 }

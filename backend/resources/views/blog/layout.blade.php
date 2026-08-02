@@ -9,6 +9,11 @@
     <meta name="keywords" content="{{ $seo['keywords'] }}">
     @endif
     <link rel="canonical" href="{{ $seo['url'] }}">
+    @if(!empty($seo['noindex']))
+    <meta name="robots" content="noindex, nofollow">
+    @else
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    @endif
     <meta property="og:title" content="{{ $seo['title'] }}">
     <meta property="og:description" content="{{ $seo['description'] }}">
     <meta property="og:url" content="{{ $seo['url'] }}">
