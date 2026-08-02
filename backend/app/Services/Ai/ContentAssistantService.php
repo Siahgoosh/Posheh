@@ -7,7 +7,6 @@ use App\Models\Office;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 
 class ContentAssistantService
@@ -111,34 +110,10 @@ class ContentAssistantService
     /** @param array<string, mixed> $context @param array<string, mixed> $options @return array{0: string, 1: string, 2: string, 3: int} */
     private function dispatch(string $type, array $context, string $tone, array $options): array
     {
-        $prompt = $this->buildPrompt($type, $context, $tone, $options);
-
-        if (config('ai.default_provider') === 'openai' && config('ai.openai.api_key')) {
-            $result = $this->callOpenAi($prompt);
-            if ($result) {
-                return [$result['text'], $result['reason'], 'openai', $result['tokens']];
-            }
-        }
-
         $output = $this->ruleBasedGenerate($type, $context, $tone, $options);
         $reason = $this->buildReason($type, $context);
 
-        return [$output, $reason, 'rules', 0];
-    }
-
-    /** @param array<string, mixed> $context @param array<string, mixed> $options */
-    private function buildPrompt(string $type, array $context, string $tone, array $options): string
-    {
-        $officeName = $context['office']['name'] ?? 'دفتر املاک';
-        $city = $context['office']['city'] ?? 'شهر';
-
-        return <<<PROMPT
-شما مدیر مارکتینگ حرفه‌ای املاک در ایران هستید. خروجی کاملاً فارسی، اختصاصی و عملی باشد.
-دفتر: {$officeName} | شهر: {$city} | لحن: {$tone}
-نوع خروجی: {$type}
-داده‌های دفتر (JSON):
-{$this->json($context)}
-PROMPT;
+        return [$output, $reason, 'smart-engine', 0];
     }
 
     /** @param array<string, mixed> $context @param array<string, mixed> $options */
@@ -180,7 +155,7 @@ PROMPT;
         $views = $p['views'] ?? 0;
         $city = $context['office']['city'] ?? '';
 
-        return <<<OUT
+        return $this->officeHeader($context, $tone).<<<OUT
 🎬 سناریوی ریلز اینستاگرام — {$office}
 
 📌 عنوان: «{$type} خوش‌قیمت در {$district} — فرصت محدود!»
@@ -482,7 +457,7 @@ OUT;
         $p = $context['new_properties'][0] ?? ($context['top_properties'][0] ?? []);
         $hour = '۲۱:۰۰';
 
-        return <<<OUT
+        return $this->officeHeader($context, 'professional').<<<OUT
 ☀️ برنامه تولید محتوای امروز — {$context['office']['name']}
 تاریخ: {$this->persianDate()}
 
@@ -547,38 +522,19 @@ OUT;
         return now()->timezone('Asia/Tehran')->format('Y/m/d');
     }
 
-    /** @param array<string, mixed> $data */
-    private function json(array $data): string
+    /** @param array<string, mixed> $context */
+    private function officeHeader(array $context, string $tone): string
     {
-        return json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) ?: '{}';
-    }
+        $name = $context['office']['name'] ?? 'دفتر املاک';
+        $city = $context['office']['city'] ?? '';
+        $toneLabel = match ($tone) {
+            'formal' => 'رسمی',
+            'luxury' => 'لوکس',
+            'investment' => 'سرمایه‌گذاری',
+            'educational' => 'آموزشی',
+            default => 'صمیمی',
+        };
 
-    /** @return array{text: string, reason: string, tokens: int}|null */
-    private function callOpenAi(string $prompt): ?array
-    {
-        $key = config('ai.openai.api_key');
-        if (! $key) return null;
-
-        try {
-            $res = Http::withToken($key)
-                ->timeout(60)
-                ->post(rtrim(config('ai.openai.base_url'), '/').'/chat/completions', [
-                    'model' => config('ai.openai.model'),
-                    'messages' => [
-                        ['role' => 'system', 'content' => 'شما مدیر مارکتینگ املاک حرفه‌ای در ایران هستید. فقط فارسی و عملی پاسخ دهید.'],
-                        ['role' => 'user', 'content' => $prompt],
-                    ],
-                    'temperature' => 0.7,
-                ]);
-
-            if (! $res->successful()) return null;
-
-            $text = $res->json('choices.0.message.content', '');
-            $tokens = (int) $res->json('usage.total_tokens', 0);
-
-            return ['text' => $text, 'reason' => 'تولید با مدل OpenAI', 'tokens' => $tokens];
-        } catch (\Throwable) {
-            return null;
-        }
+        return "🏢 {$name} | 📍 {$city} | لحن: {$toneLabel} | 📅 {$this->persianDate()}\n";
     }
 }

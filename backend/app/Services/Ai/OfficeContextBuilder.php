@@ -4,6 +4,7 @@ namespace App\Services\Ai;
 
 use App\Enums\PropertyStatus;
 use App\Models\Customer;
+use App\Models\CrmDeal;
 use App\Models\Office;
 use App\Models\Property;
 use App\Models\User;
@@ -24,6 +25,7 @@ class OfficeContextBuilder
             ->get();
 
         $customers = Customer::where('office_id', $office->id)->latest()->limit(80)->get();
+        $deals = CrmDeal::where('office_id', $office->id)->latest()->limit(30)->get();
 
         $districts = $properties->pluck('district')->filter()->countBy()->sortDesc();
         $cities = $properties->pluck('city')->filter()->countBy()->sortDesc();
@@ -59,6 +61,11 @@ class OfficeContextBuilder
                 'total' => $customers->count(),
                 'top_budget' => $customers->max('budget_max'),
                 'preferred_districts' => $customers->pluck('preferred_district')->filter()->countBy()->sortDesc()->take(5)->keys()->all(),
+                'top_property_type' => $customers->pluck('property_type')->filter()->countBy()->sortDesc()->keys()->first(),
+            ],
+            'crm' => [
+                'active_deals' => $deals->whereIn('stage', ['new', 'contacted', 'visit', 'negotiation'])->count(),
+                'won_deals' => $deals->where('stage', 'won')->count(),
             ],
             'performance' => [
                 'top_consultant' => $this->topConsultant($office),

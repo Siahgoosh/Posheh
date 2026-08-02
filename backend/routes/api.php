@@ -102,6 +102,8 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/wallet', [WalletController::class, 'show'])
             ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+        Route::post('/wallet/charge', [WalletController::class, 'charge'])
+            ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
 
         Route::get('/dashboard', [DashboardController::class, 'index']);
 
@@ -203,6 +205,10 @@ Route::prefix('v1')->group(function () {
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/invite', [OfficeController::class, 'invite'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::put('/team/{userId}', [OfficeController::class, 'updateTeamMember'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::delete('/team/{userId}', [OfficeController::class, 'removeTeamMember'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::get('/website', [OfficeController::class, 'websiteStatus']);
             Route::get('/website/visit-requests', [OfficeController::class, 'visitRequests']);
             Route::get('/website/pending-properties', [OfficeController::class, 'pendingWebsiteProperties'])
@@ -210,6 +216,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/website/request', [OfficeController::class, 'requestWebsite'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/website/posts', [OfficeController::class, 'createSitePost'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::get('/website/theme', [OfficeController::class, 'websiteTheme'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::put('/website/theme', [OfficeController::class, 'updateWebsiteTheme'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::get('/domain', [OfficeController::class, 'domainStatus']);
             Route::post('/domain/check', [OfficeController::class, 'checkDomain'])

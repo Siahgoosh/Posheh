@@ -12,6 +12,7 @@ use App\Services\Office\TelegramBotService;
 use App\Services\Property\PropertyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class OfficeController extends Controller
 {
@@ -66,6 +67,34 @@ class OfficeController extends Controller
             'data' => $invitation,
             'message' => 'عضو جدید با موفقیت اضافه شد.',
         ], 201);
+    }
+
+    public function updateTeamMember(Request $request, int $userId): JsonResponse
+    {
+        $member = \App\Models\User::where('office_id', $request->user()->office_id)->findOrFail($userId);
+
+        $data = $request->validate([
+            'name' => ['sometimes', 'string', 'max:100'],
+            'mobile' => ['sometimes', 'string', 'regex:/^09\d{9}$/', Rule::unique('users', 'mobile')->ignore($member->id)],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($member->id)],
+            'username' => ['nullable', 'string', 'min:3', 'max:50', 'regex:/^[a-zA-Z0-9_]+$/', Rule::unique('users', 'username')->ignore($member->id)],
+            'password' => ['nullable', 'string', 'min:8'],
+            'role' => ['sometimes', 'string', 'in:consultant,office_manager'],
+        ]);
+
+        $updated = $this->officeService->updateTeamMember($request->user(), $userId, $data);
+
+        return response()->json([
+            'data' => new UserResource($updated),
+            'message' => 'اطلاعات مشاور به‌روزرسانی شد.',
+        ]);
+    }
+
+    public function removeTeamMember(Request $request, int $userId): JsonResponse
+    {
+        $this->officeService->removeTeamMember($request->user(), $userId);
+
+        return response()->json(['message' => 'مشاور از تیم حذف شد.']);
     }
 
     public function settings(Request $request): JsonResponse
@@ -298,5 +327,39 @@ class OfficeController extends Controller
         $post = $this->siteService->publishPost($request->user(), $data);
 
         return response()->json(['data' => $post, 'message' => 'پست وبسایت منتشر شد.'], 201);
+    }
+
+    public function websiteTheme(Request $request): JsonResponse
+    {
+        $office = $request->user()->office;
+
+        return response()->json([
+            'data' => [
+                'theme' => $this->siteService->themePayload($office),
+                'available_themes' => $this->siteService->availableThemes(),
+            ],
+        ]);
+    }
+
+    public function updateWebsiteTheme(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'theme_id' => ['sometimes', 'string', 'in:modern,classic,luxury'],
+            'brand_color' => ['sometimes', 'string', 'max:20'],
+            'hero_title' => ['sometimes', 'string', 'max:255'],
+            'hero_subtitle' => ['nullable', 'string', 'max:2000'],
+            'cta_text' => ['sometimes', 'string', 'max:100'],
+            'show_stats' => ['sometimes', 'boolean'],
+            'show_team' => ['sometimes', 'boolean'],
+            'hero_style' => ['sometimes', 'string', 'max:30'],
+            'card_style' => ['sometimes', 'string', 'max:30'],
+        ]);
+
+        $office = $this->siteService->updateTheme($request->user(), $data);
+
+        return response()->json([
+            'data' => $this->siteService->themePayload($office),
+            'message' => 'تم وبسایت ذخیره شد.',
+        ]);
     }
 }

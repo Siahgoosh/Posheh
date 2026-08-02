@@ -44,8 +44,11 @@ export function RenewSubscriptionPage() {
       api.post('/subscribe', { plan_id: planId, gateway }),
     onSuccess: async (res) => {
       if (res.data.redirect_url) window.open(res.data.redirect_url, '_blank')
-      await refreshUser()
-      queryClient.invalidateQueries({ queryKey: ['subscription-current'] })
+      else {
+        await refreshUser()
+        queryClient.invalidateQueries({ queryKey: ['subscription-current'] })
+        queryClient.invalidateQueries({ queryKey: ['wallet'] })
+      }
     },
   })
 

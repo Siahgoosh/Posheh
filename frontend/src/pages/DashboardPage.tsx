@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom'
 import api from '@/lib/api'
 import { formatNumber } from '@/lib/utils'
 import { taskStatusLabel } from '@/constants/plans'
+import { WalletCard } from '@/components/wallet/WalletCard'
+import { useAuthStore } from '@/stores/auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -58,6 +60,7 @@ const statCards = [
 ] as const
 
 export function DashboardPage() {
+  const { user } = useAuthStore()
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ['dashboard'],
     queryFn: async () => {
@@ -87,6 +90,28 @@ export function DashboardPage() {
             ثبت ملک جدید
           </Button>
         </Link>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <Card className="border-success/20 bg-success/5">
+            <CardContent className="p-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-muted">وضعیت اشتراک</p>
+                <p className="font-semibold">
+                  {user?.office?.plan?.name || 'بدون پلن'}
+                  {user?.office?.on_trial && user?.office?.trial_label && (
+                    <span className="text-warning text-sm mr-2">({user.office.trial_label})</span>
+                  )}
+                </p>
+              </div>
+              <Link to="/subscription">
+                <Button variant="outline" size="sm">مدیریت اشتراک</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+        <WalletCard compact />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
