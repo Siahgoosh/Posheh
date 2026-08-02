@@ -19,7 +19,10 @@
 </p>
 
 @if($post->cover_image)
-<p><img src="{{ str_starts_with($post->cover_image, 'http') ? $post->cover_image : url($post->cover_image) }}" alt="{{ $post->title }}" loading="lazy"></p>
+@php
+  $coverSrc = str_starts_with($post->cover_image, 'http') ? $post->cover_image : url($post->cover_image);
+@endphp
+<p><img src="{{ $coverSrc }}" alt="{{ $post->title }}" width="1200" height="630" loading="lazy" fetchpriority="high"></p>
 @endif
 
 <article>

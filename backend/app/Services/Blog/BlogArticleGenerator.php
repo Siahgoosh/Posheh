@@ -46,6 +46,12 @@ class BlogArticleGenerator
         'https://images.unsplash.com/photo-1582407947302-fd5ed7fb163f?w=1200&h=630&fit=crop',
     ];
 
+    /** @return array<int, string> */
+    public static function coverImageSources(): array
+    {
+        return self::COVER_IMAGES;
+    }
+
     /** @return array<int, array<string, mixed>> */
     public function pillarArticles(): array
     {
@@ -210,9 +216,9 @@ class BlogArticleGenerator
 
         $result = [];
         foreach (array_keys(self::CATEGORIES) as $cat) {
-            $result[$cat] = array_map(function ($t) use ($cat) {
+            $result[$cat] = array_map(function ($t) {
                 return [
-                    'slug' => $cat.'-'.$t['slug'],
+                    'slug' => $t['slug'],
                     'title' => $t['title'],
                     'excerpt' => $t['excerpt'],
                     'keywords' => $t['keywords'],

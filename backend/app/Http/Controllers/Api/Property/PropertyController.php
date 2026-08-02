@@ -167,7 +167,7 @@ class PropertyController extends Controller
     {
         $data = $request->validate([
             'recipient_mobile' => ['required', 'string', 'regex:/^09\d{9}$/'],
-            'channel' => ['required', 'string', 'in:whatsapp,telegram,sms'],
+            'channel' => ['required', 'string', 'in:whatsapp,telegram,rubika,bale,sms'],
         ]);
 
         $property = $this->propertyService->find($request->user(), $id);

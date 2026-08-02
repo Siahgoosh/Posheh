@@ -142,8 +142,8 @@ $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --
   || fail "SystemSettingsSeeder failed"
 $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
   || log "BlogSeeder warning (may already be seeded)"
-$COMPOSE exec -T app php artisan blog:seed --count=300 --force --no-interaction 2>/dev/null \
-  || log "Run ./scripts/seed-blog.sh to seed 300 SEO articles"
+$COMPOSE exec -T app php artisan blog:seed --count=300 --force --no-interaction \
+  || fail "blog:seed failed — run: ./scripts/seed-blog.sh"
 $COMPOSE exec -T app php artisan db:seed --class=VirtualTourSeeder --force --no-interaction 2>/dev/null \
   || log "VirtualTourSeeder skipped (virtual tour module not deployed yet)"
 $COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \
@@ -220,6 +220,12 @@ printf 'API /plans status: %s\n' "$HTTP_CODE"
 
 DEMO_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/demo/sphere.jpg || echo "000")
 printf 'Demo panorama /demo/sphere.jpg: %s\n' "$DEMO_CODE"
+
+BLOG_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/blog/best-real-estate-crm-software-iran || echo "000")
+printf 'Blog SSR /blog/best-real-estate-crm-software-iran: %s\n' "$BLOG_CODE"
+
+APK_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/downloads/posheh-android.apk || echo "000")
+printf 'Android APK /downloads/posheh-android.apk: %s\n' "$APK_CODE"
 
 OTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/api/v1/auth/otp/send \
   -H "Content-Type: application/json" -H "Accept: application/json" \

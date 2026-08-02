@@ -8,7 +8,9 @@ Route::get('/blog', [BlogWebController::class, 'index']);
 Route::get('/blog/category/{slug}', [BlogWebController::class, 'category']);
 Route::get('/blog/{slug}', [BlogWebController::class, 'show']);
 
-Route::get('/sitemap.xml', [SitemapController::class, 'xml']);
+Route::get('/sitemap.xml', [SitemapController::class, 'index']);
+Route::get('/sitemap-pages.xml', [SitemapController::class, 'pages']);
+Route::get('/sitemap-blog.xml', [SitemapController::class, 'blog']);
 Route::get('/robots.txt', [BlogWebController::class, 'robots']);
 
 Route::get('/', function () {
