@@ -9,13 +9,12 @@ import {
   Wallet, Bot, Globe, Star, Menu, X, KeyRound, UserPlus, Smartphone,
 } from 'lucide-react'
 import api from '@/lib/api'
-import { formatPrice } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { SeoHead } from '@/components/seo/SeoHead'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { getOrganizationJsonLd, getSoftwareJsonLd, getWebSiteJsonLd } from '@/lib/seo'
-import { PLAN_FEATURE_LABELS, trialBadgeForPlan } from '@/constants/plans'
+import { PlanComparisonSection } from '@/components/plans/PlanComparisonSection'
 
 const stats = [
   { value: '+۸۰', label: 'دفتر فعال' },
@@ -316,28 +315,11 @@ export function LandingPage() {
       <section id="pricing" className="container mx-auto max-w-6xl px-4 py-20">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-2">پلن مناسب خود را انتخاب کنید</h2>
-          <p className="text-muted">پنل مشاور مستقل: ۴۸ ساعت رایگان — پلن‌های دفتر از ابتدا پرداختی</p>
+          <p className="text-muted">مقایسه کامل امکانات — پنل مشاور مستقل: ۴۸ ساعت رایگان</p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6">
-          {(apiPlans ?? []).map((plan, idx) => (
-            <Card key={plan.id} className={`p-6 flex flex-col ${idx === 1 ? 'border-primary/50 ring-2 ring-primary/20 scale-[1.02]' : ''}`}>
-              {idx === 1 && <span className="self-start text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full mb-2">★ محبوب</span>}
-              <h3 className="text-xl font-bold">{plan.name}</h3>
-              <p className="text-2xl font-bold mt-2 gradient-text">{plan.monthly_price ? formatPrice(plan.monthly_price) : 'رایگان'}</p>
-              <p className="text-sm text-muted mb-4">{plan.description}</p>
-              <ul className="space-y-2 flex-1 text-sm">
-                <li className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" />تا {plan.max_users} کاربر · {plan.max_properties} ملک</li>
-                {trialBadgeForPlan(plan.slug) && (
-                  <li className="flex gap-2 text-warning"><CheckCircle2 className="h-4 w-4 shrink-0" />{trialBadgeForPlan(plan.slug)}</li>
-                )}
-                {plan.features.slice(0, 4).map((f) => (
-                  <li key={f} className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-primary shrink-0" />{PLAN_FEATURE_LABELS[f] || f}</li>
-                ))}
-              </ul>
-              <Link to="/register" className="mt-6"><Button className="w-full" variant={idx === 1 ? 'default' : 'outline'}>شروع رایگان</Button></Link>
-            </Card>
-          ))}
-        </div>
+        {apiPlans && apiPlans.length > 0 && (
+          <PlanComparisonSection plans={apiPlans} mode="marketing" />
+        )}
       </section>
 
       {/* Testimonials */}

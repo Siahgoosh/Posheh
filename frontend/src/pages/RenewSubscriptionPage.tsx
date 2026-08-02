@@ -1,12 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, CreditCard, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import api from '@/lib/api'
-import { formatPrice } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { PlanComparisonSection } from '@/components/plans/PlanComparisonSection'
 
 interface Plan {
   id: number
@@ -16,6 +15,7 @@ interface Plan {
   max_properties: number
   max_users: number
   description?: string
+  features?: string[]
 }
 
 export function RenewSubscriptionPage() {
@@ -53,16 +53,15 @@ export function RenewSubscriptionPage() {
   const filteredPlans = plans?.filter((p) => !currentPlanSlug || p.slug === currentPlanSlug || ['solo', 'office', 'premium'].includes(p.slug))
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl space-y-6 animate-fade-in">
+    <div className="min-h-[80vh] p-4 animate-fade-in">
+      <div className="w-full max-w-6xl mx-auto space-y-6">
         <Card className="border-warning/40 bg-warning/5">
           <CardContent className="p-6 flex gap-4 items-start">
             <AlertTriangle className="h-8 w-8 text-warning shrink-0 mt-1" />
             <div>
               <h1 className="text-xl font-bold">دوره آزمایشی یا اشتراک شما به پایان رسیده</h1>
               <p className="text-muted mt-2 leading-relaxed">
-                برای ادامه استفاده از پوشه، لطفاً حساب خود را شارژ و تمدید کنید.
-                تا زمان تمدید، دسترسی به امکانات محدود است.
+                برای ادامه استفاده از پوشه، لطفاً یکی از پلن‌ها را انتخاب و تمدید کنید.
               </p>
               {!office?.on_trial && !office?.has_access && (
                 <Badge variant="outline" className="mt-3">نیاز به پرداخت</Badge>
@@ -80,36 +79,15 @@ export function RenewSubscriptionPage() {
           </Card>
         )}
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredPlans?.map((plan) => (
-            <Card key={plan.id}>
-              <CardHeader>
-                <CardTitle className="text-lg">{plan.name}</CardTitle>
-                <p className="text-xl font-bold text-primary">{formatPrice(plan.monthly_price)}</p>
-                <p className="text-xs text-muted">ماهانه</p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted">{plan.description}</p>
-                <Button
-                  className="w-full"
-                  disabled={subscribeMutation.isPending}
-                  onClick={() => subscribeMutation.mutate({ planId: plan.id, gateway: 'zibal' })}
-                >
-                  <CreditCard className="h-4 w-4" />
-                  پرداخت با زیبال
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  disabled={subscribeMutation.isPending}
-                  onClick={() => subscribeMutation.mutate({ planId: plan.id, gateway: 'wallet' })}
-                >
-                  خرید با کیف پول
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {filteredPlans && (
+          <PlanComparisonSection
+            plans={filteredPlans}
+            mode="subscription"
+            currentPlanSlug={currentPlanSlug}
+            onSelectPlan={(planId, gateway) => subscribeMutation.mutate({ planId, gateway })}
+            selecting={subscribeMutation.isPending}
+          />
+        )}
 
         <div className="text-center">
           <Link to="/subscription" className="text-sm text-primary hover:underline">جزئیات اشتراک</Link>

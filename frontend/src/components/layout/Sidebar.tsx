@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Building2, Search, Users, Settings, CreditCard, Star, LogOut,
   Moon, Sun, Menu, X, BookOpen, Download, Shield, BarChart3, Building,
-  Kanban, Wallet, FileText, LifeBuoy, UserCircle, CalendarDays, Contact, Globe, ChevronDown, Box, MessageCircle,
+  Kanban, Wallet, FileText, LifeBuoy, UserCircle, CalendarDays, Contact, Globe, ChevronDown, Box, MessageCircle, Sparkles,
 } from 'lucide-react'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
 import { useEffect, useState } from 'react'
@@ -20,6 +20,7 @@ export function Sidebar() {
   const hasAccounting = usePlanFeature('accounting')
   const hasCrm = usePlanFeature('crm')
   const hasWebsite = usePlanFeature('website_listing')
+  const hasContentAi = usePlanFeature('content_assistant')
   const onTrial = user?.office?.on_trial
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export function Sidebar() {
     ...(hasTeam ? [{ to: '/team', icon: Users, label: 'تیم' }] : []),
     ...(hasTeamChat ? [{ to: '/team-chat', icon: MessageCircle, label: 'چت تیمی' }] : []),
     ...(hasWebsite ? [{ to: '/office-website', icon: Globe, label: 'وبسایت دفتر' }] : []),
+    ...(hasContentAi ? [{ to: '/content-assistant', icon: Sparkles, label: 'دستیار AI محتوا' }] : []),
     { to: '/tickets', icon: LifeBuoy, label: 'پشتیبانی' },
     { to: '/subscription', icon: CreditCard, label: 'اشتراک' },
     { to: '/settings', icon: Settings, label: 'تنظیمات' },

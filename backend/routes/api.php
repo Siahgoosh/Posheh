@@ -22,7 +22,8 @@ use App\Http\Controllers\Api\Admin\BlogAdminController;
 use App\Http\Controllers\Api\Admin\MarketingDashboardController;
 use App\Http\Controllers\Api\Admin\PlanAdminController;
 use App\Http\Controllers\Api\Admin\TicketAdminController;
-use App\Http\Controllers\Api\AnalyticsController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\Ai\ContentAssistantController;
 use App\Http\Controllers\Api\ApiKeyController;
 use App\Http\Controllers\Api\Auth\RegistrationController;
 use App\Http\Controllers\Api\Blog\BlogController;
@@ -127,6 +128,19 @@ Route::prefix('v1')->group(function () {
         Route::post('/visits', [VisitController::class, 'store']);
         Route::put('/visits/{id}', [VisitController::class, 'update']);
         Route::delete('/visits/{id}', [VisitController::class, 'destroy']);
+
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+
+        Route::prefix('ai/content')->group(function () {
+            Route::get('/types', [ContentAssistantController::class, 'types']);
+            Route::get('/context', [ContentAssistantController::class, 'context']);
+            Route::get('/properties', [ContentAssistantController::class, 'properties']);
+            Route::post('/generate', [ContentAssistantController::class, 'generate']);
+            Route::get('/daily', [ContentAssistantController::class, 'dailyBriefing']);
+            Route::get('/history', [ContentAssistantController::class, 'history']);
+        });
 
         Route::get('/tickets', [TicketController::class, 'index']);
         Route::get('/tickets/{id}', [TicketController::class, 'show']);
