@@ -29,14 +29,14 @@ class SmsProbeCommand extends Command
             ['sms_mode (DB)', (string) $settings->get('sms_mode', '—')],
             ['SMS_MODE (.env)', (string) env('SMS_MODE', '—')],
             ['is_live (effective)', ($status['is_live'] ?? false) ? 'YES ✓' : 'NO ✗ — SMS disabled!'],
-            ['api_mode', (string) ($config['api_mode'] ?? '—').' (OTP: Edge API → plain fallback)'],
+            ['api_mode', (string) ($config['api_mode'] ?? '—').' (OTP: webservice only, no pattern)'],
             ['has_api_key', ! empty($config['api_key']) ? 'yes ('.strlen((string) $config['api_key']).' chars)' : 'NO ✗'],
             ['has_username', ($status['has_username'] ?? false) ? 'yes' : 'no'],
             ['from_number', (string) ($config['from_number'] ?? '—')],
             ['otp_from_number', (string) ($config['otp_from_number'] ?? '—')],
             ['otp_pattern', (string) ($config['otp_pattern_code'] ?? '—')],
             ['base_url', (string) ($config['base_url'] ?? '—')],
-            ['sms_relay', ! empty($config['relay_url']) ? 'YES ✓ '.($config['relay_url']) : 'NO — required for NL server'],
+            ['sms_relay', ! empty($config['relay_url']) ? 'YES ✓ '.($config['relay_url']) : 'NO (optional — NL uses JSPD API directly)'],
             ['http_proxy', ! empty($config['http_proxy']) ? 'yes' : 'no'],
             ['queue', (string) config('queue.default')],
         ]);
@@ -137,16 +137,13 @@ class SmsProbeCommand extends Command
             $this->newLine();
             if ($jspdDeny) {
                 $this->error('ROOT CAUSE: JSPD deny — IP سرور در پنل مکث whitelist نیست برای برخی APIها.');
-                $this->line('OTP از plain webservice ارسال می‌شود (اگر شبکه وصل باشد).');
+                $this->line('OTP از webservice plain (op=send) ارسال می‌شود اگر شبکه وصل باشد.');
             } else {
                 $this->error('ROOT CAUSE: اتصال به ippanel.com ناپایدار است (گاهی timeout).');
-                $this->line('پیامک ۱۸:۲۱ از webservice plain رفت — وقتی شبکه وصل بود.');
+                $this->line('پیامک از JSPD webservice API رفت — وقتی شبکه وصل بود.');
             }
-            $this->line('راه‌حل پایدار برای OTP با API: SMS Relay روی VPS ایران — docs/SMS-RELAY.md');
-            $this->line('  relay → Edge API + پترن OTP (بهتر از plain webservice)');
-            $this->line('  1) scripts/sms-relay/relay.php را روی VPS ایران deploy کنید');
-            $this->line('  2) در .env هلند: SMS_RELAY_URL و SMS_RELAY_SECRET');
-            $this->line('  3) ./scripts/fix-sms-now.sh && system:sms-probe --send');
+            $this->line('برای سرور هلند: IPPANEL_API_MODE=jspd کافی است — نیازی به relay ایران نیست.');
+            $this->line('  ./scripts/force-sms-jspd.sh && php artisan system:sms-probe 09170577873 --send');
         }
 
         if (! empty($config['relay_url'])) {
@@ -209,7 +206,7 @@ class SmsProbeCommand extends Command
 
             if (! $this->option('plain-only')) {
                 $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-                $this->line("OTP pattern test with code: {$code}");
+                $this->line("OTP webservice test with code: {$code}");
                 $otpResult = $sms->sendOtp($mobile, $code);
                 $this->printResult('OTP', $otpResult);
             }
