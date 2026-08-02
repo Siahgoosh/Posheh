@@ -20,7 +20,6 @@ export function Sidebar() {
   const hasAccounting = usePlanFeature('accounting')
   const hasCrm = usePlanFeature('crm')
   const hasWebsite = usePlanFeature('website_listing')
-  const hasContentAi = usePlanFeature('content_assistant')
   const onTrial = user?.office?.on_trial
 
   useEffect(() => {
@@ -45,7 +44,7 @@ export function Sidebar() {
     ...(hasTeam ? [{ to: '/team', icon: Users, label: 'تیم' }] : []),
     ...(hasTeamChat ? [{ to: '/team-chat', icon: MessageCircle, label: 'چت تیمی' }] : []),
     ...(hasWebsite ? [{ to: '/office-website', icon: Globe, label: 'وبسایت دفتر' }] : []),
-    ...(hasContentAi ? [{ to: '/content-assistant', icon: Sparkles, label: 'دستیار AI محتوا' }] : []),
+    { to: '/content-assistant', icon: Sparkles, label: 'دستیار AI محتوا' },
     { to: '/tickets', icon: LifeBuoy, label: 'پشتیبانی' },
     { to: '/subscription', icon: CreditCard, label: 'اشتراک' },
     { to: '/settings', icon: Settings, label: 'تنظیمات' },

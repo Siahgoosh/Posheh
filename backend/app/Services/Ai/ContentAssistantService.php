@@ -22,7 +22,11 @@ class ContentAssistantService
         $office = $user->office;
         abort_unless($office, 403);
 
-        $this->assertPremiumFeature($office);
+        if (! $this->canUseAssistant($user, $office)) {
+            throw ValidationException::withMessages([
+                'plan' => ['دستیار هوشمند تولید محتوا در پلن حرفه‌ای (Premium) فعال است.'],
+            ]);
+        }
 
         $allowed = config('ai.types', []);
         if (! in_array($type, $allowed, true)) {
@@ -91,15 +95,17 @@ class ContentAssistantService
         return $this->generate($user, 'daily_plan', ['tone' => 'professional']);
     }
 
-    private function assertPremiumFeature(Office $office): void
+    private function canUseAssistant(User $user, Office $office): bool
     {
+        $role = $user->role?->value ?? (string) $user->role;
+        if (in_array($role, ['super_admin', 'platform_admin'], true)) {
+            return true;
+        }
+
         $office->loadMissing('plan');
         $features = $office->plan?->features ?? [];
-        if (! in_array('content_assistant', $features, true)) {
-            throw ValidationException::withMessages([
-                'plan' => ['دستیار هوشمند تولید محتوا در پلن حرفه‌ای (Premium) فعال است.'],
-            ]);
-        }
+
+        return in_array('content_assistant', $features, true);
     }
 
     /** @param array<string, mixed> $context @param array<string, mixed> $options @return array{0: string, 1: string, 2: string, 3: int} */

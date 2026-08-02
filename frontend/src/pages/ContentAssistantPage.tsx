@@ -6,6 +6,8 @@ import {
 } from 'lucide-react'
 import api from '@/lib/api'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
+import { isPlatformStaffRole } from '@/lib/subdomain'
+import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -27,7 +29,8 @@ const TONES = [
 ]
 
 export function ContentAssistantPage() {
-  const hasAi = usePlanFeature('content_assistant')
+  const { user } = useAuthStore()
+  const hasAi = usePlanFeature('content_assistant') || isPlatformStaffRole(user?.role)
   const [selectedType, setSelectedType] = useState('daily_plan')
   const [tone, setTone] = useState('friendly')
   const [propertyId, setPropertyId] = useState<number | ''>('')
