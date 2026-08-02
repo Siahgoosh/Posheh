@@ -87,7 +87,7 @@ class VirtualTourController extends Controller
             'floor_plan_y' => ['nullable', 'numeric'],
         ]);
 
-        $scene = $this->service->updateScene($request->user(), $id, $sceneId, $data);
+        $scene = $this->service->updateScene($request->user(), $id, $sceneId, $data, $request->file('panorama'));
 
         return response()->json(['data' => $scene]);
     }

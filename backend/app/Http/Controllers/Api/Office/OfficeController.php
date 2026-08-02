@@ -328,4 +328,38 @@ class OfficeController extends Controller
 
         return response()->json(['data' => $post, 'message' => 'پست وبسایت منتشر شد.'], 201);
     }
+
+    public function websiteTheme(Request $request): JsonResponse
+    {
+        $office = $request->user()->office;
+
+        return response()->json([
+            'data' => [
+                'theme' => $this->siteService->themePayload($office),
+                'available_themes' => $this->siteService->availableThemes(),
+            ],
+        ]);
+    }
+
+    public function updateWebsiteTheme(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'theme_id' => ['sometimes', 'string', 'in:modern,classic,luxury'],
+            'brand_color' => ['sometimes', 'string', 'max:20'],
+            'hero_title' => ['sometimes', 'string', 'max:255'],
+            'hero_subtitle' => ['nullable', 'string', 'max:2000'],
+            'cta_text' => ['sometimes', 'string', 'max:100'],
+            'show_stats' => ['sometimes', 'boolean'],
+            'show_team' => ['sometimes', 'boolean'],
+            'hero_style' => ['sometimes', 'string', 'max:30'],
+            'card_style' => ['sometimes', 'string', 'max:30'],
+        ]);
+
+        $office = $this->siteService->updateTheme($request->user(), $data);
+
+        return response()->json([
+            'data' => $this->siteService->themePayload($office),
+            'message' => 'تم وبسایت ذخیره شد.',
+        ]);
+    }
 }

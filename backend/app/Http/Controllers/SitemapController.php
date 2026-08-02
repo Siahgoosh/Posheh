@@ -55,37 +55,52 @@ class SitemapController extends Controller
     /** Blog articles only — submit this URL to Google Search Console */
     public function blog(): Response
     {
-        $base = $this->baseUrl();
-        $posts = BlogPost::published()
-            ->orderByDesc('published_at')
-            ->get(['slug', 'title', 'cover_image', 'updated_at', 'published_at']);
+        try {
+            $base = $this->baseUrl();
+            $posts = BlogPost::published()
+                ->orderByDesc('published_at')
+                ->get(['slug', 'title', 'cover_image', 'updated_at', 'published_at']);
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"';
-        $xml .= ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'."\n";
+            $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+            $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"';
+            $xml .= ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'."\n";
 
-        foreach ($posts as $post) {
-            $loc = $base.'/blog/'.$post->slug;
-            $lastmod = ($post->updated_at ?? $post->published_at)?->toIso8601String();
-            $escaped = htmlspecialchars($loc, ENT_XML1);
-            $lastmodTag = $lastmod ? '<lastmod>'.substr($lastmod, 0, 10).'</lastmod>' : '';
-
-            $xml .= "  <url><loc>{$escaped}</loc>{$lastmodTag}<changefreq>weekly</changefreq><priority>0.8</priority>\n";
-
-            $imageUrl = $this->absoluteImageUrl($post->cover_image, $base);
-            if ($imageUrl) {
-                $xml .= "    <image:image>\n";
-                $xml .= '      <image:loc>'.htmlspecialchars($imageUrl, ENT_XML1)."</image:loc>\n";
-                $xml .= '      <image:title>'.htmlspecialchars($post->title, ENT_XML1)."</image:title>\n";
-                $xml .= "    </image:image>\n";
+            if ($posts->isEmpty()) {
+                $xml .= $this->url($base.'/blog', 0.9, now()->toIso8601String());
             }
 
-            $xml .= "  </url>\n";
+            foreach ($posts as $post) {
+                $loc = $base.'/blog/'.$post->slug;
+                $lastmod = ($post->updated_at ?? $post->published_at)?->toIso8601String();
+                $escaped = htmlspecialchars($loc, ENT_XML1);
+                $lastmodTag = $lastmod ? '<lastmod>'.substr($lastmod, 0, 10).'</lastmod>' : '';
+
+                $xml .= "  <url><loc>{$escaped}</loc>{$lastmodTag}<changefreq>weekly</changefreq><priority>0.8</priority>\n";
+
+                $imageUrl = $this->absoluteImageUrl($post->cover_image, $base);
+                if ($imageUrl) {
+                    $xml .= "    <image:image>\n";
+                    $xml .= '      <image:loc>'.htmlspecialchars($imageUrl, ENT_XML1)."</image:loc>\n";
+                    $xml .= '      <image:title>'.htmlspecialchars($post->title, ENT_XML1)."</image:title>\n";
+                    $xml .= "    </image:image>\n";
+                }
+
+                $xml .= "  </url>\n";
+            }
+
+            $xml .= '</urlset>';
+
+            return $this->xmlResponse($xml);
+        } catch (\Throwable $e) {
+            report($e);
+            $base = $this->baseUrl();
+            $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+            $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+            $xml .= $this->url($base.'/blog', 0.9, now()->toIso8601String());
+            $xml .= '</urlset>';
+
+            return $this->xmlResponse($xml);
         }
-
-        $xml .= '</urlset>';
-
-        return $this->xmlResponse($xml);
     }
 
     /** @deprecated Use index() — kept for backward compatibility */

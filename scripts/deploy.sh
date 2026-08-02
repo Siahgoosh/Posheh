@@ -144,6 +144,8 @@ $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interac
   || log "BlogSeeder warning (may already be seeded)"
 $COMPOSE exec -T app php artisan blog:seed --count=300 --force --no-interaction \
   || fail "blog:seed failed — run: ./scripts/seed-blog.sh"
+$COMPOSE exec -T app php artisan sitemap:generate --no-interaction \
+  || log "sitemap:generate warning — run: docker compose exec app php artisan sitemap:generate"
 $COMPOSE exec -T app php artisan db:seed --class=VirtualTourSeeder --force --no-interaction 2>/dev/null \
   || log "VirtualTourSeeder skipped (virtual tour module not deployed yet)"
 $COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \
@@ -185,6 +187,10 @@ fi
   fi
   npm run build
 ) || fail "Frontend build failed — try: cd frontend && npm install && npm run build"
+
+log "Regenerating sitemaps after frontend build (GSC)"
+$COMPOSE exec -T app php artisan sitemap:generate --no-interaction \
+  || log "sitemap:generate warning — run: docker compose exec app php artisan sitemap:generate"
 
 if [ ! -f frontend/dist/demo/sphere.jpg ]; then
   log "WARNING: frontend/dist/demo/sphere.jpg missing — virtual tour 360 images will not load"

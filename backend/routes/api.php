@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\Admin\AdminOperationsController;
 use App\Http\Controllers\Api\Admin\AppReleaseAdminController;
 use App\Http\Controllers\Api\Admin\BlogAdminController;
 use App\Http\Controllers\Api\Admin\MarketingDashboardController;
+use App\Http\Controllers\Api\Admin\PlatformAnalyticsController;
 use App\Http\Controllers\Api\Admin\PlanAdminController;
 use App\Http\Controllers\Api\Admin\TicketAdminController;
 use App\Http\Controllers\Api\AnalyticsController;
@@ -201,6 +202,9 @@ Route::prefix('v1')->group(function () {
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/website/posts', [OfficeController::class, 'createSitePost'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::get('/website/theme', [OfficeController::class, 'websiteTheme']);
+            Route::put('/website/theme', [OfficeController::class, 'updateWebsiteTheme'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::get('/domain', [OfficeController::class, 'domainStatus']);
             Route::post('/domain/check', [OfficeController::class, 'checkDomain'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
@@ -222,6 +226,8 @@ Route::prefix('v1')->group(function () {
 
         Route::prefix('admin')->middleware(EnsurePlatformStaff::class)->group(function () {
             Route::get('/marketing', [MarketingDashboardController::class, 'index']);
+            Route::get('/platform-analytics', [PlatformAnalyticsController::class, 'index']);
+            Route::get('/platform-analytics/export', [PlatformAnalyticsController::class, 'exportUsers']);
             Route::get('/system/sms', [MarketingDashboardController::class, 'smsStatus']);
             Route::get('/search', AdminSearchController::class);
 
