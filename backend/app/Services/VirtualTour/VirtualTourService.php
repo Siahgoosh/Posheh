@@ -108,10 +108,18 @@ class VirtualTourService
         ]);
     }
 
-    public function updateScene(User $user, int $tourId, int $sceneId, array $data): VirtualTourScene
+    public function updateScene(User $user, int $tourId, int $sceneId, array $data, ?UploadedFile $panorama = null): VirtualTourScene
     {
         $tour = $this->findForOffice($user, $tourId);
         $scene = $tour->scenes()->findOrFail($sceneId);
+
+        if ($panorama) {
+            if ($scene->panorama_path && ! str_starts_with($scene->panorama_path, 'demo/')) {
+                Storage::disk('public')->delete($scene->panorama_path);
+            }
+            $data['panorama_path'] = $panorama->store("virtual-tours/{$tour->id}/panoramas", 'public');
+        }
+
         $scene->update($data);
 
         return $scene->fresh('hotspots');

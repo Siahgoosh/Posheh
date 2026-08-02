@@ -8,6 +8,7 @@ use App\Models\Property;
 use App\Models\User;
 use App\Models\VirtualTour;
 use App\Models\VirtualTourHotspot;
+use App\Models\VirtualTourMedia;
 use Illuminate\Database\Seeder;
 
 class VirtualTourSeeder extends Seeder
@@ -24,7 +25,7 @@ class VirtualTourSeeder extends Seeder
                 'property_id' => $property?->id,
                 'created_by' => $user->id,
                 'title' => 'تور مجازی آپارتمان نمونه — پاسداران',
-                'description' => 'نمونه تور مجازی ۳۶۰ درجه مشابه ۳۶۰نما — بازدید آنلاین از پذیرایی، آشپزخانه و اتاق خواب',
+                'description' => 'نمونه تور مجازی ۳۶۰ درجه — بازدید آنلاین از پذیرایی، آشپزخانه و اتاق خواب با هات‌اسپات و گالری تصاویر',
                 'status' => 'published',
                 'published_at' => now(),
                 'settings' => [
@@ -43,6 +44,7 @@ class VirtualTourSeeder extends Seeder
         );
 
         $tour->scenes()->delete();
+        $tour->media()->delete();
 
         $living = $tour->scenes()->create([
             'name' => 'پذیرایی',
@@ -55,7 +57,7 @@ class VirtualTourSeeder extends Seeder
 
         $kitchen = $tour->scenes()->create([
             'name' => 'آشپزخانه',
-            'panorama_path' => 'demo/sphere-small.jpg',
+            'panorama_path' => 'demo/living-room.jpg',
             'default_yaw' => 90,
             'sort_order' => 1,
             'floor_plan_x' => 60,
@@ -64,7 +66,7 @@ class VirtualTourSeeder extends Seeder
 
         $bedroom = $tour->scenes()->create([
             'name' => 'اتاق خواب',
-            'panorama_path' => 'demo/sphere.jpg',
+            'panorama_path' => 'demo/bedroom.jpg',
             'default_yaw' => 180,
             'sort_order' => 2,
             'floor_plan_x' => 45,
@@ -87,8 +89,19 @@ class VirtualTourSeeder extends Seeder
             'yaw' => -30,
             'pitch' => 10,
             'title' => 'نورگیری عالی',
-            'content' => 'پنجره‌های دوجداره با نمای جنوبی',
+            'content' => 'پنجره‌های دوجداره با نمای جنوبی — نور طبیعی تمام‌روز',
             'icon' => 'info',
+        ]);
+
+        VirtualTourHotspot::create([
+            'scene_id' => $living->id,
+            'type' => 'link',
+            'yaw' => 120,
+            'pitch' => -5,
+            'title' => 'مشاهده آگهی',
+            'content' => 'لینک به آگهی دیوار یا سایت دفتر',
+            'link_url' => 'https://posheapp.ir',
+            'icon' => 'link',
         ]);
 
         VirtualTourHotspot::create([
@@ -102,6 +115,16 @@ class VirtualTourSeeder extends Seeder
         ]);
 
         VirtualTourHotspot::create([
+            'scene_id' => $kitchen->id,
+            'type' => 'info',
+            'yaw' => -60,
+            'pitch' => 5,
+            'title' => 'کابینت های‌گلاس',
+            'content' => 'آشپزخانه مدرن با لوازم برند — آماده تحویل',
+            'icon' => 'info',
+        ]);
+
+        VirtualTourHotspot::create([
             'scene_id' => $bedroom->id,
             'type' => 'scene',
             'target_scene_id' => $living->id,
@@ -109,6 +132,22 @@ class VirtualTourSeeder extends Seeder
             'pitch' => 0,
             'title' => 'بازگشت به پذیرایی',
             'icon' => 'arrow',
+        ]);
+
+        VirtualTourMedia::create([
+            'virtual_tour_id' => $tour->id,
+            'type' => 'image',
+            'path' => 'demo/sphere-small.jpg',
+            'title' => 'نمای کلی پذیرایی',
+            'sort_order' => 0,
+        ]);
+
+        VirtualTourMedia::create([
+            'virtual_tour_id' => $tour->id,
+            'type' => 'image',
+            'path' => 'demo/living-room.jpg',
+            'title' => 'جزئیات آشپزخانه',
+            'sort_order' => 1,
         ]);
     }
 
