@@ -86,6 +86,14 @@ class BlogWebController extends Controller
         $post = BlogPost::published()->where('slug', $slug)->first();
 
         if (! $post) {
+            $legacySlug = $this->resolveLegacySlug($slug);
+            if ($legacySlug !== $slug) {
+                $legacyPost = BlogPost::published()->where('slug', $legacySlug)->first();
+                if ($legacyPost) {
+                    return redirect($this->siteUrl().'/blog/'.$legacySlug, 301);
+                }
+            }
+
             return response()->view('blog.not-found', [
                 'seo' => $this->seo('مقاله یافت نشد', 'مقاله مورد نظر یافت نشد.', '/blog', noindex: true),
             ], 404);
@@ -152,8 +160,19 @@ class BlogWebController extends Controller
         $body .= "Allow: /\nAllow: /blog\nAllow: /blog/\nAllow: /register\nAllow: /download\n";
         $body .= "Disallow: /dashboard\nDisallow: /properties\nDisallow: /settings\nDisallow: /admin\nDisallow: /api/\n\n";
         $body .= "Sitemap: {$base}/sitemap.xml\n";
+        $body .= "Sitemap: {$base}/sitemap-blog.xml\n";
 
         return response($body, 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+    }
+
+    /** Old generator duplicated category prefix: software-software-guide-1 → software-guide-1 */
+    private function resolveLegacySlug(string $slug): string
+    {
+        if (preg_match('/^([a-z]+)-\1-(.+)$/', $slug, $matches)) {
+            return $matches[1].'-'.$matches[2];
+        }
+
+        return $slug;
     }
 
     /** @return array<string, mixed> */

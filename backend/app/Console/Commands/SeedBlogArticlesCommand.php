@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\BlogPost;
 use App\Services\Blog\BlogArticleGenerator;
+use App\Services\Blog\BlogCoverImageService;
 use Illuminate\Console\Command;
 
 class SeedBlogArticlesCommand extends Command
@@ -12,7 +13,7 @@ class SeedBlogArticlesCommand extends Command
 
     protected $description = 'Seed professional SEO blog articles (500+ words, H2/H3, internal links, images)';
 
-    public function handle(BlogArticleGenerator $generator): int
+    public function handle(BlogArticleGenerator $generator, BlogCoverImageService $covers): int
     {
         $count = max(1, min(500, (int) $this->option('count')));
 
@@ -31,11 +32,22 @@ class SeedBlogArticlesCommand extends Command
         $minWords = PHP_INT_MAX;
         $maxWords = 0;
 
-        foreach ($articles as $data) {
+        $validSlugs = [];
+        $sources = BlogArticleGenerator::coverImageSources();
+
+        foreach ($articles as $index => $data) {
+            $data['cover_image'] = $covers->generate(
+                $data['slug'],
+                $data['title'],
+                $sources,
+                $index,
+            );
+
             BlogPost::updateOrCreate(
                 ['slug' => $data['slug']],
                 $data,
             );
+            $validSlugs[] = $data['slug'];
 
             $words = count(preg_split('/\s+/u', trim(strip_tags($data['content'])), -1, PREG_SPLIT_NO_EMPTY));
             $minWords = min($minWords, $words);
@@ -43,8 +55,16 @@ class SeedBlogArticlesCommand extends Command
             $bar->advance();
         }
 
+        $removed = BlogPost::query()
+            ->where('author_name', 'تیم پوشه')
+            ->whereNotIn('slug', $validSlugs)
+            ->delete();
+
         $bar->finish();
         $this->newLine(2);
+        if ($removed > 0) {
+            $this->warn("Removed {$removed} outdated auto-generated posts (stale slugs).");
+        }
         $total = BlogPost::where('is_published', true)->count();
         $this->info("Done. Published posts in DB: {$total}");
         $this->info("Word count range (approx): {$minWords} – {$maxWords}");

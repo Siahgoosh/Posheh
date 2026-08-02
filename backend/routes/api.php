@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\Admin\AdminOperationsController;
 use App\Http\Controllers\Api\Admin\AppReleaseAdminController;
 use App\Http\Controllers\Api\Admin\BlogAdminController;
 use App\Http\Controllers\Api\Admin\MarketingDashboardController;
+use App\Http\Controllers\Api\Admin\PlatformAnalyticsController;
 use App\Http\Controllers\Api\Admin\PlanAdminController;
 use App\Http\Controllers\Api\Admin\TicketAdminController;
 use App\Http\Controllers\Api\AnalyticsController;
@@ -189,6 +190,10 @@ Route::prefix('v1')->group(function () {
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/invite', [OfficeController::class, 'invite'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::put('/team/{userId}', [OfficeController::class, 'updateTeamMember'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::delete('/team/{userId}', [OfficeController::class, 'removeTeamMember'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::get('/website', [OfficeController::class, 'websiteStatus']);
             Route::get('/website/visit-requests', [OfficeController::class, 'visitRequests']);
             Route::get('/website/pending-properties', [OfficeController::class, 'pendingWebsiteProperties'])
@@ -196,6 +201,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/website/request', [OfficeController::class, 'requestWebsite'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::post('/website/posts', [OfficeController::class, 'createSitePost'])
+                ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
+            Route::get('/website/theme', [OfficeController::class, 'websiteTheme']);
+            Route::put('/website/theme', [OfficeController::class, 'updateWebsiteTheme'])
                 ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
             Route::get('/domain', [OfficeController::class, 'domainStatus']);
             Route::post('/domain/check', [OfficeController::class, 'checkDomain'])
@@ -218,6 +226,8 @@ Route::prefix('v1')->group(function () {
 
         Route::prefix('admin')->middleware(EnsurePlatformStaff::class)->group(function () {
             Route::get('/marketing', [MarketingDashboardController::class, 'index']);
+            Route::get('/platform-analytics', [PlatformAnalyticsController::class, 'index']);
+            Route::get('/platform-analytics/export', [PlatformAnalyticsController::class, 'exportUsers']);
             Route::get('/system/sms', [MarketingDashboardController::class, 'smsStatus']);
             Route::get('/search', AdminSearchController::class);
 

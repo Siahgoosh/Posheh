@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { MessageCircle, Send, X } from 'lucide-react'
+import { MessageCircle, Send, X, Share2 } from 'lucide-react'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,10 +11,24 @@ interface PropertyShareModalProps {
   onClose: () => void
 }
 
+type ShareChannel = 'whatsapp' | 'telegram' | 'rubika' | 'bale'
+
+const channelLabels: Record<ShareChannel, string> = {
+  whatsapp: 'واتساپ',
+  telegram: 'تلگرام',
+  rubika: 'روبیکا',
+  bale: 'بله',
+}
+
+function isAndroid(): boolean {
+  return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
+}
+
 export function PropertyShareModal({ propertyId, onClose }: PropertyShareModalProps) {
   const [mobile, setMobile] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [preview, setPreview] = useState('')
 
   const loadPreview = async () => {
@@ -28,8 +42,9 @@ export function PropertyShareModal({ propertyId, onClose }: PropertyShareModalPr
 
   useEffect(() => { loadPreview() }, [propertyId])
 
-  const share = async (channel: 'whatsapp' | 'telegram') => {
+  const share = async (channel: ShareChannel) => {
     setError('')
+    setSuccess('')
     const normalized = normalizeMobile(mobile)
     if (normalized.length < 11) {
       setError('شماره موبایل معتبر وارد کنید')
@@ -41,7 +56,19 @@ export function PropertyShareModal({ propertyId, onClose }: PropertyShareModalPr
         recipient_mobile: normalized,
         channel,
       })
-      window.open(data.data.url, '_blank', 'noopener,noreferrer')
+      const url = data.data.url as string
+      const message = data.data.message as string
+
+      if (channel === 'rubika' || channel === 'bale') {
+        await navigator.clipboard.writeText(message)
+        if (isAndroid() && url) {
+          window.location.href = url
+        }
+        setSuccess(`متن فایل کپی شد — ${channelLabels[channel]} را باز کنید و برای ${toPersianMobile(normalized)} ارسال کنید`)
+        return
+      }
+
+      window.open(url, '_blank', 'noopener,noreferrer')
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } }
       setError(e.response?.data?.message || 'خطا در ارسال')
@@ -56,7 +83,7 @@ export function PropertyShareModal({ propertyId, onClose }: PropertyShareModalPr
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <Send className="h-5 w-5 text-primary" />
-            ارسال فایل ملک
+            ارسال فایل به مشتری
           </CardTitle>
           <button type="button" onClick={onClose} className="text-muted hover:text-foreground">
             <X className="h-5 w-5" />
@@ -80,6 +107,7 @@ export function PropertyShareModal({ propertyId, onClose }: PropertyShareModalPr
             </div>
           )}
           {error && <p className="text-sm text-danger">{error}</p>}
+          {success && <p className="text-sm text-success">{success}</p>}
           <div className="grid grid-cols-2 gap-2">
             <Button
               className="bg-[#25D366] hover:bg-[#20bd5a] text-white"
@@ -97,9 +125,33 @@ export function PropertyShareModal({ propertyId, onClose }: PropertyShareModalPr
               <Send className="h-4 w-4 ml-2" />
               تلگرام
             </Button>
+            <Button
+              className="bg-[#7B2CBF] hover:bg-[#6a25a8] text-white"
+              disabled={loading || mobile.length < 11}
+              onClick={() => share('rubika')}
+            >
+              <Share2 className="h-4 w-4 ml-2" />
+              روبیکا
+            </Button>
+            <Button
+              className="bg-[#E63946] hover:bg-[#cf3240] text-white"
+              disabled={loading || mobile.length < 11}
+              onClick={() => share('bale')}
+            >
+              <Share2 className="h-4 w-4 ml-2" />
+              بله
+            </Button>
           </div>
+          <p className="text-xs text-muted leading-relaxed">
+            واتساپ مستقیم به شماره باز می‌شود. تلگرام، روبیکا و بله متن فایل را آماده می‌کنند — در اندروید اپ مربوطه باز می‌شود.
+          </p>
         </CardContent>
       </Card>
     </div>
   )
+}
+
+function toPersianMobile(mobile: string): string {
+  const digits = '۰۱۲۳۴۵۶۷۸۹'
+  return mobile.replace(/\d/g, (d) => digits[Number(d)])
 }
