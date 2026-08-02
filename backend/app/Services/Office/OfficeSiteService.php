@@ -127,6 +127,7 @@ class OfficeSiteService
                 'is_verified' => $office->is_verified,
                 'logo_url' => $office->logo_path ? url('storage/'.$office->logo_path) : null,
                 'url' => 'https://'.$office->subdomain.'.posheapp.ir',
+                'theme' => $this->themePayload($office),
                 'stats' => [
                     'properties' => count($properties),
                     'posts' => count($posts),
@@ -236,5 +237,58 @@ class OfficeSiteService
         $value = preg_replace('/[^a-z0-9-]/', '', $value) ?? $value;
 
         return substr($value, 0, 63);
+    }
+
+    /** @return array<string, mixed> */
+    public function themePayload(Office $office): array
+    {
+        $settings = $office->settings ?? [];
+        $themeId = $settings['theme_id'] ?? 'modern';
+        $themeConfig = config("office-themes.{$themeId}", config('office-themes.modern'));
+
+        return [
+            'id' => $themeId,
+            'label' => $themeConfig['label'] ?? 'مدرن',
+            'brand_color' => $settings['brand_color'] ?? $themeConfig['defaults']['brand_color'] ?? '#0f766e',
+            'hero_title' => $settings['hero_title'] ?? $office->name,
+            'hero_subtitle' => $settings['hero_subtitle'] ?? ($office->website_description ?? $office->description),
+            'cta_text' => $settings['cta_text'] ?? 'مشاهده املاک',
+            'show_stats' => $settings['show_stats'] ?? true,
+            'show_team' => $settings['show_team'] ?? true,
+            'hero_style' => $settings['hero_style'] ?? $themeConfig['defaults']['hero_style'] ?? 'gradient',
+            'card_style' => $settings['card_style'] ?? $themeConfig['defaults']['card_style'] ?? 'glass',
+        ];
+    }
+
+    public function updateTheme(User $user, array $data): Office
+    {
+        abort_unless($user->canManageOffice(), 403);
+        $office = $user->office;
+        $settings = $office->settings ?? [];
+        $allowedThemes = array_keys(config('office-themes', []));
+
+        if (isset($data['theme_id']) && ! in_array($data['theme_id'], $allowedThemes, true)) {
+            throw ValidationException::withMessages(['theme_id' => ['تم انتخاب‌شده معتبر نیست.']]);
+        }
+
+        foreach (['theme_id', 'brand_color', 'hero_title', 'hero_subtitle', 'cta_text', 'show_stats', 'show_team', 'hero_style', 'card_style'] as $key) {
+            if (array_key_exists($key, $data)) {
+                $settings[$key] = $data[$key];
+            }
+        }
+
+        $office->update(['settings' => $settings]);
+
+        return $office->fresh();
+    }
+
+    /** @return array<int, array<string, string>> */
+    public function availableThemes(): array
+    {
+        return collect(config('office-themes', []))->map(fn ($t, $id) => [
+            'id' => $id,
+            'label' => $t['label'],
+            'description' => $t['description'],
+        ])->values()->all();
     }
 }

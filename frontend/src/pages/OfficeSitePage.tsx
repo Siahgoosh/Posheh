@@ -63,6 +63,16 @@ interface OfficeInfo {
   is_verified?: boolean
   logo_url?: string
   url: string
+  theme?: {
+    id: string
+    brand_color: string
+    hero_title?: string
+    hero_subtitle?: string
+    cta_text?: string
+    show_stats?: boolean
+    show_team?: boolean
+    hero_style?: string
+  }
   stats: { properties: number; posts: number; agents: number }
 }
 
@@ -122,7 +132,10 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
     retry: 1,
   })
 
-  const brand = data?.office.brand_color || '#0f766e'
+  const brand = data?.office.theme?.brand_color || data?.office.brand_color || '#0f766e'
+  const themeId = data?.office.theme?.id || 'modern'
+  const isDark = themeId === 'luxury'
+  const isClassic = themeId === 'classic'
 
   const filtered = useMemo(() => {
     if (!data) return []
@@ -152,11 +165,11 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
   const office = data.office
 
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-800">
+    <div dir="rtl" className={`min-h-screen ${isDark ? 'bg-neutral-950 text-neutral-100' : isClassic ? 'bg-stone-100 text-stone-900' : 'bg-slate-50 text-slate-800'}`}>
       <SeoHead title={`${office.name} | املاک`} description={office.description || `دفتر املاک ${office.name}`} path={`/site/${subdomain}`} />
 
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-200">
+      <header className={`sticky top-0 z-30 backdrop-blur border-b ${isDark ? 'bg-neutral-900/90 border-neutral-800' : isClassic ? 'bg-slate-900 text-white border-slate-800' : 'bg-white/90 border-slate-200'}`}>
         <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {office.logo_url ? (
@@ -198,33 +211,35 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
             <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium" style={{ borderColor: `${brand}44`, color: brand, background: `${brand}0d` }}>
               <Home className="h-3.5 w-3.5" /> دفتر مشاور املاک
             </span>
-            <h1 className="mt-5 text-3xl md:text-5xl font-black leading-tight text-slate-900">
-              {office.name}
+            <h1 className="mt-5 text-3xl md:text-5xl font-black leading-tight">
+              {office.theme?.hero_title || office.name}
             </h1>
-            {office.description && (
-              <p className="mt-4 text-slate-600 leading-relaxed text-lg">{office.description}</p>
+            {(office.theme?.hero_subtitle || office.description) && (
+              <p className="mt-4 text-slate-600 leading-relaxed text-lg">{office.theme?.hero_subtitle || office.description}</p>
             )}
             <div className="mt-7 flex flex-wrap gap-3">
               <a href="#listings" className="inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold text-white shadow-lg" style={{ background: brand }}>
-                مشاهده املاک <ArrowLeft className="h-4 w-4" />
+                {office.theme?.cta_text || 'مشاهده املاک'} <ArrowLeft className="h-4 w-4" />
               </a>
               <a href="#contact" className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 hover:border-slate-400">
                 رزرو بازدید
               </a>
             </div>
-            <div className="mt-10 grid grid-cols-3 gap-4 max-w-md">
-              {[
-                { label: 'فایل ملک', value: office.stats.properties, icon: Home },
-                { label: 'مقاله', value: office.stats.posts, icon: Newspaper },
-                { label: 'مشاور', value: office.stats.agents, icon: Users },
-              ].map((s) => (
-                <div key={s.label} className="rounded-2xl bg-white border border-slate-200 p-4 text-center shadow-sm">
-                  <s.icon className="h-5 w-5 mx-auto mb-1.5" style={{ color: brand }} />
-                  <p className="text-2xl font-bold text-slate-900">{toPersianDigits(String(s.value))}</p>
-                  <p className="text-xs text-slate-400">{s.label}</p>
-                </div>
-              ))}
-            </div>
+            {(office.theme?.show_stats !== false) && (
+              <div className="mt-10 grid grid-cols-3 gap-4 max-w-md">
+                {[
+                  { label: 'فایل ملک', value: office.stats.properties, icon: Home },
+                  { label: 'مقاله', value: office.stats.posts, icon: Newspaper },
+                  { label: 'مشاور', value: office.stats.agents, icon: Users },
+                ].map((s) => (
+                  <div key={s.label} className={`rounded-2xl p-4 text-center shadow-sm border ${isDark ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-slate-200'}`}>
+                    <s.icon className="h-5 w-5 mx-auto mb-1.5" style={{ color: brand }} />
+                    <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{toPersianDigits(String(s.value))}</p>
+                    <p className="text-xs text-slate-400">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -356,7 +371,7 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
       )}
 
       {/* Agents */}
-      {data.agents.length > 0 && (
+      {data.agents.length > 0 && office.theme?.show_team !== false && (
         <section id="agents" className="mx-auto max-w-6xl px-4 py-14">
           <h2 className="text-2xl font-bold text-slate-900">مشاوران ما</h2>
           <p className="text-slate-400 text-sm mt-1 mb-6">برای مشاوره مستقیم تماس بگیرید</p>

@@ -55,6 +55,7 @@ import { ContactPage } from '@/pages/ContactPage'
 import { VirtualTourPublicPage } from '@/pages/VirtualTourPublicPage'
 import { VirtualToursPage } from '@/pages/VirtualToursPage'
 import { VirtualTourEditorPage } from '@/pages/VirtualTourEditorPage'
+import { ContentAssistantPage } from '@/pages/ContentAssistantPage'
 import { getOfficeSubdomain } from '@/lib/subdomain'
 
 const queryClient = new QueryClient({
@@ -136,6 +137,7 @@ export default function App() {
             <Route path="/commissions" element={<CommissionsPage />} />
             <Route path="/contracts" element={<ContractsPage />} />
             <Route path="/office-website" element={<OfficeWebsitePage />} />
+            <Route path="/content-assistant" element={<ContentAssistantPage />} />
             <Route path="/owners" element={<OwnersPage />} />
             <Route path="/owners/:id" element={<OwnerDetailPage />} />
             <Route path="/customers" element={<CustomersPage />} />

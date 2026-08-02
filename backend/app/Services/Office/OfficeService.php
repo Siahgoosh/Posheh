@@ -114,6 +114,81 @@ class OfficeService
             ->get();
     }
 
+    public function updateTeamMember(User $manager, int $memberId, array $data): User
+    {
+        if (! $manager->canManageOffice()) {
+            throw ValidationException::withMessages([
+                'permission' => ['شما مجاز به ویرایش اعضای تیم نیستید.'],
+            ]);
+        }
+
+        $member = User::where('office_id', $manager->office_id)
+            ->where('is_active', true)
+            ->findOrFail($memberId);
+
+        if ($member->id === $manager->id && isset($data['role']) && $data['role'] !== UserRole::OfficeManager->value) {
+            throw ValidationException::withMessages(['role' => ['نمی‌توانید نقش خود را تغییر دهید.']]);
+        }
+
+        if ($member->isOfficeManager() && isset($data['role']) && $data['role'] === UserRole::Consultant->value) {
+            $otherManagers = User::where('office_id', $manager->office_id)
+                ->where('is_active', true)
+                ->where('role', UserRole::OfficeManager)
+                ->where('id', '!=', $member->id)
+                ->count();
+            if ($otherManagers < 1) {
+                throw ValidationException::withMessages(['role' => ['حداقل یک مدیر دفتر باید باقی بماند.']]);
+            }
+        }
+
+        $member->update(array_filter([
+            'name' => $data['name'] ?? null,
+            'mobile' => isset($data['mobile']) ? $this->normalizeMobile($data['mobile']) : null,
+            'email' => $data['email'] ?? null,
+            'username' => isset($data['username']) ? strtolower($data['username']) : null,
+            'password' => $data['password'] ?? null,
+            'role' => isset($data['role']) ? UserRole::from($data['role']) : null,
+        ], fn ($v) => $v !== null));
+
+        $this->activityLogger->log($manager, 'office.member_updated', $member, "ویرایش مشاور {$member->name}");
+
+        return $member->fresh();
+    }
+
+    public function removeTeamMember(User $manager, int $memberId): void
+    {
+        if (! $manager->canManageOffice()) {
+            throw ValidationException::withMessages([
+                'permission' => ['شما مجاز به حذف اعضای تیم نیستید.'],
+            ]);
+        }
+
+        if ($manager->id === $memberId) {
+            throw ValidationException::withMessages(['member' => ['نمی‌توانید حساب خود را حذف کنید.']]);
+        }
+
+        $member = User::where('office_id', $manager->office_id)
+            ->where('is_active', true)
+            ->findOrFail($memberId);
+
+        if ($member->isOfficeManager()) {
+            $otherManagers = User::where('office_id', $manager->office_id)
+                ->where('is_active', true)
+                ->where('role', UserRole::OfficeManager)
+                ->where('id', '!=', $member->id)
+                ->count();
+            if ($otherManagers < 1) {
+                throw ValidationException::withMessages(['member' => ['حداقل یک مدیر دفتر باید باقی بماند.']]);
+            }
+        }
+
+        $name = $member->name;
+        $member->update(['is_active' => false]);
+        $member->delete();
+
+        $this->activityLogger->log($manager, 'office.member_removed', null, "حذف مشاور {$name}");
+    }
+
     private function normalizeMobile(string $mobile): string
     {
         $mobile = preg_replace('/\D/', '', $mobile);

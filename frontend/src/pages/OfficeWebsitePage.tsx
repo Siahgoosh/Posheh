@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Globe, Plus, ExternalLink, CalendarClock, Phone, CheckCircle2, XCircle, FileCheck, Link2 } from 'lucide-react'
-import { useState } from 'react'
+import { Globe, Plus, ExternalLink, CalendarClock, Phone, CheckCircle2, XCircle, FileCheck, Link2, Palette, Save } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { formatJalaliDate, toPersianDigits, formatPrice } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -27,6 +27,15 @@ export function OfficeWebsitePage() {
   const [domainCheck, setDomainCheck] = useState<{ available: boolean | null; message: string; domain_name: string } | null>(null)
   const [ownDomain, setOwnDomain] = useState('')
 
+  const [themeId, setThemeId] = useState('modern')
+  const [brandColor, setBrandColor] = useState('#0f766e')
+  const [heroTitle, setHeroTitle] = useState('')
+  const [heroSubtitle, setHeroSubtitle] = useState('')
+  const [ctaText, setCtaText] = useState('مشاهده املاک')
+  const [showStats, setShowStats] = useState(true)
+  const [showTeam, setShowTeam] = useState(true)
+  const [themeMessage, setThemeMessage] = useState('')
+
   const { data: status } = useQuery({
     queryKey: ['office-website'],
     queryFn: async () => (await api.get('/office/website')).data.data as {
@@ -38,6 +47,49 @@ export function OfficeWebsitePage() {
       ir_domain_price?: number
     },
     enabled: hasWebsite,
+  })
+
+  const canCustomizeTheme = hasWebsite && ['approved', 'published'].includes(status?.website_status ?? '')
+
+  const { data: themeData } = useQuery({
+    queryKey: ['office-website-theme'],
+    queryFn: async () => (await api.get('/office/website/theme')).data.data as {
+      theme: {
+        id: string; brand_color: string; hero_title?: string; hero_subtitle?: string
+        cta_text?: string; show_stats?: boolean; show_team?: boolean
+      }
+      available_themes: { id: string; label: string; description: string }[]
+    },
+    enabled: canCustomizeTheme,
+  })
+
+  useEffect(() => {
+    if (!themeData?.theme) return
+    const t = themeData.theme
+    setThemeId(t.id || 'modern')
+    setBrandColor(t.brand_color || '#0f766e')
+    setHeroTitle(t.hero_title || '')
+    setHeroSubtitle(t.hero_subtitle || '')
+    setCtaText(t.cta_text || 'مشاهده املاک')
+    setShowStats(t.show_stats !== false)
+    setShowTeam(t.show_team !== false)
+  }, [themeData])
+
+  const themeMutation = useMutation({
+    mutationFn: () => api.put('/office/website/theme', {
+      theme_id: themeId,
+      brand_color: brandColor,
+      hero_title: heroTitle || undefined,
+      hero_subtitle: heroSubtitle || undefined,
+      cta_text: ctaText,
+      show_stats: showStats,
+      show_team: showTeam,
+    }),
+    onSuccess: () => {
+      setThemeMessage('تنظیمات ظاهر وبسایت ذخیره شد')
+      queryClient.invalidateQueries({ queryKey: ['office-website-theme'] })
+    },
+    onError: () => setThemeMessage('خطا در ذخیره تنظیمات'),
   })
 
   const requestMutation = useMutation({
@@ -220,6 +272,84 @@ export function OfficeWebsitePage() {
           )}
         </CardContent>
       </Card>
+
+      {canCustomizeTheme && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Palette className="h-4 w-4 text-primary" /> ظاهر و تم وبسایت
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted">یکی از سه تم را انتخاب کنید و متن‌ها و رنگ برند را شخصی‌سازی کنید.</p>
+
+            <div className="grid sm:grid-cols-3 gap-3">
+              {(themeData?.available_themes ?? [
+                { id: 'modern', label: 'مدرن', description: '' },
+                { id: 'classic', label: 'کلاسیک', description: '' },
+                { id: 'luxury', label: 'لوکس', description: '' },
+              ]).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setThemeId(t.id)}
+                  className={`rounded-xl border p-3 text-right transition-colors ${themeId === t.id ? 'border-primary bg-primary/10' : 'border-card-border hover:border-primary/40'}`}
+                >
+                  <p className="font-medium text-sm">{t.label}</p>
+                  {t.description && <p className="text-xs text-muted mt-1">{t.description}</p>}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted mb-1 block">رنگ برند</label>
+                <div className="flex gap-2 items-center">
+                  <input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="h-10 w-14 rounded-lg border border-card-border cursor-pointer" />
+                  <Input value={brandColor} onChange={(e) => setBrandColor(e.target.value)} dir="ltr" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted mb-1 block">متن دکمه اصلی</label>
+                <Input value={ctaText} onChange={(e) => setCtaText(e.target.value)} />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-muted mb-1 block">عنوان صفحه اصلی</label>
+              <Input value={heroTitle} onChange={(e) => setHeroTitle(e.target.value)} placeholder="نام دفتر یا شعار" />
+            </div>
+
+            <div>
+              <label className="text-xs text-muted mb-1 block">زیرعنوان</label>
+              <textarea
+                className="w-full min-h-[72px] rounded-xl border border-card-border bg-background/50 p-3 text-sm"
+                value={heroSubtitle}
+                onChange={(e) => setHeroSubtitle(e.target.value)}
+                placeholder="معرفی کوتاه دفتر"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-4 text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={showStats} onChange={(e) => setShowStats(e.target.checked)} className="rounded" />
+                نمایش آمار (ملک، مقاله، مشاور)
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={showTeam} onChange={(e) => setShowTeam(e.target.checked)} className="rounded" />
+                نمایش بخش مشاوران
+              </label>
+            </div>
+
+            {themeMessage && <p className="text-sm text-primary">{themeMessage}</p>}
+
+            <Button onClick={() => themeMutation.mutate()} disabled={themeMutation.isPending}>
+              <Save className="h-4 w-4" />
+              {themeMutation.isPending ? 'در حال ذخیره…' : 'ذخیره ظاهر وبسایت'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {(!status?.website_status || status.website_status === 'none' || status.website_status === 'rejected') && (
         <Card>

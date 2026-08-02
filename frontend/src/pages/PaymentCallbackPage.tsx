@@ -8,6 +8,7 @@ export function PaymentCallbackPage() {
   const type = params.get('type')
   const success = params.get('status') === 'success'
   const isDomain = type === 'domain_order'
+  const isWallet = type === 'wallet_topup'
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -18,7 +19,9 @@ export function PaymentCallbackPage() {
               <CheckCircle2 className="h-16 w-16 text-success mx-auto" />
               <h1 className="text-xl font-bold">پرداخت موفق</h1>
               <p className="text-muted">
-                {isDomain
+                {isWallet
+                  ? 'کیف پول شما با موفقیت شارژ شد.'
+                  : isDomain
                   ? 'پرداخت دامنه ثبت شد. طی ۲۴ ساعت دامنه خریداری و به وبسایت شما متصل می‌شود.'
                   : 'اشتراک شما فعال شد.'}
                 {' '}کد پیگیری: {params.get('ref') || '—'}
@@ -31,8 +34,8 @@ export function PaymentCallbackPage() {
               <p className="text-muted">{params.get('message') || 'پرداخت انجام نشد یا لغو شد.'}</p>
             </>
           )}
-          <Link to={success ? (isDomain ? '/office-website' : '/dashboard') : (isDomain ? '/office-website' : '/renew')}>
-            <Button className="w-full">{success ? (isDomain ? 'بازگشت به وبسایت' : 'رفتن به داشبورد') : 'تلاش مجدد'}</Button>
+          <Link to={success ? (isWallet ? '/dashboard' : isDomain ? '/office-website' : '/dashboard') : (isWallet ? '/dashboard' : isDomain ? '/office-website' : '/renew')}>
+            <Button className="w-full">{success ? (isWallet ? 'بازگشت به داشبورد' : isDomain ? 'بازگشت به وبسایت' : 'رفتن به داشبورد') : 'تلاش مجدد'}</Button>
           </Link>
         </CardContent>
       </Card>
