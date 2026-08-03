@@ -14,7 +14,15 @@ import {
 } from '@/components/property/PropertyMediaUploader'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
 import { useAuthStore } from '@/stores/auth'
-import type { FilingFieldGroups, FilingFormValues, FilingSchema } from '@/lib/filing'
+import {
+  buildFilingPayload,
+  flattenFieldGroups,
+  parseApiFieldErrors,
+  validateFilingForm,
+  type FilingFieldGroups,
+  type FilingFormValues,
+  type FilingSchema,
+} from '@/lib/filing'
 
 const defaultForm: FilingFormValues = {
   code: '',
@@ -31,22 +39,6 @@ const defaultForm: FilingFormValues = {
   features: [],
   tags: [],
   show_on_website: false,
-}
-
-function toPayload(form: FilingFormValues) {
-  const payload: Record<string, unknown> = { ...form }
-  ;['price', 'deposit', 'rent'].forEach((k) => {
-    if (payload[k]) payload[k] = parseInt(String(payload[k]))
-  })
-  ;['area', 'latitude', 'longitude'].forEach((k) => {
-    if (payload[k]) payload[k] = parseFloat(String(payload[k]))
-  })
-  ;['rooms', 'building_age', 'floor', 'total_floors'].forEach((k) => {
-    if (payload[k]) payload[k] = parseInt(String(payload[k]))
-  })
-  if (Array.isArray(payload.features) && !payload.features.length) payload.features = null
-  if (Array.isArray(payload.tags) && !payload.tags.length) payload.tags = null
-  return payload
 }
 
 const sectionLabels: Record<string, string> = {
@@ -69,6 +61,7 @@ export function PropertyFormPage() {
   const [media, setMedia] = useState<PropertyMediaItem[]>([])
   const [pendingImages, setPendingImages] = useState<File[]>([])
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const hasWebsite = usePlanFeature('website_listing')
   const { user } = useAuthStore()
   const isManager = user?.role === 'office_manager' || user?.role === 'super_admin'
@@ -133,13 +126,22 @@ export function PropertyFormPage() {
     },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      const apiErrors = parseApiFieldErrors(axiosErr.response?.data?.errors)
+      if (Object.keys(apiErrors).length) setFieldErrors(apiErrors)
       const errors = axiosErr.response?.data?.errors
       setError(errors ? Object.values(errors).flat().join('، ') : axiosErr.response?.data?.message || 'خطا در ثبت ملک')
     },
   })
 
-  const update = (key: string, value: string | boolean | string[]) =>
+  const update = (key: string, value: string | boolean | string[]) => {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
     setForm((f) => ({ ...f, [key]: value }))
+  }
 
   const sections = useMemo(() => {
     if (!fieldGroups) return []
@@ -147,6 +149,11 @@ export function PropertyFormPage() {
       .map((key) => ({ key, label: sectionLabels[key], fields: fieldGroups[key] || [] }))
       .filter((s) => s.fields.length > 0)
   }, [fieldGroups])
+
+  const allFields = useMemo(
+    () => (fieldGroups ? flattenFieldGroups(fieldGroups) : []),
+    [fieldGroups],
+  )
 
   if (isEdit && isLoading) {
     return (
@@ -169,18 +176,41 @@ export function PropertyFormPage() {
       </div>
 
       <form
+        noValidate
         onSubmit={(e) => {
           e.preventDefault()
           setError('')
-          mutation.mutate(toPayload(form))
+          setFieldErrors({})
+          if (!fieldGroups) return
+          const validationError = validateFilingForm(form, allFields)
+          if (validationError) {
+            setFieldErrors(validationError.fieldErrors)
+            setError(validationError.message)
+            const el = document.querySelector(`[data-field-key="${validationError.field}"]`)
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            return
+          }
+          mutation.mutate(buildFilingPayload(form, allFields))
         }}
         className="space-y-6"
       >
         {sections.map((section) => (
           <Card key={section.key}>
-            <CardHeader><CardTitle>{section.label}</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>{section.label}</CardTitle>
+              {section.key === 'owner' && (
+                <p className="text-xs text-muted mt-1">اطلاعات مالک محرمانه است و در وبسایت یا لینک عمومی نمایش داده نمی‌شود.</p>
+              )}
+            </CardHeader>
             <CardContent>
-              <DynamicFilingFields fields={section.fields} values={form} onChange={update} />
+              <div data-field-key={section.fields[0]?.key}>
+                <DynamicFilingFields
+                  fields={section.fields}
+                  values={form}
+                  onChange={update}
+                  fieldErrors={fieldErrors}
+                />
+              </div>
             </CardContent>
           </Card>
         ))}

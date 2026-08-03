@@ -68,4 +68,22 @@ class StorePropertyRequest extends FormRequest
 
         return $base;
     }
+
+    public function messages(): array
+    {
+        return [
+            'code.required' => 'کد فایل الزامی است.',
+            'title.required' => 'عنوان فایل الزامی است.',
+            'type.required' => 'نوع معامله را انتخاب کنید.',
+            'property_category.required' => 'نوع ملک را انتخاب کنید.',
+            'owner_mobile.required' => 'شماره موبایل مالک الزامی است.',
+            'province.required' => 'استان الزامی است.',
+            'city.required' => 'شهر الزامی است.',
+            'price.required' => 'قیمت الزامی است.',
+            'deposit.required' => 'مبلغ رهن الزامی است.',
+            'rent.required' => 'مبلغ اجاره الزامی است.',
+            'expires_at.date' => 'تاریخ انقضا نامعتبر است.',
+            'assigned_to.exists' => 'مشاور انتخاب‌شده معتبر نیست.',
+        ];
+    }
 }

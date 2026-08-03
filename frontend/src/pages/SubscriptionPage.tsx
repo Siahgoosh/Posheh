@@ -1,10 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CreditCard, CheckCircle2 } from 'lucide-react'
+import { CreditCard, CheckCircle2, Sparkles } from 'lucide-react'
+import { useState } from 'react'
 import api from '@/lib/api'
-import { formatJalaliDate, formatPrice } from '@/lib/utils'
-import { PLAN_FEATURE_LABELS, subscriptionStatusLabel, trialBadgeForPlan } from '@/constants/plans'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { formatJalaliDate } from '@/lib/utils'
+import { subscriptionStatusLabel } from '@/constants/plans'
+import { PlanComparisonSection } from '@/components/plans/PlanComparisonSection'
+import { WalletCard } from '@/components/wallet/WalletCard'
+import { useAuthStore } from '@/stores/auth'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
 interface Plan {
@@ -27,110 +30,107 @@ interface CurrentSub {
 
 export function SubscriptionPage() {
   const queryClient = useQueryClient()
+  const { refreshUser } = useAuthStore()
+  const [successMsg, setSuccessMsg] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
 
   const { data: plans, isLoading: plansLoading } = useQuery({
     queryKey: ['plans'],
-    queryFn: async () => {
-      const res = await api.get('/plans')
-      return res.data.data as Plan[]
-    },
+    queryFn: async () => (await api.get('/plans')).data.data as Plan[],
   })
 
   const { data: current } = useQuery({
     queryKey: ['subscription-current'],
-    queryFn: async () => {
-      const res = await api.get('/subscription/current')
-      return res.data.data as CurrentSub | null
-    },
+    queryFn: async () => (await api.get('/subscription/current')).data.data as CurrentSub | null,
   })
 
   const subscribeMutation = useMutation({
     mutationFn: ({ planId, gateway }: { planId: number; gateway: string }) =>
       api.post('/subscribe', { plan_id: planId, gateway }),
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
+      setErrorMsg('')
       if (res.data.redirect_url) {
         window.open(res.data.redirect_url, '_blank')
+        return
       }
+      setSuccessMsg(res.data.message || 'اشتراک با موفقیت فعال شد.')
+      await refreshUser()
       queryClient.invalidateQueries({ queryKey: ['subscription-current'] })
+      queryClient.invalidateQueries({ queryKey: ['wallet'] })
+    },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      setSuccessMsg('')
+      setErrorMsg(
+        Object.values(axiosErr.response?.data?.errors || {}).flat()[0]
+          || axiosErr.response?.data?.message
+          || 'خطا در پرداخت'
+      )
     },
   })
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <CreditCard className="h-6 w-6 text-primary" />
-          اشتراک
+          اشتراک و تعرفه
         </h1>
-        <p className="text-muted mt-1">مدیریت پلن و پرداخت</p>
+        <p className="text-muted mt-1">مقایسه پلن‌ها و انتخاب مناسب‌ترین گزینه برای دفتر شما</p>
       </div>
 
-      {current && (
-        <Card className="border-success/30 bg-success/5">
-          <CardContent className="p-5 flex items-center gap-3">
-            <CheckCircle2 className="h-6 w-6 text-success" />
-            <div>
-              <p className="font-medium">اشتراک فعال: {current.plan?.name}</p>
-              <p className="text-sm text-muted">تا {formatJalaliDate(current.ends_at)}</p>
-            </div>
-            <Badge className="mr-auto">{subscriptionStatusLabel(current.status)}</Badge>
-          </CardContent>
-        </Card>
-      )}
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          {current && (
+            <Card className="border-success/30 bg-success/5">
+              <CardContent className="p-5 flex items-center gap-3">
+                <CheckCircle2 className="h-6 w-6 text-success" />
+                <div>
+                  <p className="font-medium">اشتراک فعال: {current.plan?.name}</p>
+                  <p className="text-sm text-muted">تا {formatJalaliDate(current.ends_at)}</p>
+                </div>
+                <Badge className="mr-auto">{subscriptionStatusLabel(current.status)}</Badge>
+              </CardContent>
+            </Card>
+          )}
 
-      {!current && (
-        <Card className="border-warning/30 bg-warning/5">
-          <CardContent className="p-4 text-sm text-muted">
-            در دوره آزمایشی یا بدون اشتراک فعال هستید. برای ادامه استفاده پس از پایان آزمایشی، یکی از پلن‌ها را انتخاب کنید.
-          </CardContent>
-        </Card>
-      )}
+          {successMsg && (
+            <Card className="border-success/30 bg-success/5">
+              <CardContent className="p-4 text-sm text-success">{successMsg}</CardContent>
+            </Card>
+          )}
+          {errorMsg && (
+            <Card className="border-danger/30 bg-danger/5">
+              <CardContent className="p-4 text-sm text-danger">{errorMsg}</CardContent>
+            </Card>
+          )}
+
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-4 flex gap-3 items-start text-sm">
+              <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">پلن حرفه‌ای = دستیار هوشمند AI</p>
+                <p className="text-muted mt-1">سناریوی ریلز، تقویم محتوا، کپشن، تحلیل بازار و ۱۷+ ابزار بازاریابی.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <WalletCard />
+      </div>
 
       {plansLoading ? (
         <div className="flex justify-center py-12">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {plans?.map((plan) => (
-            <Card key={plan.id} className="flex flex-col">
-              <CardHeader>
-                <CardTitle>{plan.name}</CardTitle>
-                <p className="text-2xl font-bold text-primary">{formatPrice(plan.monthly_price)}</p>
-                <p className="text-xs text-muted">ماهانه</p>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <ul className="text-sm text-muted space-y-1 mb-6 flex-1">
-                  <li>تا {plan.max_properties} ملک</li>
-                  <li>تا {plan.max_users} کاربر</li>
-                  {trialBadgeForPlan(plan.slug) && <li>{trialBadgeForPlan(plan.slug)}</li>}
-                  {plan.description && <li>{plan.description}</li>}
-                  {plan.features?.slice(0, 5).map((f) => (
-                    <li key={f}>{PLAN_FEATURE_LABELS[f] || f}</li>
-                  ))}
-                </ul>
-                <div className="space-y-2">
-                  <Button
-                    className="w-full"
-                    disabled={subscribeMutation.isPending}
-                    onClick={() => subscribeMutation.mutate({ planId: plan.id, gateway: 'zibal' })}
-                  >
-                    پرداخت با زیبال
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    disabled={subscribeMutation.isPending}
-                    onClick={() => subscribeMutation.mutate({ planId: plan.id, gateway: 'wallet' })}
-                  >
-                    خرید با کیف پول
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      ) : plans ? (
+        <PlanComparisonSection
+          plans={plans}
+          mode="subscription"
+          currentPlanSlug={current?.plan?.slug}
+          onSelectPlan={(planId, gateway) => subscribeMutation.mutate({ planId, gateway })}
+          selecting={subscribeMutation.isPending}
+        />
+      ) : null}
     </div>
   )
 }

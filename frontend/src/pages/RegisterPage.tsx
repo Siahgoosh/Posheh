@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Building2, User, Users, Crown, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react'
@@ -7,6 +7,7 @@ import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { LogoUploader } from '@/components/ui/LogoUploader'
 import { getDeviceId, getDeviceName, getPlatform } from '@/lib/device'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice, normalizeMobile, toEnglishDigits, toPersianDigits } from '@/lib/utils'
@@ -27,7 +28,7 @@ export function RegisterPage() {
   const [selectedPlan, setSelectedPlan] = useState<PlanOption | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const logoRef = useRef<HTMLInputElement>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
 
   const [form, setForm] = useState({
     email: '',
@@ -89,8 +90,7 @@ export function RegisterPage() {
         if (form[k]) body.append(k, form[k])
       })
 
-      const logo = logoRef.current?.files?.[0]
-      if (logo) body.append('logo', logo)
+      if (logoFile) body.append('logo', logoFile)
 
       const { data } = await api.post('/auth/register', body, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -275,6 +275,8 @@ export function RegisterPage() {
                     required
                   />
 
+                  <LogoUploader onChange={setLogoFile} />
+
                   {!isSolo && (
                     <>
                       <Input placeholder="تلفن دفتر" value={form.office_phone} onChange={(e) => setForm((f) => ({ ...f, office_phone: e.target.value }))} dir="ltr" />
@@ -284,10 +286,6 @@ export function RegisterPage() {
                         value={form.office_description}
                         onChange={(e) => setForm((f) => ({ ...f, office_description: e.target.value }))}
                       />
-                      <div>
-                        <label className="text-sm text-muted block mb-1">لوگو دفتر</label>
-                        <input ref={logoRef} type="file" accept="image/*" className="text-sm" />
-                      </div>
                       {(selectedPlan.slug === 'office' || selectedPlan.slug === 'premium') && (
                         <Input placeholder="توکن ربات تلگرام (اختیاری)" value={form.telegram_bot_token} onChange={(e) => setForm((f) => ({ ...f, telegram_bot_token: e.target.value }))} dir="ltr" />
                       )}

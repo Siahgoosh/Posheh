@@ -2,14 +2,14 @@
 
 @theme {
   --font-sans: "Vazirmatn", system-ui, sans-serif;
-  --color-background: #080c14;
-  --color-foreground: #e8f4ff;
-  --color-card: rgba(34, 211, 238, 0.04);
-  --color-card-border: rgba(34, 211, 238, 0.14);
-  --color-primary: #22d3ee;
-  --color-primary-foreground: #042f3a;
+  --color-background: #060a12;
+  --color-foreground: #eef6ff;
+  --color-card: rgba(34, 211, 238, 0.05);
+  --color-card-border: rgba(34, 211, 238, 0.16);
+  --color-primary: #2dd4bf;
+  --color-primary-foreground: #042f2e;
   --color-muted: #8ba3b8;
-  --color-accent: #a78bfa;
+  --color-accent: #c4b5fd;
   --color-success: #4ade80;
   --color-warning: #fbbf24;
   --color-danger: #fb7185;
@@ -29,36 +29,58 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "ss01", "ss02";
+    background-image:
+      radial-gradient(ellipse 100% 80% at 50% -30%, rgba(45, 212, 191, 0.08), transparent),
+      radial-gradient(ellipse 60% 50% at 100% 0%, rgba(167, 139, 250, 0.06), transparent);
+    background-attachment: fixed;
   }
 
   select option {
-    background-color: #080c14;
-    color: #e8f4ff;
+    background-color: #060a12;
+    color: #eef6ff;
   }
 
   .light {
     --color-background: #f0f9ff;
     --color-foreground: #0c1929;
-    --color-card: rgba(34, 211, 238, 0.06);
-    --color-card-border: rgba(34, 211, 238, 0.18);
+    --color-card: rgba(45, 212, 191, 0.06);
+    --color-card-border: rgba(45, 212, 191, 0.2);
+  }
+
+  .light body {
+    background-image:
+      radial-gradient(ellipse 100% 80% at 50% -30%, rgba(45, 212, 191, 0.12), transparent);
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-card backdrop-blur-xl border border-card-border;
+    @apply bg-card backdrop-blur-xl border border-card-border shadow-lg shadow-black/20;
   }
 
   .glass-hover {
-    @apply transition-all duration-300 hover:bg-cyan-500/5 hover:border-cyan-500/20;
+    @apply transition-all duration-300 hover:bg-teal-500/5 hover:border-teal-500/25 hover:shadow-teal-500/5 hover:shadow-xl;
   }
 
   .gradient-text {
-    @apply bg-gradient-to-l from-primary via-cyan-300 to-accent bg-clip-text text-transparent;
+    @apply bg-gradient-to-l from-primary via-teal-300 to-accent bg-clip-text text-transparent;
   }
 
   .landing-glow {
-    background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(34, 211, 238, 0.22), transparent);
+    background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(45, 212, 191, 0.25), transparent);
+  }
+
+  .card-shine {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-shine::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(45, 212, 191, 0.06) 0%, transparent 50%, rgba(196, 181, 253, 0.04) 100%);
+    pointer-events: none;
   }
 
   .animate-fade-in {

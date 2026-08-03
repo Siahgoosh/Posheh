@@ -12,9 +12,9 @@ class AppReleaseSeeder extends Seeder
         $releases = [
             [
                 'platform' => 'android',
-                'version' => '1.0.2',
+                'version' => '1.1.0',
                 'title' => 'اپلیکیشن اندروید پوشه',
-                'description' => 'فایلینگ، CRM، حسابداری — ورود OTP، حریم خصوصی کامل، پرداخت درون‌برنامه‌ای کافه‌بازار، ۴۸ ساعت رایگان پنل فردی.',
+                'description' => 'فایلینگ کامل، CRM، کیف پول، دستیار AI — سازگار با کافه‌بازار (Poolakey)، ۴۸ ساعت رایگان پنل فردی.',
                 'download_url' => '/downloads/posheh-android.apk',
                 'file_size' => '~۵۵ مگابایت',
                 'is_published' => true,
@@ -22,9 +22,9 @@ class AppReleaseSeeder extends Seeder
             ],
             [
                 'platform' => 'windows',
-                'version' => '1.0.2',
+                'version' => '1.1.0',
                 'title' => 'نسخه دسکتاپ پوشه',
-                'description' => 'نسخه ویندوز Flutter — فایلینگ، CRM و گزارش با همگام‌سازی ابری.',
+                'description' => 'نسخه ویندوز Flutter — فایلینگ، CRM، گزارش و همگام‌سازی ابری.',
                 'download_url' => '/downloads/posheh-windows.zip',
                 'file_size' => 'سبک',
                 'is_published' => true,
@@ -32,9 +32,9 @@ class AppReleaseSeeder extends Seeder
             ],
             [
                 'platform' => 'pwa',
-                'version' => '1.0.1',
+                'version' => '1.1.0',
                 'title' => 'نسخه PWA (وب‌اپ)',
-                'description' => 'نصب پوشه روی موبایل یا دسکتاپ از مرورگر — بدون نیاز به استور.',
+                'description' => 'نصب پوشه روی موبایل یا دسکتاپ از مرورگر — تم جدید، فایلینگ کامل، بدون نیاز به استور.',
                 'download_url' => '/',
                 'file_size' => 'سبک',
                 'is_published' => true,

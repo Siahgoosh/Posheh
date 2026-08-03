@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\Property;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\PropertyResource;
+use App\Http\Resources\PublicPropertyResource;
 use App\Models\Property;
 use Illuminate\Http\JsonResponse;
 
@@ -16,7 +16,7 @@ class PropertyPublicController extends Controller
             ->firstOrFail();
 
         return response()->json([
-            'data' => new PropertyResource($property),
+            'data' => new PublicPropertyResource($property),
             'office' => [
                 'name' => $property->office->brand_name ?? $property->office->name,
                 'slug' => $property->office->slug,

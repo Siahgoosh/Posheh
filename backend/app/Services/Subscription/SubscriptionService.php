@@ -152,9 +152,21 @@ class SubscriptionService
             ];
         }
 
-        $this->activateSubscription($payment);
+        if (($payment->metadata['type'] ?? '') === 'wallet_topup') {
+            $wallet = app(\App\Services\Wallet\WalletService::class)->creditFromPayment($payment);
 
-        return ['message' => 'پرداخت با موفقیت انجام شد.', 'payment' => $payment, 'success' => true];
+            return [
+                'message' => 'کیف پول با موفقیت شارژ شد.',
+                'payment' => $payment,
+                'wallet_balance' => $wallet->balance,
+                'success' => true,
+                'type' => 'wallet_topup',
+            ];
+        }
+
+        $subscription = $this->activateSubscription($payment);
+
+        return ['message' => 'پرداخت با موفقیت انجام شد.', 'payment' => $payment, 'subscription' => $subscription, 'success' => true];
     }
 
     public function getCurrentSubscription(Office $office): ?Subscription
@@ -162,6 +174,7 @@ class SubscriptionService
         return Subscription::with('plan')
             ->where('office_id', $office->id)
             ->where('status', 'active')
+            ->where('ends_at', '>', now())
             ->latest('starts_at')
             ->first();
     }
@@ -187,9 +200,14 @@ class SubscriptionService
         ]);
 
         $payment->update(['status' => 'paid', 'paid_at' => now(), 'authority' => 'wallet-'.$payment->id]);
-        $this->activateSubscription($payment);
+        $subscription = $this->activateSubscription($payment);
 
-        return ['message' => 'اشتراک با موفقیت فعال شد.', 'payment' => $payment];
+        return [
+            'message' => 'اشتراک با موفقیت فعال شد.',
+            'payment' => $payment,
+            'subscription' => $subscription,
+            'success' => true,
+        ];
     }
 
     private function initiateZibal(Payment $payment, SubscriptionPlan $plan): array
@@ -238,7 +256,10 @@ class SubscriptionService
         Office::where('id', $payment->office_id)->update([
             'subscription_plan_id' => $plan->id,
             'panel_type' => $plan->panel_type,
+            'trial_ends_at' => null,
         ]);
+
+        $payment->update(['subscription_id' => $subscription->id]);
 
         return $subscription;
     }
