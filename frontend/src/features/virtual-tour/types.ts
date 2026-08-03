@@ -41,6 +41,12 @@ export interface HotspotAction {
   email?: string
   media_urls?: string[]
   download_url?: string
+  /** Entrance view after scene transition */
+  entrance_yaw?: number
+  entrance_pitch?: number
+  transition_effect?: 'fade' | 'crossfade' | 'none'
+  transition_duration?: number
+  hidden?: boolean
 }
 
 export interface HotspotPopup {

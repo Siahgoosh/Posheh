@@ -3,7 +3,7 @@ import type { EditorTab } from '../types'
 
 const TABS: { id: EditorTab; label: string; icon: typeof Layers }[] = [
   { id: 'scenes', label: 'صحنه‌ها', icon: Layers },
-  { id: 'hotspots', label: 'هات‌اسپات', icon: MapPin },
+  { id: 'hotspots', label: 'اتصال', icon: MapPin },
   { id: 'scene-settings', label: 'تنظیمات صحنه', icon: Sliders },
   { id: 'tour-settings', label: 'تنظیمات تور', icon: Settings },
   { id: 'sharing', label: 'اشتراک', icon: Share2 },

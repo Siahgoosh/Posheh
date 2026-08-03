@@ -108,6 +108,11 @@ export function SceneListItem({
           <Badge variant={scene.status === 'published' ? 'default' : 'outline'} className="text-[9px] px-1.5 py-0">
             {scene.status === 'published' ? 'منتشر' : 'پیش‌نویس'}
           </Badge>
+          {(scene.hotspots?.length ?? 0) > 0 && (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+              {scene.hotspots.filter((h) => h.type === 'scene').length} فلش
+            </Badge>
+          )}
           {!scene.is_visible && (
             <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-muted">مخفی</Badge>
           )}

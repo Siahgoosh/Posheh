@@ -1,4 +1,5 @@
 import type { TourData, TourHotspot } from '../types'
+import { DEFAULT_HOTSPOT_STYLE } from './constants'
 
 export interface HotspotActionContext {
   tour: TourData
@@ -95,6 +96,34 @@ export function executeHotspotAction(hotspot: TourHotspot, ctx: HotspotActionCon
       } else if (hotspot.link_url) {
         window.open(hotspot.link_url, '_blank')
       }
+  }
+}
+
+export function createSceneLinkHotspot(yaw: number, pitch: number): TourHotspot {
+  return {
+    id: `temp-${Date.now()}`,
+    type: 'scene',
+    yaw,
+    pitch,
+    title: '',
+    label: '',
+    tooltip: 'رفتن به صحنه بعدی',
+    icon: 'arrow',
+    style: {
+      ...DEFAULT_HOTSPOT_STYLE,
+      color: '#2dd4bf',
+      size: 40,
+      pulse: true,
+      glow: true,
+      hoverAnimation: 'scale',
+    },
+    action: {
+      type: 'scene',
+      transition_effect: 'fade',
+      transition_duration: 800,
+    },
+    popup: {},
+    sort_order: 0,
   }
 }
 

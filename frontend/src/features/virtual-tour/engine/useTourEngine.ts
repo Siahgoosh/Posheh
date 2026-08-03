@@ -16,8 +16,15 @@ export interface TourEngineControls {
   toggleGyroscope: () => void
   toggleVr: () => void
   takeScreenshot: () => string | null
-  goToScene: (sceneId: number) => void
+  goToScene: (sceneId: number, options?: SceneTransitionOptions) => void
   setAutoRotate: (enabled: boolean) => void
+}
+
+export interface SceneTransitionOptions {
+  effect?: 'fade' | 'crossfade' | 'none'
+  speed?: string | number
+  yaw?: number
+  pitch?: number
 }
 
 export interface UseTourEngineOptions {
@@ -35,6 +42,9 @@ export interface UseTourEngineOptions {
   onPlaceHotspot?: (yaw: number, pitch: number) => void
   onHotspotSelect?: (hotspot: TourHotspot) => void
   onHotspotActivate?: (hotspot: TourHotspot) => void
+  onHotspotMove?: (hotspot: TourHotspot, yaw: number, pitch: number) => void
+  isRepositioningHotspot?: boolean
+  repositionHotspot?: TourHotspot | null
 }
 
 function zoomToFov(zoom: number, minFov = 30, maxFov = 90): number {
@@ -55,6 +65,9 @@ export function useTourEngine({
   onPlaceHotspot,
   onHotspotSelect,
   onHotspotActivate,
+  onHotspotMove,
+  isRepositioningHotspot = false,
+  repositionHotspot = null,
 }: UseTourEngineOptions) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<Viewer | null>(null)
@@ -206,8 +219,14 @@ export function useTourEngine({
     }
 
     const onClick = (e: { data: { yaw: number; pitch: number } }) => {
+      const yaw = (e.data.yaw * 180) / Math.PI
+      const pitch = (e.data.pitch * 180) / Math.PI
+      if (isRepositioningHotspot && onHotspotMove && repositionHotspot) {
+        onHotspotMove(repositionHotspot, yaw, pitch)
+        return
+      }
       if (!isPlacingHotspot || !onPlaceHotspot) return
-      onPlaceHotspot((e.data.yaw * 180) / Math.PI, (e.data.pitch * 180) / Math.PI)
+      onPlaceHotspot(yaw, pitch)
     }
 
     const markers = markersRef.current
@@ -247,7 +266,7 @@ export function useTourEngine({
       stereoRef.current = null
       autorotateRef.current = null
     }
-  }, [visibleScenes.map((s) => `${s.id}-${s.panorama_url}`).join(','), tour.title, buildNodes, enableGyroscope, enableVr, autoRotate, autoRotateSpeed, editorMode, isPlacingHotspot])
+  }, [visibleScenes.map((s) => `${s.id}-${s.panorama_url}`).join(','), tour.title, buildNodes, enableGyroscope, enableVr, autoRotate, autoRotateSpeed, editorMode, isPlacingHotspot, isRepositioningHotspot])
 
   // Sync markers when hotspots change
   useEffect(() => {
@@ -320,8 +339,26 @@ export function useTourEngine({
         return null
       }
     },
-    goToScene: (sceneId: number) => {
-      vtRef.current?.setCurrentNode(String(sceneId))
+    goToScene: (sceneId: number, options?: SceneTransitionOptions) => {
+      const targetScene = visibleScenes.find((s) => s.id === sceneId)
+      const effect = options?.effect || targetScene?.transition_effect || 'fade'
+      const speed = options?.speed ?? `${options?.effect === 'none' ? 0 : 800}ms`
+      vtRef.current?.setCurrentNode(String(sceneId), {
+        effect: effect === 'crossfade' ? 'fade' : effect,
+        speed,
+        showLoader: false,
+        rotation: true,
+      })
+      const viewer = viewerRef.current
+      if (viewer && (options?.yaw !== undefined || options?.pitch !== undefined)) {
+        setTimeout(() => {
+          viewer.animate({
+            yaw: `${options?.yaw ?? targetScene?.default_yaw ?? 0}deg`,
+            pitch: `${options?.pitch ?? targetScene?.default_pitch ?? 0}deg`,
+            speed: '6rpm',
+          })
+        }, 400)
+      }
     },
   }
 

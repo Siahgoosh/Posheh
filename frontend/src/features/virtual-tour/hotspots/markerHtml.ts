@@ -1,5 +1,5 @@
 import type { TourHotspot } from '../types'
-import { DEFAULT_HOTSPOT_STYLE, getHotspotTypeDef } from './constants'
+import { DEFAULT_HOTSPOT_STYLE, getHotspotTypeDef, getSceneLinkIcon } from './constants'
 
 export function buildHotspotMarkerHtml(hotspot: TourHotspot, brandColor = '#2dd4bf'): string {
   const style = { ...DEFAULT_HOTSPOT_STYLE, ...hotspot.style }
@@ -7,6 +7,7 @@ export function buildHotspotMarkerHtml(hotspot: TourHotspot, brandColor = '#2dd4
   const color = style.color || brandColor
   const size = style.size || 36
   const label = hotspot.label || hotspot.title || typeDef.label
+  const emoji = hotspot.type === 'scene' ? getSceneLinkIcon(hotspot.icon || hotspot.style?.icon as string) : typeDef.emoji
   const pulseClass = style.pulse ? 'vt-marker-pulse' : ''
   const glowStyle = style.glow ? `box-shadow: 0 0 20px ${color}88, 0 4px 12px rgba(0,0,0,0.4);` : 'box-shadow: 0 4px 12px rgba(0,0,0,0.4);'
   const border = style.border || '2px solid white'
@@ -22,7 +23,7 @@ export function buildHotspotMarkerHtml(hotspot: TourHotspot, brandColor = '#2dd4
       font-size:${Math.round(size * 0.45)}px;
       transition: transform 0.2s ease;
     " title="${hotspot.tooltip || label}">
-      <span>${typeDef.emoji}</span>
+      <span>${emoji}</span>
     </div>
     ${label && style.label !== '' ? `<div class="vt-hotspot-label" style="margin-top:4px;font-size:10px;color:white;text-shadow:0 1px 3px black;text-align:center;white-space:nowrap;">${label}</div>` : ''}
   `

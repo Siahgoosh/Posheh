@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { SceneListItem } from './SceneListItem'
 import { PanoramaUploader } from './PanoramaUploader'
+import { SceneConnectionsPanel } from '../hotspots/SceneConnectionsPanel'
 import { filterAndSortScenes, useTourEditorStore } from '../store/editorStore'
 import type { SceneFilter, SceneSort, TourScene } from '../types'
 
@@ -167,6 +168,12 @@ export function SceneManagerPanel({
           </div>
         )}
       </div>
+
+      <SceneConnectionsPanel
+        scenes={scenes}
+        activeSceneId={activeSceneId}
+        onSelectScene={onSceneSelect}
+      />
 
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {filtered.map((scene) => (

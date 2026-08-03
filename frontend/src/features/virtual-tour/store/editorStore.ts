@@ -11,6 +11,8 @@ interface EditorState {
   isPanelCollapsed: boolean
   selectedHotspotId: number | string | null
   isPlacingHotspot: boolean
+  isLinkingScenes: boolean
+  isRepositioningHotspot: boolean
   localHotspots: Record<number, TourHotspot[]>
   localScenePatches: Record<number, Partial<TourScene>>
   localTourSettings: Partial<TourSettings> | null
@@ -23,6 +25,8 @@ interface EditorState {
   setPanelCollapsed: (collapsed: boolean) => void
   setSelectedHotspotId: (id: number | string | null) => void
   setIsPlacingHotspot: (v: boolean) => void
+  setIsLinkingScenes: (v: boolean) => void
+  setIsRepositioningHotspot: (v: boolean) => void
   initHotspots: (scenes: TourScene[]) => void
   setSceneHotspots: (sceneId: number, hotspots: TourHotspot[]) => void
   updateHotspot: (sceneId: number, hotspot: TourHotspot) => void
@@ -45,7 +49,9 @@ export const useTourEditorStore = create<EditorState>((set) => ({
   uploadTasks: [],
   isPanelCollapsed: false,
   selectedHotspotId: null,
-  isPlacingHotspot: false,
+  isPlacingHotspot: true,
+  isLinkingScenes: true,
+  isRepositioningHotspot: false,
   localHotspots: {},
   localScenePatches: {},
   localTourSettings: null,
@@ -57,7 +63,9 @@ export const useTourEditorStore = create<EditorState>((set) => ({
   setSort: (sort) => set({ sort }),
   setPanelCollapsed: (collapsed) => set({ isPanelCollapsed: collapsed }),
   setSelectedHotspotId: (id) => set({ selectedHotspotId: id }),
-  setIsPlacingHotspot: (v) => set({ isPlacingHotspot: v }),
+  setIsPlacingHotspot: (v) => set((s) => ({ isPlacingHotspot: v, isRepositioningHotspot: v ? false : s.isRepositioningHotspot })),
+  setIsLinkingScenes: (v) => set({ isLinkingScenes: v, isPlacingHotspot: v }),
+  setIsRepositioningHotspot: (v) => set({ isRepositioningHotspot: v, isPlacingHotspot: false, isLinkingScenes: false }),
   initHotspots: (scenes) => {
     const map: Record<number, TourHotspot[]> = {}
     scenes.forEach((s) => { map[s.id] = [...s.hotspots] })

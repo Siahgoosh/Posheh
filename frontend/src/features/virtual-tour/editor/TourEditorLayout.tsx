@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo, useCallback } from 'react'
+import { useRef, useEffect, useMemo, useCallback, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Globe, ExternalLink, BookOpen } from 'lucide-react'
@@ -14,7 +14,8 @@ import { TourSettingsPanel } from '../settings/TourSettingsPanel'
 import { SharingPanel } from '../sharing/SharingPanel'
 import { VersionHistoryPanel } from '../settings/VersionHistoryPanel'
 import { useTourEditorStore, mergeSceneWithPatches } from '../store/editorStore'
-import { createDefaultHotspot } from '../hotspots/hotspotActions'
+import { createDefaultHotspot, createSceneLinkHotspot } from '../hotspots/hotspotActions'
+import { SceneLinkPickerModal } from '../hotspots/SceneLinkPickerModal'
 import type { TourData, TourHotspot, TourScene } from '../types'
 
 interface Props {
@@ -33,6 +34,10 @@ export function TourEditorLayout({ tourId }: Props) {
     setSelectedHotspotId,
     isPlacingHotspot,
     setIsPlacingHotspot,
+    isLinkingScenes,
+    setIsLinkingScenes,
+    isRepositioningHotspot,
+    setIsRepositioningHotspot,
     localHotspots,
     localScenePatches,
     localTourSettings,
@@ -44,6 +49,8 @@ export function TourEditorLayout({ tourId }: Props) {
     setLocalTourSettings,
   } = useTourEditorStore()
 
+  const [pendingLinkHotspot, setPendingLinkHotspot] = useState<TourHotspot | null>(null)
+
   const { data: tour, isLoading, refetch } = useQuery({
     queryKey: ['virtual-tour', tourId],
     queryFn: async () => (await tourApi.get(tourId)).data.data as TourData,
@@ -53,6 +60,12 @@ export function TourEditorLayout({ tourId }: Props) {
   useEffect(() => {
     if (tour?.scenes) initHotspots(tour.scenes)
   }, [tour?.id, initHotspots])
+
+  useEffect(() => {
+    if (activeTab === 'hotspots') {
+      setIsLinkingScenes(true)
+    }
+  }, [activeTab, setIsLinkingScenes])
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['virtual-tour', tourId] })
@@ -166,10 +179,48 @@ export function TourEditorLayout({ tourId }: Props) {
 
   const handlePlaceHotspot = useCallback((yaw: number, pitch: number) => {
     if (!activeScene) return
+    if (isRepositioningHotspot && selectedHotspotId) {
+      const h = activeHotspots.find((x) => x.id === selectedHotspotId)
+      if (h) {
+        updateHotspot(activeScene.id, { ...h, yaw, pitch })
+        setIsRepositioningHotspot(false)
+      }
+      return
+    }
+    if (isLinkingScenes) {
+      const hotspot = createSceneLinkHotspot(yaw, pitch)
+      addHotspot(activeScene.id, hotspot)
+      setPendingLinkHotspot(hotspot)
+      setActiveTab('hotspots')
+      return
+    }
     const hotspot = createDefaultHotspot(yaw, pitch)
     addHotspot(activeScene.id, hotspot)
     setActiveTab('hotspots')
-  }, [activeScene, addHotspot, setActiveTab])
+  }, [activeScene, activeHotspots, selectedHotspotId, isRepositioningHotspot, isLinkingScenes, addHotspot, updateHotspot, setActiveTab, setIsRepositioningHotspot])
+
+  const handleSceneLinkPick = (targetSceneId: number) => {
+    if (!activeScene || !pendingLinkHotspot) return
+    const target = liveTour?.scenes.find((s) => s.id === targetSceneId)
+    updateHotspot(activeScene.id, {
+      ...pendingLinkHotspot,
+      target_scene_id: targetSceneId,
+      label: target?.name || '',
+      tooltip: target ? `رفتن به ${target.name}` : '',
+      action: {
+        ...pendingLinkHotspot.action,
+        type: 'scene',
+        target_scene_id: targetSceneId,
+      },
+    })
+    setPendingLinkHotspot(null)
+    setSelectedHotspotId(pendingLinkHotspot.id)
+  }
+
+  const repositionHotspot = useMemo(
+    () => activeHotspots.find((h) => h.id === selectedHotspotId) ?? null,
+    [activeHotspots, selectedHotspotId],
+  )
 
   if (isLoading || !tour || !liveTour) {
     return (
@@ -196,10 +247,21 @@ export function TourEditorLayout({ tourId }: Props) {
             scenes={liveTour.scenes}
             selectedHotspotId={selectedHotspotId}
             isPlacing={isPlacingHotspot}
+            isLinking={isLinkingScenes}
+            isRepositioning={isRepositioningHotspot}
             onSelectHotspot={setSelectedHotspotId}
             onUpdateHotspot={(h) => activeScene && updateHotspot(activeScene.id, h)}
             onDeleteHotspot={(id) => activeScene && removeHotspot(activeScene.id, id)}
-            onTogglePlacing={() => setIsPlacingHotspot(!isPlacingHotspot)}
+            onTogglePlacing={() => {
+              setIsLinkingScenes(false)
+              setIsPlacingHotspot(!isPlacingHotspot)
+            }}
+            onToggleLinking={() => {
+              setIsRepositioningHotspot(false)
+              setIsLinkingScenes(!isLinkingScenes)
+            }}
+            onToggleRepositioning={() => setIsRepositioningHotspot(!isRepositioningHotspot)}
+            onPreviewScene={(id) => viewerRef.current?.goToScene(id)}
             onSave={() => activeScene && saveHotspotsMutation.mutate({ sceneId: activeScene.id, hotspots: localHotspots[activeScene.id] || [] })}
             isSaving={saveHotspotsMutation.isPending}
           />
@@ -302,8 +364,11 @@ export function TourEditorLayout({ tourId }: Props) {
               showSceneName
               editorMode
               sceneHotspots={activeHotspots}
-              isPlacingHotspot={isPlacingHotspot}
+              isPlacingHotspot={isPlacingHotspot || isLinkingScenes || isRepositioningHotspot}
+              isRepositioningHotspot={isRepositioningHotspot}
+              repositionHotspot={repositionHotspot}
               onPlaceHotspot={handlePlaceHotspot}
+              onHotspotMove={(h, yaw, pitch) => activeScene && updateHotspot(activeScene.id, { ...h, yaw, pitch })}
               onHotspotSelect={(h) => { setSelectedHotspotId(h.id); setActiveTab('hotspots') }}
             />
           ) : (
@@ -315,6 +380,19 @@ export function TourEditorLayout({ tourId }: Props) {
           )}
         </main>
       </div>
+
+      <SceneLinkPickerModal
+        open={!!pendingLinkHotspot}
+        scenes={liveTour.scenes}
+        currentSceneId={activeScene?.id ?? 0}
+        onSelect={handleSceneLinkPick}
+        onCancel={() => {
+          if (pendingLinkHotspot && activeScene) {
+            removeHotspot(activeScene.id, pendingLinkHotspot.id)
+          }
+          setPendingLinkHotspot(null)
+        }}
+      />
     </div>
   )
 }

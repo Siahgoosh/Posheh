@@ -37,6 +37,18 @@ export const DEFAULT_HOTSPOT_STYLE = {
   shadow: true,
 }
 
+export const SCENE_LINK_ICONS: Record<string, { emoji: string; label: string }> = {
+  arrow: { emoji: '➡️', label: 'فلش' },
+  chevron: { emoji: '›', label: 'گوشه' },
+  dot: { emoji: '●', label: 'نقطه' },
+  circle: { emoji: '○', label: 'دایره' },
+  pin: { emoji: '📍', label: 'پین' },
+}
+
+export function getSceneLinkIcon(icon?: string): string {
+  return SCENE_LINK_ICONS[icon || 'arrow']?.emoji ?? '➡️'
+}
+
 export function getHotspotTypeDef(type: HotspotType): HotspotTypeDef {
   return HOTSPOT_TYPES.find((t) => t.type === type) ?? HOTSPOT_TYPES[1]
 }

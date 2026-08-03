@@ -1,7 +1,7 @@
-import { Trash2, MapPin, Save } from 'lucide-react'
+import { Trash2, MapPin, Save, Move, Eye, EyeOff, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { HOTSPOT_TYPES } from './constants'
+import { HOTSPOT_TYPES, SCENE_LINK_ICONS } from './constants'
 import type { TourHotspot, TourScene, HotspotType } from '../types'
 
 interface Props {
@@ -9,10 +9,15 @@ interface Props {
   scenes: TourScene[]
   selectedHotspotId: number | string | null
   isPlacing: boolean
+  isLinking: boolean
+  isRepositioning: boolean
   onSelectHotspot: (id: number | string | null) => void
   onUpdateHotspot: (hotspot: TourHotspot) => void
   onDeleteHotspot: (id: number | string) => void
   onTogglePlacing: () => void
+  onToggleLinking: () => void
+  onToggleRepositioning: () => void
+  onPreviewScene?: (sceneId: number) => void
   onSave: () => void
   isSaving?: boolean
 }
@@ -21,11 +26,15 @@ export function HotspotForm({
   scene,
   scenes,
   selectedHotspotId,
-  isPlacing,
+  isLinking,
+  isRepositioning,
   onSelectHotspot,
   onUpdateHotspot,
   onDeleteHotspot,
   onTogglePlacing,
+  onToggleLinking,
+  onToggleRepositioning,
+  onPreviewScene,
   onSave,
   isSaving,
 }: Props) {
@@ -39,20 +48,23 @@ export function HotspotForm({
     return (
       <div className="p-4 space-y-4">
         <Button
-          className={`w-full ${isPlacing ? 'bg-primary' : ''}`}
-          variant={isPlacing ? 'default' : 'outline'}
-          onClick={onTogglePlacing}
+          className={`w-full ${isLinking ? 'bg-primary' : ''}`}
+          variant={isLinking ? 'default' : 'outline'}
+          onClick={onToggleLinking}
         >
           <MapPin className="h-4 w-4" />
-          {isPlacing ? 'روی تصویر کلیک کنید...' : 'افزودن هات‌اسپات'}
+          {isLinking ? 'روی تصویر کلیک کنید — اتصال صحنه' : 'اتصال صحنه (فلش)'}
         </Button>
-        <p className="text-xs text-muted text-center">
-          {scene.hotspots.length} هات‌اسپات در این صحنه
+        <p className="text-xs text-muted text-center leading-relaxed">
+          روی پله‌ها، درب یا هر نقطه کلیک کنید. مقصد را از لیست انتخاب کنید — بدون وارد کردن مختصات.
         </p>
+        <Button variant="outline" className="w-full" onClick={onTogglePlacing}>
+          هات‌اسپات دیگر (اطلاعات، گالری...)
+        </Button>
         {scene.hotspots.length > 0 && (
           <Button className="w-full" onClick={onSave} disabled={isSaving}>
             <Save className="h-4 w-4" />
-            {isSaving ? 'در حال ذخیره...' : 'ذخیره هات‌اسپات‌ها'}
+            {isSaving ? 'در حال ذخیره...' : 'ذخیره اتصال‌ها'}
           </Button>
         )}
       </div>
@@ -62,42 +74,53 @@ export function HotspotForm({
   const update = (patch: Partial<TourHotspot>) => onUpdateHotspot({ ...hotspot, ...patch })
   const updateStyle = (key: string, value: unknown) =>
     update({ style: { ...hotspot.style, [key]: value } })
+  const updateAction = (key: string, value: unknown) =>
+    update({ action: { ...hotspot.action, [key]: value } })
+
+  const isSceneLink = hotspot.type === 'scene'
 
   return (
     <div className="p-4 space-y-3 overflow-y-auto max-h-full">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">ویرایش هات‌اسپات</h3>
+        <h3 className="font-semibold text-sm">{isSceneLink ? 'فلش اتصال صحنه' : 'ویرایش هات‌اسپات'}</h3>
         <Button variant="ghost" size="icon" className="text-danger" onClick={() => onDeleteHotspot(hotspot.id)}>
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
 
-      <div>
-        <label className="text-xs text-muted">نوع</label>
-        <select
-          value={hotspot.type}
-          onChange={(e) => update({ type: e.target.value as HotspotType })}
-          className="w-full mt-1 text-sm bg-black/30 border border-card-border rounded-lg px-3 py-2"
-        >
-          {HOTSPOT_TYPES.map((t) => (
-            <option key={t.type} value={t.type}>{t.emoji} {t.label}</option>
-          ))}
-        </select>
-      </div>
+      {!isSceneLink && (
+        <div>
+          <label className="text-xs text-muted">نوع</label>
+          <select
+            value={hotspot.type}
+            onChange={(e) => update({ type: e.target.value as HotspotType })}
+            className="w-full mt-1 text-sm bg-black/30 border border-card-border rounded-lg px-3 py-2"
+          >
+            {HOTSPOT_TYPES.map((t) => (
+              <option key={t.type} value={t.type}>{t.emoji} {t.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
-      <Input placeholder="عنوان" value={hotspot.title || ''} onChange={(e) => update({ title: e.target.value })} />
-      <Input placeholder="برچسب" value={hotspot.label || ''} onChange={(e) => update({ label: e.target.value })} />
-      <Input placeholder="Tooltip" value={hotspot.tooltip || ''} onChange={(e) => update({ tooltip: e.target.value })} />
-
-      {hotspot.type === 'scene' && (
+      {isSceneLink && (
         <div>
           <label className="text-xs text-muted">صحنه مقصد</label>
           <select
             value={hotspot.target_scene_id || ''}
-            onChange={(e) => update({ target_scene_id: Number(e.target.value) || null })}
+            onChange={(e) => {
+              const id = Number(e.target.value) || null
+              const target = scenes.find((s) => s.id === id)
+              update({
+                target_scene_id: id,
+                label: target?.name || hotspot.label,
+                tooltip: target ? `رفتن به ${target.name}` : hotspot.tooltip,
+                action: { ...hotspot.action, type: 'scene', target_scene_id: id ?? undefined },
+              })
+            }}
             className="w-full mt-1 text-sm bg-black/30 border border-card-border rounded-lg px-3 py-2"
           >
-            <option value="">انتخاب صحنه</option>
+            <option value="">انتخاب صحنه مقصد</option>
             {scenes.filter((s) => s.id !== scene.id).map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
@@ -105,16 +128,79 @@ export function HotspotForm({
         </div>
       )}
 
-      {['website', 'link', 'telegram', 'pdf'].includes(hotspot.type) && (
-        <Input placeholder="لینک URL" value={hotspot.link_url || ''} onChange={(e) => update({ link_url: e.target.value })} />
-      )}
+      <Input placeholder="برچسب" value={hotspot.label || ''} onChange={(e) => update({ label: e.target.value })} />
+      <Input placeholder="Tooltip" value={hotspot.tooltip || ''} onChange={(e) => update({ tooltip: e.target.value })} />
 
-      {['phone', 'whatsapp'].includes(hotspot.type) && (
-        <Input placeholder="شماره تماس" value={hotspot.action?.phone || ''} onChange={(e) => update({ action: { ...hotspot.action, phone: e.target.value } })} />
-      )}
+      {isSceneLink && (
+        <>
+          <div>
+            <label className="text-xs text-muted">آیکون فلش</label>
+            <div className="grid grid-cols-5 gap-1.5 mt-1">
+              {Object.entries(SCENE_LINK_ICONS).map(([key, { emoji, label }]) => (
+                <button
+                  key={key}
+                  type="button"
+                  title={label}
+                  onClick={() => update({ icon: key })}
+                  className={`py-2 rounded-lg border text-lg transition-all ${
+                    (hotspot.icon || 'arrow') === key
+                      ? 'border-primary bg-primary/20'
+                      : 'border-card-border/50 hover:border-white/20'
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      {hotspot.type === 'email' && (
-        <Input placeholder="ایمیل" value={hotspot.action?.email || ''} onChange={(e) => update({ action: { ...hotspot.action, email: e.target.value } })} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-muted">Transition</label>
+              <select
+                value={hotspot.action?.transition_effect || 'fade'}
+                onChange={(e) => updateAction('transition_effect', e.target.value)}
+                className="w-full mt-1 text-xs bg-black/30 border border-card-border rounded-lg px-2 py-1.5"
+              >
+                <option value="fade">Fade</option>
+                <option value="crossfade">Cross Fade</option>
+                <option value="none">بدون افکت</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-muted">مدت (ms)</label>
+              <Input
+                type="number"
+                min={200}
+                max={3000}
+                step={100}
+                value={hotspot.action?.transition_duration ?? 800}
+                onChange={(e) => updateAction('transition_duration', Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-muted">زاویه ورود Yaw</label>
+              <Input
+                type="number"
+                value={hotspot.action?.entrance_yaw ?? ''}
+                placeholder="خودکار"
+                onChange={(e) => updateAction('entrance_yaw', e.target.value ? Number(e.target.value) : undefined)}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted">زاویه ورود Pitch</label>
+              <Input
+                type="number"
+                value={hotspot.action?.entrance_pitch ?? ''}
+                placeholder="خودکار"
+                onChange={(e) => updateAction('entrance_pitch', e.target.value ? Number(e.target.value) : undefined)}
+              />
+            </div>
+          </div>
+        </>
       )}
 
       <div className="border-t border-card-border/50 pt-3 space-y-2">
@@ -146,29 +232,44 @@ export function HotspotForm({
           ))}
         </div>
         <div>
-          <label className="text-[10px] text-muted">شفافیت</label>
-          <input type="range" min={0.3} max={1} step={0.1} value={hotspot.style?.opacity ?? 1} onChange={(e) => updateStyle('opacity', Number(e.target.value))} className="w-full" />
+          <label className="text-[10px] text-muted">Hover</label>
+          <select
+            value={hotspot.style?.hoverAnimation || 'scale'}
+            onChange={(e) => updateStyle('hoverAnimation', e.target.value)}
+            className="w-full text-xs bg-black/30 border border-card-border rounded-lg px-2 py-1.5"
+          >
+            <option value="scale">بزرگ‌شدن</option>
+            <option value="bounce">پرش</option>
+            <option value="none">بدون انیمیشن</option>
+          </select>
         </div>
       </div>
 
-      <div className="border-t border-card-border/50 pt-3 space-y-2">
-        <p className="text-xs font-medium text-muted">محتوای Popup</p>
-        <Input placeholder="عنوان Popup" value={hotspot.popup?.title || ''} onChange={(e) => update({ popup: { ...hotspot.popup, title: e.target.value } })} />
-        <textarea
-          placeholder="توضیحات"
-          value={hotspot.popup?.description || hotspot.content || ''}
-          onChange={(e) => update({ popup: { ...hotspot.popup, description: e.target.value }, content: e.target.value })}
-          className="w-full text-sm bg-black/30 border border-card-border rounded-lg px-3 py-2 min-h-[80px] resize-none"
-        />
-        <Input placeholder="URL ویدئو" value={hotspot.popup?.video_url || ''} onChange={(e) => update({ popup: { ...hotspot.popup, video_url: e.target.value } })} />
-        <label className="flex items-center gap-2 text-xs">
-          <input type="checkbox" checked={!!hotspot.popup?.show_lead_form} onChange={(e) => update({ popup: { ...hotspot.popup, show_lead_form: e.target.checked } })} />
-          نمایش فرم درخواست
-        </label>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={isRepositioning ? 'default' : 'outline'}
+          size="sm"
+          className="flex-1"
+          onClick={onToggleRepositioning}
+        >
+          <Move className="h-3 w-3" />{isRepositioning ? 'روی تصویر کلیک کنید' : 'جابجایی'}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => updateAction('hidden', !hotspot.action?.hidden)}
+        >
+          {hotspot.action?.hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+        </Button>
+        {isSceneLink && hotspot.target_scene_id && onPreviewScene && (
+          <Button variant="outline" size="sm" onClick={() => onPreviewScene(hotspot.target_scene_id!)}>
+            <Play className="h-3 w-3" />
+          </Button>
+        )}
       </div>
 
       <div className="text-[10px] text-muted font-mono">
-        Yaw: {hotspot.yaw.toFixed(1)}° | Pitch: {hotspot.pitch.toFixed(1)}°
+        موقعیت: Yaw {hotspot.yaw.toFixed(1)}° · Pitch {hotspot.pitch.toFixed(1)}°
       </div>
 
       <div className="flex gap-2">

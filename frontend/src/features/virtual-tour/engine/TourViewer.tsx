@@ -3,7 +3,7 @@ import '@photo-sphere-viewer/core/index.css'
 import '@photo-sphere-viewer/virtual-tour-plugin/index.css'
 import '@photo-sphere-viewer/markers-plugin/index.css'
 import type { TourData, TourHotspot } from '../types'
-import { useTourEngine } from './useTourEngine'
+import { useTourEngine, type SceneTransitionOptions } from './useTourEngine'
 import { TourViewerControls } from './TourViewerControls'
 import { TourLoadingOverlay } from './TourLoadingOverlay'
 import { HotspotPopup } from '../hotspots/HotspotPopup'
@@ -12,7 +12,7 @@ import { TourFeaturesOverlay } from '../features/TourFeaturesOverlay'
 import { HOTSPOT_MARKER_CSS } from '../hotspots/markerHtml'
 
 export interface TourViewerHandle {
-  goToScene: (sceneId: number) => void
+  goToScene: (sceneId: number, options?: SceneTransitionOptions) => void
 }
 
 interface Props {
@@ -28,6 +28,9 @@ interface Props {
   isPlacingHotspot?: boolean
   onPlaceHotspot?: (yaw: number, pitch: number) => void
   onHotspotSelect?: (hotspot: TourHotspot) => void
+  onHotspotMove?: (hotspot: TourHotspot, yaw: number, pitch: number) => void
+  isRepositioningHotspot?: boolean
+  repositionHotspot?: TourHotspot | null
   onLeadForm?: () => void
   publicUrl?: string
 }
@@ -46,6 +49,9 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
     isPlacingHotspot = false,
     onPlaceHotspot,
     onHotspotSelect,
+    onHotspotMove,
+    isRepositioningHotspot = false,
+    repositionHotspot = null,
     onLeadForm,
     publicUrl,
   },
@@ -54,7 +60,7 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
   const [popupHotspot, setPopupHotspot] = useState<TourHotspot | null>(null)
   const [galleryImages, setGalleryImages] = useState<string[] | null>(null)
   const [isAutoTouring, setIsAutoTouring] = useState(false)
-  const goToSceneRef = useRef<(id: number) => void>(() => {})
+  const goToSceneRef = useRef<(id: number, options?: SceneTransitionOptions) => void>(() => {})
 
   const {
     containerRef,
@@ -83,7 +89,19 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
     isPlacingHotspot,
     onPlaceHotspot,
     onHotspotSelect,
+    onHotspotMove,
+    isRepositioningHotspot,
+    repositionHotspot,
     onHotspotActivate: (hotspot) => {
+      if (hotspot.type === 'scene' && hotspot.target_scene_id) {
+        goToSceneRef.current(hotspot.target_scene_id, {
+          effect: hotspot.action?.transition_effect,
+          speed: hotspot.action?.transition_duration,
+          yaw: hotspot.action?.entrance_yaw,
+          pitch: hotspot.action?.entrance_pitch,
+        })
+        return
+      }
       executeHotspotAction(hotspot, {
         tour,
         onGoToScene: (id) => goToSceneRef.current(id),
@@ -134,7 +152,7 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
 
       {isPlacingHotspot && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 px-4 py-2 rounded-full bg-primary/90 text-primary-foreground text-sm font-medium pointer-events-none animate-pulse">
-          روی تصویر کلیک کنید
+          {isRepositioningHotspot ? 'نقطه جدید را انتخاب کنید' : 'روی تصویر کلیک کنید'}
         </div>
       )}
 

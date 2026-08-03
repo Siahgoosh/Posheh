@@ -13,6 +13,7 @@ export function syncHotspotMarkers(
   markersPlugin.clearMarkers()
 
   hotspots.forEach((hotspot) => {
+    if (!editorMode && hotspot.action?.hidden) return
     const id = `hotspot-${hotspot.id}`
     markersPlugin.addMarker({
       id,
@@ -22,6 +23,7 @@ export function syncHotspotMarkers(
       tooltip: hotspot.tooltip || hotspot.label || hotspot.title || undefined,
       data: hotspot,
       visible: true,
+      opacity: hotspot.action?.hidden && editorMode ? 0.35 : 1,
     })
   })
 
