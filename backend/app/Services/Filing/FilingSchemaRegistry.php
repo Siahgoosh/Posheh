@@ -101,7 +101,7 @@ class FilingSchemaRegistry
         return [
             $this->field('owner_first_name', 'نام مالک', 'text', ['section' => 'owner', 'storage' => 'filing_data.owner']),
             $this->field('owner_last_name', 'نام خانوادگی', 'text', ['section' => 'owner', 'storage' => 'filing_data.owner']),
-            $this->field('owner_name', 'نام کامل (نمایشی)', 'text', ['section' => 'owner']),
+            // owner_name is auto-composed from first+last — internal only, never on public site
             $this->field('owner_mobile', 'موبایل', 'phone', ['section' => 'owner', 'required' => true]),
             $this->field('contact_phone_2', 'شماره تماس دوم', 'phone', ['section' => 'owner']),
             $this->field('owner_landline', 'تلفن ثابت', 'phone', ['section' => 'owner', 'storage' => 'filing_data.owner']),

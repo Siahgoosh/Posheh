@@ -1,7 +1,10 @@
+import { useQuery } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Select, SelectOption } from '@/components/ui/select'
+import { JalaliDatePicker } from '@/components/ui/JalaliDatePicker'
 import { IRAN_PROVINCES } from '@/constants/property'
-import type { FilingField, FilingFormValues } from '@/lib/filing'
+import api from '@/lib/api'
+import { HIDDEN_FILING_KEYS, type FilingField, type FilingFormValues } from '@/lib/filing'
 
 interface Props {
   fields: FilingField[]
@@ -10,12 +13,30 @@ interface Props {
 }
 
 export function DynamicFilingFields({ fields, values, onChange }: Props) {
-  if (!fields.length) return null
+  const visibleFields = fields.filter((f) => !HIDDEN_FILING_KEYS.has(f.key))
+  const needsTeam = visibleFields.some((f) => f.type === 'user_select')
+
+  const { data: team } = useQuery({
+    queryKey: ['office-team'],
+    queryFn: async () => {
+      const res = await api.get('/office/team')
+      return res.data.data as { id: number; name: string; mobile: string; role: string }[]
+    },
+    enabled: needsTeam,
+  })
+
+  if (!visibleFields.length) return null
 
   return (
     <div className="grid sm:grid-cols-2 gap-4">
-      {fields.map((field) => (
-        <FieldRenderer key={field.key} field={field} values={values} onChange={onChange} />
+      {visibleFields.map((field) => (
+        <FieldRenderer
+          key={field.key}
+          field={field}
+          values={values}
+          onChange={onChange}
+          team={team}
+        />
       ))}
     </div>
   )
@@ -25,10 +46,12 @@ function FieldRenderer({
   field,
   values,
   onChange,
+  team,
 }: {
   field: FilingField
   values: FilingFormValues
   onChange: (key: string, value: string | boolean | string[]) => void
+  team?: { id: number; name: string; mobile: string; role: string }[]
 }) {
   const val = values[field.key]
   const span = field.type === 'textarea' ? 'sm:col-span-2' : ''
@@ -47,6 +70,42 @@ function FieldRenderer({
     )
   }
 
+  if (field.type === 'user_select') {
+    return (
+      <div className={span}>
+        <label className="text-sm text-muted mb-1 block">
+          {field.label}{field.required ? ' *' : ''}
+        </label>
+        <Select
+          value={val != null && val !== '' ? String(val) : ''}
+          onChange={(e) => onChange(field.key, e.target.value)}
+        >
+          <SelectOption value="">انتخاب مشاور</SelectOption>
+          {team?.map((m) => (
+            <SelectOption key={m.id} value={String(m.id)}>
+              {m.name || m.mobile}
+            </SelectOption>
+          ))}
+        </Select>
+        <p className="text-[11px] text-muted mt-1">از لیست مشاوران دفتر انتخاب کنید</p>
+      </div>
+    )
+  }
+
+  if (field.type === 'jalali_date') {
+    return (
+      <div className={span}>
+        <JalaliDatePicker
+          label={field.label}
+          required={field.required}
+          value={val ? String(val) : ''}
+          onChange={(iso) => onChange(field.key, iso)}
+        />
+        <p className="text-[11px] text-muted mt-1">تاریخ شمسی — پس از این تاریخ فایل منقضی می‌شود</p>
+      </div>
+    )
+  }
+
   if (field.type === 'select' || field.type === 'province_select') {
     const options = field.type === 'province_select'
       ? IRAN_PROVINCES.map((p) => ({ value: p, label: p }))
@@ -60,7 +119,6 @@ function FieldRenderer({
         <Select
           value={String(val ?? '')}
           onChange={(e) => onChange(field.key, e.target.value)}
-          required={field.required}
         >
           <SelectOption value="">انتخاب کنید</SelectOption>
           {options.map((o) => (
@@ -113,6 +171,7 @@ function FieldRenderer({
   }
 
   const inputType = ['currency', 'number'].includes(field.type) ? 'number' : field.type === 'phone' ? 'tel' : 'text'
+  const isOwnerField = field.section === 'owner'
 
   return (
     <div className={span}>
@@ -124,10 +183,12 @@ function FieldRenderer({
         type={inputType}
         value={String(val ?? '')}
         onChange={(e) => onChange(field.key, e.target.value)}
-        required={field.required}
         dir={inputType === 'number' || inputType === 'tel' ? 'ltr' : undefined}
         placeholder={field.hint}
       />
+      {isOwnerField && (
+        <p className="text-[11px] text-muted mt-1">فقط برای کارکنان دفتر — در وبسایت نمایش داده نمی‌شود</p>
+      )}
     </div>
   )
 }

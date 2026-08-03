@@ -3,6 +3,7 @@ import { useState } from 'react'
 import {
   Sparkles, Copy, RefreshCw, Sun, Video, PenLine, Calendar, BarChart3,
   MessageCircle, Target, Rocket, Hash, Clock, Film, AlertTriangle, Gift, ChevronDown,
+  Wand2, TrendingUp, Share2, ImageIcon,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
@@ -21,11 +22,18 @@ const ICONS: Record<string, typeof Sparkles> = {
 }
 
 const TONES = [
-  { id: 'friendly', label: 'صمیمی' },
-  { id: 'formal', label: 'رسمی' },
-  { id: 'luxury', label: 'لوکس' },
-  { id: 'investment', label: 'سرمایه‌گذاری' },
-  { id: 'educational', label: 'آموزشی' },
+  { id: 'friendly', label: 'صمیمی', emoji: '😊' },
+  { id: 'formal', label: 'رسمی', emoji: '📋' },
+  { id: 'luxury', label: 'لوکس', emoji: '✨' },
+  { id: 'investment', label: 'سرمایه‌گذاری', emoji: '📈' },
+  { id: 'educational', label: 'آموزشی', emoji: '🎓' },
+]
+
+const HIGHLIGHTS = [
+  { icon: Video, title: 'سناریوی ریلز', desc: 'ایده و متن آماده برای اینستاگرام' },
+  { icon: Share2, title: 'کپشن شبکه‌ها', desc: 'واتساپ، تلگرام، دیوار' },
+  { icon: Calendar, title: 'تقویم محتوا', desc: 'برنامه هفتگی پست و استوری' },
+  { icon: TrendingUp, title: 'تحلیل بازار', desc: 'بینش منطقه و قیمت' },
 ]
 
 export function ContentAssistantPage() {
@@ -85,38 +93,72 @@ export function ContentAssistantPage() {
 
   if (!hasAi) {
     return (
-      <div className="max-w-lg mx-auto text-center py-16 space-y-4">
-        <Sparkles className="h-14 w-14 mx-auto text-muted" />
-        <h1 className="text-xl font-bold">دستیار هوشمند تولید محتوا</h1>
-        <p className="text-muted text-sm leading-relaxed">
+      <div className="max-w-2xl mx-auto text-center py-16 space-y-6 animate-fade-in">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20">
+          <Sparkles className="h-10 w-10 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold gradient-text">دستیار هوشمند تولید محتوا</h1>
+        <p className="text-muted leading-relaxed">
           این ماژول در پلن <strong>دفتر حرفه‌ای (Premium)</strong> فعال است.
           سناریوی ریلز، کپشن، تقویم محتوا، تحلیل بازار و بیش از ۱۵ ابزار بازاریابی اختصاصی.
         </p>
-        <Link to="/subscription"><Button>ارتقا به پلن حرفه‌ای</Button></Link>
+        <div className="grid sm:grid-cols-2 gap-3 text-right">
+          {HIGHLIGHTS.map((h) => (
+            <div key={h.title} className="glass rounded-xl p-4 flex gap-3 items-start">
+              <h.icon className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-sm">{h.title}</p>
+                <p className="text-xs text-muted">{h.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <Link to="/subscription"><Button size="lg">ارتقا به پلن حرفه‌ای</Button></Link>
       </div>
     )
   }
 
   const groups = [...new Set(types?.map((t) => t.group) ?? [])]
   const displayOutput = output || (selectedType === 'daily_plan' && !generate.isSuccess ? daily?.output : '')
+  const selectedLabel = types?.find((t) => t.id === selectedType)?.label
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="h-7 w-7 text-primary" />
-            دستیار هوشمند تولید محتوا
-          </h1>
-          <p className="text-muted text-sm mt-1">مدیر مارکتینگ اختصاصی دفتر — بدون نیاز به نوشتن پرامپت</p>
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-2xl glass card-shine p-6 md:p-8">
+        <div className="absolute top-0 left-0 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-56 h-56 bg-accent/10 rounded-full blur-3xl" />
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
+                <Wand2 className="h-5 w-5 text-primary" />
+              </div>
+              <Badge variant="outline" className="border-primary/50 text-primary">پلن حرفه‌ای</Badge>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold gradient-text">دستیار هوشمند تولید محتوا</h1>
+            <p className="text-muted text-sm max-w-xl">
+              مدیر مارکتینگ اختصاصی دفتر — داده از فایلینگ و CRM شما خوانده می‌شود؛ بدون نیاز به نوشتن پرامپت.
+            </p>
+          </div>
+          <div className="hidden md:grid grid-cols-2 gap-2">
+            {HIGHLIGHTS.map((h) => (
+              <div key={h.title} className="flex items-center gap-2 rounded-lg bg-background/40 px-3 py-2 text-xs">
+                <h.icon className="h-4 w-4 text-primary" />
+                <span>{h.title}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <Badge variant="outline" className="border-primary text-primary">پلن حرفه‌ای</Badge>
       </div>
 
       {daily?.output && (
-        <Card className="border-primary/30 bg-primary/5">
+        <Card className="border-primary/30 bg-gradient-to-l from-primary/10 to-transparent">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2"><Sun className="h-5 w-5 text-warning" />برنامه امروز</CardTitle>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sun className="h-5 w-5 text-warning" />
+              برنامه امروز شما
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans">{daily.output}</pre>
@@ -126,12 +168,12 @@ export function ContentAssistantPage() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-4">
-          <Card>
-            <CardHeader><CardTitle className="text-sm">نوع خروجی</CardTitle></CardHeader>
+          <Card className="card-shine">
+            <CardHeader><CardTitle className="text-sm flex items-center gap-2"><ImageIcon className="h-4 w-4" />نوع خروجی</CardTitle></CardHeader>
             <CardContent className="space-y-4 max-h-[50vh] overflow-y-auto">
               {groups.map((group) => (
                 <div key={group}>
-                  <p className="text-xs text-muted font-medium mb-2">{group}</p>
+                  <p className="text-xs text-muted font-medium mb-2 px-1">{group}</p>
                   <div className="space-y-1">
                     {types?.filter((t) => t.group === group).map((t) => {
                       const Icon = ICONS[t.icon] ?? Sparkles
@@ -140,7 +182,7 @@ export function ContentAssistantPage() {
                           key={t.id}
                           type="button"
                           onClick={() => { setSelectedType(t.id); setOutput('') }}
-                          className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-right transition-colors ${selectedType === t.id ? 'bg-primary/15 text-primary' : 'hover:bg-muted/10'}`}
+                          className={`w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-right transition-all ${selectedType === t.id ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'hover:bg-muted/10'}`}
                         >
                           <Icon className="h-4 w-4 shrink-0" />
                           {t.label}
@@ -156,32 +198,37 @@ export function ContentAssistantPage() {
           <Card>
             <CardContent className="p-4 space-y-3">
               <div>
-                <label className="text-xs text-muted mb-1 block">لحن</label>
-                <div className="relative">
-                  <select
-                    value={tone}
-                    onChange={(e) => setTone(e.target.value)}
-                    className="w-full rounded-xl border border-card-border bg-background px-3 py-2 text-sm appearance-none"
-                  >
-                    {TONES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
-                  </select>
-                  <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none" />
+                <label className="text-xs text-muted mb-1 block">لحن محتوا</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {TONES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTone(t.id)}
+                      className={`rounded-lg px-2.5 py-1.5 text-xs transition-all ${tone === t.id ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-muted/10 hover:bg-muted/20'}`}
+                    >
+                      {t.emoji} {t.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               <div>
                 <label className="text-xs text-muted mb-1 block">فایل ملک (اختیاری)</label>
-                <select
-                  value={propertyId}
-                  onChange={(e) => setPropertyId(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full rounded-xl border border-card-border bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">خودکار — بهترین فایل</option>
-                  {properties?.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-                </select>
+                <div className="relative">
+                  <select
+                    value={propertyId}
+                    onChange={(e) => setPropertyId(e.target.value ? Number(e.target.value) : '')}
+                    className="w-full rounded-xl border border-card-border bg-background px-3 py-2 text-sm appearance-none"
+                  >
+                    <option value="">خودکار — بهترین فایل</option>
+                    {properties?.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                  </select>
+                  <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none" />
+                </div>
               </div>
 
-              <Button className="w-full" onClick={() => generate.mutate(undefined)} disabled={generate.isPending}>
+              <Button className="w-full" size="lg" onClick={() => generate.mutate(undefined)} disabled={generate.isPending}>
                 <Sparkles className="h-4 w-4" />
                 {generate.isPending ? 'در حال تولید…' : 'تولید با یک کلیک'}
               </Button>
@@ -189,12 +236,15 @@ export function ContentAssistantPage() {
           </Card>
         </div>
 
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">خروجی</CardTitle>
+        <Card className="lg:col-span-2 card-shine">
+          <CardHeader className="flex flex-row items-center justify-between gap-2">
+            <div>
+              <CardTitle className="text-base">خروجی</CardTitle>
+              {selectedLabel && <p className="text-xs text-muted mt-0.5">{selectedLabel}</p>}
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => generate.mutate(true)} disabled={generate.isPending}>
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className={`h-4 w-4 ${generate.isPending ? 'animate-spin' : ''}`} />
                 بازتولید
               </Button>
               <Button variant="outline" size="sm" onClick={copyOutput} disabled={!displayOutput}>
@@ -205,12 +255,15 @@ export function ContentAssistantPage() {
           </CardHeader>
           <CardContent>
             {reason && (
-              <p className="text-xs text-muted mb-3 p-2 rounded-lg bg-muted/10">💡 {reason}</p>
+              <p className="text-xs text-muted mb-3 p-3 rounded-xl bg-primary/5 border border-primary/10">💡 {reason}</p>
             )}
             {displayOutput ? (
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans max-h-[60vh] overflow-y-auto">{displayOutput}</pre>
+              <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans max-h-[60vh] overflow-y-auto p-4 rounded-xl bg-background/50 border border-card-border">{displayOutput}</pre>
             ) : (
-              <p className="text-muted text-sm text-center py-16">نوع خروجی را انتخاب کنید و «تولید با یک کلیک» را بزنید</p>
+              <div className="text-center py-16 space-y-3">
+                <Sparkles className="h-12 w-12 mx-auto text-muted/40" />
+                <p className="text-muted text-sm">نوع خروجی را انتخاب کنید و «تولید با یک کلیک» را بزنید</p>
+              </div>
             )}
           </CardContent>
         </Card>
