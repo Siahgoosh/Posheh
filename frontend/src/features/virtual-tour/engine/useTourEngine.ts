@@ -7,6 +7,7 @@ import { AutorotatePlugin } from '@photo-sphere-viewer/autorotate-plugin'
 import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin'
 import type { TourData, TourScene, TourHotspot, ViewerPosition } from '../types'
 import { syncHotspotMarkers } from '../hotspots/useHotspotMarkers'
+import { resolvePanoramaUrl } from '../utils/panoramaUrl'
 
 export interface TourEngineControls {
   zoomIn: () => void
@@ -46,6 +47,8 @@ export interface UseTourEngineOptions {
   isRepositioningHotspot?: boolean
   repositionHotspot?: TourHotspot | null
 }
+
+const LOAD_TIMEOUT_MS = 90_000
 
 function zoomToFov(zoom: number, minFov = 30, maxFov = 90): number {
   return maxFov - (zoom / 100) * (maxFov - minFov)
@@ -96,8 +99,8 @@ export function useTourEngine({
   const buildNodes = useCallback((scenes: TourScene[]) => {
     return scenes.map((scene) => ({
       id: String(scene.id),
-      panorama: scene.panorama_url,
-      thumbnail: scene.thumbnail_url || undefined,
+      panorama: resolvePanoramaUrl(scene.panorama_url),
+      thumbnail: scene.thumbnail_url ? resolvePanoramaUrl(scene.thumbnail_url) : undefined,
       name: scene.name,
       panoData: scene.panorama_width && scene.panorama_height
         ? {
@@ -128,6 +131,16 @@ export function useTourEngine({
 
     const startScene = visibleScenes.find((s) => s.id === activeSceneId) || visibleScenes[0]
     const nodes = buildNodes(visibleScenes)
+    const startPanorama = resolvePanoramaUrl(startScene.panorama_url)
+
+    if (!startPanorama) {
+      setLoadError('آدرس تصویر پانوراما نامعتبر است.')
+      setIsLoading(false)
+      return
+    }
+
+    let loadTimeoutId: ReturnType<typeof setTimeout> | null = null
+    let disposed = false
 
     const plugins: unknown[] = [
       VirtualTourPlugin.withConfig({
@@ -135,8 +148,8 @@ export function useTourEngine({
         positionMode: 'manual',
         nodes,
         startNodeId: String(startScene.id),
-        renderMode: '3d',
-        transitionOptions: { showLoader: false, speed: '20rpm' },
+        renderMode: '2d',
+        transitionOptions: { showLoader: false, speed: '800ms', effect: 'fade' },
       }),
       AutorotatePlugin.withConfig({
         autostartDelay: autoRotate ? 0 : undefined,
@@ -155,7 +168,6 @@ export function useTourEngine({
 
     const viewer = new Viewer({
       container: containerRef.current,
-      panorama: startScene.panorama_url,
       caption: tour.title,
       navbar: false,
       defaultYaw: `${startScene.default_yaw ?? 0}deg`,
@@ -172,6 +184,26 @@ export function useTourEngine({
       plugins: plugins as never[],
     })
 
+    const markReady = () => {
+      if (disposed) return
+      if (loadTimeoutId) {
+        clearTimeout(loadTimeoutId)
+        loadTimeoutId = null
+      }
+      setIsLoading(false)
+      setLoadProgress(100)
+    }
+
+    const failLoad = (message: string) => {
+      if (disposed) return
+      if (loadTimeoutId) {
+        clearTimeout(loadTimeoutId)
+        loadTimeoutId = null
+      }
+      setLoadError(message)
+      setIsLoading(false)
+    }
+
     const vt = viewer.getPlugin(VirtualTourPlugin) as VirtualTourPlugin
     markersRef.current = viewer.getPlugin(MarkersPlugin) as MarkersPlugin
     autorotateRef.current = viewer.getPlugin(AutorotatePlugin) as AutorotatePlugin
@@ -179,21 +211,24 @@ export function useTourEngine({
     stereoRef.current = enableVr ? (viewer.getPlugin(StereoPlugin) as StereoPlugin) : null
 
     const onReady = () => {
-      setIsLoading(false)
-      setLoadProgress(100)
+      markReady()
       if (autoRotate) {
         autorotateRef.current?.start()
         setIsAutoRotating(true)
       }
     }
 
+    const onPanoramaLoaded = () => {
+      markReady()
+    }
+
     const onProgress = (e: { progress: number }) => {
-      setLoadProgress(Math.round(e.progress * 100))
+      if (disposed) return
+      setLoadProgress(Math.max(1, Math.round(e.progress * 100)))
     }
 
     const onError = () => {
-      setLoadError('بارگذاری تصویر پانوراما ناموفق بود.')
-      setIsLoading(false)
+      failLoad('بارگذاری تصویر پانوراما ناموفق بود. لینک تصویر را بررسی کنید.')
     }
 
     const onPosition = () => {
@@ -212,10 +247,10 @@ export function useTourEngine({
     }
 
     const onNodeChanged = (e: { node: { id: string } }) => {
+      markReady()
       const id = Number(e.node.id)
       setActiveSceneId(id)
       onSceneChange?.(id)
-      setIsLoading(false)
     }
 
     const onClick = (e: { data: { yaw: number; pitch: number } }) => {
@@ -241,7 +276,8 @@ export function useTourEngine({
     }
 
     viewer.addEventListener('ready', onReady)
-    viewer.addEventListener('load-progress', onProgress)
+    viewer.addEventListener('panorama-loaded', onPanoramaLoaded)
+    viewer.addEventListener('load-progress', onProgress as never)
     viewer.addEventListener('panorama-error', onError)
     viewer.addEventListener('position-updated', onPosition)
     viewer.addEventListener('zoom-updated', onPosition)
@@ -249,14 +285,28 @@ export function useTourEngine({
     vt.addEventListener('node-changed', onNodeChanged)
     markers?.addEventListener('select-marker', onSelectMarker as never)
 
+    loadTimeoutId = setTimeout(() => {
+      failLoad('بارگذاری تصویر پانوراما بیش از حد طول کشید. اتصال اینترنت یا فایل تصویر را بررسی کنید.')
+    }, LOAD_TIMEOUT_MS)
+
     vtRef.current = vt
     viewerRef.current = viewer
 
     return () => {
+      disposed = true
+      if (loadTimeoutId) clearTimeout(loadTimeoutId)
       if (positionRafRef.current !== null) {
         cancelAnimationFrame(positionRafRef.current)
         positionRafRef.current = null
       }
+      viewer.removeEventListener('ready', onReady)
+      viewer.removeEventListener('panorama-loaded', onPanoramaLoaded)
+      viewer.removeEventListener('load-progress', onProgress as never)
+      viewer.removeEventListener('panorama-error', onError)
+      viewer.removeEventListener('position-updated', onPosition)
+      viewer.removeEventListener('zoom-updated', onPosition)
+      viewer.removeEventListener('click', onClick as never)
+      vt.removeEventListener('node-changed', onNodeChanged)
       markers?.removeEventListener('select-marker', onSelectMarker as never)
       viewer.destroy()
       viewerRef.current = null
