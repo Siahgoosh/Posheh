@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/auth'
 import {
   buildFilingPayload,
   flattenFieldGroups,
+  parseApiFieldErrors,
   validateFilingForm,
   type FilingFieldGroups,
   type FilingFormValues,
@@ -60,6 +61,7 @@ export function PropertyFormPage() {
   const [media, setMedia] = useState<PropertyMediaItem[]>([])
   const [pendingImages, setPendingImages] = useState<File[]>([])
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const hasWebsite = usePlanFeature('website_listing')
   const { user } = useAuthStore()
   const isManager = user?.role === 'office_manager' || user?.role === 'super_admin'
@@ -124,13 +126,22 @@ export function PropertyFormPage() {
     },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      const apiErrors = parseApiFieldErrors(axiosErr.response?.data?.errors)
+      if (Object.keys(apiErrors).length) setFieldErrors(apiErrors)
       const errors = axiosErr.response?.data?.errors
       setError(errors ? Object.values(errors).flat().join('، ') : axiosErr.response?.data?.message || 'خطا در ثبت ملک')
     },
   })
 
-  const update = (key: string, value: string | boolean | string[]) =>
+  const update = (key: string, value: string | boolean | string[]) => {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
     setForm((f) => ({ ...f, [key]: value }))
+  }
 
   const sections = useMemo(() => {
     if (!fieldGroups) return []
@@ -169,10 +180,14 @@ export function PropertyFormPage() {
         onSubmit={(e) => {
           e.preventDefault()
           setError('')
+          setFieldErrors({})
           if (!fieldGroups) return
           const validationError = validateFilingForm(form, allFields)
           if (validationError) {
-            setError(validationError)
+            setFieldErrors(validationError.fieldErrors)
+            setError(validationError.message)
+            const el = document.querySelector(`[data-field-key="${validationError.field}"]`)
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
             return
           }
           mutation.mutate(buildFilingPayload(form, allFields))
@@ -188,7 +203,14 @@ export function PropertyFormPage() {
               )}
             </CardHeader>
             <CardContent>
-              <DynamicFilingFields fields={section.fields} values={form} onChange={update} />
+              <div data-field-key={section.fields[0]?.key}>
+                <DynamicFilingFields
+                  fields={section.fields}
+                  values={form}
+                  onChange={update}
+                  fieldErrors={fieldErrors}
+                />
+              </div>
             </CardContent>
           </Card>
         ))}

@@ -7,11 +7,15 @@ use App\Models\OfficeSitePost;
 use App\Models\OfficeVisitRequest;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\Notification\UserNotificationService;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OfficeSiteService
 {
+    public function __construct(
+        private readonly UserNotificationService $notifications,
+    ) {}
     public function requestWebsite(User $user, array $data): Office
     {
         $office = $user->office;
@@ -184,7 +188,18 @@ class OfficeSiteService
             ->where('website_status', 'published')
             ->firstOrFail();
 
-        return OfficeVisitRequest::create([
+        if (! empty($data['property_id'])) {
+            $valid = Property::where('office_id', $office->id)
+                ->where('id', $data['property_id'])
+                ->exists();
+            if (! $valid) {
+                throw ValidationException::withMessages([
+                    'property_id' => ['ملک انتخاب‌شده معتبر نیست.'],
+                ]);
+            }
+        }
+
+        $request = OfficeVisitRequest::create([
             'office_id' => $office->id,
             'property_id' => $data['property_id'] ?? null,
             'name' => $data['name'],
@@ -195,6 +210,28 @@ class OfficeSiteService
             'message' => $data['message'] ?? null,
             'status' => 'new',
         ]);
+
+        $propertyCode = $request->property_id
+            ? Property::where('id', $request->property_id)->value('code')
+            : null;
+
+        $body = $propertyCode
+            ? "درخواست بازدید برای کد {$propertyCode} از {$data['name']}"
+            : "درخواست بازدید عمومی از {$data['name']}";
+
+        User::where('office_id', $office->id)
+            ->where('is_active', true)
+            ->whereIn('role', ['office_manager', 'consultant', 'super_admin'])
+            ->get()
+            ->each(fn (User $user) => $this->notifications->notify(
+                $user,
+                'درخواست بازدید وبسایت',
+                $body.' — '.($data['preferred_date'] ?? 'زمان نامشخص'),
+                '/visits',
+                'calendar',
+            ));
+
+        return $request;
     }
 
     public function adminApproveWebsite(Office $office, string $action): Office
@@ -257,6 +294,7 @@ class OfficeSiteService
             'show_team' => $settings['show_team'] ?? true,
             'hero_style' => $settings['hero_style'] ?? $themeConfig['defaults']['hero_style'] ?? 'gradient',
             'card_style' => $settings['card_style'] ?? $themeConfig['defaults']['card_style'] ?? 'glass',
+            'header_style' => $settings['header_style'] ?? $themeConfig['defaults']['header_style'] ?? 'sticky',
         ];
     }
 

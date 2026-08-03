@@ -20,9 +20,13 @@ class OfficeContextBuilder
 
         $properties = Property::where('office_id', $office->id)
             ->where('status', PropertyStatus::Active)
+            ->withCount('media')
             ->latest()
             ->limit(100)
             ->get();
+
+        $propertyIds = $properties->pluck('id');
+        $tourPropertyIds = VirtualTour::whereIn('property_id', $propertyIds)->pluck('property_id')->flip();
 
         $customers = Customer::where('office_id', $office->id)->latest()->limit(80)->get();
         $deals = CrmDeal::where('office_id', $office->id)->latest()->limit(30)->get();
@@ -31,11 +35,17 @@ class OfficeContextBuilder
         $cities = $properties->pluck('city')->filter()->countBy()->sortDesc();
         $types = $properties->pluck('type')->filter()->countBy();
 
-        $topViewed = $properties->sortByDesc(fn (Property $p) => $p->media()->count())->take(5)->values();
+        $topViewed = $properties->sortByDesc('media_count')->take(5)->values();
         $newest = $properties->take(5)->values();
-        $stale = $properties->filter(fn (Property $p) => $p->created_at && $p->created_at->lt(now()->subDays(45)))->take(5)->values();
+        $stale = $properties
+            ->filter(fn (Property $p) => $p->created_at && $p->created_at->lt(now()->subDays(45)))
+            ->sortBy('created_at')
+            ->take(5)
+            ->values();
 
         $avgPrice = $properties->where('price', '>', 0)->avg('price');
+
+        $mapFn = fn (Property $p) => $this->mapProperty($p, $tourPropertyIds->has($p->id));
 
         return [
             'office' => [
@@ -54,9 +64,9 @@ class OfficeContextBuilder
                 'top_cities' => $cities->take(3)->keys()->all(),
                 'type_breakdown' => $types->map(fn ($c, $t) => ['type' => (string) $t, 'count' => $c])->values()->all(),
             ],
-            'top_properties' => $topViewed->map(fn (Property $p) => $this->mapProperty($p))->all(),
-            'new_properties' => $newest->map(fn (Property $p) => $this->mapProperty($p))->all(),
-            'stale_properties' => $stale->map(fn (Property $p) => $this->mapProperty($p))->all(),
+            'top_properties' => $topViewed->map($mapFn)->all(),
+            'new_properties' => $newest->map($mapFn)->all(),
+            'stale_properties' => $stale->map($mapFn)->all(),
             'customers' => [
                 'total' => $customers->count(),
                 'top_budget' => $customers->max('budget_max'),
@@ -69,7 +79,7 @@ class OfficeContextBuilder
             ],
             'performance' => [
                 'top_consultant' => $this->topConsultant($office),
-                'total_views' => $properties->count() * 3,
+                'total_views' => $properties->sum('media_count') * 2,
             ],
             'generated_at' => now()->toIso8601String(),
         ];
@@ -78,17 +88,21 @@ class OfficeContextBuilder
     /** @return array<string, mixed> */
     public function propertyContext(Property $property): array
     {
-        $property->loadCount('views');
+        $property->loadMissing(['media'])->loadCount('media');
+        $hasTour = VirtualTour::where('property_id', $property->id)->exists();
 
-        return $this->mapProperty($property);
+        return $this->mapProperty($property, $hasTour);
     }
 
     /** @return array<string, mixed> */
-    private function mapProperty(Property $property): array
+    private function mapProperty(Property $property, bool $hasTour = false): array
     {
+        $mediaCount = $property->media_count ?? $property->media()->count();
+
         return [
             'id' => $property->id,
             'code' => $property->code,
+            'title' => $property->title,
             'type' => $property->type?->label(),
             'type_value' => $property->type?->value,
             'category' => $property->property_category?->label(),
@@ -101,8 +115,9 @@ class OfficeContextBuilder
             'district' => $property->district,
             'neighborhood' => $property->neighborhood,
             'description' => $property->description,
-            'views' => $property->media()->count() * 2,
-            'has_virtual_tour' => VirtualTour::where('property_id', $property->id)->exists(),
+            'features' => $property->features,
+            'views' => max(1, $mediaCount * 2),
+            'has_virtual_tour' => $hasTour,
             'created_days_ago' => $property->created_at ? $property->created_at->diffInDays(now()) : null,
         ];
     }

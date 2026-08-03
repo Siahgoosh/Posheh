@@ -14,6 +14,7 @@ interface Props {
   onChange: (isoDate: string) => void
   required?: boolean
   label?: string
+  hasError?: boolean
 }
 
 function daysInJalaliMonth(year: number, month: number): number {
@@ -40,7 +41,7 @@ function toIso(y: number, m: number, d: number): string {
   return `${g.getFullYear()}-${pad(g.getMonth() + 1)}-${pad(g.getDate())}`
 }
 
-export function JalaliDatePicker({ value, onChange, required, label }: Props) {
+export function JalaliDatePicker({ value, onChange, required, label, hasError }: Props) {
   const parsed = parseIso(value)
   const currentJy = getYear(new Date())
 
@@ -73,6 +74,7 @@ export function JalaliDatePicker({ value, onChange, required, label }: Props) {
       )}
       <div className="grid grid-cols-3 gap-2">
         <Select
+          className={hasError ? 'ring-2 ring-danger/60 border-danger' : undefined}
           value={parsed ? String(parsed.d) : ''}
           onChange={(e) => e.target.value && setPart('d', Number(e.target.value))}
           required={required && !parsed}
@@ -83,6 +85,7 @@ export function JalaliDatePicker({ value, onChange, required, label }: Props) {
           ))}
         </Select>
         <Select
+          className={hasError ? 'ring-2 ring-danger/60 border-danger' : undefined}
           value={parsed ? String(parsed.m) : ''}
           onChange={(e) => e.target.value && setPart('m', Number(e.target.value))}
           required={required && !parsed}
@@ -93,6 +96,7 @@ export function JalaliDatePicker({ value, onChange, required, label }: Props) {
           ))}
         </Select>
         <Select
+          className={hasError ? 'ring-2 ring-danger/60 border-danger' : undefined}
           value={parsed ? String(parsed.y) : ''}
           onChange={(e) => e.target.value && setPart('y', Number(e.target.value))}
           required={required && !parsed}

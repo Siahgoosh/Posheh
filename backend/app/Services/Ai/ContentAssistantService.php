@@ -35,7 +35,7 @@ class ContentAssistantService
         $tone = $options['tone'] ?? 'friendly';
         $propertyId = $options['property_id'] ?? null;
         $property = $propertyId
-            ? Property::where('office_id', $office->id)->findOrFail($propertyId)
+            ? Property::where('office_id', $office->id)->withCount('media')->findOrFail($propertyId)
             : null;
 
         $context = $this->contextBuilder->build($office);

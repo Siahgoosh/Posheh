@@ -92,16 +92,24 @@ class ContentAssistantController extends Controller
     {
         $officeId = $request->user()->office_id;
         $props = Property::where('office_id', $officeId)
-            ->active()
+            ->where('status', \App\Enums\PropertyStatus::Active)
+            ->withCount('media')
             ->latest()
             ->limit(50)
-            ->get(['id', 'code', 'type', 'city', 'district', 'price', 'area']);
+            ->get(['id', 'code', 'title', 'type', 'city', 'district', 'price', 'area', 'rooms']);
 
         return response()->json([
             'data' => $props->map(fn (Property $p) => [
                 'id' => $p->id,
                 'code' => $p->code,
-                'label' => "کد {$p->code} — {$p->type?->label()} {$p->district}",
+                'label' => trim(sprintf(
+                    'کد %s — %s %s%s%s',
+                    $p->code,
+                    $p->type?->label() ?? 'ملک',
+                    $p->district ?: $p->city ?: '',
+                    $p->area ? " · {$p->area}م" : '',
+                    $p->price ? ' · '.number_format($p->price).' ت' : '',
+                )),
             ]),
         ]);
     }

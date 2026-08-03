@@ -45,6 +45,7 @@ export function ContentAssistantPage() {
   const [output, setOutput] = useState('')
   const [reason, setReason] = useState('')
   const [copied, setCopied] = useState(false)
+  const [genError, setGenError] = useState('')
 
   const { data: types } = useQuery({
     queryKey: ['ai-content-types'],
@@ -54,7 +55,7 @@ export function ContentAssistantPage() {
     enabled: hasAi,
   })
 
-  const { data: properties } = useQuery({
+  const { data: properties, isError: propertiesError } = useQuery({
     queryKey: ['ai-content-properties'],
     queryFn: async () => (await api.get('/ai/content/properties')).data.data as { id: number; label: string }[],
     enabled: hasAi,
@@ -82,6 +83,15 @@ export function ContentAssistantPage() {
     onSuccess: (data) => {
       setOutput(data.output)
       setReason(data.meta?.reason ?? '')
+      setGenError('')
+    },
+    onError: (err: unknown) => {
+      const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      setGenError(
+        Object.values(e.response?.data?.errors ?? {}).flat().join('، ')
+          || e.response?.data?.message
+          || 'خطا در تولید محتوا — دوباره تلاش کنید',
+      )
     },
   })
 
@@ -214,19 +224,26 @@ export function ContentAssistantPage() {
               </div>
 
               <div>
-                <label className="text-xs text-muted mb-1 block">فایل ملک (اختیاری)</label>
+                <label className="text-xs text-muted mb-1 block">فایل ملک</label>
                 <div className="relative">
                   <select
                     value={propertyId}
                     onChange={(e) => setPropertyId(e.target.value ? Number(e.target.value) : '')}
                     className="w-full rounded-xl border border-card-border bg-background px-3 py-2 text-sm appearance-none"
                   >
-                    <option value="">خودکار — بهترین فایل</option>
+                    <option value="">خودکار — بهترین فایل فعال دفتر</option>
                     {properties?.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                   </select>
                   <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none" />
                 </div>
+                {propertiesError && <p className="text-xs text-danger mt-1">بارگذاری فایل‌ها ناموفق بود</p>}
+                {!propertiesError && properties?.length === 0 && (
+                  <p className="text-xs text-warning mt-1">فایل فعالی ندارید — ابتدا یک ملک ثبت کنید</p>
+                )}
+                <p className="text-[11px] text-muted mt-1">داده از فایلینگ خوانده می‌شود: قیمت، متراژ، منطقه، توضیحات</p>
               </div>
+
+              {genError && <p className="text-xs text-danger">{genError}</p>}
 
               <Button className="w-full" size="lg" onClick={() => generate.mutate(undefined)} disabled={generate.isPending}>
                 <Sparkles className="h-4 w-4" />

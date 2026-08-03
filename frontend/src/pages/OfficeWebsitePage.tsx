@@ -108,7 +108,7 @@ export function OfficeWebsitePage() {
       id: number; name: string; mobile: string; email?: string; property_code?: string
       preferred_date?: string; preferred_time?: string; message?: string; status: string; created_at?: string
     }[],
-    enabled: hasWebsite && status?.website_status === 'published',
+    enabled: hasWebsite,
   })
 
   const { data: pendingProps } = useQuery({
@@ -117,7 +117,7 @@ export function OfficeWebsitePage() {
       id: number; code: string; type_label?: string; price?: number; city?: string; district?: string
       area?: number; creator?: { name?: string }
     }[],
-    enabled: hasWebsite && status?.website_status === 'published',
+    enabled: hasWebsite,
   })
 
   const approveMutation = useMutation({
@@ -411,11 +411,11 @@ export function OfficeWebsitePage() {
         </Card>
       )}
 
-      {status?.website_status === 'published' && (
+      {hasWebsite && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <CalendarClock className="h-4 w-4 text-primary" /> درخواست‌های بازدید
+              <CalendarClock className="h-4 w-4 text-primary" /> درخواست‌های بازدید وبسایت
               {visitRequests?.length ? <span className="text-xs text-muted">({toPersianDigits(String(visitRequests.length))})</span> : null}
             </CardTitle>
           </CardHeader>

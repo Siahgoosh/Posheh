@@ -144,20 +144,53 @@ export function flattenFieldGroups(groups: FilingFieldGroups): FilingField[] {
   ]
 }
 
+export interface FilingValidationResult {
+  message: string
+  field?: string
+  fieldErrors: Record<string, string>
+}
+
 export function validateFilingForm(
   values: FilingFormValues,
   fields: FilingField[],
-): string | null {
+): FilingValidationResult | null {
+  const fieldErrors: Record<string, string> = {}
+
   for (const field of fields) {
     if (!field.required || field.key === 'show_on_website') continue
     const val = values[field.key]
     const empty = val === '' || val === undefined || val === null
       || (Array.isArray(val) && val.length === 0)
-    if (empty) return `فیلد «${field.label}» الزامی است`
+    if (empty) {
+      fieldErrors[field.key] = `فیلد «${field.label}» الزامی است`
+    }
   }
+
   const mobile = String(values.owner_mobile ?? '').replace(/\D/g, '')
-  if (mobile.length < 11) return 'شماره موبایل مالک باید ۱۱ رقم باشد'
-  return null
+  if (mobile.length < 11) {
+    fieldErrors.owner_mobile = 'شماره موبایل مالک باید ۱۱ رقم باشد'
+  }
+
+  const keys = Object.keys(fieldErrors)
+  if (!keys.length) return null
+
+  const firstKey = keys[0]
+  return {
+    message: fieldErrors[firstKey],
+    field: firstKey,
+    fieldErrors,
+  }
+}
+
+/** Map Laravel validation keys to form field keys */
+export function parseApiFieldErrors(errors?: Record<string, string[]>): Record<string, string> {
+  if (!errors) return {}
+  const out: Record<string, string> = {}
+  for (const [key, msgs] of Object.entries(errors)) {
+    const base = key.split('.')[0]
+    out[base] = msgs[0] ?? 'مقدار نامعتبر'
+  }
+  return out
 }
 
 /** Fields hidden from form UI */

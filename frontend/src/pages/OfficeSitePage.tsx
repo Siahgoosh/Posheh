@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import api from '@/lib/api'
 import { toPersianDigits, toEnglishDigits, normalizeMobile, formatJalaliDate } from '@/lib/utils'
+import { resolveSiteTheme } from '@/lib/officeSiteTheme'
 import { SeoHead } from '@/components/seo/SeoHead'
 
 interface Agent {
@@ -133,9 +134,8 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
   })
 
   const brand = data?.office.theme?.brand_color || data?.office.brand_color || '#0f766e'
-  const themeId = data?.office.theme?.id || 'modern'
-  const isDark = themeId === 'luxury'
-  const isClassic = themeId === 'classic'
+  const theme = resolveSiteTheme(data?.office.theme, brand)
+  const isClassicHero = data?.office.theme?.hero_style === 'solid' || theme.id === 'classic'
 
   const filtered = useMemo(() => {
     if (!data) return []
@@ -165,11 +165,11 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
   const office = data.office
 
   return (
-    <div dir="rtl" className={`min-h-screen ${isDark ? 'bg-neutral-950 text-neutral-100' : isClassic ? 'bg-stone-100 text-stone-900' : 'bg-slate-50 text-slate-800'}`}>
+    <div dir="rtl" className={`min-h-screen ${theme.page}`}>
       <SeoHead title={`${office.name} | املاک`} description={office.description || `دفتر املاک ${office.name}`} path={`/site/${subdomain}`} />
 
       {/* Header */}
-      <header className={`sticky top-0 z-30 backdrop-blur border-b ${isDark ? 'bg-neutral-900/90 border-neutral-800' : isClassic ? 'bg-slate-900 text-white border-slate-800' : 'bg-white/90 border-slate-200'}`}>
+      <header className={`sticky top-0 z-30 backdrop-blur border-b ${theme.header}`}>
         <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {office.logo_url ? (
@@ -180,18 +180,18 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
               </div>
             )}
             <div className="min-w-0">
-              <p className="font-bold truncate flex items-center gap-1">
+              <p className={`font-bold truncate flex items-center gap-1 ${theme.headerText}`}>
                 {office.brand_name}
                 {office.is_verified && <BadgeCheck className="h-4 w-4" style={{ color: brand }} />}
               </p>
-              {office.city && <p className="text-xs text-slate-400 truncate">{office.city}</p>}
+              {office.city && <p className={`text-xs truncate ${theme.muted}`}>{office.city}</p>}
             </div>
           </div>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-slate-600">
-            <a href="#listings" className="hover:text-slate-900 transition-colors">املاک</a>
-            {data.posts.length > 0 && <a href="#blog" className="hover:text-slate-900 transition-colors">اخبار و مقالات</a>}
-            {data.agents.length > 0 && <a href="#agents" className="hover:text-slate-900 transition-colors">مشاوران</a>}
-            <a href="#contact" className="hover:text-slate-900 transition-colors">تماس</a>
+          <nav className={`hidden md:flex items-center gap-6 text-sm ${theme.nav}`}>
+            <a href="#listings" className={theme.navHover}>املاک</a>
+            {data.posts.length > 0 && <a href="#blog" className={theme.navHover}>اخبار و مقالات</a>}
+            {data.agents.length > 0 && <a href="#agents" className={theme.navHover}>مشاوران</a>}
+            <a href="#contact" className={theme.navHover}>تماس</a>
           </nav>
           {office.phone && (
             <a href={`tel:${office.phone}`} className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white shadow-sm" style={{ background: brand }}>
@@ -205,23 +205,23 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10" style={{ background: `linear-gradient(135deg, ${brand}14, transparent 60%)` }} />
+        <div className="absolute inset-0 -z-10" style={{ background: isClassicHero ? theme.heroOverlay : theme.heroOverlay }} />
         <div className="mx-auto max-w-6xl px-4 py-16 md:py-20">
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium" style={{ borderColor: `${brand}44`, color: brand, background: `${brand}0d` }}>
               <Home className="h-3.5 w-3.5" /> دفتر مشاور املاک
             </span>
-            <h1 className="mt-5 text-3xl md:text-5xl font-black leading-tight">
+            <h1 className={`mt-5 text-3xl md:text-5xl font-black leading-tight ${theme.hero}`}>
               {office.theme?.hero_title || office.name}
             </h1>
             {(office.theme?.hero_subtitle || office.description) && (
-              <p className="mt-4 text-slate-600 leading-relaxed text-lg">{office.theme?.hero_subtitle || office.description}</p>
+              <p className={`mt-4 leading-relaxed text-lg ${theme.body}`}>{office.theme?.hero_subtitle || office.description}</p>
             )}
             <div className="mt-7 flex flex-wrap gap-3">
               <a href="#listings" className="inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold text-white shadow-lg" style={{ background: brand }}>
                 {office.theme?.cta_text || 'مشاهده املاک'} <ArrowLeft className="h-4 w-4" />
               </a>
-              <a href="#contact" className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 hover:border-slate-400">
+              <a href="#contact" className={`inline-flex items-center gap-2 rounded-xl border px-5 py-3 font-semibold transition-colors ${theme.chipInactive}`}>
                 رزرو بازدید
               </a>
             </div>
@@ -232,10 +232,10 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
                   { label: 'مقاله', value: office.stats.posts, icon: Newspaper },
                   { label: 'مشاور', value: office.stats.agents, icon: Users },
                 ].map((s) => (
-                  <div key={s.label} className={`rounded-2xl p-4 text-center shadow-sm border ${isDark ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-slate-200'}`}>
+                  <div key={s.label} className={`rounded-2xl p-4 text-center shadow-sm border ${theme.card}`}>
                     <s.icon className="h-5 w-5 mx-auto mb-1.5" style={{ color: brand }} />
-                    <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{toPersianDigits(String(s.value))}</p>
-                    <p className="text-xs text-slate-400">{s.label}</p>
+                    <p className={`text-2xl font-bold ${theme.heading}`}>{toPersianDigits(String(s.value))}</p>
+                    <p className={`text-xs ${theme.muted}`}>{s.label}</p>
                   </div>
                 ))}
               </div>
@@ -248,23 +248,23 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
       <section id="listings" className="mx-auto max-w-6xl px-4 py-14">
         <div className="flex items-end justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">املاک ما</h2>
-            <p className="text-slate-400 text-sm mt-1">جدیدترین فایل‌های دفتر</p>
+            <h2 className={`text-2xl font-bold ${theme.heading}`}>املاک ما</h2>
+            <p className={`text-sm mt-1 ${theme.muted}`}>جدیدترین فایل‌های دفتر</p>
           </div>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
-          {TYPE_FILTERS.map((t) => {
-            const active = typeFilter === t.value
+          {TYPE_FILTERS.map((tf) => {
+            const active = typeFilter === tf.value
             return (
               <button
-                key={t.value}
-                onClick={() => setTypeFilter(t.value)}
+                key={tf.value}
+                onClick={() => setTypeFilter(tf.value)}
                 className="shrink-0 rounded-full px-4 py-1.5 text-sm font-medium border transition-colors"
                 style={active
                   ? { background: brand, color: '#fff', borderColor: brand }
-                  : { background: '#fff', color: '#475569', borderColor: '#e2e8f0' }}
+                  : { background: 'transparent', color: theme.muted, borderColor: theme.cardBorder }}
               >
-                {t.label}
+                {tf.label}
               </button>
             )
           })}
@@ -280,8 +280,8 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
             {filtered.map((p) => {
               const pl = priceLines(p)
               return (
-                <article key={p.id} className="group rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
-                  <div className="relative h-48 bg-slate-100 overflow-hidden">
+                <article key={p.id} className={`group rounded-2xl border overflow-hidden flex flex-col transition-shadow ${theme.card} ${theme.cardHover}`}>
+                  <div className={`relative h-48 overflow-hidden ${theme.id === 'luxury' ? 'bg-neutral-800' : 'bg-slate-100'}`}>
                     {p.cover_url ? (
                       <img src={p.cover_url} alt={p.code} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
@@ -341,24 +341,24 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
 
       {/* Blog */}
       {data.posts.length > 0 && (
-        <section id="blog" className="bg-white border-y border-slate-200">
+        <section id="blog" className={`border-y ${theme.sectionAlt}`}>
           <div className="mx-auto max-w-6xl px-4 py-14">
-            <h2 className="text-2xl font-bold text-slate-900">اخبار و مقالات</h2>
-            <p className="text-slate-400 text-sm mt-1 mb-6">تازه‌ترین مطالب دفتر</p>
+            <h2 className={`text-2xl font-bold ${theme.heading}`}>اخبار و مقالات</h2>
+            <p className={`text-sm mt-1 mb-6 ${theme.muted}`}>تازه‌ترین مطالب دفتر</p>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               {data.posts.map((post) => (
                 <button
                   key={post.id}
                   onClick={() => setReading(post)}
-                  className="text-right rounded-2xl border border-slate-200 bg-slate-50 p-5 hover:shadow-md transition-shadow flex flex-col"
+                  className={`text-right rounded-2xl border p-5 transition-shadow flex flex-col ${theme.card} ${theme.cardHover}`}
                 >
                   <span className="inline-flex items-center gap-1 text-xs text-slate-400 mb-2">
                     <CalendarDays className="h-3.5 w-3.5" />
                     {post.created_at ? formatJalaliDate(post.created_at) : ''}
                   </span>
-                  <h3 className="font-bold text-slate-900 leading-snug">{post.title}</h3>
+                  <h3 className={`font-bold leading-snug ${theme.heading}`}>{post.title}</h3>
                   {(post.excerpt || post.body) && (
-                    <p className="mt-2 text-sm text-slate-500 line-clamp-3 leading-relaxed flex-1">{post.excerpt || post.body}</p>
+                    <p className={`mt-2 text-sm line-clamp-3 leading-relaxed flex-1 ${theme.body}`}>{post.excerpt || post.body}</p>
                   )}
                   <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium" style={{ color: brand }}>
                     ادامه مطلب <ChevronLeft className="h-4 w-4" />
@@ -373,11 +373,11 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
       {/* Agents */}
       {data.agents.length > 0 && office.theme?.show_team !== false && (
         <section id="agents" className="mx-auto max-w-6xl px-4 py-14">
-          <h2 className="text-2xl font-bold text-slate-900">مشاوران ما</h2>
-          <p className="text-slate-400 text-sm mt-1 mb-6">برای مشاوره مستقیم تماس بگیرید</p>
+          <h2 className={`text-2xl font-bold ${theme.heading}`}>مشاوران ما</h2>
+          <p className={`text-sm mt-1 mb-6 ${theme.muted}`}>برای مشاوره مستقیم تماس بگیرید</p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {data.agents.map((a, i) => (
-              <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+              <div key={i} className={`rounded-2xl border p-5 text-center ${theme.card}`}>
                 {a.avatar_url ? (
                   <img src={a.avatar_url} alt={a.name} className="h-20 w-20 rounded-full object-cover mx-auto" />
                 ) : (
@@ -385,8 +385,8 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
                     {a.name?.charAt(0) || <User2 className="h-8 w-8" />}
                   </div>
                 )}
-                <p className="mt-3 font-bold text-slate-900">{a.name}</p>
-                <p className="text-xs text-slate-400">{a.role_label}</p>
+                <p className={`mt-3 font-bold ${theme.heading}`}>{a.name}</p>
+                <p className={`text-xs ${theme.muted}`}>{a.role_label}</p>
                 {a.mobile && (
                   <div className="mt-3 flex justify-center gap-2">
                     <a href={`tel:${a.mobile}`} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 hover:border-slate-300" title="تماس">
@@ -404,11 +404,11 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
       )}
 
       {/* Contact + Visit form */}
-      <section id="contact" className="bg-white border-t border-slate-200">
+      <section id="contact" className={`border-t ${theme.sectionAlt}`}>
         <div className="mx-auto max-w-6xl px-4 py-14 grid lg:grid-cols-2 gap-10">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">تماس با ما</h2>
-            <p className="text-slate-500 mt-2 leading-relaxed">برای بازدید ملک یا مشاوره رایگان با ما در ارتباط باشید.</p>
+            <h2 className={`text-2xl font-bold ${theme.heading}`}>تماس با ما</h2>
+            <p className={`mt-2 leading-relaxed ${theme.body}`}>برای بازدید ملک یا مشاوره رایگان با ما در ارتباط باشید.</p>
             <div className="mt-6 space-y-4">
               {office.address && (
                 <div className="flex items-start gap-3">
@@ -431,9 +431,9 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-            <h3 className="font-bold text-slate-900 flex items-center gap-2"><CalendarDays className="h-5 w-5" style={{ color: brand }} /> درخواست بازدید عمومی</h3>
-            <p className="text-sm text-slate-400 mt-1">اطلاعات خود را وارد کنید تا با شما تماس بگیریم.</p>
+          <div className={`rounded-2xl border p-6 ${theme.card}`}>
+            <h3 className={`font-bold flex items-center gap-2 ${theme.heading}`}><CalendarDays className="h-5 w-5" style={{ color: brand }} /> درخواست بازدید عمومی</h3>
+            <p className={`text-sm mt-1 ${theme.muted}`}>اطلاعات خود را وارد کنید تا با شما تماس بگیریم.</p>
             <div className="mt-4">
               <button onClick={() => setBooking({ id: 0, code: '' } as SiteProperty)} className="w-full inline-flex items-center justify-center gap-2 rounded-xl py-3 font-semibold text-white" style={{ background: brand }}>
                 <Send className="h-4 w-4" /> ثبت درخواست بازدید
@@ -444,14 +444,14 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-300">
+      <footer className={`border-t ${theme.footer}`}>
         <div className="mx-auto max-w-6xl px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
           <div className="flex items-center gap-2">
             <Building2 className="h-5 w-5" style={{ color: brand }} />
             <span>{office.name}</span>
           </div>
-          <p className="text-slate-500">© {toPersianDigits(String(new Date().getFullYear()))} — تمامی حقوق محفوظ است</p>
-          <a href="https://posheapp.ir" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white">قدرت گرفته از پوشه</a>
+          <p className={theme.footerMuted}>© {toPersianDigits(String(new Date().getFullYear()))} — تمامی حقوق محفوظ است</p>
+          <a href="https://posheapp.ir" target="_blank" rel="noreferrer" className={`${theme.footerMuted} hover:opacity-80`}>قدرت گرفته از پوشه</a>
         </div>
       </footer>
 
