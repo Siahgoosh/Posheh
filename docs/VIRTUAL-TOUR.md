@@ -127,10 +127,24 @@
 
 ## Deploy
 
+روی سرور پوشه PHP روی host نصب نیست — از Docker استفاده کنید:
+
 ```bash
+cd /var/www/posheh
 ./scripts/deploy.sh cursor/virtual-tour-enterprise-e117
-php artisan migrate --force
 ```
+
+فقط migration:
+
+```bash
+./scripts/migrate.sh
+# یا: docker compose exec app php artisan migrate --force
+```
+
+### اتصال صحنه (Interactive Scene Linking)
+1. تب **اتصال** → روی تصویر کلیک کنید
+2. صحنه مقصد را انتخاب کنید
+3. **ذخیره اتصال‌ها** — مختصات خودکار ثبت می‌شود
 
 ### متغیرهای محیطی (اختیاری)
 
