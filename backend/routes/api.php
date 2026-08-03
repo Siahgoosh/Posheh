@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\CommissionController;
 use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\DownloadController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Office\OfficeController;
 use App\Http\Controllers\Api\Office\TeamChatController;
 use App\Http\Controllers\Api\OfficePublicController;
@@ -105,6 +106,10 @@ Route::prefix('v1')->group(function () {
             ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
 
         Route::get('/dashboard', [DashboardController::class, 'index']);
+
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 
         Route::get('/filing/schema', [\App\Http\Controllers\Api\Property\FilingSchemaController::class, 'index']);
         Route::get('/filing/fields', [\App\Http\Controllers\Api\Property\FilingSchemaController::class, 'fields']);
