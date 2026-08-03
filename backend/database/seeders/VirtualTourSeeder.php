@@ -46,6 +46,9 @@ class VirtualTourSeeder extends Seeder
 
         $living = $tour->scenes()->create([
             'name' => 'پذیرایی',
+            'status' => 'published',
+            'is_default' => true,
+            'is_visible' => true,
             'panorama_path' => 'demo/sphere.jpg',
             'default_yaw' => 0,
             'sort_order' => 0,
@@ -55,6 +58,9 @@ class VirtualTourSeeder extends Seeder
 
         $kitchen = $tour->scenes()->create([
             'name' => 'آشپزخانه',
+            'status' => 'published',
+            'is_default' => false,
+            'is_visible' => true,
             'panorama_path' => 'demo/sphere-small.jpg',
             'default_yaw' => 90,
             'sort_order' => 1,
@@ -64,6 +70,9 @@ class VirtualTourSeeder extends Seeder
 
         $bedroom = $tour->scenes()->create([
             'name' => 'اتاق خواب',
+            'status' => 'published',
+            'is_default' => false,
+            'is_visible' => true,
             'panorama_path' => 'demo/sphere.jpg',
             'default_yaw' => 180,
             'sort_order' => 2,
@@ -87,8 +96,12 @@ class VirtualTourSeeder extends Seeder
             'yaw' => -30,
             'pitch' => 10,
             'title' => 'نورگیری عالی',
+            'label' => 'نورگیری',
+            'tooltip' => 'اطلاعات نورگیری',
             'content' => 'پنجره‌های دوجداره با نمای جنوبی',
             'icon' => 'info',
+            'style' => ['color' => '#6366f1', 'pulse' => true, 'glow' => true],
+            'popup' => ['title' => 'نورگیری عالی', 'description' => 'پنجره‌های دوجداره با نمای جنوبی'],
         ]);
 
         VirtualTourHotspot::create([
