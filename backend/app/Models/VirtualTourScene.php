@@ -11,8 +11,14 @@ class VirtualTourScene extends Model
     protected $fillable = [
         'virtual_tour_id',
         'name',
+        'status',
+        'is_default',
+        'is_visible',
         'panorama_path',
         'thumbnail_path',
+        'panorama_width',
+        'panorama_height',
+        'file_size',
         'default_yaw',
         'default_pitch',
         'sort_order',
@@ -23,10 +29,15 @@ class VirtualTourScene extends Model
     protected function casts(): array
     {
         return [
+            'is_default' => 'boolean',
+            'is_visible' => 'boolean',
             'default_yaw' => 'float',
             'default_pitch' => 'float',
             'floor_plan_x' => 'float',
             'floor_plan_y' => 'float',
+            'panorama_width' => 'integer',
+            'panorama_height' => 'integer',
+            'file_size' => 'integer',
         ];
     }
 

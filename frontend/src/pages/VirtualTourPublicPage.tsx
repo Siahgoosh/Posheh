@@ -2,11 +2,10 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import {
-  Share2, Phone, MessageCircle, MapPin, Images, X, Copy, Check,
-  Eye,
+  Share2, Phone, MessageCircle, MapPin, Images, X, Copy, Check, Eye,
 } from 'lucide-react'
 import api from '@/lib/api'
-import { VirtualTourViewer, type TourData } from '@/components/virtual-tour/VirtualTourViewer'
+import { TourViewer, type TourData } from '@/features/virtual-tour'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -15,8 +14,6 @@ import { Badge } from '@/components/ui/badge'
 interface TourPayload extends TourData {
   slug: string
   view_count: number
-  property?: { code: string; type: string; price?: number; area?: number; city?: string; district?: string }
-  office?: { name: string; phone?: string }
   gallery?: { id: number; type: string; url: string; title?: string }[]
   public_url?: string
   settings?: TourData['settings'] & {
@@ -82,12 +79,11 @@ export function VirtualTourPublicPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
-      {/* Header — like 360nama branding bar */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/40 backdrop-blur z-30">
         <div className="flex items-center gap-3">
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold"
-            style={{ background: tour.settings?.brand_color || '#6366f1' }}
+            style={{ background: tour.settings?.brand_color || '#2dd4bf' }}
           >
             ۳۶۰
           </div>
@@ -109,12 +105,10 @@ export function VirtualTourPublicPage() {
         </div>
       </header>
 
-      {/* 360 Viewer */}
       <div className="flex-1 relative" style={{ minHeight: '65vh' }}>
-        <VirtualTourViewer tour={tour} className="h-full" showSceneList />
+        <TourViewer tour={tour} className="h-full" showControls showSceneName />
       </div>
 
-      {/* Property info bar */}
       <div className="border-t border-white/10 bg-black/60 backdrop-blur px-4 py-4">
         <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -152,7 +146,7 @@ export function VirtualTourPublicPage() {
               </a>
             )}
             {tour.settings?.show_contact_form !== false && (
-              <Button size="sm" onClick={() => setShowForm(true)} style={{ background: tour.settings?.brand_color || '#6366f1' }}>
+              <Button size="sm" onClick={() => setShowForm(true)} style={{ background: tour.settings?.brand_color || '#2dd4bf' }}>
                 درخواست بازدید
               </Button>
             )}
@@ -160,7 +154,6 @@ export function VirtualTourPublicPage() {
         </div>
       </div>
 
-      {/* Gallery modal */}
       {showGallery && tour.gallery && (
         <div className="fixed inset-0 z-50 bg-black/90 flex flex-col">
           <div className="flex justify-between items-center p-4">
@@ -178,7 +171,6 @@ export function VirtualTourPublicPage() {
         </div>
       )}
 
-      {/* Contact form modal — like 360nama consultation form */}
       {showForm && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <Card className="w-full max-w-md p-6 space-y-4">
