@@ -33,7 +33,7 @@ class TourManager
             'slug' => $slug,
             'description' => $data['description'] ?? null,
             'status' => 'draft',
-            'visibility' => 'private',
+            'visibility' => 'public',
             'share_token' => \Illuminate\Support\Str::random(32),
             'settings' => $this->defaultSettings($user),
         ]);
@@ -43,7 +43,7 @@ class TourManager
     {
         $tour = $this->findForOffice($user, $id);
 
-        $tour->update(array_filter([
+        $updates = array_filter([
             'title' => $data['title'] ?? null,
             'description' => $data['description'] ?? null,
             'property_id' => $data['property_id'] ?? null,
@@ -52,7 +52,16 @@ class TourManager
             'visibility' => $data['visibility'] ?? null,
             'expires_at' => $data['expires_at'] ?? null,
             'published_at' => ($data['status'] ?? null) === 'published' ? now() : $tour->published_at,
-        ], fn ($v) => $v !== null));
+        ], fn ($v) => $v !== null);
+
+        $tour->update($updates);
+
+        if (($data['status'] ?? null) === 'published') {
+            $tour->scenes()->where('is_visible', true)->update(['status' => 'published']);
+            if (! isset($data['visibility'])) {
+                $tour->update(['visibility' => 'public']);
+            }
+        }
 
         return $tour->fresh(['scenes.hotspots', 'media', 'property']);
     }
@@ -69,7 +78,13 @@ class TourManager
         return VirtualTour::published()
             ->where('slug', $slug)
             ->with([
-                'scenes' => fn ($q) => $q->where('is_visible', true)->where('status', 'published'),
+                'scenes' => fn ($q) => $q
+                    ->where('is_visible', true)
+                    ->where(function ($q) {
+                        $q->where('status', 'published')
+                            ->orWhereNull('status');
+                    })
+                    ->orderBy('sort_order'),
                 'scenes.hotspots.targetScene',
                 'media',
                 'property',

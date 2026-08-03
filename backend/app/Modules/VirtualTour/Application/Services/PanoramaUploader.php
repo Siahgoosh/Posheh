@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\VirtualTourMedia;
 use App\Modules\VirtualTour\Application\Contracts\PanoramaStorageInterface;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 
 class PanoramaUploader
 {

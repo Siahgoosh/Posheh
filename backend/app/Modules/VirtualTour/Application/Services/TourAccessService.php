@@ -26,7 +26,7 @@ class TourAccessService
             throw new GoneHttpException('این تور منقضی شده است.');
         }
 
-        if ($tour->visibility === 'private') {
+        if (($tour->visibility ?? 'public') === 'private') {
             $token = $request->query('token') ?? $request->header('X-Tour-Token');
             if (! $token || ! hash_equals($tour->share_token ?? '', $token)) {
                 throw new AccessDeniedHttpException('دسترسی به این تور خصوصی مجاز نیست.');
@@ -73,7 +73,13 @@ class TourAccessService
     private function loadTourRelations(VirtualTour $tour): VirtualTour
     {
         return $tour->load([
-            'scenes' => fn ($q) => $q->where('is_visible', true)->where('status', 'published'),
+            'scenes' => fn ($q) => $q
+                ->where('is_visible', true)
+                ->where(function ($q) {
+                    $q->where('status', 'published')
+                        ->orWhereNull('status');
+                })
+                ->orderBy('sort_order'),
             'scenes.hotspots.targetScene',
             'media',
             'property',

@@ -60,7 +60,7 @@ export function TourEditorLayout({ tourId }: Props) {
   }
 
   const publishMutation = useMutation({
-    mutationFn: (status: string) => tourApi.update(tourId, { status: status as 'draft' | 'published' }),
+    mutationFn: () => tourApi.publish(tourId),
     onSuccess: invalidate,
   })
 
@@ -271,11 +271,11 @@ export function TourEditorLayout({ tourId }: Props) {
           {tour.status === 'published' ? 'منتشر شده' : 'پیش‌نویس'}
         </Badge>
         {tour.status !== 'published' ? (
-          <Button size="sm" onClick={() => publishMutation.mutate('published')}>
-            <Globe className="h-4 w-4" />انتشار تور
+          <Button size="sm" onClick={() => publishMutation.mutate()} disabled={publishMutation.isPending}>
+            <Globe className="h-4 w-4" />{publishMutation.isPending ? 'در حال انتشار...' : 'انتشار تور'}
           </Button>
         ) : (
-          <a href={`/tour/${tour.slug}`} target="_blank" rel="noreferrer">
+          <a href={tour.visibility === 'private' ? (tour.private_url || `/tour/${tour.slug}`) : `/tour/${tour.slug}`} target="_blank" rel="noreferrer">
             <Button size="sm" variant="outline"><ExternalLink className="h-4 w-4" />مشاهده عمومی</Button>
           </a>
         )}

@@ -19,15 +19,23 @@ class TourLifecycleService
 
     public function publish(User $user, VirtualTour $tour): VirtualTour
     {
-        $tour->update([
-            'status' => 'published',
-            'published_at' => now(),
-            'archived_at' => null,
-        ]);
-        $this->versionService->createSnapshot($user, $tour, 'انتشار');
-        $this->logger->log($tour, 'tour.published', $user);
+        return DB::transaction(function () use ($user, $tour) {
+            $tour->update([
+                'status' => 'published',
+                'published_at' => now(),
+                'archived_at' => null,
+                'visibility' => 'public',
+            ]);
 
-        return $tour->fresh();
+            $tour->scenes()
+                ->where('is_visible', true)
+                ->update(['status' => 'published']);
+
+            $this->versionService->createSnapshot($user, $tour->fresh(), 'انتشار');
+            $this->logger->log($tour, 'tour.published', $user);
+
+            return $tour->fresh(['scenes.hotspots', 'media']);
+        });
     }
 
     public function unpublish(User $user, VirtualTour $tour): VirtualTour

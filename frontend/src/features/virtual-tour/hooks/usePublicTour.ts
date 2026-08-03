@@ -5,7 +5,7 @@ import api from '@/lib/api'
 import { tourApi } from '../api/tourApi'
 import type { TourData } from '../types'
 
-export type PublicTourGate = 'loading' | 'password' | 'expired' | 'denied' | 'ok'
+export type PublicTourGate = 'loading' | 'password' | 'expired' | 'denied' | 'private' | 'ok'
 
 export interface PublicTourPayload extends TourData {
   slug: string
@@ -31,6 +31,7 @@ export function usePublicTour(slug: string | undefined) {
     slug ? sessionStorage.getItem(passwordStorageKey(slug)) || '' : '',
   )
   const [gate, setGate] = useState<PublicTourGate>('loading')
+  const [deniedMessage, setDeniedMessage] = useState<string | null>(null)
   const [verifyError, setVerifyError] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
 
@@ -54,20 +55,33 @@ export function usePublicTour(slug: string | undefined) {
     }
     if (query.isSuccess) {
       setGate('ok')
+      setDeniedMessage(null)
       return
     }
     if (!query.error || !axios.isAxiosError(query.error)) {
       setGate('denied')
+      setDeniedMessage(null)
       return
     }
     const status = query.error.response?.status
-    const data = query.error.response?.data as { requires_password?: boolean; expired?: boolean; message?: string }
+    const data = query.error.response?.data as {
+      requires_password?: boolean
+      expired?: boolean
+      message?: string
+      access?: { visibility?: string }
+    }
     if (status === 403 && data?.requires_password) {
       setGate('password')
+      setDeniedMessage(null)
+    } else if (status === 403 && data?.access?.visibility === 'private') {
+      setGate('private')
+      setDeniedMessage(data.message || 'این تور خصوصی است.')
     } else if (status === 410 || data?.expired) {
       setGate('expired')
+      setDeniedMessage(null)
     } else {
       setGate('denied')
+      setDeniedMessage(data?.message || null)
     }
   }, [query.isLoading, query.isSuccess, query.error])
 
@@ -95,6 +109,7 @@ export function usePublicTour(slug: string | undefined) {
   return {
     tour: query.data,
     gate,
+    deniedMessage,
     verifyPassword,
     verifyError,
     isVerifying,

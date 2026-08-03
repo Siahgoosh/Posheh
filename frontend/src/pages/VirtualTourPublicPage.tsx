@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge'
 
 export function VirtualTourPublicPage() {
   const { slug } = useParams<{ slug: string }>()
-  const { tour, gate, verifyPassword, verifyError, isVerifying } = usePublicTour(slug)
+  const { tour, gate, deniedMessage, verifyPassword, verifyError, isVerifying } = usePublicTour(slug)
   const [showGallery, setShowGallery] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -76,10 +76,20 @@ export function VirtualTourPublicPage() {
     )
   }
 
+  if (gate === 'private') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0a0a0f] text-white p-4 text-center">
+        <p className="text-muted max-w-md">{deniedMessage || 'این تور خصوصی است و نیاز به لینک دسترسی دارد.'}</p>
+        <p className="text-xs text-white/40">از ویرایشگر تور، لینک خصوصی را از تب «اشتراک» کپی کنید.</p>
+        <Link to="/"><Button variant="outline">صفحه اصلی</Button></Link>
+      </div>
+    )
+  }
+
   if (gate === 'denied' || !tour) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-muted">تور مجازی یافت نشد یا دسترسی مجاز نیست.</p>
+        <p className="text-muted">{deniedMessage || 'تور مجازی یافت نشد یا دسترسی مجاز نیست.'}</p>
         <Link to="/"><Button variant="outline">صفحه اصلی</Button></Link>
       </div>
     )
