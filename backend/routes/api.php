@@ -160,9 +160,18 @@ Route::prefix('v1')->group(function () {
             Route::put('/{id}', [VirtualTourController::class, 'update']);
             Route::get('/{id}/analytics', [VirtualTourController::class, 'analytics']);
             Route::post('/{id}/scenes', [VirtualTourController::class, 'addScene']);
+            Route::post('/{id}/scenes/upload', [VirtualTourController::class, 'uploadPanorama']);
+            Route::put('/{id}/scenes/reorder', [VirtualTourController::class, 'reorderScenes']);
             Route::put('/{id}/scenes/{sceneId}', [VirtualTourController::class, 'updateScene']);
             Route::delete('/{id}/scenes/{sceneId}', [VirtualTourController::class, 'deleteScene']);
+            Route::post('/{id}/scenes/{sceneId}/duplicate', [VirtualTourController::class, 'duplicateScene']);
+            Route::post('/{id}/scenes/{sceneId}/publish', [VirtualTourController::class, 'publishScene']);
+            Route::post('/{id}/scenes/{sceneId}/unpublish', [VirtualTourController::class, 'unpublishScene']);
+            Route::post('/{id}/scenes/{sceneId}/default', [VirtualTourController::class, 'setDefaultScene']);
             Route::put('/{id}/scenes/{sceneId}/hotspots', [VirtualTourController::class, 'syncHotspots']);
+            Route::post('/{id}/scenes/{sceneId}/hotspots', [VirtualTourController::class, 'addHotspot']);
+            Route::put('/{id}/scenes/{sceneId}/hotspots/{hotspotId}', [VirtualTourController::class, 'updateHotspot']);
+            Route::delete('/{id}/scenes/{sceneId}/hotspots/{hotspotId}', [VirtualTourController::class, 'deleteHotspot']);
             Route::post('/{id}/media', [VirtualTourController::class, 'uploadMedia']);
         });
 
