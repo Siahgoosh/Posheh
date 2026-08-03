@@ -9,6 +9,7 @@ class TourViewerSerializer
 {
     public function __construct(
         private readonly PanoramaStorageInterface $storage,
+        private readonly HotspotSerializer $hotspotSerializer,
     ) {}
 
     public function serialize(VirtualTour $tour): array
@@ -58,6 +59,11 @@ class TourViewerSerializer
             'thumbnail_url' => $scene->thumbnail_path ? $this->storage->url($scene->thumbnail_path) : null,
             'default_yaw' => (float) $scene->default_yaw,
             'default_pitch' => (float) $scene->default_pitch,
+            'default_fov' => $scene->default_fov ? (int) $scene->default_fov : null,
+            'background_music' => $scene->background_music,
+            'ambient_sound' => $scene->ambient_sound,
+            'transition_effect' => $scene->transition_effect ?? 'fade',
+            'scene_settings' => $scene->scene_settings ?? [],
             'sort_order' => (int) $scene->sort_order,
             'panorama_width' => $scene->panorama_width,
             'panorama_height' => $scene->panorama_height,
@@ -65,17 +71,7 @@ class TourViewerSerializer
             'floor_plan_x' => $scene->floor_plan_x,
             'floor_plan_y' => $scene->floor_plan_y,
             'hotspots' => $scene->relationLoaded('hotspots')
-                ? $scene->hotspots->map(fn ($h) => [
-                    'id' => $h->id,
-                    'type' => $h->type,
-                    'target_scene_id' => $h->target_scene_id,
-                    'yaw' => (float) $h->yaw,
-                    'pitch' => (float) $h->pitch,
-                    'title' => $h->title,
-                    'content' => $h->content,
-                    'link_url' => $h->link_url,
-                    'icon' => $h->icon,
-                ])
+                ? $scene->hotspots->map(fn ($h) => $this->hotspotSerializer->serialize($h))
                 : [],
         ];
     }

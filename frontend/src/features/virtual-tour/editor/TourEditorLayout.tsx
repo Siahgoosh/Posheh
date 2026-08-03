@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useEffect, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Globe, ExternalLink, BookOpen } from 'lucide-react'
@@ -7,8 +7,13 @@ import { Badge } from '@/components/ui/badge'
 import { tourApi } from '../api/tourApi'
 import { TourViewer, type TourViewerHandle } from '../engine/TourViewer'
 import { SceneManagerPanel } from './SceneManagerPanel'
-import { useTourEditorStore } from '../store/editorStore'
-import type { TourData } from '../types'
+import { EditorTabs } from './EditorTabs'
+import { HotspotEditorPanel } from '../hotspots/HotspotEditorPanel'
+import { SceneSettingsPanel } from '../settings/SceneSettingsPanel'
+import { TourSettingsPanel } from '../settings/TourSettingsPanel'
+import { useTourEditorStore, mergeSceneWithPatches } from '../store/editorStore'
+import { createDefaultHotspot } from '../hotspots/hotspotActions'
+import type { TourData, TourHotspot, TourScene } from '../types'
 
 interface Props {
   tourId: string
@@ -17,13 +22,35 @@ interface Props {
 export function TourEditorLayout({ tourId }: Props) {
   const queryClient = useQueryClient()
   const viewerRef = useRef<TourViewerHandle>(null)
-  const { activeSceneId, setActiveSceneId } = useTourEditorStore()
+  const {
+    activeSceneId,
+    setActiveSceneId,
+    activeTab,
+    setActiveTab,
+    selectedHotspotId,
+    setSelectedHotspotId,
+    isPlacingHotspot,
+    setIsPlacingHotspot,
+    localHotspots,
+    localScenePatches,
+    localTourSettings,
+    initHotspots,
+    addHotspot,
+    updateHotspot,
+    removeHotspot,
+    patchScene,
+    setLocalTourSettings,
+  } = useTourEditorStore()
 
   const { data: tour, isLoading, refetch } = useQuery({
     queryKey: ['virtual-tour', tourId],
     queryFn: async () => (await tourApi.get(tourId)).data.data as TourData,
     enabled: !!tourId,
   })
+
+  useEffect(() => {
+    if (tour?.scenes) initHotspots(tour.scenes)
+  }, [tour?.id, initHotspots])
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['virtual-tour', tourId] })
@@ -79,7 +106,65 @@ export function TourEditorLayout({ tourId }: Props) {
     onSuccess: invalidate,
   })
 
-  if (isLoading || !tour) {
+  const saveHotspotsMutation = useMutation({
+    mutationFn: ({ sceneId, hotspots }: { sceneId: number; hotspots: TourHotspot[] }) =>
+      tourApi.syncHotspots(tourId, sceneId, hotspots.map((h, i) => ({
+        type: h.type,
+        yaw: h.yaw,
+        pitch: h.pitch,
+        target_scene_id: h.target_scene_id,
+        title: h.title,
+        label: h.label,
+        tooltip: h.tooltip,
+        content: h.content,
+        link_url: h.link_url,
+        icon: h.icon,
+        style: h.style,
+        action: h.action,
+        popup: h.popup,
+        sort_order: i,
+      }))),
+    onSuccess: invalidate,
+  })
+
+  const saveSceneMutation = useMutation({
+    mutationFn: ({ sceneId, data }: { sceneId: number; data: Partial<TourScene> }) =>
+      tourApi.updateScene(tourId, sceneId, data),
+    onSuccess: invalidate,
+  })
+
+  const saveTourSettingsMutation = useMutation({
+    mutationFn: (settings: Record<string, unknown>) => tourApi.update(tourId, { settings }),
+    onSuccess: invalidate,
+  })
+
+  const liveTour = useMemo((): TourData | null => {
+    if (!tour) return null
+    const scenes = tour.scenes.map((s) => {
+      const patched = mergeSceneWithPatches(s, localScenePatches[s.id] || {})
+      return {
+        ...patched,
+        hotspots: localHotspots[s.id] ?? patched.hotspots,
+      }
+    })
+    return {
+      ...tour,
+      settings: { ...tour.settings, ...localTourSettings },
+      scenes,
+    }
+  }, [tour, localHotspots, localScenePatches, localTourSettings])
+
+  const activeScene = liveTour?.scenes.find((s) => s.id === activeSceneId) ?? liveTour?.scenes[0] ?? null
+  const activeHotspots = activeScene ? (localHotspots[activeScene.id] ?? activeScene.hotspots) : []
+
+  const handlePlaceHotspot = useCallback((yaw: number, pitch: number) => {
+    if (!activeScene) return
+    const hotspot = createDefaultHotspot(yaw, pitch)
+    addHotspot(activeScene.id, hotspot)
+    setActiveTab('hotspots')
+  }, [activeScene, addHotspot, setActiveTab])
+
+  if (isLoading || !tour || !liveTour) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
@@ -95,16 +180,74 @@ export function TourEditorLayout({ tourId }: Props) {
     viewerRef.current?.goToScene(sceneId)
   }
 
+  const renderSidebar = () => {
+    switch (activeTab) {
+      case 'hotspots':
+        return (
+          <HotspotEditorPanel
+            scene={activeScene}
+            scenes={liveTour.scenes}
+            selectedHotspotId={selectedHotspotId}
+            isPlacing={isPlacingHotspot}
+            onSelectHotspot={setSelectedHotspotId}
+            onUpdateHotspot={(h) => activeScene && updateHotspot(activeScene.id, h)}
+            onDeleteHotspot={(id) => activeScene && removeHotspot(activeScene.id, id)}
+            onTogglePlacing={() => setIsPlacingHotspot(!isPlacingHotspot)}
+            onSave={() => activeScene && saveHotspotsMutation.mutate({ sceneId: activeScene.id, hotspots: localHotspots[activeScene.id] || [] })}
+            isSaving={saveHotspotsMutation.isPending}
+          />
+        )
+      case 'scene-settings':
+        return (
+          <SceneSettingsPanel
+            scene={activeScene}
+            onUpdate={(patch) => activeScene && patchScene(activeScene.id, patch)}
+            onSave={() => {
+              if (!activeScene) return
+              const patch = localScenePatches[activeScene.id] || {}
+              saveSceneMutation.mutate({ sceneId: activeScene.id, data: patch })
+            }}
+            isSaving={saveSceneMutation.isPending}
+          />
+        )
+      case 'tour-settings':
+        return (
+          <TourSettingsPanel
+            tour={liveTour}
+            onUpdateSettings={setLocalTourSettings}
+            onSave={() => saveTourSettingsMutation.mutate({ ...tour.settings, ...localTourSettings })}
+            isSaving={saveTourSettingsMutation.isPending}
+          />
+        )
+      default:
+        return (
+          <SceneManagerPanel
+            tourId={tourId}
+            scenes={liveTour.scenes}
+            onSceneSelect={handleSceneSelect}
+            onSceneRename={(id, name) => renameMutation.mutate({ sceneId: id, name })}
+            onSceneDuplicate={(id) => duplicateMutation.mutate(id)}
+            onSceneDelete={(id) => { if (confirm('حذف این صحنه؟')) deleteMutation.mutate(id) }}
+            onScenePublish={(id) => publishSceneMutation.mutate(id)}
+            onSceneUnpublish={(id) => unpublishSceneMutation.mutate(id)}
+            onSceneToggleVisibility={(id) => visibilityMutation.mutate(id)}
+            onSceneSetDefault={(id) => defaultMutation.mutate(id)}
+            onSceneReorder={(ids) => reorderMutation.mutate(ids)}
+            onRefresh={invalidate}
+          />
+        )
+    }
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] -mx-4 -my-2">
-      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-card-border/50 bg-black/20 backdrop-blur-md">
         <Link to="/virtual-tours">
           <Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button>
         </Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold truncate">{tour.title}</h1>
-          <p className="text-[11px] text-muted">ویرایشگر تور مجازی ۳۶۰ درجه</p>
+          <p className="text-[11px] text-muted">ویرایشگر حرفه‌ای تور ۳۶۰ — هات‌اسپات و تنظیمات</p>
         </div>
         <Badge variant={tour.status === 'published' ? 'default' : 'outline'}>
           {tour.status === 'published' ? 'منتشر شده' : 'پیش‌نویس'}
@@ -123,49 +266,33 @@ export function TourEditorLayout({ tourId }: Props) {
         </a>
       </div>
 
-      {/* Main layout */}
       <div className="flex flex-1 min-h-0">
-        {/* Left panel */}
         <aside className="w-80 lg:w-96 shrink-0 border-l border-card-border/50 bg-black/30 backdrop-blur-xl overflow-hidden flex flex-col">
-          <SceneManagerPanel
-            tourId={tourId}
-            scenes={tour.scenes}
-            onSceneSelect={handleSceneSelect}
-            onSceneRename={(id, name) => renameMutation.mutate({ sceneId: id, name })}
-            onSceneDuplicate={(id) => duplicateMutation.mutate(id)}
-            onSceneDelete={(id) => {
-              if (confirm('حذف این صحنه؟')) deleteMutation.mutate(id)
-            }}
-            onScenePublish={(id) => publishSceneMutation.mutate(id)}
-            onSceneUnpublish={(id) => unpublishSceneMutation.mutate(id)}
-            onSceneToggleVisibility={(id) => visibilityMutation.mutate(id)}
-            onSceneSetDefault={(id) => defaultMutation.mutate(id)}
-            onSceneReorder={(ids) => reorderMutation.mutate(ids)}
-            onRefresh={invalidate}
-          />
+          <EditorTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <div className="flex-1 overflow-hidden">{renderSidebar()}</div>
         </aside>
 
-        {/* Viewer */}
         <main className="flex-1 min-w-0 relative bg-black">
-          {tour.scenes.length > 0 ? (
+          {liveTour.scenes.length > 0 ? (
             <TourViewer
               ref={viewerRef}
-              tour={tour}
+              tour={liveTour}
               initialSceneId={activeSceneId}
               onSceneChange={setActiveSceneId}
               className="h-full min-h-0"
               showControls
               showSceneName
+              editorMode
+              sceneHotspots={activeHotspots}
+              isPlacingHotspot={isPlacingHotspot}
+              onPlaceHotspot={handlePlaceHotspot}
+              onHotspotSelect={(h) => { setSelectedHotspotId(h.id); setActiveTab('hotspots') }}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center text-3xl font-bold mb-4 border border-white/10">
-                ۳۶۰
-              </div>
+              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center text-3xl font-bold mb-4 border border-white/10">۳۶۰</div>
               <h2 className="text-lg font-semibold mb-2">اولین صحنه را اضافه کنید</h2>
-              <p className="text-sm text-muted max-w-md">
-                پانورامای equirectangular خود را از پنل سمت چپ آپلود کنید تا تور ۳۶۰ درجه شما ساخته شود.
-              </p>
+              <p className="text-sm text-muted max-w-md">پانوراما را آپلود کنید، سپس هات‌اسپات و تنظیمات را اضافه کنید.</p>
             </div>
           )}
         </main>

@@ -162,28 +162,6 @@ class SceneManager
 
         return $scene->fresh('hotspots');
     }
-
-    public function syncHotspots(User $user, int $tourId, int $sceneId, array $hotspots): VirtualTourScene
-    {
-        $scene = $this->findScene($user, $tourId, $sceneId);
-        $scene->hotspots()->delete();
-
-        foreach ($hotspots as $h) {
-            $scene->hotspots()->create([
-                'type' => $h['type'] ?? 'scene',
-                'target_scene_id' => $h['target_scene_id'] ?? null,
-                'yaw' => $h['yaw'],
-                'pitch' => $h['pitch'],
-                'title' => $h['title'] ?? null,
-                'content' => $h['content'] ?? null,
-                'link_url' => $h['link_url'] ?? null,
-                'icon' => $h['icon'] ?? 'arrow',
-            ]);
-        }
-
-        return $scene->fresh('hotspots.targetScene');
-    }
-
     private function findScene(User $user, int $tourId, int $sceneId): VirtualTourScene
     {
         $tour = $this->tourManager->findForOffice($user, $tourId);

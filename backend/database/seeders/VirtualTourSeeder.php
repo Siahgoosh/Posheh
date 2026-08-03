@@ -96,8 +96,12 @@ class VirtualTourSeeder extends Seeder
             'yaw' => -30,
             'pitch' => 10,
             'title' => 'نورگیری عالی',
+            'label' => 'نورگیری',
+            'tooltip' => 'اطلاعات نورگیری',
             'content' => 'پنجره‌های دوجداره با نمای جنوبی',
             'icon' => 'info',
+            'style' => ['color' => '#6366f1', 'pulse' => true, 'glow' => true],
+            'popup' => ['title' => 'نورگیری عالی', 'description' => 'پنجره‌های دوجداره با نمای جنوبی'],
         ]);
 
         VirtualTourHotspot::create([

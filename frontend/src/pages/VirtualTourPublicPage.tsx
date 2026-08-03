@@ -106,7 +106,7 @@ export function VirtualTourPublicPage() {
       </header>
 
       <div className="flex-1 relative" style={{ minHeight: '65vh' }}>
-        <TourViewer tour={tour} className="h-full" showControls showSceneName />
+        <TourViewer tour={tour} className="h-full" showControls showSceneName showFeatures publicUrl={shareUrl} />
       </div>
 
       <div className="border-t border-white/10 bg-black/60 backdrop-blur px-4 py-4">

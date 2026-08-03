@@ -33,6 +33,18 @@ export const tourApi = {
   setDefaultScene: (tourId: number | string, sceneId: number) =>
     api.post(`/virtual-tours/${tourId}/scenes/${sceneId}/default`),
 
+  syncHotspots: (tourId: number | string, sceneId: number, hotspots: unknown[]) =>
+    api.put(`/virtual-tours/${tourId}/scenes/${sceneId}/hotspots`, { hotspots }),
+
+  addHotspot: (tourId: number | string, sceneId: number, data: Record<string, unknown>) =>
+    api.post(`/virtual-tours/${tourId}/scenes/${sceneId}/hotspots`, data),
+
+  updateHotspot: (tourId: number | string, sceneId: number, hotspotId: number, data: Record<string, unknown>) =>
+    api.put(`/virtual-tours/${tourId}/scenes/${sceneId}/hotspots/${hotspotId}`, data),
+
+  deleteHotspot: (tourId: number | string, sceneId: number, hotspotId: number) =>
+    api.delete(`/virtual-tours/${tourId}/scenes/${sceneId}/hotspots/${hotspotId}`),
+
   uploadPanorama: (
     tourId: number | string,
     file: File,

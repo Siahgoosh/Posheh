@@ -1,19 +1,35 @@
 import { create } from 'zustand'
-import type { SceneFilter, SceneSort, TourScene, UploadTask } from '../types'
+import type { EditorTab, SceneFilter, SceneSort, TourHotspot, TourScene, TourSettings, UploadTask } from '../types'
 
 interface EditorState {
   activeSceneId: number | null
+  activeTab: EditorTab
   search: string
   filter: SceneFilter
   sort: SceneSort
   uploadTasks: UploadTask[]
   isPanelCollapsed: boolean
+  selectedHotspotId: number | string | null
+  isPlacingHotspot: boolean
+  localHotspots: Record<number, TourHotspot[]>
+  localScenePatches: Record<number, Partial<TourScene>>
+  localTourSettings: Partial<TourSettings> | null
 
   setActiveSceneId: (id: number | null) => void
+  setActiveTab: (tab: EditorTab) => void
   setSearch: (search: string) => void
   setFilter: (filter: SceneFilter) => void
   setSort: (sort: SceneSort) => void
   setPanelCollapsed: (collapsed: boolean) => void
+  setSelectedHotspotId: (id: number | string | null) => void
+  setIsPlacingHotspot: (v: boolean) => void
+  initHotspots: (scenes: TourScene[]) => void
+  setSceneHotspots: (sceneId: number, hotspots: TourHotspot[]) => void
+  updateHotspot: (sceneId: number, hotspot: TourHotspot) => void
+  addHotspot: (sceneId: number, hotspot: TourHotspot) => void
+  removeHotspot: (sceneId: number, hotspotId: number | string) => void
+  patchScene: (sceneId: number, patch: Partial<TourScene>) => void
+  setLocalTourSettings: (settings: Partial<TourSettings>) => void
   addUploadTask: (task: UploadTask) => void
   updateUploadTask: (id: string, patch: Partial<UploadTask>) => void
   removeUploadTask: (id: string) => void
@@ -22,17 +38,66 @@ interface EditorState {
 
 export const useTourEditorStore = create<EditorState>((set) => ({
   activeSceneId: null,
+  activeTab: 'scenes',
   search: '',
   filter: 'all',
   sort: 'order',
   uploadTasks: [],
   isPanelCollapsed: false,
+  selectedHotspotId: null,
+  isPlacingHotspot: false,
+  localHotspots: {},
+  localScenePatches: {},
+  localTourSettings: null,
 
-  setActiveSceneId: (id) => set({ activeSceneId: id }),
+  setActiveSceneId: (id) => set({ activeSceneId: id, selectedHotspotId: null }),
+  setActiveTab: (tab) => set({ activeTab: tab }),
   setSearch: (search) => set({ search }),
   setFilter: (filter) => set({ filter }),
   setSort: (sort) => set({ sort }),
   setPanelCollapsed: (collapsed) => set({ isPanelCollapsed: collapsed }),
+  setSelectedHotspotId: (id) => set({ selectedHotspotId: id }),
+  setIsPlacingHotspot: (v) => set({ isPlacingHotspot: v }),
+  initHotspots: (scenes) => {
+    const map: Record<number, TourHotspot[]> = {}
+    scenes.forEach((s) => { map[s.id] = [...s.hotspots] })
+    set({ localHotspots: map })
+  },
+  setSceneHotspots: (sceneId, hotspots) =>
+    set((s) => ({ localHotspots: { ...s.localHotspots, [sceneId]: hotspots } })),
+  updateHotspot: (sceneId, hotspot) =>
+    set((s) => ({
+      localHotspots: {
+        ...s.localHotspots,
+        [sceneId]: (s.localHotspots[sceneId] || []).map((h) => (h.id === hotspot.id ? hotspot : h)),
+      },
+    })),
+  addHotspot: (sceneId, hotspot) =>
+    set((s) => ({
+      localHotspots: {
+        ...s.localHotspots,
+        [sceneId]: [...(s.localHotspots[sceneId] || []), hotspot],
+      },
+      selectedHotspotId: hotspot.id,
+      isPlacingHotspot: false,
+    })),
+  removeHotspot: (sceneId, hotspotId) =>
+    set((s) => ({
+      localHotspots: {
+        ...s.localHotspots,
+        [sceneId]: (s.localHotspots[sceneId] || []).filter((h) => h.id !== hotspotId),
+      },
+      selectedHotspotId: s.selectedHotspotId === hotspotId ? null : s.selectedHotspotId,
+    })),
+  patchScene: (sceneId, patch) =>
+    set((s) => ({
+      localScenePatches: {
+        ...s.localScenePatches,
+        [sceneId]: { ...s.localScenePatches[sceneId], ...patch },
+      },
+    })),
+  setLocalTourSettings: (settings) =>
+    set((s) => ({ localTourSettings: { ...(s.localTourSettings || {}), ...settings } })),
   addUploadTask: (task) => set((s) => ({ uploadTasks: [...s.uploadTasks, task] })),
   updateUploadTask: (id, patch) =>
     set((s) => ({
@@ -86,4 +151,8 @@ export function filterAndSortScenes(
   }
 
   return result
+}
+
+export function mergeSceneWithPatches(scene: TourScene, patches: Partial<TourScene>): TourScene {
+  return { ...scene, ...patches }
 }

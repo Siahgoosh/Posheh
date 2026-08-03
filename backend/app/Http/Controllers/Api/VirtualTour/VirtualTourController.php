@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\VirtualTour;
 
 use App\Http\Controllers\Controller;
+use App\Modules\VirtualTour\Application\Services\HotspotManager;
+use App\Modules\VirtualTour\Application\Services\HotspotSerializer;
 use App\Modules\VirtualTour\Application\Services\PanoramaUploader;
 use App\Modules\VirtualTour\Application\Services\SceneManager;
 use App\Modules\VirtualTour\Application\Services\TourAnalyticsService;
@@ -13,9 +15,17 @@ use Illuminate\Http\Request;
 
 class VirtualTourController extends Controller
 {
+    private const HOTSPOT_TYPES = [
+        'scene', 'info', 'gallery', 'image', 'video', 'audio', 'pdf',
+        'website', 'whatsapp', 'telegram', 'phone', 'email', 'maps',
+        'floor_plan', 'custom', 'link',
+    ];
+
     public function __construct(
         private readonly TourManager $tourManager,
         private readonly SceneManager $sceneManager,
+        private readonly HotspotManager $hotspotManager,
+        private readonly HotspotSerializer $hotspotSerializer,
         private readonly PanoramaUploader $panoramaUploader,
         private readonly TourAnalyticsService $analyticsService,
         private readonly TourViewerSerializer $serializer,
@@ -77,6 +87,11 @@ class VirtualTourController extends Controller
             'is_visible' => ['nullable', 'boolean'],
             'default_yaw' => ['nullable', 'numeric'],
             'default_pitch' => ['nullable', 'numeric'],
+            'default_fov' => ['nullable', 'integer', 'min:30', 'max:120'],
+            'background_music' => ['nullable', 'string'],
+            'ambient_sound' => ['nullable', 'string'],
+            'transition_effect' => ['nullable', 'in:fade,crossfade,none'],
+            'scene_settings' => ['nullable', 'array'],
             'sort_order' => ['nullable', 'integer'],
             'floor_plan_x' => ['nullable', 'numeric'],
             'floor_plan_y' => ['nullable', 'numeric'],
@@ -99,6 +114,11 @@ class VirtualTourController extends Controller
             'is_visible' => ['sometimes', 'boolean'],
             'default_yaw' => ['nullable', 'numeric'],
             'default_pitch' => ['nullable', 'numeric'],
+            'default_fov' => ['nullable', 'integer', 'min:30', 'max:120'],
+            'background_music' => ['nullable', 'string'],
+            'ambient_sound' => ['nullable', 'string'],
+            'transition_effect' => ['nullable', 'in:fade,crossfade,none'],
+            'scene_settings' => ['nullable', 'array'],
             'sort_order' => ['nullable', 'integer'],
             'floor_plan_x' => ['nullable', 'numeric'],
             'floor_plan_y' => ['nullable', 'numeric'],
@@ -209,19 +229,85 @@ class VirtualTourController extends Controller
     {
         $data = $request->validate([
             'hotspots' => ['required', 'array'],
-            'hotspots.*.type' => ['required', 'in:scene,info,link,video'],
+            'hotspots.*.type' => ['required', 'in:'.implode(',', self::HOTSPOT_TYPES)],
             'hotspots.*.yaw' => ['required', 'numeric'],
             'hotspots.*.pitch' => ['required', 'numeric'],
             'hotspots.*.target_scene_id' => ['nullable', 'integer'],
             'hotspots.*.title' => ['nullable', 'string'],
+            'hotspots.*.label' => ['nullable', 'string'],
+            'hotspots.*.tooltip' => ['nullable', 'string'],
             'hotspots.*.content' => ['nullable', 'string'],
             'hotspots.*.link_url' => ['nullable', 'string'],
             'hotspots.*.icon' => ['nullable', 'string'],
+            'hotspots.*.style' => ['nullable', 'array'],
+            'hotspots.*.action' => ['nullable', 'array'],
+            'hotspots.*.popup' => ['nullable', 'array'],
+            'hotspots.*.sort_order' => ['nullable', 'integer'],
         ]);
 
-        $scene = $this->sceneManager->syncHotspots($request->user(), $id, $sceneId, $data['hotspots']);
+        $scene = $this->hotspotManager->sync($request->user(), $id, $sceneId, $data['hotspots']);
 
         return response()->json(['data' => $this->serializer->serializeScene($scene)]);
+    }
+
+    public function addHotspot(Request $request, int $id, int $sceneId): JsonResponse
+    {
+        $data = $request->validate($this->hotspotRules(requirePosition: true));
+
+        $hotspot = $this->hotspotManager->create($request->user(), $id, $sceneId, $data);
+
+        return response()->json([
+            'data' => $this->hotspotSerializer->serialize($hotspot),
+            'message' => 'هات‌اسپات اضافه شد.',
+        ], 201);
+    }
+
+    public function updateHotspot(Request $request, int $id, int $sceneId, int $hotspotId): JsonResponse
+    {
+        $data = $request->validate($this->hotspotRules(requirePosition: false));
+
+        $hotspot = $this->hotspotManager->update($request->user(), $id, $sceneId, $hotspotId, $data);
+
+        return response()->json([
+            'data' => $this->hotspotSerializer->serialize($hotspot),
+        ]);
+    }
+
+    public function deleteHotspot(Request $request, int $id, int $sceneId, int $hotspotId): JsonResponse
+    {
+        $this->hotspotManager->delete($request->user(), $id, $sceneId, $hotspotId);
+
+        return response()->json(['message' => 'هات‌اسپات حذف شد.']);
+    }
+
+    /** @return array<string, mixed> */
+    private function hotspotRules(bool $requirePosition): array
+    {
+        $rules = [
+            'type' => ['sometimes', 'in:'.implode(',', self::HOTSPOT_TYPES)],
+            'target_scene_id' => ['nullable', 'integer'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'label' => ['nullable', 'string', 'max:255'],
+            'tooltip' => ['nullable', 'string', 'max:500'],
+            'content' => ['nullable', 'string'],
+            'link_url' => ['nullable', 'string'],
+            'icon' => ['nullable', 'string', 'max:50'],
+            'style' => ['nullable', 'array'],
+            'action' => ['nullable', 'array'],
+            'popup' => ['nullable', 'array'],
+            'sort_order' => ['nullable', 'integer'],
+        ];
+
+        if ($requirePosition) {
+            $rules['type'] = ['required', 'in:'.implode(',', self::HOTSPOT_TYPES)];
+            $rules['yaw'] = ['required', 'numeric'];
+            $rules['pitch'] = ['required', 'numeric'];
+        } else {
+            $rules['yaw'] = ['sometimes', 'numeric'];
+            $rules['pitch'] = ['sometimes', 'numeric'];
+        }
+
+        return $rules;
     }
 
     public function uploadMedia(Request $request, int $id): JsonResponse

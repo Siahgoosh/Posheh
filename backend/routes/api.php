@@ -169,6 +169,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/scenes/{sceneId}/unpublish', [VirtualTourController::class, 'unpublishScene']);
             Route::post('/{id}/scenes/{sceneId}/default', [VirtualTourController::class, 'setDefaultScene']);
             Route::put('/{id}/scenes/{sceneId}/hotspots', [VirtualTourController::class, 'syncHotspots']);
+            Route::post('/{id}/scenes/{sceneId}/hotspots', [VirtualTourController::class, 'addHotspot']);
+            Route::put('/{id}/scenes/{sceneId}/hotspots/{hotspotId}', [VirtualTourController::class, 'updateHotspot']);
+            Route::delete('/{id}/scenes/{sceneId}/hotspots/{hotspotId}', [VirtualTourController::class, 'deleteHotspot']);
             Route::post('/{id}/media', [VirtualTourController::class, 'uploadMedia']);
         });
 

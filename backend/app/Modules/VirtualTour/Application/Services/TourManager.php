@@ -111,6 +111,18 @@ class TourManager
             'enable_gyroscope' => true,
             'auto_rotate' => false,
             'auto_rotate_speed' => 0.5,
+            'auto_tour' => false,
+            'auto_tour_interval' => 8,
+            'guided_tour' => false,
+            'guided_tour_steps' => [],
+            'bookmarks' => true,
+            'favorites' => true,
+            'history' => true,
+            'mini_map' => true,
+            'floor_selector' => true,
+            'embed_enabled' => true,
+            'share_enabled' => true,
+            'qr_enabled' => true,
         ];
     }
 }

@@ -4,7 +4,9 @@ import { VirtualTourPlugin } from '@photo-sphere-viewer/virtual-tour-plugin'
 import { GyroscopePlugin } from '@photo-sphere-viewer/gyroscope-plugin'
 import { StereoPlugin } from '@photo-sphere-viewer/stereo-plugin'
 import { AutorotatePlugin } from '@photo-sphere-viewer/autorotate-plugin'
-import type { TourData, TourScene, ViewerPosition } from '../types'
+import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin'
+import type { TourData, TourScene, TourHotspot, ViewerPosition } from '../types'
+import { syncHotspotMarkers } from '../hotspots/useHotspotMarkers'
 
 export interface TourEngineControls {
   zoomIn: () => void
@@ -26,6 +28,13 @@ export interface UseTourEngineOptions {
   enableVr?: boolean
   autoRotate?: boolean
   autoRotateSpeed?: number
+  /** Hotspots for the active scene (editor or viewer) */
+  sceneHotspots?: TourHotspot[]
+  editorMode?: boolean
+  isPlacingHotspot?: boolean
+  onPlaceHotspot?: (yaw: number, pitch: number) => void
+  onHotspotSelect?: (hotspot: TourHotspot) => void
+  onHotspotActivate?: (hotspot: TourHotspot) => void
 }
 
 function zoomToFov(zoom: number, minFov = 30, maxFov = 90): number {
@@ -40,10 +49,17 @@ export function useTourEngine({
   enableVr = true,
   autoRotate = false,
   autoRotateSpeed = 0.5,
+  sceneHotspots = [],
+  editorMode = false,
+  isPlacingHotspot = false,
+  onPlaceHotspot,
+  onHotspotSelect,
+  onHotspotActivate,
 }: UseTourEngineOptions) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<Viewer | null>(null)
   const vtRef = useRef<VirtualTourPlugin | null>(null)
+  const markersRef = useRef<MarkersPlugin | null>(null)
   const gyroRef = useRef<GyroscopePlugin | null>(null)
   const stereoRef = useRef<StereoPlugin | null>(null)
   const autorotateRef = useRef<AutorotatePlugin | null>(null)
@@ -61,6 +77,7 @@ export function useTourEngine({
   const [isFullscreen, setIsFullscreen] = useState(false)
 
   const visibleScenes = tour.scenes.filter((s) => s.is_visible !== false)
+  const brandColor = tour.settings?.brand_color || '#2dd4bf'
 
   const buildNodes = useCallback((scenes: TourScene[]) => {
     return scenes.map((scene) => ({
@@ -79,14 +96,14 @@ export function useTourEngine({
           }
         : undefined,
       links: scene.hotspots
-        ?.filter((h) => h.type === 'scene' && h.target_scene_id)
+        ?.filter((h) => h.type === 'scene' && h.target_scene_id && !editorMode)
         .map((h) => ({
           nodeId: String(h.target_scene_id),
           position: { yaw: `${h.yaw}deg`, pitch: `${h.pitch}deg` },
           name: h.title || 'ادامه',
         })) ?? [],
     }))
-  }, [])
+  }, [editorMode])
 
   useEffect(() => {
     if (!containerRef.current || !visibleScenes.length) return
@@ -112,6 +129,7 @@ export function useTourEngine({
         autorotateSpeed: `${autoRotateSpeed}rpm`,
         autorotatePitch: '0deg',
       }),
+      MarkersPlugin,
     ]
 
     if (enableGyroscope && tour.settings?.enable_gyroscope !== false) {
@@ -141,6 +159,7 @@ export function useTourEngine({
     })
 
     const vt = viewer.getPlugin(VirtualTourPlugin) as VirtualTourPlugin
+    markersRef.current = viewer.getPlugin(MarkersPlugin) as MarkersPlugin
     autorotateRef.current = viewer.getPlugin(AutorotatePlugin) as AutorotatePlugin
     gyroRef.current = enableGyroscope ? (viewer.getPlugin(GyroscopePlugin) as GyroscopePlugin) : null
     stereoRef.current = enableVr ? (viewer.getPlugin(StereoPlugin) as StereoPlugin) : null
@@ -181,25 +200,51 @@ export function useTourEngine({
       setIsLoading(false)
     }
 
+    const onClick = (e: { data: { yaw: number; pitch: number } }) => {
+      if (!isPlacingHotspot || !onPlaceHotspot) return
+      onPlaceHotspot((e.data.yaw * 180) / Math.PI, (e.data.pitch * 180) / Math.PI)
+    }
+
+    const markers = markersRef.current
+    const onSelectMarker = (e: { marker: { data?: TourHotspot } }) => {
+      const hotspot = e.marker?.data
+      if (!hotspot) return
+      if (editorMode) {
+        onHotspotSelect?.(hotspot)
+      } else {
+        onHotspotActivate?.(hotspot)
+      }
+    }
+
     viewer.addEventListener('ready', onReady)
     viewer.addEventListener('load-progress', onProgress)
     viewer.addEventListener('panorama-error', onError)
     viewer.addEventListener('position-updated', onPosition)
     viewer.addEventListener('zoom-updated', onPosition)
+    viewer.addEventListener('click', onClick as never)
     vt.addEventListener('node-changed', onNodeChanged)
+    markers?.addEventListener('select-marker', onSelectMarker as never)
 
     vtRef.current = vt
     viewerRef.current = viewer
 
     return () => {
+      markers?.removeEventListener('select-marker', onSelectMarker as never)
       viewer.destroy()
       viewerRef.current = null
       vtRef.current = null
+      markersRef.current = null
       gyroRef.current = null
       stereoRef.current = null
       autorotateRef.current = null
     }
-  }, [visibleScenes.map((s) => `${s.id}-${s.panorama_url}`).join(','), tour.title, buildNodes, enableGyroscope, enableVr, autoRotate, autoRotateSpeed])
+  }, [visibleScenes.map((s) => `${s.id}-${s.panorama_url}`).join(','), tour.title, buildNodes, enableGyroscope, enableVr, autoRotate, autoRotateSpeed, editorMode, isPlacingHotspot])
+
+  // Sync markers when hotspots change
+  useEffect(() => {
+    if (!markersRef.current || isLoading) return
+    syncHotspotMarkers(markersRef.current, sceneHotspots, brandColor, editorMode)
+  }, [sceneHotspots, brandColor, editorMode, isLoading, activeSceneId])
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
