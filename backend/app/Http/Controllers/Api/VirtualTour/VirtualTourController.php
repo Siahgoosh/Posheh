@@ -10,8 +10,10 @@ use App\Modules\VirtualTour\Application\Services\SceneManager;
 use App\Modules\VirtualTour\Application\Services\TourAnalyticsService;
 use App\Modules\VirtualTour\Application\Services\TourManager;
 use App\Modules\VirtualTour\Application\Services\TourViewerSerializer;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class VirtualTourController extends Controller
 {
@@ -202,7 +204,7 @@ class VirtualTourController extends Controller
     public function uploadPanorama(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'panorama' => ['required', 'file', 'max:102400'],
+            'panorama' => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:102400'],
             'name' => ['nullable', 'string', 'max:255'],
             'scene_id' => ['nullable', 'integer'],
         ]);
@@ -217,6 +219,26 @@ class VirtualTourController extends Controller
             );
         } catch (\InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        } catch (QueryException $e) {
+            if (str_contains($e->getMessage(), 'Unknown column')) {
+                return response()->json([
+                    'message' => 'دیتابیس به‌روز نیست. لطفاً php artisan migrate --force را اجرا کنید.',
+                    'code' => 'schema_outdated',
+                ], 503);
+            }
+            Log::error('virtual-tour.upload.db_error', ['message' => $e->getMessage()]);
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('virtual-tour.upload.failed', [
+                'tour_id' => $id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'خطا در آپلود پانوراما. لطفاً دوباره تلاش کنید.',
+            ], 500);
         }
 
         return response()->json([

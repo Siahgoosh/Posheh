@@ -8,6 +8,8 @@ use App\Models\VirtualTourScene;
 use App\Modules\VirtualTour\Application\Contracts\PanoramaStorageInterface;
 use App\Modules\VirtualTour\Application\Contracts\ThumbnailGeneratorInterface;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class SceneManager
@@ -21,26 +23,14 @@ class SceneManager
     public function create(User $user, int $tourId, array $data, ?UploadedFile $panorama = null): VirtualTourScene
     {
         $tour = $this->tourManager->findForOffice($user, $tourId);
-        $sortOrder = $data['sort_order'] ?? $tour->scenes()->max('sort_order') + 1;
+        $sortOrder = $data['sort_order'] ?? (($tour->scenes()->max('sort_order') ?? -1) + 1);
         $isFirst = $tour->scenes()->count() === 0;
 
         $path = $panorama
             ? $this->storage->store($tour->id, $panorama)
             : ($data['panorama_path'] ?? 'demo/sphere.jpg');
 
-        $scene = $tour->scenes()->create([
-            'name' => $data['name'],
-            'status' => $data['status'] ?? 'draft',
-            'is_default' => $isFirst,
-            'is_visible' => $data['is_visible'] ?? true,
-            'panorama_path' => $path,
-            'default_yaw' => $data['default_yaw'] ?? 0,
-            'default_pitch' => $data['default_pitch'] ?? 0,
-            'sort_order' => $sortOrder,
-            'floor_plan_x' => $data['floor_plan_x'] ?? null,
-            'floor_plan_y' => $data['floor_plan_y'] ?? null,
-            'file_size' => $panorama?->getSize(),
-        ]);
+        $scene = $tour->scenes()->create($this->buildSceneAttributes($data, $path, $panorama, $sortOrder, $isFirst));
 
         if ($panorama) {
             $this->processPanoramaMetadata($scene, $panorama);
@@ -171,25 +161,82 @@ class SceneManager
 
     private function processPanoramaMetadata(VirtualTourScene $scene, UploadedFile $file): void
     {
-        $imageInfo = @getimagesize($file->getRealPath());
-        $updates = [];
+        try {
+            $imageInfo = @getimagesize($file->getRealPath());
+            $updates = [];
 
-        if ($imageInfo) {
-            $updates['panorama_width'] = $imageInfo[0];
-            $updates['panorama_height'] = $imageInfo[1];
-        }
-
-        $thumb = $this->thumbnailGenerator->generate($scene->panorama_path, $scene->virtual_tour_id, $scene->id);
-        if ($thumb) {
-            $updates['thumbnail_path'] = $thumb['thumbnail_path'];
-            if (! isset($updates['panorama_width'])) {
-                $updates['panorama_width'] = $thumb['width'];
-                $updates['panorama_height'] = $thumb['height'];
+            if ($imageInfo) {
+                if ($this->hasSceneColumn('panorama_width')) {
+                    $updates['panorama_width'] = $imageInfo[0];
+                }
+                if ($this->hasSceneColumn('panorama_height')) {
+                    $updates['panorama_height'] = $imageInfo[1];
+                }
             }
+
+            $thumb = $this->thumbnailGenerator->generate($scene->panorama_path, $scene->virtual_tour_id, $scene->id);
+            if ($thumb) {
+                if ($this->hasSceneColumn('thumbnail_path')) {
+                    $updates['thumbnail_path'] = $thumb['thumbnail_path'];
+                }
+                if ($this->hasSceneColumn('panorama_width') && ! isset($updates['panorama_width'])) {
+                    $updates['panorama_width'] = $thumb['width'];
+                    $updates['panorama_height'] = $thumb['height'];
+                }
+            }
+
+            if ($updates) {
+                $scene->update($updates);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('virtual-tour.panorama_metadata_failed', [
+                'scene_id' => $scene->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+  /** @return array<string, mixed> */
+    private function buildSceneAttributes(
+        array $data,
+        string $path,
+        ?UploadedFile $panorama,
+        int $sortOrder,
+        bool $isFirst,
+    ): array {
+        $attrs = [
+            'name' => Str::limit($data['name'] ?? 'صحنه جدید', 200),
+            'panorama_path' => $path,
+            'default_yaw' => $data['default_yaw'] ?? 0,
+            'default_pitch' => $data['default_pitch'] ?? 0,
+            'sort_order' => $sortOrder,
+            'floor_plan_x' => $data['floor_plan_x'] ?? null,
+            'floor_plan_y' => $data['floor_plan_y'] ?? null,
+        ];
+
+        if ($this->hasSceneColumn('status')) {
+            $attrs['status'] = $data['status'] ?? 'draft';
+        }
+        if ($this->hasSceneColumn('is_default')) {
+            $attrs['is_default'] = $data['is_default'] ?? $isFirst;
+        }
+        if ($this->hasSceneColumn('is_visible')) {
+            $attrs['is_visible'] = $data['is_visible'] ?? true;
+        }
+        if ($this->hasSceneColumn('file_size') && $panorama) {
+            $attrs['file_size'] = $panorama->getSize();
         }
 
-        if ($updates) {
-            $scene->update($updates);
+        return $attrs;
+    }
+
+    private function hasSceneColumn(string $column): bool
+    {
+        static $columns = null;
+        if ($columns === null) {
+            $columns = Schema::getColumnListing('virtual_tour_scenes');
         }
+
+        return in_array($column, $columns, true);
     }
 }

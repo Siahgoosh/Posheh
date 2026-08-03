@@ -76,7 +76,7 @@ class PanoramaUploader
       ], $file);
     }
 
-    $sceneName = $name ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+    $sceneName = Str::limit($name ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) ?: 'صحنه جدید', 200);
 
     return $this->sceneManager->create($user, $tourId, [
       'name' => $sceneName,

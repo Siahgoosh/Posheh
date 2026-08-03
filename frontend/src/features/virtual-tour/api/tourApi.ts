@@ -56,7 +56,7 @@ export const tourApi = {
   importTour: (file: File) => {
     const form = new FormData()
     form.append('file', file)
-    return api.post('/virtual-tours/import', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+    return api.post('/virtual-tours/import', form)
   },
   importJson: (tour: Record<string, unknown>) => api.post('/virtual-tours/import', { tour }),
 
@@ -68,10 +68,10 @@ export const tourApi = {
   activity: (id: number | string) => api.get(`/virtual-tours/${id}/activity`),
 
   addScene: (tourId: number | string, data: FormData | Record<string, unknown>) =>
-    api.post(`/virtual-tours/${tourId}/scenes`, data, data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined),
+    api.post(`/virtual-tours/${tourId}/scenes`, data),
 
   updateScene: (tourId: number | string, sceneId: number, data: FormData | Record<string, unknown>) =>
-    api.put(`/virtual-tours/${tourId}/scenes/${sceneId}`, data, data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined),
+    api.put(`/virtual-tours/${tourId}/scenes/${sceneId}`, data),
 
   deleteScene: (tourId: number | string, sceneId: number) =>
     api.delete(`/virtual-tours/${tourId}/scenes/${sceneId}`),
@@ -105,7 +105,6 @@ export const tourApi = {
     if (options?.sceneId) form.append('scene_id', String(options.sceneId))
 
     return api.post(`/virtual-tours/${tourId}/scenes/upload`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 300000,
       signal: options?.signal,
       onUploadProgress: (e) => {

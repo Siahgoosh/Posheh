@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { tourApi } from '../api/tourApi'
 import { useTourEditorStore } from '../store/editorStore'
 import { compressPanoramaIfNeeded, createPreviewUrl, revokePreviewUrl, validatePanorama } from '../utils/imageCompression'
+import { extractApiError } from '@/lib/apiError'
 import type { UploadTask } from '../types'
 
 interface Props {
@@ -29,7 +30,7 @@ export function PanoramaUploader({ tourId, onUploaded }: Props) {
       updateUploadTask(taskId, { status: 'uploading', abortController: controller })
 
       await tourApi.uploadPanorama(tourId, compressed, {
-        name: file.name.replace(/\.[^.]+$/, ''),
+        name: file.name.replace(/\.[^.]+$/, '').slice(0, 200),
         onProgress: (pct) => updateUploadTask(taskId, { progress: pct }),
         signal: controller.signal,
       })
@@ -41,10 +42,8 @@ export function PanoramaUploader({ tourId, onUploaded }: Props) {
         updateUploadTask(taskId, { status: 'cancelled' })
         return
       }
-      const message = err && typeof err === 'object' && 'response' in err
-        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
-        : 'آپلود ناموفق بود.'
-      updateUploadTask(taskId, { status: 'error', error: message || 'آپلود ناموفق بود.' })
+      const message = extractApiError(err, 'آپلود ناموفق بود.')
+      updateUploadTask(taskId, { status: 'error', error: message })
     }
   }, [tourId, onUploaded, updateUploadTask])
 
