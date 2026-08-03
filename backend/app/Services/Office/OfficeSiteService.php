@@ -12,6 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class OfficeSiteService
 {
+    public function __construct(
+        private readonly VisitRequestNotifier $visitNotifier,
+    ) {}
+
     public function requestWebsite(User $user, array $data): Office
     {
         $office = $user->office;
@@ -183,7 +187,18 @@ class OfficeSiteService
             ->where('website_status', 'published')
             ->firstOrFail();
 
-        return OfficeVisitRequest::create([
+        if (! empty($data['property_id'])) {
+            $valid = Property::where('office_id', $office->id)
+                ->where('id', $data['property_id'])
+                ->exists();
+            if (! $valid) {
+                throw ValidationException::withMessages([
+                    'property_id' => ['ملک انتخاب‌شده معتبر نیست.'],
+                ]);
+            }
+        }
+
+        $request = OfficeVisitRequest::create([
             'office_id' => $office->id,
             'property_id' => $data['property_id'] ?? null,
             'name' => $data['name'],
@@ -194,6 +209,10 @@ class OfficeSiteService
             'message' => $data['message'] ?? null,
             'status' => 'new',
         ]);
+
+        $this->visitNotifier->notify($office, $request, $data);
+
+        return $request;
     }
 
     public function adminApproveWebsite(Office $office, string $action): Office

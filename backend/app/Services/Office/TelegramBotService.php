@@ -3,6 +3,7 @@
 namespace App\Services\Office;
 
 use App\Models\Office;
+use App\Models\OfficeVisitRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -97,6 +98,55 @@ class TelegramBotService
             ];
         } catch (\Throwable $e) {
             return ['ok' => false, 'message' => 'خطا در بررسی توکن: '.$e->getMessage()];
+        }
+    }
+
+    public function notifyVisitRequest(
+        Office $office,
+        OfficeVisitRequest $request,
+        ?string $propertyCode,
+        string $schedule,
+    ): void {
+        $token = trim((string) $office->telegram_bot_token);
+        $adminChatId = trim((string) $office->telegram_admin_chat_id);
+
+        if ($token === '' || $adminChatId === '') {
+            return;
+        }
+
+        $propertyLine = $propertyCode
+            ? "🏠 ملک: <b>{$propertyCode}</b>"
+            : '🏠 درخواست عمومی (بدون ملک مشخص)';
+
+        $text = "📅 <b>درخواست بازدید جدید</b>\n";
+        $text .= "دفتر: {$office->name}\n\n";
+        $text .= "👤 {$request->name}\n";
+        $text .= "📱 <code>{$request->mobile}</code>\n";
+        $text .= "{$propertyLine}\n";
+        $text .= "🗓 {$schedule}\n";
+
+        if ($request->email) {
+            $text .= "✉️ {$request->email}\n";
+        }
+        if ($request->message) {
+            $text .= "\n💬 {$request->message}";
+        }
+
+        $panelUrl = rtrim((string) config('app.url'), '/').'/visits';
+        $text .= "\n\n🔗 <a href=\"{$panelUrl}\">مشاهده در پنل</a>";
+
+        try {
+            Http::timeout(15)->post("https://api.telegram.org/bot{$token}/sendMessage", [
+                'chat_id' => $adminChatId,
+                'text' => $text,
+                'parse_mode' => 'HTML',
+                'disable_web_page_preview' => true,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Telegram visit request notify failed', [
+                'office' => $office->slug,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }

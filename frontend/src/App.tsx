@@ -53,6 +53,7 @@ import { TermsPage } from '@/pages/TermsPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
 import { ContactPage } from '@/pages/ContactPage'
 import { VirtualTourPublicPage } from '@/pages/VirtualTourPublicPage'
+import { VirtualTourEmbedPage } from '@/pages/VirtualTourEmbedPage'
 import { VirtualToursPage } from '@/pages/VirtualToursPage'
 import { VirtualTourEditorPage } from '@/pages/VirtualTourEditorPage'
 import { getOfficeSubdomain } from '@/lib/subdomain'
@@ -103,6 +104,7 @@ export default function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/tour/:slug" element={<VirtualTourPublicPage />} />
+          <Route path="/embed/tour/:slug" element={<VirtualTourEmbedPage />} />
           <Route path="/payment/callback" element={<PaymentCallbackPage />} />
           <Route path="/p/:token" element={<PropertyPublicPage />} />
           <Route path="/o/:slug" element={<OfficeLandingPage />} />

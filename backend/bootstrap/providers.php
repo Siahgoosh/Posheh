@@ -6,4 +6,5 @@ use App\Providers\RepositoryServiceProvider;
 return [
     AppServiceProvider::class,
     RepositoryServiceProvider::class,
+    App\Providers\VirtualTourServiceProvider::class,
 ];
