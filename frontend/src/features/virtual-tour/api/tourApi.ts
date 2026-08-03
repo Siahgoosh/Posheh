@@ -1,16 +1,74 @@
 import api from '@/lib/api'
 import type { SceneStatus, TourData, TourScene } from '../types'
 
+export interface TourDashboardStats {
+  total: number
+  published: number
+  draft: number
+  archived: number
+  total_views: number
+  total_leads: number
+  recent: TourListItem[]
+}
+
+export interface TourListItem extends Partial<TourData> {
+  id: number
+  title: string
+  slug: string
+  status: SceneStatus | 'archived'
+  view_count: number
+  leads_count?: number
+  scenes_count?: number
+  visibility?: 'public' | 'private'
+  version?: number
+  expires_at?: string | null
+  has_password?: boolean
+  public_url?: string
+  private_url?: string
+  embed_url?: string
+  share_token?: string
+}
+
 export const tourApi = {
-  list: () => api.get('/virtual-tours'),
+  dashboard: () => api.get('/virtual-tours/dashboard'),
+  list: (params?: { status?: string; search?: string }) =>
+    api.get('/virtual-tours', { params }),
+
   get: (id: number | string) => api.get(`/virtual-tours/${id}`),
   create: (data: { title: string; description?: string; property_id?: number }) =>
     api.post('/virtual-tours', data),
-  update: (id: number | string, data: Partial<{ title: string; description: string; status: SceneStatus; settings: Record<string, unknown> }>) =>
+  update: (id: number | string, data: Partial<{ title: string; description: string; status: string; settings: Record<string, unknown> }>) =>
     api.put(`/virtual-tours/${id}`, data),
+  delete: (id: number | string) => api.delete(`/virtual-tours/${id}`),
+
+  duplicate: (id: number | string) => api.post(`/virtual-tours/${id}/duplicate`),
+  publish: (id: number | string) => api.post(`/virtual-tours/${id}/publish`),
+  unpublish: (id: number | string) => api.post(`/virtual-tours/${id}/unpublish`),
+  archive: (id: number | string) => api.post(`/virtual-tours/${id}/archive`),
+  unarchive: (id: number | string) => api.post(`/virtual-tours/${id}/unarchive`),
+
+  updateSharing: (id: number | string, data: Record<string, unknown>) =>
+    api.put(`/virtual-tours/${id}/sharing`, data),
+
+  exportJson: (id: number | string) => api.get(`/virtual-tours/${id}/export/json`),
+  exportZip: (id: number | string) =>
+    api.get(`/virtual-tours/${id}/export/zip`, { responseType: 'blob' }),
+  importTour: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api.post('/virtual-tours/import', form, { headers: { 'Content-Type': 'multipart/form-data' } })
+  },
+  importJson: (tour: Record<string, unknown>) => api.post('/virtual-tours/import', { tour }),
+
+  backup: (id: number | string, label?: string) =>
+    api.post(`/virtual-tours/${id}/backup`, { label }),
+  versions: (id: number | string) => api.get(`/virtual-tours/${id}/versions`),
+  restoreVersion: (id: number | string, versionId: number) =>
+    api.post(`/virtual-tours/${id}/versions/${versionId}/restore`),
+  activity: (id: number | string) => api.get(`/virtual-tours/${id}/activity`),
 
   addScene: (tourId: number | string, data: FormData | Record<string, unknown>) =>
-  api.post(`/virtual-tours/${tourId}/scenes`, data, data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined),
+    api.post(`/virtual-tours/${tourId}/scenes`, data, data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined),
 
   updateScene: (tourId: number | string, sceneId: number, data: FormData | Record<string, unknown>) =>
     api.put(`/virtual-tours/${tourId}/scenes/${sceneId}`, data, data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined),
@@ -36,15 +94,6 @@ export const tourApi = {
   syncHotspots: (tourId: number | string, sceneId: number, hotspots: unknown[]) =>
     api.put(`/virtual-tours/${tourId}/scenes/${sceneId}/hotspots`, { hotspots }),
 
-  addHotspot: (tourId: number | string, sceneId: number, data: Record<string, unknown>) =>
-    api.post(`/virtual-tours/${tourId}/scenes/${sceneId}/hotspots`, data),
-
-  updateHotspot: (tourId: number | string, sceneId: number, hotspotId: number, data: Record<string, unknown>) =>
-    api.put(`/virtual-tours/${tourId}/scenes/${sceneId}/hotspots/${hotspotId}`, data),
-
-  deleteHotspot: (tourId: number | string, sceneId: number, hotspotId: number) =>
-    api.delete(`/virtual-tours/${tourId}/scenes/${sceneId}/hotspots/${hotspotId}`),
-
   uploadPanorama: (
     tourId: number | string,
     file: File,
@@ -66,6 +115,9 @@ export const tourApi = {
       },
     })
   },
+
+  verifyPublicPassword: (slug: string, password: string) =>
+    api.post(`/tour/${slug}/verify-password`, { password }),
 }
 
 export function parseTourResponse(data: unknown): TourData {
@@ -74,4 +126,13 @@ export function parseTourResponse(data: unknown): TourData {
 
 export function parseSceneResponse(data: unknown): TourScene {
   return data as TourScene
+}
+
+export function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }

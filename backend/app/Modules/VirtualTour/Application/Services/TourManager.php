@@ -33,6 +33,8 @@ class TourManager
             'slug' => $slug,
             'description' => $data['description'] ?? null,
             'status' => 'draft',
+            'visibility' => 'private',
+            'share_token' => \Illuminate\Support\Str::random(32),
             'settings' => $this->defaultSettings($user),
         ]);
     }
@@ -47,6 +49,8 @@ class TourManager
             'property_id' => $data['property_id'] ?? null,
             'settings' => isset($data['settings']) ? array_merge($tour->settings ?? [], $data['settings']) : null,
             'status' => $data['status'] ?? null,
+            'visibility' => $data['visibility'] ?? null,
+            'expires_at' => $data['expires_at'] ?? null,
             'published_at' => ($data['status'] ?? null) === 'published' ? now() : $tour->published_at,
         ], fn ($v) => $v !== null));
 

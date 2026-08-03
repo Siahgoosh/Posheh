@@ -11,6 +11,8 @@ import { EditorTabs } from './EditorTabs'
 import { HotspotEditorPanel } from '../hotspots/HotspotEditorPanel'
 import { SceneSettingsPanel } from '../settings/SceneSettingsPanel'
 import { TourSettingsPanel } from '../settings/TourSettingsPanel'
+import { SharingPanel } from '../sharing/SharingPanel'
+import { VersionHistoryPanel } from '../settings/VersionHistoryPanel'
 import { useTourEditorStore, mergeSceneWithPatches } from '../store/editorStore'
 import { createDefaultHotspot } from '../hotspots/hotspotActions'
 import type { TourData, TourHotspot, TourScene } from '../types'
@@ -138,6 +140,11 @@ export function TourEditorLayout({ tourId }: Props) {
     onSuccess: invalidate,
   })
 
+  const saveSharingMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) => tourApi.updateSharing(tourId, data),
+    onSuccess: invalidate,
+  })
+
   const liveTour = useMemo((): TourData | null => {
     if (!tour) return null
     const scenes = tour.scenes.map((s) => {
@@ -212,11 +219,22 @@ export function TourEditorLayout({ tourId }: Props) {
         )
       case 'tour-settings':
         return (
-          <TourSettingsPanel
+          <div className="overflow-y-auto">
+            <TourSettingsPanel
+              tour={liveTour}
+              onUpdateSettings={setLocalTourSettings}
+              onSave={() => saveTourSettingsMutation.mutate({ ...tour.settings, ...localTourSettings })}
+              isSaving={saveTourSettingsMutation.isPending}
+            />
+            <VersionHistoryPanel tourId={tourId} onRestored={invalidate} />
+          </div>
+        )
+      case 'sharing':
+        return (
+          <SharingPanel
             tour={liveTour}
-            onUpdateSettings={setLocalTourSettings}
-            onSave={() => saveTourSettingsMutation.mutate({ ...tour.settings, ...localTourSettings })}
-            isSaving={saveTourSettingsMutation.isPending}
+            onUpdate={(data) => saveSharingMutation.mutate(data)}
+            isSaving={saveSharingMutation.isPending}
           />
         )
       default:

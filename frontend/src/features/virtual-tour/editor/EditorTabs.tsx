@@ -1,4 +1,4 @@
-import { Layers, MapPin, Settings, Sliders } from 'lucide-react'
+import { Layers, MapPin, Settings, Sliders, Share2 } from 'lucide-react'
 import type { EditorTab } from '../types'
 
 const TABS: { id: EditorTab; label: string; icon: typeof Layers }[] = [
@@ -6,6 +6,7 @@ const TABS: { id: EditorTab; label: string; icon: typeof Layers }[] = [
   { id: 'hotspots', label: 'هات‌اسپات', icon: MapPin },
   { id: 'scene-settings', label: 'تنظیمات صحنه', icon: Sliders },
   { id: 'tour-settings', label: 'تنظیمات تور', icon: Settings },
+  { id: 'sharing', label: 'اشتراک', icon: Share2 },
 ]
 
 interface Props {

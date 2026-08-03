@@ -63,6 +63,7 @@ export function useTourEngine({
   const gyroRef = useRef<GyroscopePlugin | null>(null)
   const stereoRef = useRef<StereoPlugin | null>(null)
   const autorotateRef = useRef<AutorotatePlugin | null>(null)
+  const positionRafRef = useRef<number | null>(null)
 
   const [activeSceneId, setActiveSceneId] = useState<number | null>(
     initialSceneId ?? tour.scenes.find((s) => s.is_default)?.id ?? tour.scenes[0]?.id ?? null,
@@ -183,13 +184,17 @@ export function useTourEngine({
     }
 
     const onPosition = () => {
-      const pos = viewer.getPosition()
-      const zoom = viewer.getZoomLevel()
-      setPosition({
-        yaw: (pos.yaw * 180) / Math.PI,
-        pitch: (pos.pitch * 180) / Math.PI,
-        zoom,
-        fov: zoomToFov(zoom),
+      if (positionRafRef.current !== null) return
+      positionRafRef.current = requestAnimationFrame(() => {
+        positionRafRef.current = null
+        const pos = viewer.getPosition()
+        const zoom = viewer.getZoomLevel()
+        setPosition({
+          yaw: (pos.yaw * 180) / Math.PI,
+          pitch: (pos.pitch * 180) / Math.PI,
+          zoom,
+          fov: zoomToFov(zoom),
+        })
       })
     }
 
@@ -229,6 +234,10 @@ export function useTourEngine({
     viewerRef.current = viewer
 
     return () => {
+      if (positionRafRef.current !== null) {
+        cancelAnimationFrame(positionRafRef.current)
+        positionRafRef.current = null
+      }
       markers?.removeEventListener('select-marker', onSelectMarker as never)
       viewer.destroy()
       viewerRef.current = null

@@ -67,7 +67,7 @@ class VirtualTourController extends Controller
             'title' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'property_id' => ['nullable', 'integer'],
-            'status' => ['sometimes', 'in:draft,published'],
+            'status' => ['sometimes', 'in:draft,published,archived'],
             'settings' => ['sometimes', 'array'],
         ]);
 

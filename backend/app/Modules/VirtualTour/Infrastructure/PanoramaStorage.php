@@ -32,6 +32,11 @@ class PanoramaStorage implements PanoramaStorageInterface
             return '/demo/'.basename($path);
         }
 
+        $cdn = config('virtual-tour.cdn_url');
+        if ($cdn) {
+            return rtrim($cdn, '/').'/storage/'.$path;
+        }
+
         $baseUrl = rtrim(config('app.url'), '/');
 
         return "{$baseUrl}/storage/{$path}";

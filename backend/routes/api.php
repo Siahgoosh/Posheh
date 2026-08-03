@@ -47,6 +47,7 @@ use App\Http\Controllers\Api\Customer\CustomerController;
 use App\Http\Controllers\Api\Visit\VisitController;
 use App\Http\Controllers\Api\VirtualTour\PublicVirtualTourController;
 use App\Http\Controllers\Api\VirtualTour\VirtualTourController;
+use App\Http\Controllers\Api\VirtualTour\VirtualTourEnterpriseController;
 use App\Http\Controllers\Api\PublicApiController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
@@ -87,6 +88,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/p/qr/{token}', [PropertyPublicController::class, 'byQr']);
 
     Route::get('/tour/{slug}', [PublicVirtualTourController::class, 'show']);
+    Route::post('/tour/{slug}/verify-password', [PublicVirtualTourController::class, 'verifyPassword'])->middleware('throttle:20,1');
     Route::post('/tour/{slug}/lead', [PublicVirtualTourController::class, 'submitLead'])->middleware('throttle:20,1');
 
     Route::middleware(['auth:sanctum', EnsureOfficeIsActive::class, EnsureSubscriptionAccess::class])->group(function () {
@@ -154,10 +156,25 @@ Route::prefix('v1')->group(function () {
         Route::post('/commissions/{id}/pay', [CommissionController::class, 'markPaid']);
 
         Route::prefix('virtual-tours')->group(function () {
-            Route::get('/', [VirtualTourController::class, 'index']);
+            Route::get('/dashboard', [VirtualTourEnterpriseController::class, 'dashboard']);
+            Route::post('/import', [VirtualTourEnterpriseController::class, 'import']);
+            Route::get('/', [VirtualTourEnterpriseController::class, 'list']);
             Route::post('/', [VirtualTourController::class, 'store']);
             Route::get('/{id}', [VirtualTourController::class, 'show']);
             Route::put('/{id}', [VirtualTourController::class, 'update']);
+            Route::delete('/{id}', [VirtualTourEnterpriseController::class, 'destroy']);
+            Route::post('/{id}/duplicate', [VirtualTourEnterpriseController::class, 'duplicate']);
+            Route::post('/{id}/publish', [VirtualTourEnterpriseController::class, 'publish']);
+            Route::post('/{id}/unpublish', [VirtualTourEnterpriseController::class, 'unpublish']);
+            Route::post('/{id}/archive', [VirtualTourEnterpriseController::class, 'archive']);
+            Route::post('/{id}/unarchive', [VirtualTourEnterpriseController::class, 'unarchive']);
+            Route::put('/{id}/sharing', [VirtualTourEnterpriseController::class, 'updateSharing']);
+            Route::get('/{id}/export/json', [VirtualTourEnterpriseController::class, 'exportJson']);
+            Route::get('/{id}/export/zip', [VirtualTourEnterpriseController::class, 'exportZip']);
+            Route::post('/{id}/backup', [VirtualTourEnterpriseController::class, 'backup']);
+            Route::get('/{id}/versions', [VirtualTourEnterpriseController::class, 'versions']);
+            Route::post('/{id}/versions/{versionId}/restore', [VirtualTourEnterpriseController::class, 'restoreVersion']);
+            Route::get('/{id}/activity', [VirtualTourEnterpriseController::class, 'activity']);
             Route::get('/{id}/analytics', [VirtualTourController::class, 'analytics']);
             Route::post('/{id}/scenes', [VirtualTourController::class, 'addScene']);
             Route::post('/{id}/scenes/upload', [VirtualTourController::class, 'uploadPanorama']);

@@ -195,8 +195,16 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
 
       <style>{`
         .psv-container { font-family: inherit; }
-        .psv-canvas-container { cursor: ${isPlacingHotspot ? 'crosshair' : 'grab'}; }
+        .psv-canvas-container {
+          cursor: ${isPlacingHotspot ? 'crosshair' : 'grab'};
+          touch-action: none;
+          -webkit-tap-highlight-color: transparent;
+        }
         .psv-canvas-container:active { cursor: ${isPlacingHotspot ? 'crosshair' : 'grabbing'}; }
+        @media (max-width: 768px) {
+          .psv-container { height: 100% !important; }
+          .psv-canvas-container canvas { image-rendering: auto; }
+        }
         ${HOTSPOT_MARKER_CSS}
       `}</style>
     </div>

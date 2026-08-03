@@ -1,4 +1,4 @@
-export type SceneStatus = 'draft' | 'published'
+export type SceneStatus = 'draft' | 'published' | 'archived'
 
 export type HotspotType =
   | 'scene'
@@ -150,7 +150,13 @@ export interface TourData {
   slug?: string
   description?: string
   status?: SceneStatus
+  visibility?: 'public' | 'private'
   view_count?: number
+  version?: number
+  expires_at?: string | null
+  archived_at?: string | null
+  has_password?: boolean
+  share_token?: string
   settings?: TourSettings
   scenes: TourScene[]
   gallery?: { id: number; type: string; url: string; title?: string }[]
@@ -164,6 +170,8 @@ export interface TourData {
   }
   office?: { name: string; phone?: string }
   public_url?: string
+  private_url?: string
+  embed_url?: string
 }
 
 export interface ViewerPosition {
@@ -175,7 +183,7 @@ export interface ViewerPosition {
 
 export type SceneFilter = 'all' | 'draft' | 'published' | 'visible' | 'hidden'
 export type SceneSort = 'order' | 'name' | 'status'
-export type EditorTab = 'scenes' | 'hotspots' | 'scene-settings' | 'tour-settings'
+export type EditorTab = 'scenes' | 'hotspots' | 'scene-settings' | 'tour-settings' | 'sharing'
 
 export interface UploadTask {
   id: string

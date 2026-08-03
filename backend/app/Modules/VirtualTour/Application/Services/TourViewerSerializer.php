@@ -23,6 +23,12 @@ class TourViewerSerializer
             'description' => $tour->description,
             'status' => $tour->status,
             'view_count' => $tour->view_count,
+            'version' => $tour->version ?? 1,
+            'visibility' => $tour->visibility ?? 'public',
+            'expires_at' => $tour->expires_at?->toIso8601String(),
+            'archived_at' => $tour->archived_at?->toIso8601String(),
+            'share_token' => $tour->share_token,
+            'has_password' => (bool) $tour->access_password,
             'settings' => $settings,
             'property' => $tour->property ? [
                 'code' => $tour->property->code,
@@ -44,6 +50,8 @@ class TourViewerSerializer
                 'title' => $m->title,
             ]),
             'public_url' => $tour->publicUrl(),
+            'private_url' => $tour->share_token ? $tour->privateUrl() : null,
+            'embed_url' => $tour->embedUrl(),
         ];
     }
 

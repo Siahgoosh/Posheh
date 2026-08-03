@@ -1,42 +1,25 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import {
-  Share2, Phone, MessageCircle, MapPin, Images, X, Copy, Check, Eye,
+  Share2, Phone, MessageCircle, MapPin, Images, X, Copy, Check, Eye, Lock,
 } from 'lucide-react'
 import api from '@/lib/api'
-import { TourViewer, type TourData } from '@/features/virtual-tour'
+import { TourViewer } from '@/features/virtual-tour'
+import { usePublicTour } from '@/features/virtual-tour/hooks/usePublicTour'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
-interface TourPayload extends TourData {
-  slug: string
-  view_count: number
-  gallery?: { id: number; type: string; url: string; title?: string }[]
-  public_url?: string
-  settings?: TourData['settings'] & {
-    phone?: string
-    whatsapp?: string
-    show_contact_form?: boolean
-    show_gallery?: boolean
-    music_url?: string
-  }
-}
-
 export function VirtualTourPublicPage() {
   const { slug } = useParams<{ slug: string }>()
+  const { tour, gate, verifyPassword, verifyError, isVerifying } = usePublicTour(slug)
   const [showGallery, setShowGallery] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
   const [form, setForm] = useState({ name: '', mobile: '', message: '' })
-
-  const { data: tour, isLoading, error } = useQuery({
-    queryKey: ['public-tour', slug],
-    queryFn: async () => (await api.get(`/tour/${slug}`)).data.data as TourPayload,
-    enabled: !!slug,
-  })
 
   const leadMutation = useMutation({
     mutationFn: async () => (await api.post(`/tour/${slug}/lead`, form)).data,
@@ -47,15 +30,7 @@ export function VirtualTourPublicPage() {
     },
   })
 
-  const shareUrl = tour?.public_url || `${window.location.origin}/tour/${slug}`
-
-  const copyLink = async () => {
-    await navigator.clipboard.writeText(shareUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  if (isLoading) {
+  if (gate === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -63,19 +38,64 @@ export function VirtualTourPublicPage() {
     )
   }
 
-  if (error || !tour) {
+  if (gate === 'expired') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-muted">تور مجازی یافت نشد</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0a0a0f] text-white">
+        <p className="text-muted">این تور منقضی شده است.</p>
         <Link to="/"><Button variant="outline">صفحه اصلی</Button></Link>
       </div>
     )
   }
 
+  if (gate === 'password') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f] p-4">
+        <Card className="w-full max-w-sm p-6 space-y-4">
+          <div className="text-center">
+            <Lock className="h-10 w-10 mx-auto mb-3 text-primary" />
+            <h1 className="font-bold text-lg">تور محافظت‌شده</h1>
+            <p className="text-sm text-muted mt-1">برای مشاهده، رمز دسترسی را وارد کنید.</p>
+          </div>
+          <Input
+            type="password"
+            placeholder="رمز دسترسی"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && verifyPassword(passwordInput)}
+          />
+          {verifyError && <p className="text-xs text-red-400">{verifyError}</p>}
+          <Button
+            className="w-full"
+            disabled={!passwordInput || isVerifying}
+            onClick={() => verifyPassword(passwordInput)}
+          >
+            {isVerifying ? 'در حال بررسی...' : 'ورود به تور'}
+          </Button>
+        </Card>
+      </div>
+    )
+  }
+
+  if (gate === 'denied' || !tour) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <p className="text-muted">تور مجازی یافت نشد یا دسترسی مجاز نیست.</p>
+        <Link to="/"><Button variant="outline">صفحه اصلی</Button></Link>
+      </div>
+    )
+  }
+
+  const shareUrl = tour.public_url || `${window.location.origin}/tour/${slug}`
   const whatsapp = tour.settings?.whatsapp || tour.settings?.phone
   const mapUrl = tour.settings?.map_lat && tour.settings?.map_lng
     ? `https://maps.google.com/?q=${tour.settings.map_lat},${tour.settings.map_lng}`
     : null
+
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(shareUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
@@ -105,7 +125,7 @@ export function VirtualTourPublicPage() {
         </div>
       </header>
 
-      <div className="flex-1 relative" style={{ minHeight: '65vh' }}>
+      <div className="flex-1 relative min-h-[65vh]">
         <TourViewer tour={tour} className="h-full" showControls showSceneName showFeatures publicUrl={shareUrl} />
       </div>
 
@@ -163,7 +183,7 @@ export function VirtualTourPublicPage() {
           <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 gap-3">
             {tour.gallery.map((g) => (
               <Card key={g.id} className="overflow-hidden">
-                <img src={g.url} alt={g.title || ''} className="w-full aspect-video object-cover" />
+                <img src={g.url} alt={g.title || ''} className="w-full aspect-video object-cover" loading="lazy" />
                 {g.title && <p className="p-2 text-xs text-muted">{g.title}</p>}
               </Card>
             ))}

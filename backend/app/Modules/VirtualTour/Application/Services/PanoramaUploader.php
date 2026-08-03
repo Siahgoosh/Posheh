@@ -9,14 +9,21 @@ use Illuminate\Http\UploadedFile;
 
 class PanoramaUploader
 {
-  private const MAX_SIZE_BYTES = 100 * 1024 * 1024; // 100MB
+  private function maxSizeBytes(): int
+  {
+    return (int) config('virtual-tour.max_panorama_size_mb', 100) * 1024 * 1024;
+  }
 
-  private const ALLOWED_MIMES = [
-    'image/jpeg',
-    'image/jpg',
-    'image/png',
-    'image/webp',
-  ];
+  /** @return string[] */
+  private function allowedMimes(): array
+  {
+    return config('virtual-tour.allowed_panorama_mimes', [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+    ]);
+  }
 
   public function __construct(
     private readonly TourManager $tourManager,
@@ -31,12 +38,13 @@ class PanoramaUploader
   {
     $errors = [];
 
-    if (! in_array($file->getMimeType(), self::ALLOWED_MIMES, true)) {
+    if (! in_array($file->getMimeType(), $this->allowedMimes(), true)) {
       $errors[] = 'فرمت فایل باید JPEG، PNG یا WebP باشد.';
     }
 
-    if ($file->getSize() > self::MAX_SIZE_BYTES) {
-      $errors[] = 'حداکثر حجم فایل ۱۰۰ مگابایت است.';
+    $maxMb = (int) config('virtual-tour.max_panorama_size_mb', 100);
+    if ($file->getSize() > $this->maxSizeBytes()) {
+      $errors[] = "حداکثر حجم فایل {$maxMb} مگابایت است.";
     }
 
     $info = @getimagesize($file->getRealPath());
