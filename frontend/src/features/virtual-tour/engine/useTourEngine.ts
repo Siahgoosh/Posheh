@@ -22,10 +22,15 @@ export interface TourEngineControls {
 }
 
 export interface SceneTransitionOptions {
-  effect?: 'fade' | 'crossfade' | 'none'
+  effect?: 'fade' | 'crossfade' | 'none' | string
   speed?: string | number
   yaw?: number
   pitch?: number
+}
+
+function mapPsvTransitionEffect(effect?: string): 'fade' | 'none' {
+  if (!effect || effect === 'none') return 'none'
+  return 'fade'
 }
 
 export interface UseTourEngineOptions {
@@ -391,10 +396,11 @@ export function useTourEngine({
     },
     goToScene: (sceneId: number, options?: SceneTransitionOptions) => {
       const targetScene = visibleScenes.find((s) => s.id === sceneId)
-      const effect = options?.effect || targetScene?.transition_effect || 'fade'
-      const speed = options?.speed ?? `${options?.effect === 'none' ? 0 : 800}ms`
+      const rawEffect = options?.effect || targetScene?.transition_effect || 'fade'
+      const effect = mapPsvTransitionEffect(rawEffect)
+      const speed = options?.speed ?? `${effect === 'none' ? 0 : 800}ms`
       vtRef.current?.setCurrentNode(String(sceneId), {
-        effect: effect === 'crossfade' ? 'fade' : effect,
+        effect,
         speed,
         showLoader: false,
         rotation: true,

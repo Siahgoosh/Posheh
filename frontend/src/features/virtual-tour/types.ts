@@ -35,6 +35,9 @@ export interface HotspotStyle {
   opacity?: number
   border?: string
   shadow?: boolean
+  rotation?: number
+  locked?: boolean
+  zIndex?: number
 }
 
 export interface HotspotAction {
@@ -48,7 +51,7 @@ export interface HotspotAction {
   /** Entrance view after scene transition */
   entrance_yaw?: number
   entrance_pitch?: number
-  transition_effect?: 'fade' | 'crossfade' | 'none'
+  transition_effect?: 'fade' | 'crossfade' | 'none' | 'zoom' | 'push' | 'pull' | 'motion_blur' | 'blur' | 'slide' | 'scale' | 'opacity_blend'
   transition_duration?: number
   hidden?: boolean
 }
@@ -131,7 +134,7 @@ export interface TourScene {
   default_fov?: number | null
   background_music?: string | null
   ambient_sound?: string | null
-  transition_effect?: 'fade' | 'crossfade' | 'none'
+  transition_effect?: 'fade' | 'crossfade' | 'none' | 'zoom' | 'push' | 'pull' | 'motion_blur' | 'blur' | 'slide' | 'scale' | 'opacity_blend'
   scene_settings?: SceneSettings
   sort_order?: number
   panorama_width?: number | null
@@ -177,6 +180,17 @@ export interface TourSettings {
   map_lat?: number
   map_lng?: number
   music_url?: string
+  floor_plan_url?: string
+  theme_mode?: 'dark' | 'light' | 'auto'
+  property_bedrooms?: number | string
+  property_bathrooms?: number | string
+  property_parking?: number | string
+  property_warehouse?: number | string
+  property_year_built?: number | string
+  property_price?: string
+  property_area?: string
+  property_description?: string
+  property_pdf_url?: string
 }
 
 export interface TourData {
@@ -203,6 +217,11 @@ export interface TourData {
     area?: number
     city?: string
     district?: string
+    bedrooms?: number
+    bathrooms?: number
+    parking?: number
+    warehouse?: number
+    year_built?: number
   }
   office?: { name: string; phone?: string }
   public_url?: string

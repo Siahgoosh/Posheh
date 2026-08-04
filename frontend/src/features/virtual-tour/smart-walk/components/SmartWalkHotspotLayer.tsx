@@ -1,0 +1,209 @@
+import { useCallback, useRef, useState } from 'react'
+import type { TourHotspot } from '../../types'
+import { getHotspotTypeDef } from '../../hotspots/constants'
+
+const SNAP_GRID = 5
+
+interface Props {
+  hotspots: TourHotspot[]
+  brandColor: string
+  editorMode?: boolean
+  selectedId?: number | string | null
+  onHotspotClick: (h: TourHotspot) => void
+  onHotspotMove?: (h: TourHotspot, x: number, y: number) => void
+  onHotspotResize?: (h: TourHotspot, size: number) => void
+  onHotspotRotate?: (h: TourHotspot, rotation: number) => void
+  showGuides?: boolean
+}
+
+export function SmartWalkHotspotLayer({
+  hotspots,
+  brandColor,
+  editorMode = false,
+  selectedId,
+  onHotspotClick,
+  onHotspotMove,
+  onHotspotResize,
+  onHotspotRotate,
+  showGuides = true,
+}: Props) {
+  const dragRef = useRef<{
+    id: number | string
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+  } | null>(null)
+  const [guideLines, setGuideLines] = useState<{ x?: number; y?: number }>({})
+
+  const sorted = [...hotspots].sort(
+    (a, b) => (a.style?.zIndex ?? a.sort_order ?? 0) - (b.style?.zIndex ?? b.sort_order ?? 0),
+  )
+
+  const snap = (v: number) => {
+    const snapped = Math.round(v / SNAP_GRID) * SNAP_GRID
+    return Math.max(0, Math.min(100, snapped))
+  }
+
+  const checkGuides = useCallback((x: number, y: number, excludeId: number | string) => {
+    if (!showGuides) return { x, y, guides: {} }
+    const others = hotspots.filter((h) => h.id !== excludeId)
+    let gx: number | undefined
+    let gy: number | undefined
+    let sx = x
+    let sy = y
+    for (const o of others) {
+      const ox = o.position_x ?? 50
+      const oy = o.position_y ?? 50
+      if (Math.abs(x - ox) < 2) {
+        sx = ox
+        gx = ox
+      }
+      if (Math.abs(y - oy) < 2) {
+        sy = oy
+        gy = oy
+      }
+    }
+    return { x: snap(sx), y: snap(sy), guides: { x: gx, y: gy } }
+  }, [hotspots, showGuides])
+
+  const onPointerDown = (e: React.PointerEvent, h: TourHotspot) => {
+    if (!editorMode || h.style?.locked) return
+    e.stopPropagation()
+    e.preventDefault()
+    dragRef.current = {
+      id: h.id,
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: h.position_x ?? 50,
+      originY: h.position_y ?? 50,
+    }
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+  }
+
+  const onPointerMove = (e: React.PointerEvent, h: TourHotspot) => {
+    if (!dragRef.current || dragRef.current.id !== h.id || !onHotspotMove) return
+    const layer = (e.currentTarget as HTMLElement).parentElement
+    if (!layer) return
+    const rect = layer.getBoundingClientRect()
+    const dx = ((e.clientX - dragRef.current.startX) / rect.width) * 100
+    const dy = ((e.clientY - dragRef.current.startY) / rect.height) * 100
+    const rawX = dragRef.current.originX + dx
+    const rawY = dragRef.current.originY + dy
+    const { x, y, guides } = checkGuides(rawX, rawY, h.id)
+    setGuideLines(guides)
+    onHotspotMove(h, x, y)
+  }
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    dragRef.current = null
+    setGuideLines({})
+    ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
+  }
+
+  return (
+    <>
+      {showGuides && guideLines.x !== undefined && (
+        <div className="absolute top-0 bottom-0 w-px bg-primary/60 z-20 pointer-events-none" style={{ left: `${guideLines.x}%` }} />
+      )}
+      {showGuides && guideLines.y !== undefined && (
+        <div className="absolute left-0 right-0 h-px bg-primary/60 z-20 pointer-events-none" style={{ top: `${guideLines.y}%` }} />
+      )}
+
+      {sorted.map((h) => {
+        const px = h.position_x ?? 50
+        const py = h.position_y ?? 50
+        const size = h.style?.size ?? 36
+        const rotation = h.style?.rotation ?? 0
+        const color = h.style?.color || brandColor
+        const def = getHotspotTypeDef(h.type)
+        const selected = selectedId === h.id
+
+        return (
+          <div
+            key={h.id}
+            className="absolute z-10"
+            style={{
+              left: `${px}%`,
+              top: `${py}%`,
+              transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+              zIndex: h.style?.zIndex ?? h.sort_order ?? 10,
+            }}
+          >
+            <button
+              type="button"
+              className={`relative rounded-full border-2 flex items-center justify-center transition-transform ${
+                h.style?.pulse ? 'animate-pulse' : ''
+              } ${editorMode && !h.style?.locked ? 'cursor-move' : ''} ${selected ? 'ring-2 ring-white scale-110' : 'hover:scale-110'}`}
+              style={{
+                width: size,
+                height: size,
+                borderColor: color,
+                background: `${color}40`,
+                boxShadow: h.style?.glow ? `0 0 14px ${color}` : undefined,
+                opacity: h.style?.opacity ?? 1,
+              }}
+              title={h.tooltip || h.label || h.title || ''}
+              onClick={(e) => {
+                e.stopPropagation()
+                onHotspotClick(h)
+              }}
+              onPointerDown={(e) => onPointerDown(e, h)}
+              onPointerMove={(e) => onPointerMove(e, h)}
+              onPointerUp={onPointerUp}
+            >
+              <span className="text-sm">{h.type === 'scene' ? '➡' : def.emoji}</span>
+            </button>
+
+            {editorMode && selected && !h.style?.locked && onHotspotResize && (
+              <button
+                type="button"
+                className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white border border-primary text-[8px] flex items-center justify-center"
+                onPointerDown={(e) => {
+                  e.stopPropagation()
+                  const start = size
+                  const startY = e.clientY
+                  const move = (ev: PointerEvent) => {
+                    const delta = (ev.clientY - startY) * 0.5
+                    onHotspotResize(h, Math.max(20, Math.min(80, start + delta)))
+                  }
+                  const up = () => {
+                    window.removeEventListener('pointermove', move)
+                    window.removeEventListener('pointerup', up)
+                  }
+                  window.addEventListener('pointermove', move)
+                  window.addEventListener('pointerup', up)
+                }}
+              >
+                ◢
+              </button>
+            )}
+
+            {editorMode && selected && !h.style?.locked && onHotspotRotate && (
+              <button
+                type="button"
+                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white border border-primary text-[8px]"
+                onPointerDown={(e) => {
+                  e.stopPropagation()
+                  const cx = e.clientX
+                  const startRot = rotation
+                  const move = (ev: PointerEvent) => {
+                    onHotspotRotate(h, startRot + (ev.clientX - cx) * 0.8)
+                  }
+                  const up = () => {
+                    window.removeEventListener('pointermove', move)
+                    window.removeEventListener('pointerup', up)
+                  }
+                  window.addEventListener('pointermove', move)
+                  window.addEventListener('pointerup', up)
+                }}
+              >
+                ↻
+              </button>
+            )}
+          </div>
+        )
+      })}
+    </>
+  )
+}

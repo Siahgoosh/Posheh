@@ -1,4 +1,5 @@
 import type { TourHotspot } from '../types'
+import type { CameraState } from './camera/cameraMath'
 import { DEFAULT_HOTSPOT_STYLE } from '../hotspots/constants'
 
 export function createSmartWalkSceneLinkHotspot(x: number, y: number): TourHotspot {
@@ -59,7 +60,7 @@ export function clickToImagePercent(
   clientX: number,
   clientY: number,
   container: HTMLElement,
-  transform: { x: number; y: number; scale: number },
+  camera: CameraState,
   imageWidth: number,
   imageHeight: number,
 ): { x: number; y: number } {
@@ -70,11 +71,11 @@ export function clickToImagePercent(
   const containerW = rect.width
   const containerH = rect.height
 
-  const imgDisplayW = imageWidth * transform.scale
-  const imgDisplayH = imageHeight * transform.scale
+  const imgDisplayW = imageWidth * camera.scale
+  const imgDisplayH = imageHeight * camera.scale
 
-  const imgLeft = (containerW - imgDisplayW) / 2 + transform.x
-  const imgTop = (containerH - imgDisplayH) / 2 + transform.y
+  const imgLeft = (containerW - imgDisplayW) / 2 + camera.x
+  const imgTop = (containerH - imgDisplayH) / 2 + camera.y
 
   const relX = (cx - imgLeft) / imgDisplayW
   const relY = (cy - imgTop) / imgDisplayH

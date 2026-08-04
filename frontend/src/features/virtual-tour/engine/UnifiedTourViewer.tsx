@@ -20,6 +20,14 @@ interface Props {
   onPlaceHotspot?: (a: number, b: number) => void
   onHotspotSelect?: (hotspot: TourHotspot) => void
   onHotspotMove?: (hotspot: TourHotspot, yaw: number, pitch: number) => void
+  onHotspotUpdate?: (hotspot: TourHotspot) => void
+  selectedHotspotId?: number | string | null
+  onUndo?: () => void
+  onRedo?: () => void
+  onCopy?: () => void
+  onPaste?: () => void
+  canUndo?: boolean
+  canRedo?: boolean
   isRepositioningHotspot?: boolean
   repositionHotspot?: TourHotspot | null
   onLeadForm?: () => void
@@ -47,6 +55,14 @@ export const UnifiedTourViewer = forwardRef<UnifiedTourViewerHandle, Props>(func
         isPlacingHotspot={props.isPlacingHotspot}
         onPlaceHotspot={props.onPlaceHotspot}
         onHotspotSelect={props.onHotspotSelect}
+        onHotspotUpdate={props.onHotspotUpdate}
+        selectedHotspotId={props.selectedHotspotId}
+        onUndo={props.onUndo}
+        onRedo={props.onRedo}
+        onCopy={props.onCopy}
+        onPaste={props.onPaste}
+        canUndo={props.canUndo}
+        canRedo={props.canRedo}
         onLeadForm={props.onLeadForm}
       />
     )

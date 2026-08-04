@@ -40,9 +40,14 @@ Dashboard → **تور جدید** → Step 1: choose Smart Walk or 360 Tour → 
 
 ## Frontend
 
-- `UnifiedTourViewer` — routes to `SmartWalkViewer` or `TourViewer` by `tour_type`
-- `useSmartWalkEngine` — pan/zoom, lazy load, scene preload, image cache
-- `CreateTourWizard` — tour type selection
+- `UnifiedTourViewer` — routes to immersive `SmartWalkViewer` or `TourViewer` by `tour_type`
+- `useSmartWalkCamera` — physics pan, momentum, pinch, double-tap, wheel, keyboard, up to **800% zoom**
+- `transitionEngine` — cinematic scene transitions + walk-to-hotspot camera motion
+- `SmartWalkTimeline` — bottom thumbnail strip with drag-scroll
+- `SmartWalkMiniMap` — floor plan, visited rooms, clickable navigation
+- `SmartWalkSidebar` — property specs, share, contact, dark/light/auto theme
+- `SmartWalkHotspotLayer` — drag, resize, rotate, snap guides (editor mode)
+- `useHotspotEditor` — undo/redo, copy/paste, duplicate, layer ordering helpers
 
 ## Migration
 

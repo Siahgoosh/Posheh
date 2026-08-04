@@ -23,7 +23,8 @@ export const HOTSPOT_TYPES: HotspotTypeDef[] = [
   { type: 'email', label: 'ایمیل', icon: 'mail', emoji: '📧', defaultAction: 'email' },
   { type: 'maps', label: 'گوگل مپ', icon: 'map', emoji: '📍', defaultAction: 'map' },
   { type: 'floor_plan', label: 'پلان طبقه', icon: 'layout', emoji: '🗺️', defaultAction: 'popup' },
-  { type: 'custom', label: 'دکمه سفارشی', icon: 'star', emoji: '⭐', defaultAction: 'popup' },
+  { type: 'link', label: 'لینک خارجی', icon: 'link', emoji: '🔗', defaultAction: 'link' },
+  { type: 'custom', label: 'عمل سفارشی', icon: 'code', emoji: '⚡', defaultAction: 'popup' },
 ]
 
 export const DEFAULT_HOTSPOT_STYLE = {

@@ -52,6 +52,19 @@ export function pickSceneImageUrl(
   return resolvePanoramaUrl(panoramaUrl)
 }
 
+/** Pick highest quality variant for deep zoom (800%). */
+export function pickSceneImageUrlForZoom(
+  panoramaUrl: string,
+  variants?: SceneImageVariants | null,
+  scale = 1,
+): string {
+  if (!variants) return resolvePanoramaUrl(panoramaUrl)
+  if (scale >= 4 && variants.original) return resolvePanoramaUrl(variants.original)
+  if (scale >= 2.5 && variants.ultra) return resolvePanoramaUrl(variants.ultra)
+  if (scale >= 1.5 && variants.large) return resolvePanoramaUrl(variants.large)
+  return pickSceneImageUrl(panoramaUrl, variants)
+}
+
 export function clearImageCache(): void {
   cache.clear()
 }

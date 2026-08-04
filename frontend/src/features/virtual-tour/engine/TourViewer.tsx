@@ -95,7 +95,7 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
     onHotspotActivate: (hotspot) => {
       if (hotspot.type === 'scene' && hotspot.target_scene_id) {
         goToSceneRef.current(hotspot.target_scene_id, {
-          effect: hotspot.action?.transition_effect,
+          effect: hotspot.action?.transition_effect === 'none' ? 'none' : 'fade',
           speed: hotspot.action?.transition_duration,
           yaw: hotspot.action?.entrance_yaw,
           pitch: hotspot.action?.entrance_pitch,

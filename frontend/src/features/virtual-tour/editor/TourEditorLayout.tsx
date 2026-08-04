@@ -405,6 +405,8 @@ export function TourEditorLayout({ tourId }: Props) {
               onPlaceHotspot={handlePlaceHotspot}
               onHotspotMove={(h, yaw, pitch) => activeScene && updateHotspot(activeScene.id, { ...h, yaw, pitch })}
               onHotspotSelect={(h) => { setSelectedHotspotId(h.id); setActiveTab('hotspots') }}
+              onHotspotUpdate={(h) => activeScene && updateHotspot(activeScene.id, h)}
+              selectedHotspotId={selectedHotspotId}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
