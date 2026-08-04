@@ -2,10 +2,13 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    private const ANALYTICS_INDEX = 'vt_evt_tour_type_created_idx';
+
     public function up(): void
     {
         if (Schema::hasTable('virtual_tour_views')) {
@@ -32,18 +35,35 @@ return new class extends Migration
             Schema::create('virtual_tour_analytics_events', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('virtual_tour_id')->constrained()->cascadeOnDelete();
-                $table->string('session_id', 64)->index();
+                $table->string('session_id', 64)->index('vt_evt_session_idx');
                 $table->foreignId('scene_id')->nullable()->constrained('virtual_tour_scenes')->nullOnDelete();
                 $table->unsignedBigInteger('hotspot_id')->nullable();
-                $table->string('event_type', 64)->index();
+                $table->string('event_type', 64)->index('vt_evt_type_idx');
                 $table->decimal('position_x', 10, 4)->nullable();
                 $table->decimal('position_y', 10, 4)->nullable();
                 $table->json('meta')->nullable();
                 $table->timestamp('created_at')->useCurrent();
 
-                $table->index(['virtual_tour_id', 'event_type', 'created_at']);
+                $table->index(['virtual_tour_id', 'event_type', 'created_at'], self::ANALYTICS_INDEX);
+            });
+        } elseif (! $this->hasIndex('virtual_tour_analytics_events', self::ANALYTICS_INDEX)) {
+            Schema::table('virtual_tour_analytics_events', function (Blueprint $table) {
+                $table->index(['virtual_tour_id', 'event_type', 'created_at'], self::ANALYTICS_INDEX);
             });
         }
+    }
+
+    private function hasIndex(string $table, string $indexName): bool
+    {
+        $indexes = DB::select("SHOW INDEX FROM `{$table}`");
+
+        foreach ($indexes as $index) {
+            if (($index->Key_name ?? null) === $indexName) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function down(): void
