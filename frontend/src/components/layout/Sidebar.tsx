@@ -142,7 +142,7 @@ export function Sidebar() {
       <Button
         variant="ghost"
         size="icon"
-        className="fixed top-3 right-3 z-50 lg:hidden glass"
+        className="fixed top-[max(0.5rem,env(safe-area-inset-top))] right-3 z-50 lg:hidden glass h-10 w-10"
         onClick={() => setMobileOpen(true)}
         aria-label="منو"
       >

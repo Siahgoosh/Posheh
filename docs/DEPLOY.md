@@ -19,7 +19,7 @@ fatal: couldn't find remote ref cursor/visit/notifications-e117
 
 ## دستور Deploy (همه فیچرها یکجا)
 
-شاخه **`cursor/release-deploy-e117`** شامل:
+شاخه **`cursor/release-deploy-e117`** (یا **`cursor/mobile-pwa-releases-e117`** — آخرین PWA + بیلد) شامل:
 
 - تور مجازی ۳۶۰ (Enterprise + رفع loading ۰٪)
 - نوتیفیکیشن درخواست بازدید (پنل + تلگرام)
