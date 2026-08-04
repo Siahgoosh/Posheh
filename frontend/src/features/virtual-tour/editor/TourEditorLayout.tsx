@@ -5,7 +5,7 @@ import { ArrowRight, Globe, ExternalLink, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { tourApi } from '../api/tourApi'
-import { TourViewer, type TourViewerHandle } from '../engine/TourViewer'
+import { UnifiedTourViewer, type UnifiedTourViewerHandle } from '../engine/UnifiedTourViewer'
 import { SceneManagerPanel } from './SceneManagerPanel'
 import { EditorTabs } from './EditorTabs'
 import { HotspotEditorPanel } from '../hotspots/HotspotEditorPanel'
@@ -15,6 +15,7 @@ import { SharingPanel } from '../sharing/SharingPanel'
 import { VersionHistoryPanel } from '../settings/VersionHistoryPanel'
 import { useTourEditorStore, mergeSceneWithPatches } from '../store/editorStore'
 import { createDefaultHotspot, createSceneLinkHotspot } from '../hotspots/hotspotActions'
+import { createSmartWalkSceneLinkHotspot, createSmartWalkHotspot } from '../smart-walk/smartWalkHotspots'
 import { SceneLinkPickerModal } from '../hotspots/SceneLinkPickerModal'
 import type { TourData, TourHotspot, TourScene } from '../types'
 
@@ -24,7 +25,7 @@ interface Props {
 
 export function TourEditorLayout({ tourId }: Props) {
   const queryClient = useQueryClient()
-  const viewerRef = useRef<TourViewerHandle>(null)
+  const viewerRef = useRef<UnifiedTourViewerHandle>(null)
   const {
     activeSceneId,
     setActiveSceneId,
@@ -127,6 +128,9 @@ export function TourEditorLayout({ tourId }: Props) {
         type: h.type,
         yaw: h.yaw,
         pitch: h.pitch,
+        position_x: h.position_x,
+        position_y: h.position_y,
+        position_z: h.position_z,
         target_scene_id: h.target_scene_id,
         title: h.title,
         label: h.label,
@@ -177,8 +181,36 @@ export function TourEditorLayout({ tourId }: Props) {
   const activeScene = liveTour?.scenes.find((s) => s.id === activeSceneId) ?? liveTour?.scenes[0] ?? null
   const activeHotspots = activeScene ? (localHotspots[activeScene.id] ?? activeScene.hotspots) : []
 
-  const handlePlaceHotspot = useCallback((yaw: number, pitch: number) => {
+  const isSmartWalk = tour?.tour_type === 'smart_walk'
+
+  const handlePlaceHotspot = useCallback((a: number, b: number) => {
     if (!activeScene) return
+    if (isSmartWalk) {
+      const x = a
+      const y = b
+      if (isRepositioningHotspot && selectedHotspotId) {
+        const h = activeHotspots.find((x) => x.id === selectedHotspotId)
+        if (h) {
+          updateHotspot(activeScene.id, { ...h, position_x: x, position_y: y })
+          setIsRepositioningHotspot(false)
+        }
+        return
+      }
+      if (isLinkingScenes) {
+        const hotspot = createSmartWalkSceneLinkHotspot(x, y)
+        addHotspot(activeScene.id, hotspot)
+        setPendingLinkHotspot(hotspot)
+        setActiveTab('hotspots')
+        return
+      }
+      const hotspot = createSmartWalkHotspot(x, y)
+      addHotspot(activeScene.id, hotspot)
+      setActiveTab('hotspots')
+      return
+    }
+
+    const yaw = a
+    const pitch = b
     if (isRepositioningHotspot && selectedHotspotId) {
       const h = activeHotspots.find((x) => x.id === selectedHotspotId)
       if (h) {
@@ -197,7 +229,7 @@ export function TourEditorLayout({ tourId }: Props) {
     const hotspot = createDefaultHotspot(yaw, pitch)
     addHotspot(activeScene.id, hotspot)
     setActiveTab('hotspots')
-  }, [activeScene, activeHotspots, selectedHotspotId, isRepositioningHotspot, isLinkingScenes, addHotspot, updateHotspot, setActiveTab, setIsRepositioningHotspot])
+  }, [activeScene, activeHotspots, selectedHotspotId, isRepositioningHotspot, isLinkingScenes, isSmartWalk, addHotspot, updateHotspot, setActiveTab, setIsRepositioningHotspot])
 
   const handleSceneLinkPick = (targetSceneId: number) => {
     if (!activeScene || !pendingLinkHotspot) return
@@ -303,6 +335,7 @@ export function TourEditorLayout({ tourId }: Props) {
         return (
           <SceneManagerPanel
             tourId={tourId}
+            tourType={liveTour.tour_type}
             scenes={liveTour.scenes}
             onSceneSelect={handleSceneSelect}
             onSceneRename={(id, name) => renameMutation.mutate({ sceneId: id, name })}
@@ -327,7 +360,9 @@ export function TourEditorLayout({ tourId }: Props) {
         </Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold truncate">{tour.title}</h1>
-          <p className="text-[11px] text-muted">ویرایشگر حرفه‌ای تور ۳۶۰ — هات‌اسپات و تنظیمات</p>
+          <p className="text-[11px] text-muted">
+            {isSmartWalk ? 'Poshe Smart Walk — عکس موبایل و اتصال صحنه‌ها' : 'ویرایشگر تور ۳۶۰ — هات‌اسپات و تنظیمات'}
+          </p>
         </div>
         <Badge variant={tour.status === 'published' ? 'default' : 'outline'}>
           {tour.status === 'published' ? 'منتشر شده' : 'پیش‌نویس'}
@@ -354,7 +389,7 @@ export function TourEditorLayout({ tourId }: Props) {
 
         <main className="flex-1 min-w-0 relative bg-black">
           {liveTour.scenes.length > 0 ? (
-            <TourViewer
+            <UnifiedTourViewer
               ref={viewerRef}
               tour={liveTour}
               initialSceneId={activeSceneId}
@@ -373,9 +408,15 @@ export function TourEditorLayout({ tourId }: Props) {
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center text-3xl font-bold mb-4 border border-white/10">۳۶۰</div>
+              <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center text-3xl font-bold mb-4 border border-white/10">
+                {isSmartWalk ? 'SW' : '۳۶۰'}
+              </div>
               <h2 className="text-lg font-semibold mb-2">اولین صحنه را اضافه کنید</h2>
-              <p className="text-sm text-muted max-w-md">پانوراما را آپلود کنید، سپس هات‌اسپات و تنظیمات را اضافه کنید.</p>
+              <p className="text-sm text-muted max-w-md">
+                {isSmartWalk
+                  ? 'عکس‌های موبایل را آپلود کنید، سپس نقاط اتصال بین اتاق‌ها را اضافه کنید.'
+                  : 'پانوراما را آپلود کنید، سپس هات‌اسپات و تنظیمات را اضافه کنید.'}
+              </p>
             </div>
           )}
         </main>

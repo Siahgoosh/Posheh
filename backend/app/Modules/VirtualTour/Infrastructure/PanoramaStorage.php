@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\Storage;
 
 class PanoramaStorage implements PanoramaStorageInterface
 {
-    public function store(int $tourId, UploadedFile $file): string
+    public function store(int $tourId, UploadedFile $file, string $subdir = 'panoramas'): string
     {
-        return $file->store("virtual-tours/{$tourId}/panoramas", 'public');
+        return $file->store("virtual-tours/{$tourId}/{$subdir}", 'public');
     }
 
     public function delete(string $path): void

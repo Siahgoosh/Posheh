@@ -4,12 +4,14 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { SceneListItem } from './SceneListItem'
 import { PanoramaUploader } from './PanoramaUploader'
+import { SceneImageUploader } from './SceneImageUploader'
 import { SceneConnectionsPanel } from '../hotspots/SceneConnectionsPanel'
 import { filterAndSortScenes, useTourEditorStore } from '../store/editorStore'
-import type { SceneFilter, SceneSort, TourScene } from '../types'
+import type { SceneFilter, SceneSort, TourScene, TourType } from '../types'
 
 interface Props {
   tourId: number | string
+  tourType?: TourType
   scenes: TourScene[]
   onSceneSelect: (sceneId: number) => void
   onSceneRename: (sceneId: number, name: string) => void
@@ -39,6 +41,7 @@ const SORTS: { value: SceneSort; label: string }[] = [
 
 export function SceneManagerPanel({
   tourId,
+  tourType,
   scenes,
   onSceneSelect,
   onSceneRename,
@@ -205,7 +208,11 @@ export function SceneManagerPanel({
       </div>
 
       <div className="p-4 border-t border-card-border/50 space-y-3">
-        <PanoramaUploader tourId={tourId} onUploaded={onRefresh} />
+        {tourType === 'smart_walk' ? (
+          <SceneImageUploader tourId={tourId} onUploaded={onRefresh} />
+        ) : (
+          <PanoramaUploader tourId={tourId} onUploaded={onRefresh} />
+        )}
       </div>
     </div>
   )

@@ -4,7 +4,7 @@ namespace App\Modules\VirtualTour\Application\Services;
 
 use App\Models\User;
 use App\Models\VirtualTour;
-use Illuminate\Support\Str;
+use App\Modules\VirtualTour\Domain\TourType;
 
 class TourManager
 {
@@ -24,6 +24,7 @@ class TourManager
     public function create(User $user, array $data): VirtualTour
     {
         $slug = $this->uniqueSlug($data['title']);
+        $tourType = TourType::tryFrom($data['tour_type'] ?? 'panorama_360') ?? TourType::Panorama360;
 
         return VirtualTour::create([
             'office_id' => $user->office_id,
@@ -32,6 +33,7 @@ class TourManager
             'title' => $data['title'],
             'slug' => $slug,
             'description' => $data['description'] ?? null,
+            'tour_type' => $tourType->value,
             'status' => 'draft',
             'visibility' => 'public',
             'share_token' => \Illuminate\Support\Str::random(32),

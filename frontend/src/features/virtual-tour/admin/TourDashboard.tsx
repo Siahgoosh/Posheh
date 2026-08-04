@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Eye, Users, ExternalLink, Box, BookOpen, Archive, Copy,
-  Upload, Download, Search, LayoutDashboard, Globe, FileJson,
+  Upload, Download, Search, LayoutDashboard, Globe, FileJson, Footprints,
 } from 'lucide-react'
 import { tourApi, downloadBlob, type TourDashboardStats, type TourListItem } from '@/features/virtual-tour/api/tourApi'
+import { CreateTourWizard } from '@/features/virtual-tour/admin/CreateTourWizard'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +24,7 @@ export function TourDashboard() {
   const queryClient = useQueryClient()
   const [filter, setFilter] = useState<FilterStatus>('all')
   const [search, setSearch] = useState('')
+  const [wizardOpen, setWizardOpen] = useState(false)
   const importRef = useRef<HTMLInputElement>(null)
 
   const { data: stats } = useQuery({
@@ -43,12 +45,7 @@ export function TourDashboard() {
     refetch()
   }
 
-  const createTour = async () => {
-    const title = prompt('عنوان تور مجازی:')
-    if (!title) return
-    await tourApi.create({ title })
-    invalidate()
-  }
+  const createTour = () => setWizardOpen(true)
 
   const action = (fn: (id: number) => Promise<unknown>) => async (id: number) => {
     await fn(id)
@@ -78,9 +75,9 @@ export function TourDashboard() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <LayoutDashboard className="h-6 w-6 text-primary" />
-            مدیریت تور مجازی ۳۶۰
+            تور مجازی — Smart Walk & 360
           </h1>
-          <p className="text-muted text-sm mt-1">داشبورد Enterprise — ساخت، انتشار و اشتراک‌گذاری تور</p>
+          <p className="text-muted text-sm mt-1">دو سیستم مستقل: Smart Walk (عکس موبایل) و تور ۳۶۰ درجه</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
@@ -142,6 +139,11 @@ export function TourDashboard() {
                 <Badge variant={t.status === 'published' ? 'default' : 'outline'}>
                   {STATUS_LABELS[t.status] || t.status}
                 </Badge>
+                {t.tour_type === 'smart_walk' && (
+                  <Badge variant="outline" className="text-[9px] gap-1">
+                    <Footprints className="h-3 w-3" />Smart Walk
+                  </Badge>
+                )}
               </div>
 
               {t.scenes?.[0]?.thumbnail_url && (
@@ -188,6 +190,7 @@ export function TourDashboard() {
           )}
         </div>
       )}
+      <CreateTourWizard open={wizardOpen} onClose={() => setWizardOpen(false)} onCreated={invalidate} />
     </div>
   )
 }

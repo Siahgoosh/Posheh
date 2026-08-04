@@ -5,7 +5,7 @@ import {
   Share2, Phone, MessageCircle, MapPin, Images, X, Copy, Check, Eye, Lock,
 } from 'lucide-react'
 import api from '@/lib/api'
-import { TourViewer } from '@/features/virtual-tour'
+import { UnifiedTourViewer } from '@/features/virtual-tour/engine/UnifiedTourViewer'
 import { usePublicTour } from '@/features/virtual-tour/hooks/usePublicTour'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -107,6 +107,8 @@ export function VirtualTourPublicPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const isSmartWalk = tour.tour_type === 'smart_walk'
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
       <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/40 backdrop-blur z-30">
@@ -115,7 +117,7 @@ export function VirtualTourPublicPage() {
             className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold"
             style={{ background: tour.settings?.brand_color || '#2dd4bf' }}
           >
-            ۳۶۰
+            {isSmartWalk ? 'SW' : '۳۶۰'}
           </div>
           <div>
             <h1 className="font-bold text-sm md:text-base leading-tight">{tour.title}</h1>
@@ -136,7 +138,7 @@ export function VirtualTourPublicPage() {
       </header>
 
       <div className="flex-1 relative min-h-[65vh]">
-        <TourViewer tour={tour} className="h-full" showControls showSceneName showFeatures publicUrl={shareUrl} />
+        <UnifiedTourViewer tour={tour} className="h-full" showControls showSceneName showFeatures publicUrl={shareUrl} />
       </div>
 
       <div className="border-t border-white/10 bg-black/60 backdrop-blur px-4 py-4">
@@ -223,7 +225,7 @@ export function VirtualTourPublicPage() {
       )}
 
       <footer className="text-center py-3 text-xs text-white/40 border-t border-white/5">
-        تور مجازی ۳۶۰ درجه — قدرت گرفته از <Link to="/" className="text-primary hover:underline">پوشه</Link>
+        {isSmartWalk ? 'Poshe Smart Walk' : 'تور مجازی ۳۶۰ درجه'} — قدرت گرفته از <Link to="/" className="text-primary hover:underline">پوشه</Link>
       </footer>
     </div>
   )

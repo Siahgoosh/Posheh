@@ -7,6 +7,7 @@ use App\Models\VirtualTour;
 use App\Models\VirtualTourScene;
 use App\Modules\VirtualTour\Application\Contracts\PanoramaStorageInterface;
 use App\Modules\VirtualTour\Application\Contracts\ThumbnailGeneratorInterface;
+use App\Modules\VirtualTour\Domain\SceneType;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -18,6 +19,7 @@ class SceneManager
         private readonly TourManager $tourManager,
         private readonly PanoramaStorageInterface $storage,
         private readonly ThumbnailGeneratorInterface $thumbnailGenerator,
+        private readonly ImageVariantService $imageVariantService,
     ) {}
 
     public function create(User $user, int $tourId, array $data, ?UploadedFile $panorama = null): VirtualTourScene
@@ -35,6 +37,48 @@ class SceneManager
         if ($panorama) {
             $this->processPanoramaMetadata($scene, $panorama);
         }
+
+        return $scene->fresh('hotspots');
+    }
+
+    public function createFlatImage(User $user, int $tourId, array $data, UploadedFile $image): VirtualTourScene
+    {
+        $tour = $this->tourManager->findForOffice($user, $tourId);
+        $sortOrder = $data['sort_order'] ?? (($tour->scenes()->max('sort_order') ?? -1) + 1);
+        $isFirst = $tour->scenes()->count() === 0;
+
+        $path = $this->storage->store($tour->id, $image, 'scenes');
+
+        $scene = $tour->scenes()->create(array_merge(
+            $this->buildSceneAttributes($data, $path, $image, $sortOrder, $isFirst),
+            [
+                'scene_type' => SceneType::FlatImage->value,
+            ]
+        ));
+
+        $this->processFlatImageMetadata($scene, $image);
+
+        return $scene->fresh('hotspots');
+    }
+
+    public function updateFlatImage(
+        User $user,
+        int $tourId,
+        int $sceneId,
+        array $data,
+        UploadedFile $image,
+    ): VirtualTourScene {
+        $scene = $this->findScene($user, $tourId, $sceneId);
+
+        $this->deleteSceneAssets($scene);
+
+        $path = $this->storage->store($tourId, $image, 'scenes');
+        $data['panorama_path'] = $path;
+        $data['file_size'] = $image->getSize();
+        $data['scene_type'] = SceneType::FlatImage->value;
+
+        $scene->update($data);
+        $this->processFlatImageMetadata($scene->fresh(), $image);
 
         return $scene->fresh('hotspots');
     }
@@ -71,6 +115,9 @@ class SceneManager
         $this->storage->delete($scene->panorama_path);
         if ($scene->thumbnail_path) {
             $this->storage->delete($scene->thumbnail_path);
+        }
+        if ($scene->image_variants) {
+            $this->imageVariantService->deleteVariants($scene->image_variants);
         }
 
         $scene->delete();
@@ -226,8 +273,78 @@ class SceneManager
         if ($this->hasSceneColumn('file_size') && $panorama) {
             $attrs['file_size'] = $panorama->getSize();
         }
+        if ($this->hasSceneColumn('scene_type')) {
+            $attrs['scene_type'] = $data['scene_type'] ?? SceneType::Equirectangular->value;
+        }
 
         return $attrs;
+    }
+
+    private function processFlatImageMetadata(VirtualTourScene $scene, UploadedFile $file): void
+    {
+        try {
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+            $fullPath = $disk->path($scene->panorama_path);
+            $imageInfo = @getimagesize($fullPath);
+            $updates = [];
+
+            if ($imageInfo) {
+                if ($this->hasSceneColumn('panorama_width')) {
+                    $updates['panorama_width'] = $imageInfo[0];
+                }
+                if ($this->hasSceneColumn('panorama_height')) {
+                    $updates['panorama_height'] = $imageInfo[1];
+                }
+            }
+
+            $variantData = $this->imageVariantService->generateVariants(
+                $fullPath,
+                $scene->virtual_tour_id,
+                $scene->id
+            );
+
+            if ($variantData) {
+                $urls = [
+                    'original' => $scene->panorama_path,
+                    'width' => $variantData['width'],
+                    'height' => $variantData['height'],
+                    'format' => $variantData['format'],
+                ];
+
+                foreach (['thumbnail', 'medium', 'large', 'ultra'] as $key) {
+                    if (! empty($variantData[$key])) {
+                        $urls[$key] = $variantData[$key];
+                    }
+                }
+
+                if ($this->hasSceneColumn('image_variants')) {
+                    $updates['image_variants'] = $urls;
+                }
+                if (! empty($variantData['thumbnail']) && $this->hasSceneColumn('thumbnail_path')) {
+                    $updates['thumbnail_path'] = $variantData['thumbnail'];
+                }
+            }
+
+            if ($updates) {
+                $scene->update($updates);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('virtual-tour.flat_image_metadata_failed', [
+                'scene_id' => $scene->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function deleteSceneAssets(VirtualTourScene $scene): void
+    {
+        $this->storage->delete($scene->panorama_path);
+        if ($scene->thumbnail_path) {
+            $this->storage->delete($scene->thumbnail_path);
+        }
+        if ($scene->image_variants) {
+            $this->imageVariantService->deleteVariants($scene->image_variants);
+        }
     }
 
     private function hasSceneColumn(string $column): bool

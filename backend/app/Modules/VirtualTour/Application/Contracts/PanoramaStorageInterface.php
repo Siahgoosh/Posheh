@@ -6,7 +6,7 @@ use Illuminate\Http\UploadedFile;
 
 interface PanoramaStorageInterface
 {
-    public function store(int $tourId, UploadedFile $file): string;
+    public function store(int $tourId, UploadedFile $file, string $subdir = 'panoramas'): string;
 
     public function delete(string $path): void;
 

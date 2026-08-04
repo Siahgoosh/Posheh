@@ -76,8 +76,18 @@ class HotspotManager
         ];
 
         if ($includePosition) {
-            $payload['yaw'] = $h['yaw'];
-            $payload['pitch'] = $h['pitch'];
+            if (isset($h['position_x'], $h['position_y'])) {
+                $payload['position_x'] = $h['position_x'];
+                $payload['position_y'] = $h['position_y'];
+                $payload['yaw'] = $h['yaw'] ?? 0;
+                $payload['pitch'] = $h['pitch'] ?? 0;
+            } else {
+                $payload['yaw'] = $h['yaw'] ?? 0;
+                $payload['pitch'] = $h['pitch'] ?? 0;
+            }
+            if (isset($h['position_z'])) {
+                $payload['position_z'] = $h['position_z'];
+            }
         }
 
         return array_filter($payload, fn ($v) => $v !== null);

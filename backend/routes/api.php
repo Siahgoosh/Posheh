@@ -183,6 +183,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}/analytics', [VirtualTourController::class, 'analytics']);
             Route::post('/{id}/scenes', [VirtualTourController::class, 'addScene']);
             Route::post('/{id}/scenes/upload', [VirtualTourController::class, 'uploadPanorama']);
+            Route::post('/{id}/scenes/upload-image', [VirtualTourController::class, 'uploadSceneImage']);
             Route::put('/{id}/scenes/reorder', [VirtualTourController::class, 'reorderScenes']);
             Route::put('/{id}/scenes/{sceneId}', [VirtualTourController::class, 'updateScene']);
             Route::delete('/{id}/scenes/{sceneId}', [VirtualTourController::class, 'deleteScene']);

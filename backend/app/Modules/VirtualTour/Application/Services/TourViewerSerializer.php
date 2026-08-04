@@ -21,6 +21,7 @@ class TourViewerSerializer
             'title' => $tour->title,
             'slug' => $tour->slug,
             'description' => $tour->description,
+            'tour_type' => $tour->tour_type ?? 'panorama_360',
             'status' => $tour->status,
             'view_count' => $tour->view_count,
             'version' => $tour->version ?? 1,
@@ -57,14 +58,20 @@ class TourViewerSerializer
 
     public function serializeScene($scene): array
     {
+        $imageVariants = $scene->image_variants ?? null;
+        $resolvedVariants = $imageVariants ? $this->resolveImageVariantUrls($imageVariants) : null;
+
         return [
             'id' => $scene->id,
             'name' => $scene->name,
+            'scene_type' => $scene->scene_type ?? 'equirectangular',
             'status' => $scene->status ?? 'draft',
             'is_default' => (bool) ($scene->is_default ?? false),
             'is_visible' => (bool) ($scene->is_visible ?? true),
             'panorama_url' => $this->storage->url($scene->panorama_path),
             'thumbnail_url' => $scene->thumbnail_path ? $this->storage->url($scene->thumbnail_path) : null,
+            'image_variants' => $resolvedVariants,
+            'metadata' => $scene->metadata ?? [],
             'default_yaw' => (float) $scene->default_yaw,
             'default_pitch' => (float) $scene->default_pitch,
             'default_fov' => $scene->default_fov ? (int) $scene->default_fov : null,
@@ -82,5 +89,29 @@ class TourViewerSerializer
                 ? $scene->hotspots->map(fn ($h) => $this->hotspotSerializer->serialize($h))
                 : [],
         ];
+    }
+
+    /** @param  array<string, mixed>  $variants */
+    private function resolveImageVariantUrls(array $variants): array
+    {
+        $resolved = [];
+        foreach (['original', 'thumbnail', 'medium', 'large', 'ultra'] as $key) {
+            $path = $variants[$key] ?? null;
+            if ($path && is_string($path)) {
+                $resolved[$key] = $this->storage->url($path);
+            }
+        }
+
+        if (isset($variants['width'])) {
+            $resolved['width'] = $variants['width'];
+        }
+        if (isset($variants['height'])) {
+            $resolved['height'] = $variants['height'];
+        }
+        if (isset($variants['format'])) {
+            $resolved['format'] = $variants['format'];
+        }
+
+        return $resolved;
     }
 }

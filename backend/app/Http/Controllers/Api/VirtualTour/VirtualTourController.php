@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\VirtualTour\Application\Services\HotspotManager;
 use App\Modules\VirtualTour\Application\Services\HotspotSerializer;
 use App\Modules\VirtualTour\Application\Services\PanoramaUploader;
-use App\Modules\VirtualTour\Application\Services\SceneManager;
+use App\Modules\VirtualTour\Application\Services\SceneImageUploader;
 use App\Modules\VirtualTour\Application\Services\TourAnalyticsService;
 use App\Modules\VirtualTour\Application\Services\TourManager;
 use App\Modules\VirtualTour\Application\Services\TourViewerSerializer;
@@ -29,6 +29,7 @@ class VirtualTourController extends Controller
         private readonly HotspotManager $hotspotManager,
         private readonly HotspotSerializer $hotspotSerializer,
         private readonly PanoramaUploader $panoramaUploader,
+        private readonly SceneImageUploader $sceneImageUploader,
         private readonly TourAnalyticsService $analyticsService,
         private readonly TourViewerSerializer $serializer,
     ) {}
@@ -46,6 +47,7 @@ class VirtualTourController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'property_id' => ['nullable', 'integer', 'exists:properties,id'],
+            'tour_type' => ['nullable', 'in:panorama_360,smart_walk'],
         ]);
 
         $tour = $this->tourManager->create($request->user(), $data);
@@ -105,6 +107,43 @@ class VirtualTourController extends Controller
         return response()->json([
             'data' => $this->serializer->serializeScene($scene),
             'message' => 'صحنه اضافه شد.',
+        ], 201);
+    }
+
+    public function uploadSceneImage(Request $request, int $id): JsonResponse
+    {
+        $request->validate([
+            'image' => ['required', 'file', 'mimes:jpeg,jpg,png,webp,avif', 'max:51200'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'scene_id' => ['nullable', 'integer'],
+        ]);
+
+        try {
+            $scene = $this->sceneImageUploader->uploadSceneImage(
+                $request->user(),
+                $id,
+                $request->file('image'),
+                $request->input('name'),
+                $request->integer('scene_id') ?: null,
+            );
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            Log::error('virtual-tour.scene_image.upload_failed', [
+                'tour_id' => $id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'خطا در آپلود تصویر. لطفاً دوباره تلاش کنید.',
+            ], 500);
+        }
+
+        return response()->json([
+            'data' => $this->serializer->serializeScene($scene),
+            'message' => 'تصویر صحنه آپلود شد.',
         ], 201);
     }
 
@@ -252,8 +291,11 @@ class VirtualTourController extends Controller
         $data = $request->validate([
             'hotspots' => ['required', 'array'],
             'hotspots.*.type' => ['required', 'in:'.implode(',', self::HOTSPOT_TYPES)],
-            'hotspots.*.yaw' => ['required', 'numeric'],
-            'hotspots.*.pitch' => ['required', 'numeric'],
+            'hotspots.*.yaw' => ['nullable', 'numeric'],
+            'hotspots.*.pitch' => ['nullable', 'numeric'],
+            'hotspots.*.position_x' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'hotspots.*.position_y' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'hotspots.*.position_z' => ['nullable', 'numeric'],
             'hotspots.*.target_scene_id' => ['nullable', 'integer'],
             'hotspots.*.title' => ['nullable', 'string'],
             'hotspots.*.label' => ['nullable', 'string'],
@@ -322,11 +364,17 @@ class VirtualTourController extends Controller
 
         if ($requirePosition) {
             $rules['type'] = ['required', 'in:'.implode(',', self::HOTSPOT_TYPES)];
-            $rules['yaw'] = ['required', 'numeric'];
-            $rules['pitch'] = ['required', 'numeric'];
+            $rules['yaw'] = ['nullable', 'numeric'];
+            $rules['pitch'] = ['nullable', 'numeric'];
+            $rules['position_x'] = ['nullable', 'numeric', 'min:0', 'max:100'];
+            $rules['position_y'] = ['nullable', 'numeric', 'min:0', 'max:100'];
+            $rules['position_z'] = ['nullable', 'numeric'];
         } else {
             $rules['yaw'] = ['sometimes', 'numeric'];
             $rules['pitch'] = ['sometimes', 'numeric'];
+            $rules['position_x'] = ['sometimes', 'numeric', 'min:0', 'max:100'];
+            $rules['position_y'] = ['sometimes', 'numeric', 'min:0', 'max:100'];
+            $rules['position_z'] = ['sometimes', 'numeric'];
         }
 
         return $rules;

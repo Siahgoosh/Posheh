@@ -18,6 +18,7 @@ class VirtualTour extends Model
         'title',
         'slug',
         'description',
+        'tour_type',
         'status',
         'visibility',
         'access_password',

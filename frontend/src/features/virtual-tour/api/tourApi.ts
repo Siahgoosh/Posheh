@@ -1,5 +1,5 @@
 import api from '@/lib/api'
-import type { SceneStatus, TourData, TourScene } from '../types'
+import type { SceneStatus, TourData, TourScene, TourType } from '../types'
 
 export interface TourDashboardStats {
   total: number
@@ -15,6 +15,7 @@ export interface TourListItem extends Partial<TourData> {
   id: number
   title: string
   slug: string
+  tour_type?: TourType
   status: SceneStatus | 'archived'
   view_count: number
   leads_count?: number
@@ -35,7 +36,7 @@ export const tourApi = {
     api.get('/virtual-tours', { params }),
 
   get: (id: number | string) => api.get(`/virtual-tours/${id}`),
-  create: (data: { title: string; description?: string; property_id?: number }) =>
+  create: (data: { title: string; description?: string; property_id?: number; tour_type?: TourType }) =>
     api.post('/virtual-tours', data),
   update: (id: number | string, data: Partial<{ title: string; description: string; status: string; settings: Record<string, unknown> }>) =>
     api.put(`/virtual-tours/${id}`, data),
@@ -105,6 +106,27 @@ export const tourApi = {
     if (options?.sceneId) form.append('scene_id', String(options.sceneId))
 
     return api.post(`/virtual-tours/${tourId}/scenes/upload`, form, {
+      timeout: 300000,
+      signal: options?.signal,
+      onUploadProgress: (e) => {
+        if (e.total && options?.onProgress) {
+          options.onProgress(Math.round((e.loaded / e.total) * 100))
+        }
+      },
+    })
+  },
+
+  uploadSceneImage: (
+    tourId: number | string,
+    file: File,
+    options?: { name?: string; sceneId?: number; onProgress?: (pct: number) => void; signal?: AbortSignal },
+  ) => {
+    const form = new FormData()
+    form.append('image', file)
+    if (options?.name) form.append('name', options.name)
+    if (options?.sceneId) form.append('scene_id', String(options.sceneId))
+
+    return api.post(`/virtual-tours/${tourId}/scenes/upload-image`, form, {
       timeout: 300000,
       signal: options?.signal,
       onUploadProgress: (e) => {

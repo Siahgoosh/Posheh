@@ -1,3 +1,7 @@
+export type TourType = 'panorama_360' | 'smart_walk'
+
+export type SceneType = 'equirectangular' | 'flat_image'
+
 export type SceneStatus = 'draft' | 'published' | 'archived'
 
 export type HotspotType =
@@ -71,6 +75,9 @@ export interface TourHotspot {
   target_scene_id?: number | null
   yaw: number
   pitch: number
+  position_x?: number | null
+  position_y?: number | null
+  position_z?: number | null
   title?: string | null
   label?: string | null
   tooltip?: string | null
@@ -89,14 +96,36 @@ export interface SceneSettings {
   [key: string]: unknown
 }
 
+export interface SceneImageVariants {
+  original?: string
+  thumbnail?: string
+  medium?: string
+  large?: string
+  ultra?: string
+  width?: number
+  height?: number
+  format?: string
+}
+
+export interface SceneMetadata {
+  gps?: { lat: number; lng: number }
+  audio?: string
+  video?: string
+  preview?: string
+  [key: string]: unknown
+}
+
 export interface TourScene {
   id: number
   name: string
+  scene_type?: SceneType
   status: SceneStatus
   is_default: boolean
   is_visible: boolean
   panorama_url: string
   thumbnail_url?: string | null
+  image_variants?: SceneImageVariants | null
+  metadata?: SceneMetadata
   default_yaw?: number
   default_pitch?: number
   default_fov?: number | null
@@ -155,6 +184,7 @@ export interface TourData {
   title: string
   slug?: string
   description?: string
+  tour_type?: TourType
   status?: SceneStatus
   visibility?: 'public' | 'private'
   view_count?: number
