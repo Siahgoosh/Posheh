@@ -25,6 +25,8 @@ fatal: couldn't find remote ref cursor/visit/notifications-e117
 - نوتیفیکیشن درخواست بازدید (پنل + تلگرام)
 - زنگوله اعلان در پنل
 - درخواست‌های وبسایت در صفحه بازدیدها
+- بهبود سایز PWA/موبایل وب (safe-area، هدر موبایل)
+- نسخه اپ 1.0.3+8 (اندروید/ویندوز — CI بیلد پس از push)
 
 ```bash
 cd /var/www/posheh
@@ -85,3 +87,19 @@ git branch -r | grep release-deploy
 - [VISIT-NOTIFICATIONS.md](./VISIT-NOTIFICATIONS.md) — نوتیف بازدید وبسایت
 - [VIRTUAL-TOUR.md](./VIRTUAL-TOUR.md) — تور مجازی
 - [INSTALLATION.md](./INSTALLATION.md) — نصب اولیه
+
+## بیلد اندروید و ویندوز
+
+پس از push، GitHub Actions workflow **Build Android & Windows** APK و ZIP را می‌سازد و در `frontend/public/downloads/` commit می‌کند.
+
+```bash
+# محلی
+./scripts/build-releases.sh
+```
+
+| فایل | URL |
+|------|-----|
+| Android APK | https://posheapp.ir/downloads/posheh-android.apk |
+| Windows ZIP | https://posheapp.ir/downloads/posheh-windows.zip |
+
+نسخه: `mobile/pubspec.yaml` → فعلی **1.0.3+8**
