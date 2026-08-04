@@ -142,6 +142,7 @@ class TourManager
             'mini_map' => true,
             'floor_selector' => true,
             'embed_enabled' => true,
+            'embed_allowed_domains' => [],
             'share_enabled' => true,
             'qr_enabled' => true,
         ];

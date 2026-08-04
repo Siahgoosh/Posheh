@@ -28,6 +28,11 @@ class SitemapController extends Controller
             $xml .= $this->url($base.($post['path'] ?? '/blog/'.$post['slug']), 0.8, $post['updated_at'] ?? null);
         }
 
+        $tourSeo = app(\App\Modules\VirtualTour\Application\Services\TourSeoService::class);
+        foreach ($tourSeo->sitemapEntries() as $entry) {
+            $xml .= $this->url($base.$entry['path'], $entry['priority'] ?? 0.75, $entry['lastmod'] ?? null);
+        }
+
         $xml .= '</urlset>';
 
         return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);

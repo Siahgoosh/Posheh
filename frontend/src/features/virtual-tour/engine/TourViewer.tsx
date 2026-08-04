@@ -10,6 +10,7 @@ import { HotspotPopup } from '../hotspots/HotspotPopup'
 import { executeHotspotAction } from '../hotspots/hotspotActions'
 import { TourFeaturesOverlay } from '../features/TourFeaturesOverlay'
 import { HOTSPOT_MARKER_CSS } from '../hotspots/markerHtml'
+import { useTourAmbience, useGuidedTour } from './useTourAmbience'
 
 export interface TourViewerHandle {
   goToScene: (sceneId: number, options?: SceneTransitionOptions) => void
@@ -33,6 +34,7 @@ interface Props {
   repositionHotspot?: TourHotspot | null
   onLeadForm?: () => void
   publicUrl?: string
+  onHotspotActivate?: (hotspot: TourHotspot, sceneId: number) => void
 }
 
 export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewer(
@@ -54,6 +56,7 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
     repositionHotspot = null,
     onLeadForm,
     publicUrl,
+    onHotspotActivate: onHotspotActivateProp,
   },
   ref,
 ) {
@@ -61,6 +64,9 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
   const [galleryImages, setGalleryImages] = useState<string[] | null>(null)
   const [isAutoTouring, setIsAutoTouring] = useState(false)
   const goToSceneRef = useRef<(id: number, options?: SceneTransitionOptions) => void>(() => {})
+  const activeSceneIdRef = useRef<number | null>(null)
+  const onHotspotActivateRef = useRef(onHotspotActivateProp)
+  onHotspotActivateRef.current = onHotspotActivateProp
 
   const {
     containerRef,
@@ -93,6 +99,8 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
     isRepositioningHotspot,
     repositionHotspot,
     onHotspotActivate: (hotspot) => {
+      const sceneId = activeSceneIdRef.current
+      if (sceneId) onHotspotActivateRef.current?.(hotspot, sceneId)
       if (hotspot.type === 'scene' && hotspot.target_scene_id) {
         goToSceneRef.current(hotspot.target_scene_id, {
           effect: hotspot.action?.transition_effect === 'none' ? 'none' : 'fade',
@@ -113,6 +121,14 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
   })
 
   goToSceneRef.current = controls.goToScene
+  activeSceneIdRef.current = activeSceneId
+
+  useTourAmbience(tour, activeScene, editorMode)
+  const guidedTour = useGuidedTour(
+    tour,
+    (sceneId, opts) => controls.goToScene(sceneId, { yaw: opts?.yaw, pitch: opts?.pitch, effect: 'fade' }),
+    editorMode,
+  )
 
   useImperativeHandle(ref, () => ({
     goToScene: controls.goToScene,
@@ -183,6 +199,11 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
           onStopAutoTour={stopAutoTour}
           isAutoTouring={isAutoTouring}
           publicUrl={publicUrl}
+          guidedTourEnabled={guidedTour.enabled}
+          guidedTourActive={guidedTour.active}
+          guidedTourNarration={guidedTour.currentStep?.narration}
+          onStartGuidedTour={guidedTour.start}
+          onStopGuidedTour={guidedTour.stop}
         />
       )}
 

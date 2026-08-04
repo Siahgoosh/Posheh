@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import {
@@ -7,19 +7,37 @@ import {
 import api from '@/lib/api'
 import { UnifiedTourViewer } from '@/features/virtual-tour/engine/UnifiedTourViewer'
 import { usePublicTour } from '@/features/virtual-tour/hooks/usePublicTour'
+import { useTourSessionAnalytics } from '@/features/virtual-tour/hooks/useTourSessionAnalytics'
+import { applyTourSeo, tourScenePath } from '@/features/virtual-tour/utils/tourSeo'
+import { TourWatermark } from '@/features/virtual-tour/components/TourWatermark'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import type { TourHotspot } from '@/features/virtual-tour/types'
 
 export function VirtualTourPublicPage() {
-  const { slug } = useParams<{ slug: string }>()
+  const { slug, sceneId: sceneIdParam } = useParams<{ slug: string; sceneId?: string }>()
+  const initialSceneId = sceneIdParam ? Number(sceneIdParam) : undefined
   const { tour, gate, deniedMessage, verifyPassword, verifyError, isVerifying } = usePublicTour(slug)
+  const analytics = useTourSessionAnalytics(slug, gate === 'ok')
   const [showGallery, setShowGallery] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [copied, setCopied] = useState(false)
   const [passwordInput, setPasswordInput] = useState('')
   const [form, setForm] = useState({ name: '', mobile: '', message: '' })
+
+  useEffect(() => {
+    if (tour) applyTourSeo(tour, tour.seo)
+  }, [tour?.id, tour?.title])
+
+  useEffect(() => {
+    if (tour?.security?.disable_direct_download) {
+      const block = (e: Event) => e.preventDefault()
+      document.addEventListener('contextmenu', block)
+      return () => document.removeEventListener('contextmenu', block)
+    }
+  }, [tour?.security?.disable_direct_download])
 
   const leadMutation = useMutation({
     mutationFn: async () => (await api.post(`/tour/${slug}/lead`, form)).data,
@@ -80,7 +98,6 @@ export function VirtualTourPublicPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0a0a0f] text-white p-4 text-center">
         <p className="text-muted max-w-md">{deniedMessage || 'این تور خصوصی است و نیاز به لینک دسترسی دارد.'}</p>
-        <p className="text-xs text-white/40">از ویرایشگر تور، لینک خصوصی را از تب «اشتراک» کپی کنید.</p>
         <Link to="/"><Button variant="outline">صفحه اصلی</Button></Link>
       </div>
     )
@@ -95,6 +112,7 @@ export function VirtualTourPublicPage() {
     )
   }
 
+  const isSmartWalk = tour.tour_type === 'smart_walk'
   const shareUrl = tour.public_url || `${window.location.origin}/tour/${slug}`
   const whatsapp = tour.settings?.whatsapp || tour.settings?.phone
   const mapUrl = tour.settings?.map_lat && tour.settings?.map_lng
@@ -107,7 +125,27 @@ export function VirtualTourPublicPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const isSmartWalk = tour.tour_type === 'smart_walk'
+  const handleSceneChange = (id: number) => {
+    analytics.trackSceneView(id)
+    analytics.trackTourComplete(tour.scenes.length)
+    const scene = tour.scenes.find((s) => s.id === id)
+    if (scene && slug) {
+      applyTourSeo(tour, {
+        ...tour.seo,
+        title: `${tour.title} — ${scene.name}`,
+        canonical: `${window.location.origin}${tourScenePath(slug, id)}`,
+      })
+    }
+  }
+
+  const handleHotspotActivate = (hotspot: TourHotspot, activeSceneId: number) => {
+    analytics.trackHotspotClick(
+      hotspot.id,
+      activeSceneId,
+      hotspot.position_x ?? undefined,
+      hotspot.position_y ?? undefined,
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
@@ -138,7 +176,21 @@ export function VirtualTourPublicPage() {
       </header>
 
       <div className="flex-1 relative min-h-[65vh]">
-        <UnifiedTourViewer tour={tour} className="h-full" showControls showSceneName showFeatures publicUrl={shareUrl} />
+        <TourWatermark
+          text={tour.security?.watermark_text}
+          enabled={tour.security?.watermark_enabled}
+        />
+        <UnifiedTourViewer
+          tour={tour}
+          initialSceneId={initialSceneId}
+          onSceneChange={handleSceneChange}
+          className="h-full"
+          showControls
+          showSceneName
+          showFeatures={!isSmartWalk}
+          publicUrl={shareUrl}
+          onHotspotActivate={handleHotspotActivate}
+        />
       </div>
 
       <div className="border-t border-white/10 bg-black/60 backdrop-blur px-4 py-4">

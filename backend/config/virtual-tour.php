@@ -17,4 +17,12 @@ return [
     'cache_ttl' => (int) env('VT_CACHE_TTL', 3600),
     'version_retention' => (int) env('VT_VERSION_RETENTION', 20),
     'export_disk' => 'local',
+    'signed_urls' => (bool) env('VT_SIGNED_URLS', false),
+    'signed_url_ttl_minutes' => (int) env('VT_SIGNED_URL_TTL_MINUTES', 120),
+    'disable_direct_download' => (bool) env('VT_DISABLE_DIRECT_DOWNLOAD', true),
+    'watermark_enabled_default' => (bool) env('VT_WATERMARK_DEFAULT', false),
+    'engines' => [
+        'implemented' => ['panorama_360', 'smart_walk'],
+        'planned' => ['matterport', 'lidar', 'mesh_3d', 'gaussian_splat', 'nerf', 'photogrammetry', 'drone', 'floor_plan_3d', 'digital_twin'],
+    ],
 ];

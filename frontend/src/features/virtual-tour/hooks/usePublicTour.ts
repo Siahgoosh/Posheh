@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import api from '@/lib/api'
 import { tourApi } from '../api/tourApi'
+import { getTourSessionQueryParams } from '../hooks/useTourSessionAnalytics'
 import type { TourData } from '../types'
 
 export type PublicTourGate = 'loading' | 'password' | 'expired' | 'denied' | 'private' | 'ok'
@@ -10,6 +11,20 @@ export type PublicTourGate = 'loading' | 'password' | 'expired' | 'denied' | 'pr
 export interface PublicTourPayload extends TourData {
   slug: string
   view_count: number
+  session_id?: string
+  seo?: {
+    title?: string
+    description?: string
+    canonical?: string
+    og_image?: string
+    noindex?: boolean
+    json_ld?: Record<string, unknown> | Record<string, unknown>[]
+  }
+  security?: {
+    disable_direct_download?: boolean
+    watermark_enabled?: boolean
+    watermark_text?: string
+  }
   gallery?: { id: number; type: string; url: string; title?: string }[]
   public_url?: string
   settings?: TourData['settings'] & {
@@ -25,7 +40,7 @@ function passwordStorageKey(slug: string) {
   return `vt-pwd-${slug}`
 }
 
-export function usePublicTour(slug: string | undefined) {
+export function usePublicTour(slug: string | undefined, options?: { embed?: boolean }) {
   const token = new URLSearchParams(window.location.search).get('token')
   const [password, setPassword] = useState(() =>
     slug ? sessionStorage.getItem(passwordStorageKey(slug)) || '' : '',
@@ -36,10 +51,14 @@ export function usePublicTour(slug: string | undefined) {
   const [isVerifying, setIsVerifying] = useState(false)
 
   const query = useQuery({
-    queryKey: ['public-tour', slug, token, password],
+    queryKey: ['public-tour', slug, token, password, options?.embed],
     queryFn: async () => {
       const res = await api.get(`/tour/${slug}`, {
-        params: token ? { token } : undefined,
+        params: {
+          ...(token ? { token } : {}),
+          ...(options?.embed ? { embed: 1 } : {}),
+          ...getTourSessionQueryParams(),
+        },
         headers: password ? { 'X-Tour-Password': password } : undefined,
       })
       return res.data.data as PublicTourPayload

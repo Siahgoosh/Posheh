@@ -40,6 +40,10 @@ class TourAccessService
             }
         }
 
+        if ($request->boolean('embed')) {
+            $this->assertEmbedAllowed($tour, $request);
+        }
+
         return $this->loadTourRelations($tour);
     }
 
@@ -68,6 +72,43 @@ class TourAccessService
             ->where('status', 'published')
             ->whereNull('archived_at')
             ->firstOrFail();
+    }
+
+    public function assertEmbedAllowed(VirtualTour $tour, Request $request): void
+    {
+        $settings = $tour->settings ?? [];
+
+        if (($settings['embed_enabled'] ?? true) === false) {
+            throw new AccessDeniedHttpException('Embed برای این تور غیرفعال است.');
+        }
+
+        $allowed = $settings['embed_allowed_domains'] ?? [];
+        if (! is_array($allowed) || empty($allowed)) {
+            return;
+        }
+
+        $source = $request->header('Referer') ?? $request->header('Origin');
+        if (! $source) {
+            throw new AccessDeniedHttpException('Embed فقط از دامنه‌های مجاز قابل نمایش است.');
+        }
+
+        $host = parse_url($source, PHP_URL_HOST);
+        if (! $host) {
+            throw new AccessDeniedHttpException('دامنه embed معتبر نیست.');
+        }
+
+        $host = strtolower($host);
+        foreach ($allowed as $domain) {
+            $domain = strtolower(trim((string) $domain));
+            if ($domain === '' || $domain === '*') {
+                return;
+            }
+            if ($host === $domain || str_ends_with($host, '.'.$domain)) {
+                return;
+            }
+        }
+
+        throw new AccessDeniedHttpException('دامنه embed مجاز نیست.');
     }
 
     private function loadTourRelations(VirtualTour $tour): VirtualTour

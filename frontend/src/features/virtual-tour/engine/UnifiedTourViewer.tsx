@@ -32,6 +32,7 @@ interface Props {
   repositionHotspot?: TourHotspot | null
   onLeadForm?: () => void
   publicUrl?: string
+  onHotspotActivate?: (hotspot: TourHotspot, sceneId: number) => void
 }
 
 export const UnifiedTourViewer = forwardRef<UnifiedTourViewerHandle, Props>(function UnifiedTourViewer(
@@ -64,6 +65,7 @@ export const UnifiedTourViewer = forwardRef<UnifiedTourViewerHandle, Props>(func
         canUndo={props.canUndo}
         canRedo={props.canRedo}
         onLeadForm={props.onLeadForm}
+        onHotspotActivate={props.onHotspotActivate}
       />
     )
   }
@@ -88,6 +90,7 @@ export const UnifiedTourViewer = forwardRef<UnifiedTourViewerHandle, Props>(func
       repositionHotspot={props.repositionHotspot}
       onLeadForm={props.onLeadForm}
       publicUrl={props.publicUrl}
+      onHotspotActivate={props.onHotspotActivate}
     />
   )
 })

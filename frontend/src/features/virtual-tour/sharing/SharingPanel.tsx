@@ -15,6 +15,9 @@ export function SharingPanel({ tour, onUpdate, isSaving }: Props) {
   const [copied, setCopied] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [expiresAt, setExpiresAt] = useState(tour.expires_at?.slice(0, 16) || '')
+  const [embedDomainsText, setEmbedDomainsText] = useState(
+    (tour.settings?.embed_allowed_domains ?? []).join('\n'),
+  )
 
   const publicUrl = tour.public_url || `${window.location.origin}/tour/${tour.slug}`
   const privateUrl = tour.private_url || publicUrl
@@ -136,6 +139,32 @@ export function SharingPanel({ tour, onUpdate, isSaving }: Props) {
         />
         <Button size="sm" variant="outline" className="w-full" onClick={() => copy(embedCode, 'embed')}>
           {copied === 'embed' ? 'کپی شد!' : 'کپی کد Embed'}
+        </Button>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-xs text-muted">دامنه‌های مجاز Embed (هر خط یک دامنه)</label>
+        <textarea
+          className="w-full text-xs font-mono bg-black/30 border border-card-border rounded-lg p-2 h-16"
+          placeholder="example.com"
+          value={embedDomainsText}
+          onChange={(e) => setEmbedDomainsText(e.target.value)}
+        />
+        <p className="text-[10px] text-muted">خالی = بدون محدودیت. از * برای همه دامنه‌ها.</p>
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full"
+          disabled={isSaving}
+          onClick={() => {
+            const domains = embedDomainsText
+              .split(/[\n,]/)
+              .map((d) => d.trim())
+              .filter(Boolean)
+            onUpdate({ settings: { ...tour.settings, embed_allowed_domains: domains } })
+          }}
+        >
+          ذخیره دامنه‌های Embed
         </Button>
       </div>
 

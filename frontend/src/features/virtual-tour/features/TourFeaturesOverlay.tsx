@@ -15,6 +15,11 @@ interface Props {
   onStopAutoTour?: () => void
   isAutoTouring?: boolean
   publicUrl?: string
+  guidedTourEnabled?: boolean
+  guidedTourActive?: boolean
+  guidedTourNarration?: string
+  onStartGuidedTour?: () => void
+  onStopGuidedTour?: () => void
 }
 
 export function TourFeaturesOverlay({
@@ -26,6 +31,11 @@ export function TourFeaturesOverlay({
   onStopAutoTour,
   isAutoTouring,
   publicUrl,
+  guidedTourEnabled,
+  guidedTourActive,
+  guidedTourNarration,
+  onStartGuidedTour,
+  onStopGuidedTour,
 }: Props) {
   const [showShare, setShowShare] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -121,6 +131,17 @@ export function TourFeaturesOverlay({
             {isAutoTouring ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
           </Button>
         )}
+        {guidedTourEnabled && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 bg-black/40 backdrop-blur border border-white/10 text-white"
+            onClick={guidedTourActive ? onStopGuidedTour : onStartGuidedTour}
+            title="تور راهنما"
+          >
+            {guidedTourActive ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+          </Button>
+        )}
         {settings.bookmarks !== false && (
           <Button size="icon" variant="ghost" className="h-8 w-8 bg-black/40 backdrop-blur border border-white/10 text-white" onClick={addBookmark} title="بوکمارک">
             <Bookmark className="h-3.5 w-3.5" />
@@ -143,6 +164,13 @@ export function TourFeaturesOverlay({
           </Button>
         )}
       </div>
+
+      {/* Guided tour narration */}
+      {guidedTourActive && guidedTourNarration && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 max-w-md px-4 py-3 rounded-xl bg-black/70 backdrop-blur-md border border-white/10 text-white text-sm text-center">
+          {guidedTourNarration}
+        </div>
+      )}
 
       {/* Share panel */}
       {showShare && (

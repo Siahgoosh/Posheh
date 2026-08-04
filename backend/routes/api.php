@@ -48,7 +48,7 @@ use App\Http\Controllers\Api\Customer\CustomerController;
 use App\Http\Controllers\Api\Visit\VisitController;
 use App\Http\Controllers\Api\VirtualTour\PublicVirtualTourController;
 use App\Http\Controllers\Api\VirtualTour\VirtualTourController;
-use App\Http\Controllers\Api\VirtualTour\VirtualTourEnterpriseController;
+use App\Http\Controllers\Api\VirtualTour\VirtualTourAiController;
 use App\Http\Controllers\Api\PublicApiController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
@@ -88,9 +88,14 @@ Route::prefix('v1')->group(function () {
     Route::get('/public/properties', [PublicApiController::class, 'properties'])->middleware('throttle:60,1');
     Route::get('/p/qr/{token}', [PropertyPublicController::class, 'byQr']);
 
-    Route::get('/tour/{slug}', [PublicVirtualTourController::class, 'show']);
+    Route::get('/tour/{slug}', [PublicVirtualTourController::class, 'show'])->middleware('throttle:60,1');
+    Route::get('/tour/{slug}/meta', [PublicVirtualTourController::class, 'meta']);
+    Route::post('/tour/{slug}/events', [PublicVirtualTourController::class, 'recordEvents'])->middleware('throttle:120,1');
     Route::post('/tour/{slug}/verify-password', [PublicVirtualTourController::class, 'verifyPassword'])->middleware('throttle:20,1');
     Route::post('/tour/{slug}/lead', [PublicVirtualTourController::class, 'submitLead'])->middleware('throttle:20,1');
+    Route::get('/tour-media', [\App\Http\Controllers\VirtualTourMediaController::class, 'show'])
+        ->name('virtual-tour.media')
+        ->middleware('throttle:180,1');
 
     Route::middleware(['auth:sanctum', EnsureOfficeIsActive::class, EnsureSubscriptionAccess::class])->group(function () {
         Route::prefix('auth')->group(function () {
@@ -181,6 +186,11 @@ Route::prefix('v1')->group(function () {
             Route::post('/{id}/versions/{versionId}/restore', [VirtualTourEnterpriseController::class, 'restoreVersion']);
             Route::get('/{id}/activity', [VirtualTourEnterpriseController::class, 'activity']);
             Route::get('/{id}/analytics', [VirtualTourController::class, 'analytics']);
+            Route::get('/ai/capabilities', [VirtualTourAiController::class, 'capabilities']);
+            Route::post('/{id}/ai/hotspot-suggestions', [VirtualTourAiController::class, 'hotspotSuggestions']);
+            Route::post('/{id}/ai/scene-ordering', [VirtualTourAiController::class, 'sceneOrdering']);
+            Route::post('/{id}/ai/generate-description', [VirtualTourAiController::class, 'generateDescription']);
+            Route::post('/{id}/ai/generate-narration', [VirtualTourAiController::class, 'generateNarration']);
             Route::post('/{id}/scenes', [VirtualTourController::class, 'addScene']);
             Route::post('/{id}/scenes/upload', [VirtualTourController::class, 'uploadPanorama']);
             Route::post('/{id}/scenes/upload-image', [VirtualTourController::class, 'uploadSceneImage']);

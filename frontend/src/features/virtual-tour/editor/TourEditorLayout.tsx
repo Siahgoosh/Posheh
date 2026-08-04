@@ -16,6 +16,7 @@ import { VersionHistoryPanel } from '../settings/VersionHistoryPanel'
 import { useTourEditorStore, mergeSceneWithPatches } from '../store/editorStore'
 import { createDefaultHotspot, createSceneLinkHotspot } from '../hotspots/hotspotActions'
 import { createSmartWalkSceneLinkHotspot, createSmartWalkHotspot } from '../smart-walk/smartWalkHotspots'
+import { TourAnalyticsPanel } from '../analytics/TourAnalyticsPanel'
 import { SceneLinkPickerModal } from '../hotspots/SceneLinkPickerModal'
 import type { TourData, TourHotspot, TourScene } from '../types'
 
@@ -48,9 +49,86 @@ export function TourEditorLayout({ tourId }: Props) {
     removeHotspot,
     patchScene,
     setLocalTourSettings,
+    setSceneHotspots,
   } = useTourEditorStore()
 
   const [pendingLinkHotspot, setPendingLinkHotspot] = useState<TourHotspot | null>(null)
+  const hotspotUndoRef = useRef<Record<number, TourHotspot[][]>>({})
+  const hotspotRedoRef = useRef<Record<number, TourHotspot[][]>>({})
+  const hotspotClipboardRef = useRef<TourHotspot[]>([])
+  const [canUndoHotspots, setCanUndoHotspots] = useState(false)
+  const [canRedoHotspots, setCanRedoHotspots] = useState(false)
+
+  const syncHotspotHistoryState = (sceneId: number) => {
+    setCanUndoHotspots((hotspotUndoRef.current[sceneId]?.length ?? 0) > 0)
+    setCanRedoHotspots((hotspotRedoRef.current[sceneId]?.length ?? 0) > 0)
+  }
+
+  const pushHotspotHistory = (sceneId: number, hotspots: TourHotspot[]) => {
+    const stack = hotspotUndoRef.current[sceneId] ?? []
+    stack.push(hotspots.map((h) => ({
+      ...h,
+      style: { ...h.style },
+      action: { ...h.action },
+      popup: { ...h.popup },
+    })))
+    if (stack.length > 50) stack.shift()
+    hotspotUndoRef.current[sceneId] = stack
+    hotspotRedoRef.current[sceneId] = []
+    syncHotspotHistoryState(sceneId)
+  }
+
+  const mutateHotspots = (sceneId: number, next: TourHotspot[]) => {
+    const current = localHotspots[sceneId] ?? []
+    pushHotspotHistory(sceneId, current)
+    setSceneHotspots(sceneId, next)
+  }
+
+  const undoHotspots = () => {
+    if (!activeSceneId) return
+    const stack = hotspotUndoRef.current[activeSceneId]
+    if (!stack?.length) return
+    const prev = stack.pop()!
+    const redo = hotspotRedoRef.current[activeSceneId] ?? []
+    redo.push((localHotspots[activeSceneId] ?? []).map((h) => ({ ...h, style: { ...h.style }, action: { ...h.action }, popup: { ...h.popup } })))
+    hotspotRedoRef.current[activeSceneId] = redo
+    setSceneHotspots(activeSceneId, prev)
+    syncHotspotHistoryState(activeSceneId)
+  }
+
+  const redoHotspots = () => {
+    if (!activeSceneId) return
+    const stack = hotspotRedoRef.current[activeSceneId]
+    if (!stack?.length) return
+    const next = stack.pop()!
+    const undo = hotspotUndoRef.current[activeSceneId] ?? []
+    undo.push((localHotspots[activeSceneId] ?? []).map((h) => ({ ...h, style: { ...h.style }, action: { ...h.action }, popup: { ...h.popup } })))
+    hotspotUndoRef.current[activeSceneId] = undo
+    setSceneHotspots(activeSceneId, next)
+    syncHotspotHistoryState(activeSceneId)
+  }
+
+  const copyHotspots = () => {
+    if (!activeSceneId || !selectedHotspotId) return
+    const list = localHotspots[activeSceneId] ?? []
+    const h = list.find((x) => x.id === selectedHotspotId)
+    hotspotClipboardRef.current = h ? [{ ...h, style: { ...h.style }, action: { ...h.action }, popup: { ...h.popup } }] : []
+  }
+
+  const pasteHotspots = () => {
+    if (!activeSceneId || !hotspotClipboardRef.current.length) return
+    const list = localHotspots[activeSceneId] ?? []
+    const pasted = hotspotClipboardRef.current.map((h, i) => ({
+      ...h,
+      id: `temp-${Date.now()}-${i}`,
+      position_x: (h.position_x ?? 50) + 5,
+      position_y: (h.position_y ?? 50) + 5,
+      yaw: h.yaw,
+      pitch: h.pitch,
+    }))
+    mutateHotspots(activeSceneId, [...list, ...pasted])
+    setSelectedHotspotId(pasted[0]?.id ?? null)
+  }
 
   const { data: tour, isLoading, refetch } = useQuery({
     queryKey: ['virtual-tour', tourId],
@@ -183,6 +261,10 @@ export function TourEditorLayout({ tourId }: Props) {
 
   const isSmartWalk = tour?.tour_type === 'smart_walk'
 
+  useEffect(() => {
+    if (activeSceneId) syncHotspotHistoryState(activeSceneId)
+  }, [activeSceneId])
+
   const handlePlaceHotspot = useCallback((a: number, b: number) => {
     if (!activeScene) return
     if (isSmartWalk) {
@@ -191,6 +273,7 @@ export function TourEditorLayout({ tourId }: Props) {
       if (isRepositioningHotspot && selectedHotspotId) {
         const h = activeHotspots.find((x) => x.id === selectedHotspotId)
         if (h) {
+          pushHotspotHistory(activeScene.id, activeHotspots)
           updateHotspot(activeScene.id, { ...h, position_x: x, position_y: y })
           setIsRepositioningHotspot(false)
         }
@@ -198,12 +281,14 @@ export function TourEditorLayout({ tourId }: Props) {
       }
       if (isLinkingScenes) {
         const hotspot = createSmartWalkSceneLinkHotspot(x, y)
+        pushHotspotHistory(activeScene.id, activeHotspots)
         addHotspot(activeScene.id, hotspot)
         setPendingLinkHotspot(hotspot)
         setActiveTab('hotspots')
         return
       }
       const hotspot = createSmartWalkHotspot(x, y)
+      pushHotspotHistory(activeScene.id, activeHotspots)
       addHotspot(activeScene.id, hotspot)
       setActiveTab('hotspots')
       return
@@ -331,6 +416,8 @@ export function TourEditorLayout({ tourId }: Props) {
             isSaving={saveSharingMutation.isPending}
           />
         )
+      case 'analytics':
+        return tour.id ? <TourAnalyticsPanel tourId={tour.id} /> : null
       default:
         return (
           <SceneManagerPanel
@@ -405,8 +492,20 @@ export function TourEditorLayout({ tourId }: Props) {
               onPlaceHotspot={handlePlaceHotspot}
               onHotspotMove={(h, yaw, pitch) => activeScene && updateHotspot(activeScene.id, { ...h, yaw, pitch })}
               onHotspotSelect={(h) => { setSelectedHotspotId(h.id); setActiveTab('hotspots') }}
-              onHotspotUpdate={(h) => activeScene && updateHotspot(activeScene.id, h)}
+              onHotspotUpdate={(h) => {
+                if (!activeScene) return
+                mutateHotspots(
+                  activeScene.id,
+                  activeHotspots.map((item) => (item.id === h.id ? h : item)),
+                )
+              }}
               selectedHotspotId={selectedHotspotId}
+              onUndo={isSmartWalk ? undoHotspots : undefined}
+              onRedo={isSmartWalk ? redoHotspots : undefined}
+              onCopy={isSmartWalk ? copyHotspots : undefined}
+              onPaste={isSmartWalk ? pasteHotspots : undefined}
+              canUndo={isSmartWalk ? canUndoHotspots : undefined}
+              canRedo={isSmartWalk ? canRedoHotspots : undefined}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">

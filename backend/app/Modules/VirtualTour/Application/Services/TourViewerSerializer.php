@@ -12,7 +12,27 @@ class TourViewerSerializer
         private readonly HotspotSerializer $hotspotSerializer,
     ) {}
 
-    public function serialize(VirtualTour $tour): array
+    public function serialize(VirtualTour $tour, bool $public = false): array
+    {
+        $payload = $this->buildPayload($tour);
+
+        if ($public) {
+            unset($payload['share_token'], $payload['private_url']);
+            if (($tour->visibility ?? 'public') !== 'private') {
+                unset($payload['share_token']);
+            }
+        }
+
+        return $payload;
+    }
+
+    public function serializePublic(VirtualTour $tour): array
+    {
+        return $this->serialize($tour, true);
+    }
+
+    /** @return array<string, mixed> */
+    private function buildPayload(VirtualTour $tour): array
     {
         $settings = $tour->settings ?? [];
 

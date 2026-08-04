@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Lock } from 'lucide-react'
-import { TourViewer } from '@/features/virtual-tour'
+import { UnifiedTourViewer } from '@/features/virtual-tour/engine/UnifiedTourViewer'
 import { usePublicTour } from '@/features/virtual-tour/hooks/usePublicTour'
+import { TourWatermark } from '@/features/virtual-tour/components/TourWatermark'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 export function VirtualTourEmbedPage() {
   const { slug } = useParams<{ slug: string }>()
-  const { tour, gate, verifyPassword, verifyError, isVerifying } = usePublicTour(slug)
+  const { tour, gate, verifyPassword, verifyError, isVerifying } = usePublicTour(slug, { embed: true })
   const [passwordInput, setPasswordInput] = useState('')
 
   if (gate === 'loading') {
@@ -53,8 +54,18 @@ export function VirtualTourEmbedPage() {
   }
 
   return (
-    <div className="h-screen w-screen bg-black overflow-hidden touch-none">
-      <TourViewer tour={tour} className="h-full" showControls showFeatures publicUrl={tour.public_url} />
+    <div className="h-screen w-screen bg-black overflow-hidden touch-none relative">
+      <TourWatermark
+        text={tour.security?.watermark_text}
+        enabled={tour.security?.watermark_enabled}
+      />
+      <UnifiedTourViewer
+        tour={tour}
+        className="h-full"
+        showControls
+        showFeatures={tour.tour_type !== 'smart_walk'}
+        publicUrl={tour.public_url}
+      />
     </div>
   )
 }

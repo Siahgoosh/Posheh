@@ -172,6 +172,7 @@ export interface TourSettings {
   mini_map?: boolean
   floor_selector?: boolean
   embed_enabled?: boolean
+  embed_allowed_domains?: string[]
   share_enabled?: boolean
   qr_enabled?: boolean
   phone?: string
@@ -238,7 +239,7 @@ export interface ViewerPosition {
 
 export type SceneFilter = 'all' | 'draft' | 'published' | 'visible' | 'hidden'
 export type SceneSort = 'order' | 'name' | 'status'
-export type EditorTab = 'scenes' | 'hotspots' | 'scene-settings' | 'tour-settings' | 'sharing'
+export type EditorTab = 'scenes' | 'hotspots' | 'scene-settings' | 'tour-settings' | 'sharing' | 'analytics'
 
 export interface UploadTask {
   id: string

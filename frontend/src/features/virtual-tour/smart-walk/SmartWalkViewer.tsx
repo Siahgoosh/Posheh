@@ -39,6 +39,7 @@ interface Props {
   canRedo?: boolean
   selectedHotspotId?: number | string | null
   onLeadForm?: () => void
+  onHotspotActivate?: (hotspot: TourHotspot, sceneId: number) => void
 }
 
 export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function SmartWalkViewer(
@@ -66,6 +67,7 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
     canRedo,
     selectedHotspotId,
     onLeadForm,
+    onHotspotActivate,
   } = props
   const [popupHotspot, setPopupHotspot] = useState<TourHotspot | null>(null)
   const [galleryImages, setGalleryImages] = useState<string[] | null>(null)
@@ -104,6 +106,10 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
     if (editorMode) {
       onHotspotSelect?.(hotspot)
       return
+    }
+
+    if (engine.activeSceneId) {
+      onHotspotActivate?.(hotspot, engine.activeSceneId)
     }
 
     if (hotspot.type === 'scene' || hotspot.action?.type === 'scene') {

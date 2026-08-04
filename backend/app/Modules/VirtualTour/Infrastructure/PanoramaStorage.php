@@ -3,11 +3,16 @@
 namespace App\Modules\VirtualTour\Infrastructure;
 
 use App\Modules\VirtualTour\Application\Contracts\PanoramaStorageInterface;
+use App\Modules\VirtualTour\Infrastructure\SignedMediaUrlGenerator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 class PanoramaStorage implements PanoramaStorageInterface
 {
+    public function __construct(
+        private readonly SignedMediaUrlGenerator $signedUrls,
+    ) {}
+
     public function store(int $tourId, UploadedFile $file, string $subdir = 'panoramas'): string
     {
         return $file->store("virtual-tours/{$tourId}/{$subdir}", 'public');
@@ -33,8 +38,12 @@ class PanoramaStorage implements PanoramaStorageInterface
         }
 
         $cdn = config('virtual-tour.cdn_url');
-        if ($cdn) {
+        if ($cdn && ! $this->signedUrls->isEnabled()) {
             return rtrim($cdn, '/').'/storage/'.$path;
+        }
+
+        if ($this->signedUrls->isEnabled()) {
+            return $this->signedUrls->url($path);
         }
 
         return '/storage/'.$path;

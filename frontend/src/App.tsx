@@ -103,6 +103,7 @@ export default function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/tour/:slug/scene/:sceneId" element={<VirtualTourPublicPage />} />
           <Route path="/tour/:slug" element={<VirtualTourPublicPage />} />
           <Route path="/embed/tour/:slug" element={<VirtualTourEmbedPage />} />
           <Route path="/payment/callback" element={<PaymentCallbackPage />} />

@@ -67,6 +67,7 @@ export const tourApi = {
   restoreVersion: (id: number | string, versionId: number) =>
     api.post(`/virtual-tours/${id}/versions/${versionId}/restore`),
   activity: (id: number | string) => api.get(`/virtual-tours/${id}/activity`),
+  analytics: (id: number | string) => api.get(`/virtual-tours/${id}/analytics`),
 
   addScene: (tourId: number | string, data: FormData | Record<string, unknown>) =>
     api.post(`/virtual-tours/${tourId}/scenes`, data),
