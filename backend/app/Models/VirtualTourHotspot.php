@@ -14,9 +14,15 @@ class VirtualTourHotspot extends Model
         'yaw',
         'pitch',
         'title',
+        'label',
+        'tooltip',
         'content',
         'link_url',
         'icon',
+        'style',
+        'action',
+        'popup',
+        'sort_order',
     ];
 
     protected function casts(): array
@@ -24,6 +30,10 @@ class VirtualTourHotspot extends Model
         return [
             'yaw' => 'float',
             'pitch' => 'float',
+            'style' => 'array',
+            'action' => 'array',
+            'popup' => 'array',
+            'sort_order' => 'integer',
         ];
     }
 

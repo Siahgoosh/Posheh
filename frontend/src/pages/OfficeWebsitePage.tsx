@@ -56,7 +56,7 @@ export function OfficeWebsitePage() {
       id: number; name: string; mobile: string; email?: string; property_code?: string
       preferred_date?: string; preferred_time?: string; message?: string; status: string; created_at?: string
     }[],
-    enabled: hasWebsite && status?.website_status === 'published',
+    enabled: hasWebsite,
   })
 
   const { data: pendingProps } = useQuery({
@@ -65,7 +65,7 @@ export function OfficeWebsitePage() {
       id: number; code: string; type_label?: string; price?: number; city?: string; district?: string
       area?: number; creator?: { name?: string }
     }[],
-    enabled: hasWebsite && status?.website_status === 'published',
+    enabled: hasWebsite,
   })
 
   const approveMutation = useMutation({

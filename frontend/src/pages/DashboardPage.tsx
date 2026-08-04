@@ -76,13 +76,13 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">داشبورد</h1>
-          <p className="text-muted mt-1">خلاصه وضعیت دفتر املاک</p>
+          <h1 className="text-xl sm:text-2xl font-bold">داشبورد</h1>
+          <p className="text-muted text-sm mt-1">خلاصه وضعیت دفتر املاک</p>
         </div>
-        <Link to="/properties/new">
-          <Button>
+        <Link to="/properties/new" className="shrink-0">
+          <Button className="w-full sm:w-auto">
             <Plus className="h-4 w-4" />
             ثبت ملک جدید
           </Button>
