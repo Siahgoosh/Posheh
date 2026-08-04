@@ -7,6 +7,7 @@ use App\Modules\VirtualTour\Application\Services\HotspotManager;
 use App\Modules\VirtualTour\Application\Services\HotspotSerializer;
 use App\Modules\VirtualTour\Application\Services\PanoramaUploader;
 use App\Modules\VirtualTour\Application\Services\SceneImageUploader;
+use App\Modules\VirtualTour\Application\Services\SceneManager;
 use App\Modules\VirtualTour\Application\Services\TourAnalyticsService;
 use App\Modules\VirtualTour\Application\Services\TourManager;
 use App\Modules\VirtualTour\Application\Services\TourViewerSerializer;
@@ -50,12 +51,40 @@ class VirtualTourController extends Controller
             'tour_type' => ['nullable', 'in:panorama_360,smart_walk'],
         ]);
 
-        $tour = $this->tourManager->create($request->user(), $data);
+        try {
+            $tour = $this->tourManager->create($request->user(), $data);
 
-        return response()->json([
-            'data' => $this->tourManager->toPayload($tour->load(['scenes.hotspots', 'media', 'property', 'office'])),
-            'message' => 'تور مجازی ایجاد شد.',
-        ], 201);
+            return response()->json([
+                'data' => $this->tourManager->toPayload($tour->load(['scenes.hotspots', 'media', 'property', 'office'])),
+                'message' => 'تور مجازی ایجاد شد.',
+            ], 201);
+        } catch (QueryException $e) {
+            if (str_contains($e->getMessage(), 'Unknown column')) {
+                return response()->json([
+                    'message' => 'دیتابیس به‌روز نیست. لطفاً php artisan migrate --force را اجرا کنید.',
+                    'code' => 'schema_outdated',
+                ], 503);
+            }
+
+            Log::error('virtual-tour.create.db_error', ['message' => $e->getMessage()]);
+
+            return response()->json([
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'خطا در ایجاد تور. لطفاً دوباره تلاش کنید.',
+            ], 500);
+        } catch (\Throwable $e) {
+            Log::error('virtual-tour.create.failed', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'خطا در ایجاد تور. لطفاً دوباره تلاش کنید.',
+            ], 500);
+        }
     }
 
     public function show(Request $request, int $id): JsonResponse

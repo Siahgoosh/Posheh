@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
 import { Box, Footprints, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,10 +53,20 @@ export function CreateTourWizard({ open, onClose, onCreated }: Props) {
       handleClose()
       navigate(`/virtual-tours/${tour.id}/edit`)
     } catch (err: unknown) {
-      const message = err && typeof err === 'object' && 'response' in err
-        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
-        : null
-      setError(message || 'ایجاد تور ناموفق بود.')
+      if (axios.isAxiosError(err)) {
+        const data = err.response?.data as { message?: string; code?: string } | undefined
+        if (data?.code === 'schema_outdated') {
+          setError('دیتابیس به‌روز نیست. لطفاً migrate را روی سرور اجرا کنید.')
+        } else if (err.response?.status === 500) {
+          setError(data?.message || 'خطای سرور هنگام ایجاد تور. با پشتیبانی تماس بگیرید.')
+        } else if (err.response?.status === 422) {
+          setError(data?.message || 'اطلاعات وارد شده معتبر نیست.')
+        } else {
+          setError(data?.message || 'ایجاد تور ناموفق بود.')
+        }
+      } else {
+        setError('ایجاد تور ناموفق بود.')
+      }
     } finally {
       setIsSubmitting(false)
     }

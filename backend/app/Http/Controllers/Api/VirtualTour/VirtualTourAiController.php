@@ -44,6 +44,7 @@ class VirtualTourAiController extends Controller
     public function sceneOrdering(Request $request, int $id): JsonResponse
     {
         $tour = $this->findTour($request, $id);
+        $tour->load(['scenes' => fn ($q) => $q->orderBy('sort_order')]);
 
         return response()->json([
             'data' => ['ordered_scene_ids' => $tour->scenes->pluck('id')],

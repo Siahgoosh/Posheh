@@ -5,6 +5,7 @@ namespace App\Modules\VirtualTour\Application\Services;
 use App\Models\User;
 use App\Models\VirtualTour;
 use App\Modules\VirtualTour\Domain\TourType;
+use Illuminate\Support\Str;
 
 class TourManager
 {
@@ -36,7 +37,7 @@ class TourManager
             'tour_type' => $tourType->value,
             'status' => 'draft',
             'visibility' => 'public',
-            'share_token' => \Illuminate\Support\Str::random(32),
+            'share_token' => Str::random(32),
             'settings' => $this->defaultSettings($user),
         ]);
     }

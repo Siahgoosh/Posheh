@@ -49,6 +49,7 @@ use App\Http\Controllers\Api\Visit\VisitController;
 use App\Http\Controllers\Api\VirtualTour\PublicVirtualTourController;
 use App\Http\Controllers\Api\VirtualTour\VirtualTourController;
 use App\Http\Controllers\Api\VirtualTour\VirtualTourAiController;
+use App\Http\Controllers\Api\VirtualTour\VirtualTourEnterpriseController;
 use App\Http\Controllers\Api\PublicApiController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;

@@ -88,7 +88,7 @@ class TourViewerSerializer
             'status' => $scene->status ?? 'draft',
             'is_default' => (bool) ($scene->is_default ?? false),
             'is_visible' => (bool) ($scene->is_visible ?? true),
-            'panorama_url' => $this->storage->url($scene->panorama_path),
+            'panorama_url' => $scene->panorama_path ? $this->storage->url($scene->panorama_path) : null,
             'thumbnail_url' => $scene->thumbnail_path ? $this->storage->url($scene->thumbnail_path) : null,
             'image_variants' => $resolvedVariants,
             'metadata' => $scene->metadata ?? [],

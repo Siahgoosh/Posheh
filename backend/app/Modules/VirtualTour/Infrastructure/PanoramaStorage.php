@@ -29,6 +29,10 @@ class PanoramaStorage implements PanoramaStorageInterface
 
     public function url(string $path): string
     {
+        if ($path === '') {
+            return '';
+        }
+
         if (str_starts_with($path, 'http')) {
             return $path;
         }
