@@ -132,7 +132,8 @@ class TelegramBotService
             $text .= "\n💬 {$request->message}";
         }
 
-        $panelUrl = rtrim((string) config('app.url'), '/').'/visits';
+        $panelBase = rtrim((string) (config('app.frontend_url') ?: config('services.telegram.webhook_base_url') ?: 'https://posheapp.ir'), '/');
+        $panelUrl = "{$panelBase}/visits";
         $text .= "\n\n🔗 <a href=\"{$panelUrl}\">مشاهده در پنل</a>";
 
         try {

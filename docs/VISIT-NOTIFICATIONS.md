@@ -70,8 +70,10 @@
 
 ```bash
 cd /var/www/posheh
-./scripts/deploy.sh cursor/visit-notifications-e117
+./scripts/deploy.sh cursor/release-deploy-e117
 ```
+
+(شاخه یکجا: تور مجازی + نوتیف بازدید. نام اشتباه `cursor/visit/notifications-e117` کار نمی‌کند.)
 
 مایگریشن جدید لازم نیست — جدول `notifications` از قبل وجود دارد.
 
