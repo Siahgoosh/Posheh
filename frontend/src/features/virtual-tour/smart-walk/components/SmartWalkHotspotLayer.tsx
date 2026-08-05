@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState, type RefObject } from 'react'
 import type { TourHotspot } from '../../types'
 import { getHotspotTypeDef } from '../../hotspots/constants'
 
@@ -7,6 +7,7 @@ const SNAP_GRID = 5
 interface Props {
   hotspots: TourHotspot[]
   brandColor: string
+  layerRef?: RefObject<HTMLDivElement | null>
   editorMode?: boolean
   selectedId?: number | string | null
   onHotspotClick: (h: TourHotspot) => void
@@ -14,11 +15,13 @@ interface Props {
   onHotspotResize?: (h: TourHotspot, size: number) => void
   onHotspotRotate?: (h: TourHotspot, rotation: number) => void
   showGuides?: boolean
+  placementPreview?: { x: number; y: number } | null
 }
 
 export function SmartWalkHotspotLayer({
   hotspots,
   brandColor,
+  layerRef,
   editorMode = false,
   selectedId,
   onHotspotClick,
@@ -26,6 +29,7 @@ export function SmartWalkHotspotLayer({
   onHotspotResize,
   onHotspotRotate,
   showGuides = true,
+  placementPreview,
 }: Props) {
   const dragRef = useRef<{
     id: number | string
@@ -35,7 +39,6 @@ export function SmartWalkHotspotLayer({
     originY: number
   } | null>(null)
   const [guideLines, setGuideLines] = useState<{ x?: number; y?: number }>({})
-
   const [hoverId, setHoverId] = useState<number | string | null>(null)
 
   const sorted = [...hotspots].sort(
@@ -69,10 +72,19 @@ export function SmartWalkHotspotLayer({
     return { x: snap(sx), y: snap(sy), guides: { x: gx, y: gy } }
   }, [hotspots, showGuides])
 
+  const endDrag = useCallback(() => {
+    dragRef.current = null
+    setGuideLines({})
+  }, [])
+
   const onPointerDown = (e: React.PointerEvent, h: TourHotspot) => {
-    if (!editorMode || h.style?.locked) return
+    if (!editorMode || h.style?.locked || !onHotspotMove) return
     e.stopPropagation()
     e.preventDefault()
+
+    const layer = layerRef?.current
+    if (!layer) return
+
     dragRef.current = {
       id: h.id,
       startX: e.clientX,
@@ -80,27 +92,30 @@ export function SmartWalkHotspotLayer({
       originX: h.position_x ?? 50,
       originY: h.position_y ?? 50,
     }
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-  }
 
-  const onPointerMove = (e: React.PointerEvent, h: TourHotspot) => {
-    if (!dragRef.current || dragRef.current.id !== h.id || !onHotspotMove) return
-    const layer = (e.currentTarget as HTMLElement).parentElement
-    if (!layer) return
-    const rect = layer.getBoundingClientRect()
-    const dx = ((e.clientX - dragRef.current.startX) / rect.width) * 100
-    const dy = ((e.clientY - dragRef.current.startY) / rect.height) * 100
-    const rawX = dragRef.current.originX + dx
-    const rawY = dragRef.current.originY + dy
-    const { x, y, guides } = checkGuides(rawX, rawY, h.id)
-    setGuideLines(guides)
-    onHotspotMove(h, x, y)
-  }
+    const onMove = (ev: PointerEvent) => {
+      if (!dragRef.current || dragRef.current.id !== h.id) return
+      const rect = layer.getBoundingClientRect()
+      if (rect.width <= 0 || rect.height <= 0) return
+      const dx = ((ev.clientX - dragRef.current.startX) / rect.width) * 100
+      const dy = ((ev.clientY - dragRef.current.startY) / rect.height) * 100
+      const rawX = dragRef.current.originX + dx
+      const rawY = dragRef.current.originY + dy
+      const { x, y, guides } = checkGuides(rawX, rawY, h.id)
+      setGuideLines(guides)
+      onHotspotMove(h, x, y)
+    }
 
-  const onPointerUp = (e: React.PointerEvent) => {
-    dragRef.current = null
-    setGuideLines({})
-    ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+      endDrag()
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
   }
 
   return (
@@ -110,6 +125,29 @@ export function SmartWalkHotspotLayer({
       )}
       {showGuides && guideLines.y !== undefined && (
         <div className="absolute left-0 right-0 h-px bg-primary/60 z-20 pointer-events-none" style={{ top: `${guideLines.y}%` }} />
+      )}
+
+      {placementPreview && (
+        <div
+          className="absolute z-20 pointer-events-none"
+          style={{
+            left: `${placementPreview.x}%`,
+            top: `${placementPreview.y}%`,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div
+            className="rounded-full border-2 border-dashed border-white/90 flex items-center justify-center animate-pulse"
+            style={{
+              width: 36,
+              height: 36,
+              background: `${brandColor}55`,
+              boxShadow: `0 0 12px ${brandColor}`,
+            }}
+          >
+            <span className="text-sm text-white">+</span>
+          </div>
+        </div>
       )}
 
       {sorted.map((h) => {
@@ -139,7 +177,7 @@ export function SmartWalkHotspotLayer({
               type="button"
               className={`relative rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
                 h.style?.pulse ? 'animate-pulse' : ''
-              } ${editorMode && !h.style?.locked ? 'cursor-move hover:ring-2 hover:ring-white/80' : 'cursor-pointer hover:scale-110'} ${
+              } ${editorMode && !h.style?.locked ? 'cursor-move hover:ring-2 hover:ring-white/80 hover:scale-110' : 'cursor-pointer hover:scale-110'} ${
                 selected ? 'ring-2 ring-white scale-110 shadow-lg' : hovered ? 'scale-110 shadow-md' : ''
               }`}
               style={{
@@ -155,12 +193,7 @@ export function SmartWalkHotspotLayer({
                 e.stopPropagation()
                 onHotspotClick(h)
               }}
-              onPointerDown={(e) => {
-                e.stopPropagation()
-                onPointerDown(e, h)
-              }}
-              onPointerMove={(e) => onPointerMove(e, h)}
-              onPointerUp={onPointerUp}
+              onPointerDown={(e) => onPointerDown(e, h)}
             >
               <span className="text-sm">{h.type === 'scene' ? '➡' : def.emoji}</span>
             </button>
@@ -168,7 +201,7 @@ export function SmartWalkHotspotLayer({
             {editorMode && selected && !h.style?.locked && onHotspotResize && (
               <button
                 type="button"
-                className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white border border-primary text-[8px] flex items-center justify-center"
+                className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white border border-primary text-[8px] flex items-center justify-center cursor-nwse-resize"
                 onPointerDown={(e) => {
                   e.stopPropagation()
                   const start = size
@@ -192,7 +225,7 @@ export function SmartWalkHotspotLayer({
             {editorMode && selected && !h.style?.locked && onHotspotRotate && (
               <button
                 type="button"
-                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white border border-primary text-[8px]"
+                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white border border-primary text-[8px] cursor-grab"
                 onPointerDown={(e) => {
                   e.stopPropagation()
                   const cx = e.clientX

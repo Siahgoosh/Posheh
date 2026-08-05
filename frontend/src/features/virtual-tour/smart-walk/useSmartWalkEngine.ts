@@ -56,8 +56,11 @@ export function useSmartWalkEngine({
   const activeScene = tour.scenes.find((s) => s.id === activeSceneId) ?? defaultScene ?? null
   const hotspots = sceneHotspots ?? activeScene?.hotspots ?? []
 
-  const imageWidth = activeScene?.image_variants?.width ?? activeScene?.panorama_width ?? 1920
-  const imageHeight = activeScene?.image_variants?.height ?? activeScene?.panorama_height ?? 1080
+  const metaWidth = activeScene?.image_variants?.width ?? activeScene?.panorama_width ?? 1920
+  const metaHeight = activeScene?.image_variants?.height ?? activeScene?.panorama_height ?? 1080
+  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null)
+  const imageWidth = naturalSize?.w ?? metaWidth
+  const imageHeight = naturalSize?.h ?? metaHeight
 
   const camera = useSmartWalkCamera({
     imageWidth,
@@ -87,6 +90,20 @@ export function useSmartWalkEngine({
     )
     if (hi !== imageUrl) getCachedImage(hi).catch(() => {})
   }, [camera.camera.scale, camera.fitScale, activeScene, imageUrl, isTransitioning])
+
+  // Reset natural dimensions when scene changes
+  useEffect(() => {
+    setNaturalSize(null)
+  }, [activeSceneId])
+
+  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget
+    const nw = img.naturalWidth
+    const nh = img.naturalHeight
+    if (nw > 0 && nh > 0) {
+      setNaturalSize((prev) => (prev?.w === nw && prev?.h === nh ? prev : { w: nw, h: nh }))
+    }
+  }, [])
 
   // Load scene image
   useEffect(() => {
@@ -285,6 +302,7 @@ export function useSmartWalkEngine({
     imageUrl: displayUrl,
     imageWidth,
     imageHeight,
+    handleImageLoad,
     isLoading,
     loadProgress,
     loadError,

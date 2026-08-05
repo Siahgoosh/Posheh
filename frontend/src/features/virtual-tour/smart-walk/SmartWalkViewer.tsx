@@ -1,7 +1,8 @@
-import { forwardRef, useImperativeHandle, useState, useCallback } from 'react'
+import { forwardRef, useImperativeHandle, useState, useCallback, useRef } from 'react'
 import { ZoomIn, ZoomOut, Maximize2, Minimize2, RotateCcw, Undo2, Redo2, Copy, ClipboardPaste } from 'lucide-react'
 import type { TourData, TourHotspot } from '../types'
 import { useSmartWalkEngine } from './useSmartWalkEngine'
+import { clickToImagePercent } from './smartWalkHotspots'
 import { TourLoadingOverlay } from '../engine/TourLoadingOverlay'
 import { HotspotPopup } from '../hotspots/HotspotPopup'
 import { executeHotspotAction } from '../hotspots/hotspotActions'
@@ -73,6 +74,8 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
   const [galleryImages, setGalleryImages] = useState<string[] | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [favorite, setFavorite] = useState(false)
+  const [placementPreview, setPlacementPreview] = useState<{ x: number; y: number } | null>(null)
+  const layerRef = useRef<HTMLDivElement>(null)
 
   const themeMode = tour.settings?.theme_mode ?? 'dark'
   const showMiniMap = tour.settings?.mini_map !== false && tour.settings?.show_floor_plan !== false
@@ -150,6 +153,26 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
     }
   }
 
+  const handleViewportMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isPlacingHotspot || !engine.containerRef.current) {
+      setPlacementPreview(null)
+      return
+    }
+    const { x, y } = clickToImagePercent(
+      e.clientX,
+      e.clientY,
+      engine.containerRef.current,
+      engine.cameraRef.current,
+      engine.imageWidth,
+      engine.imageHeight,
+    )
+    setPlacementPreview({ x, y })
+  }, [isPlacingHotspot, engine.containerRef, engine.cameraRef, engine.imageWidth, engine.imageHeight])
+
+  const handleViewportMouseLeave = useCallback(() => {
+    setPlacementPreview(null)
+  }, [])
+
   return (
     <SmartWalkThemeProvider initialMode={themeMode}>
       <div className={`smart-walk-root relative overflow-hidden h-full min-h-[320px] ${className}`}>
@@ -171,8 +194,11 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
           }}
           onWheel={engine.handleWheel}
           onClick={engine.handleClick}
+          onMouseMove={handleViewportMouseMove}
+          onMouseLeave={handleViewportMouseLeave}
         >
           <div
+            ref={layerRef}
             className="smart-walk-layer absolute left-1/2 top-1/2"
             style={{
               width: engine.imageWidth,
@@ -190,6 +216,7 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
                 style={{ opacity: tf.outgoingOpacity }}
                 draggable={false}
                 loading="eager"
+                onLoad={engine.handleImageLoad}
               />
             )}
 
@@ -197,8 +224,10 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
               <SmartWalkHotspotLayer
                 hotspots={engine.hotspots}
                 brandColor={brandColor}
+                layerRef={layerRef}
                 editorMode={editorMode}
                 selectedId={selectedHotspotId}
+                placementPreview={isPlacingHotspot ? placementPreview : null}
                 onHotspotClick={handleHotspotClick}
                 onHotspotMove={(h, x, y) => {
                   onHotspotUpdate?.({ ...h, position_x: x, position_y: y })
@@ -221,7 +250,7 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
 
         {editorMode && isPlacingHotspot && (
           <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 rounded-full bg-primary/90 text-white text-[11px] pointer-events-none max-w-[90%] text-center leading-relaxed">
-            بکشید برای جابجایی — کلیک برای ثبت نقطه — هات‌اسپات انتخاب‌شده را بکشید
+            بکشید برای جابجایی — نشانگر را دنبال کنید — کلیک برای ثبت نقطه
           </div>
         )}
 
@@ -285,10 +314,10 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
                 <ClipboardPaste className="h-4 w-4" />
               </Button>
             )}
-            <Button size="icon" variant="outline" className="h-9 w-9 sw-btn" onClick={() => engine.zoom(0.35)}>
+            <Button size="icon" variant="outline" className="h-9 w-9 sw-btn" onClick={() => engine.zoom(0.35 * engine.fitScale)}>
               <ZoomIn className="h-4 w-4" />
             </Button>
-            <Button size="icon" variant="outline" className="h-9 w-9 sw-btn" onClick={() => engine.zoom(-0.35)}>
+            <Button size="icon" variant="outline" className="h-9 w-9 sw-btn" onClick={() => engine.zoom(-0.35 * engine.fitScale)}>
               <ZoomOut className="h-4 w-4" />
             </Button>
             <Button size="icon" variant="outline" className="h-9 w-9 sw-btn" onClick={engine.resetView}>

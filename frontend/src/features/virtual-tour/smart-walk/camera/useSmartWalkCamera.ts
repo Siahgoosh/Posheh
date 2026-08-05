@@ -134,7 +134,7 @@ export function useSmartWalkCamera({
     stopMomentum()
     const { w, h } = getViewSize()
     const fit = getFitScale()
-    const next = zoomAtPoint(cameraRef.current, targetScale - cameraRef.current.scale, w / 2, h / 2, w, h)
+    const next = zoomAtPoint(cameraRef.current, targetScale - cameraRef.current.scale, w / 2, h / 2, w, h, fit)
     applyCamera({ ...next, scale: clampScale(next.scale, fit) })
   }, [applyCamera, getFitScale, getViewSize, stopMomentum])
 
@@ -263,12 +263,13 @@ export function useSmartWalkCamera({
         e.preventDefault()
         const dist = getTouchDist(e.touches)
         if (pinchRef.current.startDist > 0) {
+          const fit = getFitScale()
           const ratio = dist / pinchRef.current.startDist
-          const targetScale = clampScale(pinchRef.current.startScale * ratio)
+          const targetScale = clampScale(pinchRef.current.startScale * ratio, fit)
           const delta = targetScale - cameraRef.current.scale
           const { w, h } = getViewSize()
           applyCamera(
-            zoomAtPoint(cameraRef.current, delta, pinchRef.current.focalX, pinchRef.current.focalY, w, h),
+            zoomAtPoint(cameraRef.current, delta, pinchRef.current.focalX, pinchRef.current.focalY, w, h, fit),
           )
         }
         return
