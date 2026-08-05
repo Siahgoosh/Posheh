@@ -37,7 +37,7 @@ class UserNotificationService
         ]);
 
         $items = $announcements->concat($db)->sortByDesc('created_at')->values()->all();
-        $unread = $user->unreadNotifications()->count() + $announcements->count();
+        $unread = $user->unreadNotifications()->count();
 
         return ['items' => $items, 'unread_count' => $unread];
     }

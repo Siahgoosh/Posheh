@@ -39,8 +39,8 @@ export function NotificationBell() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   })
 
-  const unread = data?.unread_count ?? 0
   const items = data?.items ?? []
+  const unread = data?.unread_count ?? items.filter((n) => n.source === 'system' && !n.read_at).length
 
   return (
     <div className="relative">
@@ -61,7 +61,7 @@ export function NotificationBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-12 z-50 w-80 max-h-[70vh] overflow-hidden rounded-2xl border border-card-border bg-background shadow-xl">
+          <div className="absolute left-0 top-12 z-50 w-[min(20rem,calc(100vw-1.5rem))] max-h-[70vh] overflow-hidden rounded-2xl border border-card-border bg-background shadow-xl">
             <div className="flex items-center justify-between p-3 border-b border-card-border">
               <p className="font-semibold text-sm">اعلان‌ها</p>
               {unread > 0 && (
@@ -76,6 +76,7 @@ export function NotificationBell() {
                 <p className="p-6 text-center text-sm text-muted">اعلانی نیست</p>
               ) : (
                 items.map((n) => {
+                  const isUnread = n.source === 'system' && !n.read_at
                   const content = (
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -84,8 +85,11 @@ export function NotificationBell() {
                         {n.created_at && (
                           <p className="text-[10px] text-muted mt-1">{formatJalaliDate(n.created_at)}</p>
                         )}
+                        {n.source === 'announcement' && (
+                          <p className="text-[10px] text-accent mt-1">اطلاعیه عمومی</p>
+                        )}
                       </div>
-                      {n.source === 'system' && !n.read_at && (
+                      {isUnread && (
                         <button
                           type="button"
                           onClick={(e) => {
@@ -94,6 +98,7 @@ export function NotificationBell() {
                             markRead.mutate(n.id)
                           }}
                           className="text-primary shrink-0"
+                          aria-label="علامت خوانده"
                         >
                           <Check className="h-4 w-4" />
                         </button>
@@ -104,10 +109,17 @@ export function NotificationBell() {
                   return (
                     <div
                       key={n.id}
-                      className={`p-3 border-b border-card-border/50 text-sm ${!n.read_at && n.source === 'system' ? 'bg-primary/5' : ''}`}
+                      className={`p-3 border-b border-card-border/50 text-sm ${isUnread ? 'bg-primary/5' : ''}`}
                     >
                       {n.link ? (
-                        <Link to={n.link} onClick={() => setOpen(false)} className="block hover:text-primary">
+                        <Link
+                          to={n.link}
+                          onClick={() => {
+                            if (isUnread) markRead.mutate(n.id)
+                            setOpen(false)
+                          }}
+                          className="block hover:text-primary"
+                        >
                           {content}
                         </Link>
                       ) : (

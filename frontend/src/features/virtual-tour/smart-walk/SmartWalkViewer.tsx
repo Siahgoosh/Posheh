@@ -178,7 +178,7 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
       <div className={`smart-walk-root relative overflow-hidden h-full min-h-[320px] ${className}`}>
         {/* Viewport */}
         <div
-          ref={engine.containerRef}
+          ref={engine.setContainerRef}
           className={`smart-walk-viewport absolute inset-0 overflow-hidden ${
             isPlacingHotspot
               ? 'cursor-crosshair'
@@ -192,7 +192,6 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
             filter: tf.blurPx > 0 ? `blur(${tf.blurPx}px)` : undefined,
             transition: 'filter 0.15s ease-out',
           }}
-          onWheel={engine.handleWheel}
           onClick={engine.handleClick}
           onPointerDown={engine.onViewportPointerDown}
           onPointerMove={engine.onViewportPointerMove}
@@ -319,10 +318,10 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
                 <ClipboardPaste className="h-4 w-4" />
               </Button>
             )}
-            <Button size="icon" variant="outline" className="h-9 w-9 sw-btn" onClick={() => engine.zoom(0.35 * engine.fitScale)}>
+            <Button size="icon" variant="outline" className="h-9 w-9 sw-btn" onClick={() => engine.zoom(0.2 * engine.fitScale)}>
               <ZoomIn className="h-4 w-4" />
             </Button>
-            <Button size="icon" variant="outline" className="h-9 w-9 sw-btn" onClick={() => engine.zoom(-0.35 * engine.fitScale)}>
+            <Button size="icon" variant="outline" className="h-9 w-9 sw-btn" onClick={() => engine.zoom(-0.2 * engine.fitScale)}>
               <ZoomOut className="h-4 w-4" />
             </Button>
             <Button size="icon" variant="outline" className="h-9 w-9 sw-btn" onClick={engine.resetView}>

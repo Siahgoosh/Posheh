@@ -455,25 +455,27 @@ export function TourEditorLayout({ tourId }: Props) {
 
   return (
     <div className="flex flex-col min-h-[calc(100dvh-7rem)] lg:min-h-[calc(100dvh-5rem)] w-full min-w-0 overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-card-border/50 bg-black/20 backdrop-blur-md">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 border-b border-card-border/50 bg-black/20 backdrop-blur-md">
         <Link to="/virtual-tours">
-          <Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button>
+          <Button variant="ghost" size="icon" className="shrink-0"><ArrowRight className="h-5 w-5" /></Button>
         </Link>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold truncate">{tour.title}</h1>
-          <p className="text-[11px] text-muted">
-            {isSmartWalk ? 'Poshe Smart Walk — عکس موبایل و اتصال صحنه‌ها' : 'ویرایشگر تور ۳۶۰ — هات‌اسپات و تنظیمات'}
+        <div className="flex-1 min-w-0 basis-[40%] sm:basis-auto">
+          <h1 className="text-base sm:text-lg font-bold truncate">{tour.title}</h1>
+          <p className="text-[10px] sm:text-[11px] text-muted truncate">
+            {isSmartWalk ? 'Smart Walk — عکس موبایل' : 'ویرایشگر تور ۳۶۰'}
           </p>
         </div>
-        <Badge variant={tour.status === 'published' ? 'default' : 'outline'}>
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full sm:w-auto justify-end">
+        <Badge variant={tour.status === 'published' ? 'default' : 'outline'} className="shrink-0">
           {tour.status === 'published' ? 'منتشر شده' : 'پیش‌نویس'}
         </Badge>
         <Button
           size="sm"
           variant="outline"
+          className="shrink-0"
           onClick={() => window.open(`/virtual-tours/${tourId}/preview`, '_blank', 'noopener,noreferrer')}
         >
-          <ExternalLink className="h-4 w-4" />پیش‌نمایش
+          <ExternalLink className="h-4 w-4" /><span className="hidden xs:inline">پیش‌نمایش</span>
         </Button>
         {tour.status !== 'published' ? (
           <Button size="sm" onClick={() => publishMutation.mutate()} disabled={publishMutation.isPending}>
@@ -484,9 +486,10 @@ export function TourEditorLayout({ tourId }: Props) {
             <Button size="sm" variant="outline"><ExternalLink className="h-4 w-4" />مشاهده عمومی</Button>
           </a>
         )}
-        <a href="/virtual-tour-guide.html" target="_blank" rel="noreferrer">
-          <Button variant="ghost" size="sm"><BookOpen className="h-4 w-4" /></Button>
+        <a href="/posheh-platform-guide.html" target="_blank" rel="noreferrer" title="راهنمای پلتفرم">
+          <Button variant="ghost" size="sm" className="shrink-0"><BookOpen className="h-4 w-4" /></Button>
         </a>
+        </div>
       </div>
 
       {(actionError || actionMessage) && (

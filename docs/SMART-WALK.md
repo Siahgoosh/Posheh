@@ -38,6 +38,17 @@ Dashboard → **تور جدید** → Step 1: choose Smart Walk or 360 Tour → 
 - Max dimension 12000px
 - Formats: JPEG, PNG, WebP input; optimized JPEG variants
 
+## Editor gestures
+
+| Action | Desktop | Touch |
+|--------|---------|-------|
+| Pan | drag | one-finger drag |
+| Zoom | mouse wheel / +/- buttons | pinch / double-tap |
+| Reset | ↺ button | ↺ button |
+| Place hotspot | «اتصال صحنه» then click | same |
+
+User guide (HTML): `/posheh-platform-guide.html`
+
 ## Frontend
 
 - `UnifiedTourViewer` — routes to immersive `SmartWalkViewer` or `TourViewer` by `tour_type`

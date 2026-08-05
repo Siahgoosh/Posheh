@@ -84,7 +84,7 @@ Posheh/
 
 - فایلینگ ملک، مالک، مشتری، CRM کانبان
 - تقویم بازدید شمسی + نوتیف درخواست وبسایت (پنل + تلگرام)
-- تور مجازی ۳۶۰ درجه (Photo Sphere Viewer)
+- **تور مجازی:** Smart Walk (عکس موبایل) + پانوراما ۳۶۰ (Photo Sphere Viewer)
 - وبسایت اختصاصی `name.posheapp.ir`
 - اشتراک، کیف پول، زیبال، کافه‌بازار
 - ربات تلگرام دفتر
@@ -123,7 +123,11 @@ cd frontend && npm install && npm run dev
 | [docs/CURSOR-HANDOFF-FA.md](docs/CURSOR-HANDOFF-FA.md) | انتقال پروژه، تاریخچه، env، PRها |
 | [docs/DEPLOY.md](docs/DEPLOY.md) | Deploy و رفع خطای نام شاخه |
 | [docs/VIRTUAL-TOUR.md](docs/VIRTUAL-TOUR.md) | تور مجازی |
+| [docs/SMART-WALK.md](docs/SMART-WALK.md) | Smart Walk (عکس موبایل) |
+| [docs/ENTERPRISE-VIRTUAL-TOUR.md](docs/ENTERPRISE-VIRTUAL-TOUR.md) | پلتفرم Enterprise تور |
 | [docs/VISIT-NOTIFICATIONS.md](docs/VISIT-NOTIFICATIONS.md) | نوتیف بازدید |
+| [frontend/public/posheh-platform-guide.html](frontend/public/posheh-platform-guide.html) | راهنمای HTML جامع UI |
+| [frontend/public/virtual-tour-guide.html](frontend/public/virtual-tour-guide.html) | راهنمای HTML تور ۳۶۰ |
 | [docs/api/README.md](docs/api/README.md) | API |
 | [mobile/README.md](mobile/README.md) | اپ Flutter |
 

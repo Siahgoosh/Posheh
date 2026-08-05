@@ -409,6 +409,9 @@ git push origin main
 | نوتیف بازدید وبسایت نیست | merge نشده بود | NotificationBell + VisitRequestNotifier | #52 |
 | PWA موبایل سایز بد | safe-area و padding | AppLayout + index.css | #54 |
 | deploy نام شاخه اشتباه | `/` به‌جای `-` در نام branch | `deploy.sh` + `docs/DEPLOY.md` | #53 |
+| Smart Walk زوم/پینچ | wheel passive + ref timing + overlay | native wheel + multi-pointer pinch | #54 |
+| badge نوتیف همیشه ۱ | announcements همیشه unread می‌شد | فقط unread DB در شمارنده | #54 |
+| انتشار تور fail | snapshot/log خطا می‌داد | publish resilient + UI errors | #54 |
 
 ---
 
