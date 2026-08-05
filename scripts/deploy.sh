@@ -9,6 +9,7 @@ BRANCH="${1:-main}"
 case "$BRANCH" in
   cursor/visit/notifications-e117) BRANCH="cursor/visit-notifications-e117" ;;
   cursor/virtual/tour/enterprise-e117) BRANCH="cursor/virtual-tour-enterprise-e117" ;;
+  cursor/smart/walk/module-e117) BRANCH="cursor/smart-walk-module-e117" ;;
 esac
 COMPOSE="docker compose"
 COMPOSE_MAIL="docker compose -f docker-compose.yml -f docker-compose.mail.yml"
@@ -160,6 +161,8 @@ $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --
   || fail "SystemSettingsSeeder failed"
 $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
   || log "BlogSeeder warning (may already be seeded)"
+$COMPOSE exec -T app php artisan db:seed --class=VirtualTourBlogSeeder --force --no-interaction 2>/dev/null \
+  || log "VirtualTourBlogSeeder skipped (run: ./scripts/seed-virtual-tour-blog.sh)"
 $COMPOSE exec -T app php artisan blog:seed --count=300 --force --no-interaction 2>/dev/null \
   || log "Run ./scripts/seed-blog.sh to seed 300 SEO articles"
 $COMPOSE exec -T app php artisan db:seed --class=VirtualTourSeeder --force --no-interaction 2>/dev/null \
@@ -302,6 +305,7 @@ Next steps:
   - OTP trace log:          docker compose exec app tail -30 storage/logs/otp-sms.log
   - Site URL:            http://YOUR_SERVER_IP/  (or :8000)
   - Admin settings:       /admin/settings
-  - If sms_mode=log only: login OTP code is 123456
-
-EOF
+  - Seed virtual tour articles: ./scripts/seed-virtual-tour-blog.sh
+  - Reset platform revenue:     ./scripts/reset-platform-revenue.sh
+  - Artisan (always via Docker): docker compose exec app php artisan ...
+  - Never run bare \`php artisan\` on the host — PHP is only inside the app container
