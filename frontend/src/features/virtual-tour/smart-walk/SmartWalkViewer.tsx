@@ -4,6 +4,7 @@ import type { TourData, TourHotspot } from '../types'
 import { useSmartWalkEngine } from './useSmartWalkEngine'
 import { clickToImagePercent } from './smartWalkHotspots'
 import { TourLoadingOverlay } from '../engine/TourLoadingOverlay'
+import { useTourAmbience } from '../engine/useTourAmbience'
 import { HotspotPopup } from '../hotspots/HotspotPopup'
 import { executeHotspotAction } from '../hotspots/hotspotActions'
 import { SmartWalkThemeProvider } from './theme/SmartWalkTheme'
@@ -11,6 +12,7 @@ import { SmartWalkMiniMap } from './components/SmartWalkMiniMap'
 import { SmartWalkTimeline } from './components/SmartWalkTimeline'
 import { SmartWalkSidebar } from './components/SmartWalkSidebar'
 import { SmartWalkHotspotLayer } from './components/SmartWalkHotspotLayer'
+import { SCENE_LINK_ARROW_CSS } from '../hotspots/sceneLinkArrow'
 import { Button } from '@/components/ui/button'
 import type { TransitionEffect } from './transitions/transitionEngine'
 import './smart-walk.css'
@@ -104,6 +106,8 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
   useImperativeHandle(ref, () => ({
     goToScene: (id: number) => engine.goToScene(id),
   }))
+
+  useTourAmbience(tour, engine.activeScene, editorMode)
 
   const handleHotspotClick = (hotspot: TourHotspot) => {
     if (editorMode) {
@@ -355,6 +359,7 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
             </div>
           </div>
         )}
+        <style>{SCENE_LINK_ARROW_CSS}</style>
       </div>
     </SmartWalkThemeProvider>
   )

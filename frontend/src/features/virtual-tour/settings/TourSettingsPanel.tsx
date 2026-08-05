@@ -1,6 +1,7 @@
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import type { TourData, TourSettings } from '../types'
+import { TourMusicPicker } from './TourMusicPicker'
 
 interface Props {
   tour: TourData
@@ -67,6 +68,14 @@ export function TourSettingsPanel({ tour, onUpdateSettings, onSave, isSaving }: 
         <label className="text-xs text-muted">رنگ برند</label>
         <input type="color" value={s.brand_color || '#2dd4bf'} onChange={(e) => update({ brand_color: e.target.value })} className="w-full h-9 rounded cursor-pointer mt-1" />
       </div>
+
+      <TourMusicPicker
+        label="موسیقی پس‌زمینه تور"
+        value={s.music_url || ''}
+        onChange={(url) => update({ music_url: url })}
+        allowVoice
+        placeholder="URL سفارشی موسیقی یا ویس راهنما"
+      />
 
       <div>
         <label className="text-xs text-muted">فاصله تور خودکار (ثانیه)</label>

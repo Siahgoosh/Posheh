@@ -17,7 +17,7 @@ export function createSmartWalkSceneLinkHotspot(x: number, y: number): TourHotsp
     style: {
       ...DEFAULT_HOTSPOT_STYLE,
       color: '#2dd4bf',
-      size: 36,
+      size: 48,
       pulse: true,
       glow: true,
       hoverAnimation: 'scale',

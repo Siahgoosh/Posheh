@@ -90,7 +90,7 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
     enableVr: tour.settings?.enable_vr !== false,
     autoRotate: tour.settings?.auto_rotate ?? false,
     autoRotateSpeed: tour.settings?.auto_rotate_speed ?? 0.5,
-    sceneHotspots: sceneHotspots ?? [],
+    sceneHotspots,
     editorMode,
     isPlacingHotspot,
     onPlaceHotspot,

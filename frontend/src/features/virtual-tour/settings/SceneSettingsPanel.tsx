@@ -1,6 +1,7 @@
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import type { TourScene } from '../types'
+import { TourMusicPicker } from './TourMusicPicker'
 
 interface Props {
   scene: TourScene | null
@@ -50,8 +51,20 @@ export function SceneSettingsPanel({ scene, onUpdate, onSave, isSaving }: Props)
         </select>
       </div>
 
-      <Input placeholder="URL موسیقی پس‌زمینه" value={scene.background_music || ''} onChange={(e) => onUpdate({ background_music: e.target.value })} />
-      <Input placeholder="URL صدای محیطی" value={scene.ambient_sound || ''} onChange={(e) => onUpdate({ ambient_sound: e.target.value })} />
+      <TourMusicPicker
+        label="موسیقی این صحنه"
+        value={scene.background_music || ''}
+        onChange={(url) => onUpdate({ background_music: url })}
+        placeholder="URL سفارشی — با موزیک تور ترکیب می‌شود"
+      />
+
+      <TourMusicPicker
+        label="صدای محیطی صحنه"
+        value={scene.ambient_sound || ''}
+        onChange={(url) => onUpdate({ ambient_sound: url })}
+        allowVoice
+        placeholder="URL صدای محیط یا ویس توضیحی"
+      />
 
       <div className="grid grid-cols-2 gap-3">
         <div>

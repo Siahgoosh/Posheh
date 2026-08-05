@@ -15,11 +15,12 @@ export function syncHotspotMarkers(
   hotspots.forEach((hotspot) => {
     if (!editorMode && hotspot.action?.hidden) return
     const id = `hotspot-${hotspot.id}`
+    const isSceneLink = hotspot.type === 'scene'
     markersPlugin.addMarker({
       id,
       position: { yaw: `${hotspot.yaw}deg`, pitch: `${hotspot.pitch}deg` },
       html: buildHotspotMarkerHtml(hotspot, brandColor),
-      anchor: 'center bottom',
+      anchor: isSceneLink ? 'center center' : 'center bottom',
       tooltip: hotspot.tooltip || hotspot.label || hotspot.title || undefined,
       data: hotspot,
       visible: true,

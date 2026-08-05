@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type RefObject } from 'react'
 import type { TourHotspot } from '../../types'
 import { getHotspotTypeDef } from '../../hotspots/constants'
+import { SceneLinkArrow } from '../../hotspots/SceneLinkArrow'
 
 const SNAP_GRID = 5
 
@@ -41,7 +42,8 @@ export function SmartWalkHotspotLayer({
   const [guideLines, setGuideLines] = useState<{ x?: number; y?: number }>({})
   const [hoverId, setHoverId] = useState<number | string | null>(null)
 
-  const sorted = [...hotspots].sort(
+  const visibleHotspots = editorMode ? hotspots : hotspots.filter((h) => !h.action?.hidden)
+  const sorted = [...visibleHotspots].sort(
     (a, b) => (a.style?.zIndex ?? a.sort_order ?? 0) - (b.style?.zIndex ?? b.sort_order ?? 0),
   )
 
@@ -52,7 +54,7 @@ export function SmartWalkHotspotLayer({
 
   const checkGuides = useCallback((x: number, y: number, excludeId: number | string) => {
     if (!showGuides) return { x, y, guides: {} }
-    const others = hotspots.filter((h) => h.id !== excludeId)
+    const others = visibleHotspots.filter((h) => h.id !== excludeId)
     let gx: number | undefined
     let gy: number | undefined
     let sx = x
@@ -70,7 +72,7 @@ export function SmartWalkHotspotLayer({
       }
     }
     return { x: snap(sx), y: snap(sy), guides: { x: gx, y: gy } }
-  }, [hotspots, showGuides])
+  }, [visibleHotspots, showGuides])
 
   const endDrag = useCallback(() => {
     dragRef.current = null
@@ -136,29 +138,20 @@ export function SmartWalkHotspotLayer({
             transform: 'translate(-50%, -50%)',
           }}
         >
-          <div
-            className="rounded-full border-2 border-dashed border-white/90 flex items-center justify-center animate-pulse"
-            style={{
-              width: 36,
-              height: 36,
-              background: `${brandColor}55`,
-              boxShadow: `0 0 12px ${brandColor}`,
-            }}
-          >
-            <span className="text-sm text-white">+</span>
-          </div>
+          <SceneLinkArrow color={brandColor} size={44} pulse glow icon="arrow" />
         </div>
       )}
 
       {sorted.map((h) => {
         const px = h.position_x ?? 50
         const py = h.position_y ?? 50
-        const size = h.style?.size ?? 36
+        const size = h.style?.size ?? (h.type === 'scene' ? 48 : 36)
         const rotation = h.style?.rotation ?? 0
         const color = h.style?.color || brandColor
         const def = getHotspotTypeDef(h.type)
         const selected = selectedId === h.id
         const hovered = hoverId === h.id
+        const isSceneLink = h.type === 'scene'
 
         return (
           <div
@@ -167,36 +160,59 @@ export function SmartWalkHotspotLayer({
             style={{
               left: `${px}%`,
               top: `${py}%`,
-              transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+              transform: 'translate(-50%, -50%)',
               zIndex: h.style?.zIndex ?? h.sort_order ?? 10,
             }}
             onMouseEnter={() => setHoverId(h.id)}
             onMouseLeave={() => setHoverId((id) => (id === h.id ? null : id))}
           >
-            <button
-              type="button"
-              className={`relative rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
-                h.style?.pulse ? 'animate-pulse' : ''
-              } ${editorMode && !h.style?.locked ? 'cursor-move hover:ring-2 hover:ring-white/80 hover:scale-110' : 'cursor-pointer hover:scale-110'} ${
-                selected ? 'ring-2 ring-white scale-110 shadow-lg' : hovered ? 'scale-110 shadow-md' : ''
-              }`}
-              style={{
-                width: size,
-                height: size,
-                borderColor: color,
-                background: `${color}40`,
-                boxShadow: h.style?.glow ? `0 0 14px ${color}` : undefined,
-                opacity: h.style?.opacity ?? 1,
-              }}
-              title={h.tooltip || h.label || h.title || ''}
-              onClick={(e) => {
-                e.stopPropagation()
-                onHotspotClick(h)
-              }}
-              onPointerDown={(e) => onPointerDown(e, h)}
-            >
-              <span className="text-sm">{h.type === 'scene' ? '➡' : def.emoji}</span>
-            </button>
+            {isSceneLink ? (
+              <SceneLinkArrow
+                color={color}
+                size={Math.max(size, 44)}
+                label={h.label || h.title || h.target_scene?.name}
+                tooltip={h.tooltip || h.label || h.title}
+                rotation={rotation}
+                pulse={h.style?.pulse}
+                glow={h.style?.glow}
+                icon={h.icon || (h.style?.icon as string) || 'arrow'}
+                selected={selected}
+                hovered={hovered}
+                editorMode={editorMode}
+                locked={h.style?.locked}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onHotspotClick(h)
+                }}
+                onPointerDown={(e) => onPointerDown(e, h)}
+              />
+            ) : (
+              <button
+                type="button"
+                className={`relative rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
+                  h.style?.pulse ? 'animate-pulse' : ''
+                } ${editorMode && !h.style?.locked ? 'cursor-move hover:ring-2 hover:ring-white/80 hover:scale-110' : 'cursor-pointer hover:scale-110'} ${
+                  selected ? 'ring-2 ring-white scale-110 shadow-lg' : hovered ? 'scale-110 shadow-md' : ''
+                }`}
+                style={{
+                  width: size,
+                  height: size,
+                  borderColor: color,
+                  background: `${color}40`,
+                  boxShadow: h.style?.glow ? `0 0 14px ${color}` : undefined,
+                  opacity: h.style?.opacity ?? 1,
+                  transform: `rotate(${rotation}deg)`,
+                }}
+                title={h.tooltip || h.label || h.title || ''}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onHotspotClick(h)
+                }}
+                onPointerDown={(e) => onPointerDown(e, h)}
+              >
+                <span className="text-sm">{def.emoji}</span>
+              </button>
+            )}
 
             {editorMode && selected && !h.style?.locked && onHotspotResize && (
               <button

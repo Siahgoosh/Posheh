@@ -112,7 +112,7 @@ export function createSceneLinkHotspot(yaw: number, pitch: number): TourHotspot 
     style: {
       ...DEFAULT_HOTSPOT_STYLE,
       color: '#2dd4bf',
-      size: 40,
+      size: 48,
       pulse: true,
       glow: true,
       hoverAnimation: 'scale',

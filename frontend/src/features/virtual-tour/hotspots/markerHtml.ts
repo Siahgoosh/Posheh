@@ -1,13 +1,28 @@
 import type { TourHotspot } from '../types'
-import { DEFAULT_HOTSPOT_STYLE, getHotspotTypeDef, getSceneLinkIcon } from './constants'
+import { DEFAULT_HOTSPOT_STYLE, getHotspotTypeDef } from './constants'
+import { buildSceneLinkArrowHtml, SCENE_LINK_ARROW_CSS } from './sceneLinkArrow'
 
 export function buildHotspotMarkerHtml(hotspot: TourHotspot, brandColor = '#2dd4bf'): string {
   const style = { ...DEFAULT_HOTSPOT_STYLE, ...hotspot.style }
   const typeDef = getHotspotTypeDef(hotspot.type)
   const color = style.color || brandColor
   const size = style.size || 36
+
+  if (hotspot.type === 'scene') {
+    return buildSceneLinkArrowHtml({
+      color,
+      size: Math.max(size, 44),
+      label: hotspot.label || hotspot.title || hotspot.target_scene?.name,
+      tooltip: hotspot.tooltip || hotspot.label || hotspot.title,
+      rotation: style.rotation ?? 0,
+      pulse: style.pulse,
+      glow: style.glow,
+      icon: hotspot.icon || (style.icon as string) || 'arrow',
+    })
+  }
+
   const label = hotspot.label || hotspot.title || typeDef.label
-  const emoji = hotspot.type === 'scene' ? getSceneLinkIcon(hotspot.icon || hotspot.style?.icon as string) : typeDef.emoji
+  const emoji = typeDef.emoji
   const pulseClass = style.pulse ? 'vt-marker-pulse' : ''
   const glowStyle = style.glow ? `box-shadow: 0 0 20px ${color}88, 0 4px 12px rgba(0,0,0,0.4);` : 'box-shadow: 0 4px 12px rgba(0,0,0,0.4);'
   const border = style.border || '2px solid white'
@@ -30,6 +45,7 @@ export function buildHotspotMarkerHtml(hotspot: TourHotspot, brandColor = '#2dd4
 }
 
 export const HOTSPOT_MARKER_CSS = `
+  ${SCENE_LINK_ARROW_CSS}
   .vt-hotspot-marker.vt-marker-pulse { animation: vt-pulse 2s ease-in-out infinite; }
   .vt-hotspot-marker.vt-marker-scale:hover { transform: scale(1.15); }
   .vt-hotspot-marker.vt-marker-bounce:hover { animation: vt-bounce 0.5s ease; }

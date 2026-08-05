@@ -41,7 +41,7 @@ export interface UseTourEngineOptions {
   enableVr?: boolean
   autoRotate?: boolean
   autoRotateSpeed?: number
-  /** Hotspots for the active scene (editor or viewer) */
+  /** Hotspots for the active scene; omit to use hotspots from the active scene payload */
   sceneHotspots?: TourHotspot[]
   editorMode?: boolean
   isPlacingHotspot?: boolean
@@ -67,7 +67,7 @@ export function useTourEngine({
   enableVr = true,
   autoRotate = false,
   autoRotateSpeed = 0.5,
-  sceneHotspots = [],
+  sceneHotspots,
   editorMode = false,
   isPlacingHotspot = false,
   onPlaceHotspot,
@@ -100,6 +100,8 @@ export function useTourEngine({
 
   const visibleScenes = tour.scenes.filter((s) => s.is_visible !== false)
   const brandColor = tour.settings?.brand_color || '#2dd4bf'
+  const activeSceneFromTour = visibleScenes.find((s) => s.id === activeSceneId) ?? visibleScenes[0] ?? null
+  const resolvedHotspots = sceneHotspots ?? activeSceneFromTour?.hotspots ?? []
 
   const buildNodes = useCallback((scenes: TourScene[]) => {
     return scenes.map((scene) => ({
@@ -117,13 +119,7 @@ export function useTourEngine({
             croppedY: 0,
           }
         : undefined,
-      links: scene.hotspots
-        ?.filter((h) => h.type === 'scene' && h.target_scene_id && !editorMode)
-        .map((h) => ({
-          nodeId: String(h.target_scene_id),
-          position: { yaw: `${h.yaw}deg`, pitch: `${h.pitch}deg` },
-          name: h.title || 'ادامه',
-        })) ?? [],
+      links: [],
     }))
   }, [editorMode])
 
@@ -326,8 +322,8 @@ export function useTourEngine({
   // Sync markers when hotspots change
   useEffect(() => {
     if (!markersRef.current || isLoading) return
-    syncHotspotMarkers(markersRef.current, sceneHotspots, brandColor, editorMode)
-  }, [sceneHotspots, brandColor, editorMode, isLoading, activeSceneId])
+    syncHotspotMarkers(markersRef.current, resolvedHotspots, brandColor, editorMode)
+  }, [resolvedHotspots, brandColor, editorMode, isLoading, activeSceneId])
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
