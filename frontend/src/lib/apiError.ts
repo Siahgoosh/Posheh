@@ -17,7 +17,11 @@ export function extractApiError(err: unknown, fallback = 'خطای سرور'): s
 
   if (data?.errors) {
     const first = Object.values(data.errors).flat()[0]
-    if (first) return first
+    if (first) {
+      if (first.includes('image field is required')) return 'فایل تصویر ارسال نشد. دوباره تلاش کنید.'
+      if (first.includes('panorama field is required')) return 'فایل پانوراما ارسال نشد. دوباره تلاش کنید.'
+      return first
+    }
   }
 
   if (data?.message && data.message !== 'Server Error') {

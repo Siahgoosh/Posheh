@@ -70,7 +70,7 @@ export function TourDashboard() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 w-full space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -89,7 +89,7 @@ export function TourDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
         {statCards.map(({ label, value, icon: Icon }) => (
           <Card key={label} className="p-4 glass-hover">
             <div className="flex items-center gap-2 text-muted mb-1">
@@ -127,23 +127,25 @@ export function TourDashboard() {
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {tours.map((t) => (
-            <Card key={t.id} className="p-5 glass-hover group relative overflow-hidden">
+            <Card key={t.id} className="p-5 glass-hover group relative overflow-hidden min-w-0">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-              <div className="flex justify-between items-start mb-3 relative">
+              <div className="flex items-start justify-between gap-2 mb-3 relative min-w-0">
                 <div className="min-w-0 flex-1">
                   <h2 className="font-semibold truncate">{t.title}</h2>
-                  <p className="text-[10px] text-muted font-mono mt-0.5">v{t.version ?? 1} · /tour/{t.slug}</p>
+                  <p className="text-[10px] text-muted font-mono mt-0.5 truncate">v{t.version ?? 1} · /tour/{t.slug}</p>
                 </div>
-                <Badge variant={t.status === 'published' ? 'default' : 'outline'}>
-                  {STATUS_LABELS[t.status] || t.status}
-                </Badge>
-                {t.tour_type === 'smart_walk' && (
-                  <Badge variant="outline" className="text-[9px] gap-1">
-                    <Footprints className="h-3 w-3" />Smart Walk
+                <div className="flex flex-wrap gap-1 shrink-0 justify-end max-w-[45%]">
+                  <Badge variant={t.status === 'published' ? 'default' : 'outline'}>
+                    {STATUS_LABELS[t.status] || t.status}
                   </Badge>
-                )}
+                  {t.tour_type === 'smart_walk' && (
+                    <Badge variant="outline" className="text-[9px] gap-1">
+                      <Footprints className="h-3 w-3" />Smart Walk
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               {t.scenes?.[0]?.thumbnail_url && (

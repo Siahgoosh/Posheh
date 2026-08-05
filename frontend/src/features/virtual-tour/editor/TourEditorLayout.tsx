@@ -440,7 +440,7 @@ export function TourEditorLayout({ tourId }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] -mx-4 -my-2">
+    <div className="flex flex-col min-h-[calc(100dvh-7rem)] lg:min-h-[calc(100dvh-5rem)] w-full min-w-0 overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3 border-b border-card-border/50 bg-black/20 backdrop-blur-md">
         <Link to="/virtual-tours">
           <Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button>
@@ -468,8 +468,8 @@ export function TourEditorLayout({ tourId }: Props) {
         </a>
       </div>
 
-      <div className="flex flex-1 min-h-0">
-        <aside className="w-80 lg:w-96 shrink-0 border-l border-card-border/50 bg-black/30 backdrop-blur-xl overflow-hidden flex flex-col">
+      <div className="flex flex-1 min-h-0 min-w-0 flex-col lg:flex-row">
+        <aside className="w-full max-w-[min(100%,24rem)] lg:w-80 xl:w-96 shrink-0 border-l border-card-border/50 bg-black/30 backdrop-blur-xl overflow-hidden flex flex-col min-h-0">
           <EditorTabs activeTab={activeTab} onTabChange={setActiveTab} />
           <div className="flex-1 overflow-hidden">{renderSidebar()}</div>
         </aside>

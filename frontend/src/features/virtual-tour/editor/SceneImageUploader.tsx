@@ -17,8 +17,12 @@ const MAX_DIM = 12000
 
 async function validateSceneImage(file: File): Promise<{ valid: boolean; errors: string[] }> {
   const errors: string[] = []
-  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/avif']
-  if (!allowed.includes(file.type)) {
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  const allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'avif']
+  const allowedMime = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/jpg']
+  const mimeOk = !file.type || allowedMime.includes(file.type)
+  const extOk = allowedExt.includes(ext)
+  if (!mimeOk && !extOk) {
     errors.push('فرمت باید JPEG، PNG، WebP یا AVIF باشد.')
   }
   if (file.size > MAX_MB * 1024 * 1024) {
