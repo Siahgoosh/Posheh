@@ -16,6 +16,7 @@ import { SeoHead } from '@/components/seo/SeoHead'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { getOrganizationJsonLd, getSoftwareJsonLd, getWebSiteJsonLd } from '@/lib/seo'
 import { PLAN_FEATURE_LABELS, trialBadgeForPlan } from '@/constants/plans'
+import { KEYWORD_LANDINGS, landingPath } from '@/content/keywordLandings'
 
 const stats = [
   { value: '+۸۰', label: 'دفتر فعال' },
@@ -352,6 +353,28 @@ export function LandingPage() {
             </Card>
           ))}
         </div>
+      </section>
+
+      {/* راهکارها — لندینگ کلمات کلیدی */}
+      <section className="container mx-auto max-w-6xl px-4 py-16 border-t border-card-border/40">
+        <h2 className="text-2xl font-bold text-center mb-2">دنبال چی می‌گردی؟</h2>
+        <p className="text-center text-muted text-sm mb-8">هر موضوع یک صفحه خودمونی — با CTA ثبت‌نام</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {KEYWORD_LANDINGS.slice(0, 12).map((l) => (
+            <Link
+              key={l.slug}
+              to={landingPath(l.slug)}
+              className="p-3 rounded-xl border border-card-border/60 glass-hover text-sm font-medium hover:border-primary/40 transition-colors"
+            >
+              {l.keyword}
+            </Link>
+          ))}
+        </div>
+        <p className="text-center mt-6 text-sm text-muted">
+          <Link to="/blog/category/virtual-tour" className="text-primary hover:underline">مقالات تور مجازی</Link>
+          {' · '}
+          <Link to="/blog" className="text-primary hover:underline">همه مقالات</Link>
+        </p>
       </section>
 
       {/* FAQ */}

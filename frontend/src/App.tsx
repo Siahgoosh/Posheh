@@ -57,6 +57,7 @@ import { VirtualTourEmbedPage } from '@/pages/VirtualTourEmbedPage'
 import { VirtualToursPage } from '@/pages/VirtualToursPage'
 import { VirtualTourEditorPage } from '@/pages/VirtualTourEditorPage'
 import { VirtualTourPreviewPage } from '@/pages/VirtualTourPreviewPage'
+import { KeywordLandingPage } from '@/pages/KeywordLandingPage'
 import { getOfficeSubdomain } from '@/lib/subdomain'
 
 const queryClient = new QueryClient({
@@ -93,6 +94,7 @@ export default function App() {
         <AnalyticsTracker />
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/r/:slug" element={<KeywordLandingPage />} />
           <Route path="/blog" element={<BlogListPage />} />
           <Route path="/blog/category/:category" element={<BlogCategoryPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />

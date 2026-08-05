@@ -113,6 +113,10 @@ class BlogController extends Controller
             ['path' => '/blog/category/virtual-tour', 'priority' => 0.85],
         ];
 
+        foreach (config('keyword_landings', []) as $landingSlug) {
+            $static[] = ['path' => '/r/'.$landingSlug, 'priority' => 0.88];
+        }
+
         $categories = [];
         foreach (self::CATEGORIES as $slug => $label) {
             $count = (int) ($categoryCounts[$slug]->total ?? 0);
