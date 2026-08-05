@@ -10,6 +10,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\Wallet;
 use App\Services\Payment\CafeBazaarService;
 use App\Services\Payment\ZibalService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -168,28 +169,32 @@ class SubscriptionService
 
     private function payWithWallet(Office $office, SubscriptionPlan $plan, Payment $payment): array
     {
-        $wallet = $office->wallet ?? Wallet::create(['office_id' => $office->id, 'balance' => 0]);
+        return DB::transaction(function () use ($office, $plan, $payment) {
+            $wallet = Wallet::where('office_id', $office->id)->lockForUpdate()->first()
+                ?? Wallet::create(['office_id' => $office->id, 'balance' => 0]);
 
-        if ($wallet->balance < $plan->monthly_price) {
-            throw ValidationException::withMessages([
-                'wallet' => ['موجودی کیف پول کافی نیست.'],
+            if ($wallet->balance < $plan->monthly_price) {
+                throw ValidationException::withMessages([
+                    'wallet' => ['موجودی کیف پول کافی نیست.'],
+                ]);
+            }
+
+            $wallet->decrement('balance', $plan->monthly_price);
+            $wallet->refresh();
+            $wallet->transactions()->create([
+                'type' => 'debit',
+                'amount' => $plan->monthly_price,
+                'balance_after' => $wallet->balance,
+                'description' => "خرید اشتراک {$plan->name}",
+                'reference_type' => Payment::class,
+                'reference_id' => $payment->id,
             ]);
-        }
 
-        $wallet->decrement('balance', $plan->monthly_price);
-        $wallet->transactions()->create([
-            'type' => 'debit',
-            'amount' => $plan->monthly_price,
-            'balance_after' => $wallet->balance,
-            'description' => "خرید اشتراک {$plan->name}",
-            'reference_type' => Payment::class,
-            'reference_id' => $payment->id,
-        ]);
+            $payment->update(['status' => 'paid', 'paid_at' => now(), 'authority' => 'wallet-'.$payment->id]);
+            $this->activateSubscription($payment);
 
-        $payment->update(['status' => 'paid', 'paid_at' => now(), 'authority' => 'wallet-'.$payment->id]);
-        $this->activateSubscription($payment);
-
-        return ['message' => 'اشتراک با موفقیت فعال شد.', 'payment' => $payment];
+            return ['message' => 'اشتراک با موفقیت فعال شد.', 'payment' => $payment];
+        });
     }
 
     private function initiateZibal(Payment $payment, SubscriptionPlan $plan): array

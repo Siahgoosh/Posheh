@@ -70,11 +70,11 @@ export function TourSettingsPanel({ tour, onUpdateSettings, onSave, isSaving }: 
       </div>
 
       <TourMusicPicker
-        label="موسیقی پس‌زمینه تور"
+        label="موسیقی پس‌زمینه کل تور"
         value={s.music_url || ''}
         onChange={(url) => update({ music_url: url })}
         allowVoice
-        placeholder="URL سفارشی موسیقی یا ویس راهنما"
+        placeholder="موزیک در تمام صحنه‌ها بدون قطع شدن پخش می‌شود"
       />
 
       <div>

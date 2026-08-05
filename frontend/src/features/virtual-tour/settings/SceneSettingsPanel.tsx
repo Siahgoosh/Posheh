@@ -52,14 +52,14 @@ export function SceneSettingsPanel({ scene, onUpdate, onSave, isSaving }: Props)
       </div>
 
       <TourMusicPicker
-        label="موسیقی این صحنه"
+        label="موسیقی این صحنه (اختیاری)"
         value={scene.background_music || ''}
         onChange={(url) => onUpdate({ background_music: url })}
-        placeholder="URL سفارشی — با موزیک تور ترکیب می‌شود"
+        placeholder="اختیاری — موزیک اصلی از تنظیمات تور پخش می‌شود"
       />
 
       <TourMusicPicker
-        label="صدای محیطی صحنه"
+        label="صدای محیطی صحنه (اختیاری)"
         value={scene.ambient_sound || ''}
         onChange={(url) => onUpdate({ ambient_sound: url })}
         allowVoice

@@ -10,7 +10,8 @@ import { HotspotPopup } from '../hotspots/HotspotPopup'
 import { executeHotspotAction } from '../hotspots/hotspotActions'
 import { TourFeaturesOverlay } from '../features/TourFeaturesOverlay'
 import { HOTSPOT_MARKER_CSS } from '../hotspots/markerHtml'
-import { useTourAmbience, useGuidedTour } from './useTourAmbience'
+import { useGuidedTour } from './useTourAmbience'
+import { TourBackgroundMusic } from './TourBackgroundMusic'
 
 export interface TourViewerHandle {
   goToScene: (sceneId: number, options?: SceneTransitionOptions) => void
@@ -123,7 +124,6 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
   goToSceneRef.current = controls.goToScene
   activeSceneIdRef.current = activeSceneId
 
-  useTourAmbience(tour, activeScene, editorMode)
   const guidedTour = useGuidedTour(
     tour,
     (sceneId, opts) => controls.goToScene(sceneId, { yaw: opts?.yaw, pitch: opts?.pitch, effect: 'fade' }),
@@ -165,6 +165,8 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
   return (
     <div className={`relative w-full h-full min-h-[50vh] bg-black overflow-hidden ${className}`}>
       <div ref={containerRef} className="absolute inset-0" />
+
+      <TourBackgroundMusic musicUrl={tour.settings?.music_url} editorMode={editorMode} />
 
       {isPlacingHotspot && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 px-4 py-2 rounded-full bg-primary/90 text-primary-foreground text-sm font-medium pointer-events-none animate-pulse">

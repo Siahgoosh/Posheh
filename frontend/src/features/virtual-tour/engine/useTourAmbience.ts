@@ -1,55 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import type { TourData, TourScene } from '../types'
+import type { TourData } from '../types'
 
-export function useTourAmbience(
-  tour: TourData,
-  activeScene: TourScene | null | undefined,
-  editorMode = false,
-) {
-  const tourAudioRef = useRef<HTMLAudioElement | null>(null)
-  const sceneAudioRef = useRef<HTMLAudioElement | null>(null)
-
-  useEffect(() => {
-    if (editorMode) return
-    const url = tour.settings?.music_url
-    if (!url) return
-
-    const audio = new Audio(url)
-    audio.loop = true
-    audio.volume = 0.25
-    tourAudioRef.current = audio
-    audio.play().catch(() => {})
-
-    return () => {
-      audio.pause()
-      audio.src = ''
-      tourAudioRef.current = null
-    }
-  }, [tour.settings?.music_url, editorMode])
-
-  useEffect(() => {
-    if (editorMode) return
-    if (sceneAudioRef.current) {
-      sceneAudioRef.current.pause()
-      sceneAudioRef.current = null
-    }
-    const url = activeScene?.background_music || activeScene?.ambient_sound
-    if (!url) return
-
-    const audio = new Audio(url)
-    audio.loop = true
-    audio.volume = 0.35
-    sceneAudioRef.current = audio
-    audio.play().catch(() => {})
-
-    return () => {
-      audio.pause()
-      audio.src = ''
-      sceneAudioRef.current = null
-    }
-  }, [activeScene?.id, activeScene?.background_music, activeScene?.ambient_sound, editorMode])
-}
-
+/** Guided tour autoplay — unchanged */
 export function useGuidedTour(
   tour: TourData,
   goToScene: (sceneId: number, options?: { yaw?: number; pitch?: number }) => void,

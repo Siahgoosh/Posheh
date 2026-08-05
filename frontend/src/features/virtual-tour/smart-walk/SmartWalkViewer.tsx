@@ -4,7 +4,7 @@ import type { TourData, TourHotspot } from '../types'
 import { useSmartWalkEngine } from './useSmartWalkEngine'
 import { clickToImagePercent } from './smartWalkHotspots'
 import { TourLoadingOverlay } from '../engine/TourLoadingOverlay'
-import { useTourAmbience } from '../engine/useTourAmbience'
+import { TourBackgroundMusic } from '../engine/TourBackgroundMusic'
 import { HotspotPopup } from '../hotspots/HotspotPopup'
 import { executeHotspotAction } from '../hotspots/hotspotActions'
 import { SmartWalkThemeProvider } from './theme/SmartWalkTheme'
@@ -107,8 +107,6 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
     goToScene: (id: number) => engine.goToScene(id),
   }))
 
-  useTourAmbience(tour, engine.activeScene, editorMode)
-
   const handleHotspotClick = (hotspot: TourHotspot) => {
     if (editorMode) {
       onHotspotSelect?.(hotspot)
@@ -180,6 +178,7 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
   return (
     <SmartWalkThemeProvider initialMode={themeMode}>
       <div className={`smart-walk-root relative overflow-hidden h-full min-h-[320px] ${className}`}>
+        <TourBackgroundMusic musicUrl={tour.settings?.music_url} editorMode={editorMode} />
         {/* Viewport */}
         <div
           ref={engine.setContainerRef}

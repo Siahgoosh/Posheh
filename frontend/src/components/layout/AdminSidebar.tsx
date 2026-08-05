@@ -157,7 +157,7 @@ export function AdminSidebar() {
           <Button variant="ghost" size="sm" className="flex-1" onClick={toggleTheme}>
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
-          <Button variant="ghost" size="sm" className="flex-1 text-danger" onClick={() => logout()}>
+          <Button variant="ghost" size="sm" className="flex-1 text-danger" onClick={() => logout().then(() => { window.location.href = '/login' })}>
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
