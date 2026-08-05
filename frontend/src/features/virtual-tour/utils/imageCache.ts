@@ -57,11 +57,13 @@ export function pickSceneImageUrlForZoom(
   panoramaUrl: string,
   variants?: SceneImageVariants | null,
   scale = 1,
+  fitScale = 1,
 ): string {
+  const relative = fitScale > 0 ? scale / fitScale : scale
   if (!variants) return resolvePanoramaUrl(panoramaUrl)
-  if (scale >= 4 && variants.original) return resolvePanoramaUrl(variants.original)
-  if (scale >= 2.5 && variants.ultra) return resolvePanoramaUrl(variants.ultra)
-  if (scale >= 1.5 && variants.large) return resolvePanoramaUrl(variants.large)
+  if (relative >= 4 && variants.original) return resolvePanoramaUrl(variants.original)
+  if (relative >= 2.5 && variants.ultra) return resolvePanoramaUrl(variants.ultra)
+  if (relative >= 1.5 && variants.large) return resolvePanoramaUrl(variants.large)
   return pickSceneImageUrl(panoramaUrl, variants)
 }
 

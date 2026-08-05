@@ -5,13 +5,30 @@ export interface CameraState {
   scale: number
 }
 
-export const MIN_SCALE = 1
-export const MAX_SCALE = 8
+export const MAX_ZOOM_FACTOR = 8
 export const DEFAULT_FRICTION = 0.92
 export const MOMENTUM_THRESHOLD = 0.5
 
-export function clampScale(scale: number): number {
-  return Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale))
+/** Scale so the full image fits inside the viewport. */
+export function computeFitScale(
+  imageWidth: number,
+  imageHeight: number,
+  viewWidth: number,
+  viewHeight: number,
+): number {
+  if (imageWidth <= 0 || imageHeight <= 0 || viewWidth <= 0 || viewHeight <= 0) return 1
+  return Math.min(viewWidth / imageWidth, viewHeight / imageHeight)
+}
+
+export function clampScale(scale: number, fitScale = 1): number {
+  const min = fitScale
+  const max = fitScale * MAX_ZOOM_FACTOR
+  return Math.max(min, Math.min(max, scale))
+}
+
+export function zoomPercent(scale: number, fitScale: number): number {
+  if (fitScale <= 0) return 100
+  return Math.round((scale / fitScale) * 100)
 }
 
 /** Pan bounds with soft overflow for fluid infinite-feel drag at high zoom. */
@@ -43,8 +60,9 @@ export function zoomAtPoint(
   focalY: number,
   viewWidth: number,
   viewHeight: number,
+  fitScale = 1,
 ): CameraState {
-  const newScale = clampScale(camera.scale + deltaScale)
+  const newScale = clampScale(camera.scale + deltaScale, fitScale)
   if (newScale === camera.scale) return camera
 
   const ratio = newScale / camera.scale

@@ -4,11 +4,12 @@ import {
   clampPan,
   clampScale,
   cameraTransformCss,
+  computeFitScale,
   DEFAULT_FRICTION,
-  MAX_SCALE,
-  MIN_SCALE,
+  MAX_ZOOM_FACTOR,
   MOMENTUM_THRESHOLD,
   zoomAtPoint,
+  zoomPercent,
 } from './cameraMath'
 
 interface Options {
@@ -26,6 +27,7 @@ export function useSmartWalkCamera({
 }: Options) {
   const containerRef = useRef<HTMLDivElement>(null)
   const cameraRef = useRef<CameraState>({ x: 0, y: 0, scale: 1 })
+  const fitScaleRef = useRef(1)
   const velocityRef = useRef({ x: 0, y: 0 })
   const rafRef = useRef<number | null>(null)
   const dragRef = useRef<{
@@ -47,26 +49,36 @@ export function useSmartWalkCamera({
     focalY: number
   } | null>(null)
   const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null)
+  const dragMovedRef = useRef(false)
 
   const [camera, setCamera] = useState<CameraState>({ x: 0, y: 0, scale: 1 })
+  const [fitScale, setFitScale] = useState(1)
   const [isDragging, setIsDragging] = useState(false)
 
   const getViewSize = useCallback(() => {
     const el = containerRef.current
     if (!el) return { w: 1, h: 1 }
     const rect = el.getBoundingClientRect()
-    return { w: rect.width, h: rect.height }
+    return { w: Math.max(rect.width, 1), h: Math.max(rect.height, 1) }
   }, [])
+
+  const getFitScale = useCallback(() => {
+    const { w, h } = getViewSize()
+    return computeFitScale(imageWidth, imageHeight, w, h)
+  }, [getViewSize, imageWidth, imageHeight])
 
   const applyCamera = useCallback((next: CameraState, skipClamp = false) => {
     const { w, h } = getViewSize()
+    const fit = getFitScale()
+    fitScaleRef.current = fit
+    setFitScale(fit)
     const clamped = skipClamp
-      ? next
-      : clampPan(next, imageWidth, imageHeight, w, h)
+      ? { ...next, scale: clampScale(next.scale, fit) }
+      : clampPan({ ...next, scale: clampScale(next.scale, fit) }, imageWidth, imageHeight, w, h)
     cameraRef.current = clamped
     setCamera(clamped)
     onTransformChange?.(clamped)
-  }, [getViewSize, imageWidth, imageHeight, onTransformChange])
+  }, [getViewSize, getFitScale, imageWidth, imageHeight, onTransformChange])
 
   const setCameraDirect = useCallback((next: CameraState) => {
     cameraRef.current = next
@@ -101,23 +113,55 @@ export function useSmartWalkCamera({
   const zoom = useCallback((delta: number, focalX?: number, focalY?: number) => {
     stopMomentum()
     const { w, h } = getViewSize()
+    const fit = getFitScale()
     const fx = focalX ?? w / 2
     const fy = focalY ?? h / 2
-    const next = zoomAtPoint(cameraRef.current, delta, fx, fy, w, h)
+    const next = zoomAtPoint(cameraRef.current, delta, fx, fy, w, h, fit)
     applyCamera(next)
-  }, [applyCamera, getViewSize, stopMomentum])
+  }, [applyCamera, getFitScale, getViewSize, stopMomentum])
 
   const resetView = useCallback(() => {
     stopMomentum()
-    applyCamera({ x: 0, y: 0, scale: 1 })
-  }, [applyCamera, stopMomentum])
+    const fit = getFitScale()
+    applyCamera({ x: 0, y: 0, scale: fit })
+  }, [applyCamera, getFitScale, stopMomentum])
 
-  const zoomToScale = useCallback((scale: number) => {
+  const fitToView = useCallback(() => {
+    resetView()
+  }, [resetView])
+
+  const zoomToScale = useCallback((targetScale: number) => {
     stopMomentum()
     const { w, h } = getViewSize()
-    const next = zoomAtPoint(cameraRef.current, scale - cameraRef.current.scale, w / 2, h / 2, w, h)
-    applyCamera(next)
-  }, [applyCamera, getViewSize, stopMomentum])
+    const fit = getFitScale()
+    const next = zoomAtPoint(cameraRef.current, targetScale - cameraRef.current.scale, w / 2, h / 2, w, h)
+    applyCamera({ ...next, scale: clampScale(next.scale, fit) })
+  }, [applyCamera, getFitScale, getViewSize, stopMomentum])
+
+  // Fit image when dimensions change or container resizes
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const syncFit = (preserveRelativeZoom = false) => {
+      const fit = getFitScale()
+      const prevFit = fitScaleRef.current
+      fitScaleRef.current = fit
+      setFitScale(fit)
+      if (preserveRelativeZoom && prevFit > 0) {
+        const ratio = cameraRef.current.scale / prevFit
+        applyCamera({ ...cameraRef.current, scale: clampScale(fit * ratio, fit) })
+      } else {
+        applyCamera({ x: 0, y: 0, scale: fit })
+      }
+    }
+
+    syncFit(false)
+
+    const ro = new ResizeObserver(() => syncFit(true))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [imageWidth, imageHeight, getFitScale, applyCamera])
 
   // Pointer drag + pinch
   useEffect(() => {
@@ -133,6 +177,7 @@ export function useSmartWalkCamera({
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.pointerType === 'touch') return
+      dragMovedRef.current = false
       stopMomentum()
       dragRef.current = {
         active: true,
@@ -154,6 +199,7 @@ export function useSmartWalkCamera({
       const now = performance.now()
       const dx = e.clientX - dragRef.current.startX
       const dy = e.clientY - dragRef.current.startY
+      if (Math.hypot(dx, dy) > 5) dragMovedRef.current = true
       const dt = now - dragRef.current.lastTime
       if (dt > 0) {
         const vx = (e.clientX - dragRef.current.lastX) / dt * 16
@@ -194,6 +240,7 @@ export function useSmartWalkCamera({
         }
         dragRef.current = null
       } else if (e.touches.length === 1 && !pinchRef.current?.active) {
+        dragMovedRef.current = false
         stopMomentum()
         const t = e.touches[0]
         dragRef.current = {
@@ -230,6 +277,7 @@ export function useSmartWalkCamera({
         const t = e.touches[0]
         const dx = t.clientX - dragRef.current.startX
         const dy = t.clientY - dragRef.current.startY
+        if (Math.hypot(dx, dy) > 5) dragMovedRef.current = true
         applyCamera({
           x: dragRef.current.originX + dx,
           y: dragRef.current.originY + dy,
@@ -253,7 +301,8 @@ export function useSmartWalkCamera({
       const rect = el.getBoundingClientRect()
       const fx = e.clientX - rect.left
       const fy = e.clientY - rect.top
-      const target = cameraRef.current.scale < 2 ? 2.5 : 1
+      const fit = getFitScale()
+      const target = cameraRef.current.scale < fit * 1.5 ? fit * 2.5 : fit
       zoom(target - cameraRef.current.scale, fx, fy)
     }
 
@@ -267,7 +316,8 @@ export function useSmartWalkCamera({
         const rect = el.getBoundingClientRect()
         const fx = t.clientX - rect.left
         const fy = t.clientY - rect.top
-        const target = cameraRef.current.scale < 2 ? 2.5 : 1
+        const fit = getFitScale()
+        const target = cameraRef.current.scale < fit * 1.5 ? fit * 2.5 : fit
         zoom(target - cameraRef.current.scale, fx, fy)
         lastTapRef.current = null
       } else {
@@ -296,7 +346,7 @@ export function useSmartWalkCamera({
       el.removeEventListener('touchend', onTouchEndTap)
       el.removeEventListener('dblclick', onDblClick)
     }
-  }, [disabled, applyCamera, getViewSize, startMomentum, stopMomentum, zoom])
+  }, [disabled, applyCamera, getViewSize, getFitScale, startMomentum, stopMomentum, zoom])
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     if (disabled) return
@@ -305,7 +355,7 @@ export function useSmartWalkCamera({
     const rect = containerRef.current?.getBoundingClientRect()
     const fx = rect ? e.clientX - rect.left : 0
     const fy = rect ? e.clientY - rect.top : 0
-    const delta = e.deltaY > 0 ? -0.12 : 0.12
+    const delta = e.deltaY > 0 ? -0.12 * fitScaleRef.current : 0.12 * fitScaleRef.current
     zoom(delta, fx, fy)
   }, [disabled, zoom, stopMomentum])
 
@@ -318,11 +368,11 @@ export function useSmartWalkCamera({
       switch (e.key) {
         case '+':
         case '=':
-          zoom(0.25)
+          zoom(0.25 * fitScaleRef.current)
           break
         case '-':
         case '_':
-          zoom(-0.25)
+          zoom(-0.25 * fitScaleRef.current)
           break
         case '0':
           resetView()
@@ -349,16 +399,20 @@ export function useSmartWalkCamera({
     containerRef,
     camera,
     cameraRef,
+    fitScale,
+    fitScaleRef,
+    dragMovedRef,
     isDragging,
     applyCamera,
     setCameraDirect,
     zoom,
     resetView,
+    fitToView,
     zoomToScale,
     handleWheel,
     stopMomentum,
     transformCss: cameraTransformCss(camera),
-    minScale: MIN_SCALE,
-    maxScale: MAX_SCALE,
+    zoomPercent: zoomPercent(camera.scale, fitScale),
+    maxZoomFactor: MAX_ZOOM_FACTOR,
   }
 }

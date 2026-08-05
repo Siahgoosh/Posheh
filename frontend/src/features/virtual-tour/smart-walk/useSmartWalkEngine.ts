@@ -62,7 +62,7 @@ export function useSmartWalkEngine({
   const camera = useSmartWalkCamera({
     imageWidth,
     imageHeight,
-    disabled: cameraDisabled || isPlacingHotspot || isTransitioning,
+    disabled: cameraDisabled || isTransitioning,
   })
 
   const imageUrl = activeScene
@@ -70,6 +70,7 @@ export function useSmartWalkEngine({
         activeScene.panorama_url,
         activeScene.image_variants,
         camera.camera.scale,
+        camera.fitScale,
       )
     : ''
 
@@ -82,9 +83,10 @@ export function useSmartWalkEngine({
       activeScene.panorama_url,
       activeScene.image_variants,
       camera.camera.scale,
+      camera.fitScale,
     )
     if (hi !== imageUrl) getCachedImage(hi).catch(() => {})
-  }, [camera.camera.scale, activeScene, imageUrl, isTransitioning])
+  }, [camera.camera.scale, camera.fitScale, activeScene, imageUrl, isTransitioning])
 
   // Load scene image
   useEffect(() => {
@@ -105,6 +107,12 @@ export function useSmartWalkEngine({
         setIsLoading(false)
       })
   }, [imageUrl, activeSceneId])
+
+  // Fit view when scene changes
+  useEffect(() => {
+    if (!activeSceneId || isTransitioning) return
+    camera.fitToView()
+  }, [activeSceneId, imageWidth, imageHeight, isTransitioning, camera.fitToView])
 
   // Preload neighbors
   useEffect(() => {
@@ -173,6 +181,7 @@ export function useSmartWalkEngine({
             })
           },
           { duration },
+          camera.fitScaleRef.current,
         )
       } else {
         await animateSceneTransition(
@@ -218,6 +227,7 @@ export function useSmartWalkEngine({
           })
         },
         { duration: 550 },
+        camera.fitScaleRef.current,
       )
     } finally {
       setPendingSceneUrl(null)
@@ -238,6 +248,10 @@ export function useSmartWalkEngine({
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (!isPlacingHotspot || !camera.containerRef.current || !onPlaceHotspot) return
+    if (camera.dragMovedRef.current) {
+      camera.dragMovedRef.current = false
+      return
+    }
     const { x, y } = clickToImagePercent(
       e.clientX,
       e.clientY,

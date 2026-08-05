@@ -157,7 +157,13 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
         <div
           ref={engine.containerRef}
           className={`smart-walk-viewport absolute inset-0 overflow-hidden ${
-            isPlacingHotspot ? 'cursor-crosshair' : engine.isDragging ? 'cursor-grabbing' : 'cursor-grab'
+            isPlacingHotspot
+              ? 'cursor-crosshair'
+              : editorMode
+                ? 'cursor-grab active:cursor-grabbing'
+                : engine.isDragging
+                  ? 'cursor-grabbing'
+                  : 'cursor-grab'
           }`}
           style={{
             filter: tf.blurPx > 0 ? `blur(${tf.blurPx}px)` : undefined,
@@ -211,6 +217,12 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
             className="absolute inset-0 z-20 pointer-events-none bg-black"
             style={{ opacity: tf.overlayOpacity }}
           />
+        )}
+
+        {editorMode && isPlacingHotspot && (
+          <div className="absolute top-14 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 rounded-full bg-primary/90 text-white text-[11px] pointer-events-none max-w-[90%] text-center leading-relaxed">
+            بکشید برای جابجایی — کلیک برای ثبت نقطه — هات‌اسپات انتخاب‌شده را بکشید
+          </div>
         )}
 
         {(engine.isLoading || engine.loadError) && (
@@ -290,7 +302,7 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
 
         {/* Zoom indicator */}
         <div className="sw-panel absolute bottom-20 md:bottom-24 left-3 z-30 px-2 py-1 text-[10px] font-mono rounded">
-          {Math.round(engine.camera.scale * 100)}%
+          {engine.zoomPercent ?? Math.round(engine.camera.scale * 100)}%
         </div>
 
         {popupHotspot && (

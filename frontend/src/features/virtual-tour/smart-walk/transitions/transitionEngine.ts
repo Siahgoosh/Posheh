@@ -1,5 +1,5 @@
 import type { CameraState } from '../camera/cameraMath'
-import { clampPan, clampScale, easeInOutCubic, easeOutCubic, lerp } from '../camera/cameraMath'
+import { clampPan, clampScale, computeFitScale, easeInOutCubic, easeOutCubic, lerp } from '../camera/cameraMath'
 
 export type TransitionEffect =
   | 'fade'
@@ -64,9 +64,10 @@ export function animateWalkToHotspot(
   viewHeight: number,
   onFrame: (frame: TransitionFrame) => void,
   config?: Partial<TransitionConfig>,
+  fitScale = 1,
 ): Promise<void> {
   const duration = config?.duration ?? DEFAULT_DURATION
-  const walkZoom = clampScale(from.scale * 1.35)
+  const walkZoom = clampScale(from.scale * 1.35, fitScale)
 
   const approach: CameraState = clampPan(
     { x: panTarget.x, y: panTarget.y, scale: walkZoom },
@@ -128,10 +129,12 @@ export function animateSceneLanding(
   viewHeight: number,
   onFrame: (frame: TransitionFrame) => void,
   config?: Partial<TransitionConfig>,
+  fitScale?: number,
 ): Promise<void> {
   const duration = config?.duration ?? 600
+  const landScale = fitScale ?? computeFitScale(imageWidth, imageHeight, viewWidth, viewHeight)
   const land: CameraState = clampPan(
-    { x: 0, y: 0, scale: 1 },
+    { x: 0, y: 0, scale: landScale },
     imageWidth,
     imageHeight,
     viewWidth,

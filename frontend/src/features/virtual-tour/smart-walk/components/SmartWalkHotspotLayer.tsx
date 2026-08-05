@@ -36,6 +36,8 @@ export function SmartWalkHotspotLayer({
   } | null>(null)
   const [guideLines, setGuideLines] = useState<{ x?: number; y?: number }>({})
 
+  const [hoverId, setHoverId] = useState<number | string | null>(null)
+
   const sorted = [...hotspots].sort(
     (a, b) => (a.style?.zIndex ?? a.sort_order ?? 0) - (b.style?.zIndex ?? b.sort_order ?? 0),
   )
@@ -118,23 +120,28 @@ export function SmartWalkHotspotLayer({
         const color = h.style?.color || brandColor
         const def = getHotspotTypeDef(h.type)
         const selected = selectedId === h.id
+        const hovered = hoverId === h.id
 
         return (
           <div
             key={h.id}
-            className="absolute z-10"
+            className="absolute z-10 pointer-events-auto"
             style={{
               left: `${px}%`,
               top: `${py}%`,
               transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
               zIndex: h.style?.zIndex ?? h.sort_order ?? 10,
             }}
+            onMouseEnter={() => setHoverId(h.id)}
+            onMouseLeave={() => setHoverId((id) => (id === h.id ? null : id))}
           >
             <button
               type="button"
-              className={`relative rounded-full border-2 flex items-center justify-center transition-transform ${
+              className={`relative rounded-full border-2 flex items-center justify-center transition-all duration-150 ${
                 h.style?.pulse ? 'animate-pulse' : ''
-              } ${editorMode && !h.style?.locked ? 'cursor-move' : ''} ${selected ? 'ring-2 ring-white scale-110' : 'hover:scale-110'}`}
+              } ${editorMode && !h.style?.locked ? 'cursor-move hover:ring-2 hover:ring-white/80' : 'cursor-pointer hover:scale-110'} ${
+                selected ? 'ring-2 ring-white scale-110 shadow-lg' : hovered ? 'scale-110 shadow-md' : ''
+              }`}
               style={{
                 width: size,
                 height: size,
@@ -148,7 +155,10 @@ export function SmartWalkHotspotLayer({
                 e.stopPropagation()
                 onHotspotClick(h)
               }}
-              onPointerDown={(e) => onPointerDown(e, h)}
+              onPointerDown={(e) => {
+                e.stopPropagation()
+                onPointerDown(e, h)
+              }}
               onPointerMove={(e) => onPointerMove(e, h)}
               onPointerUp={onPointerUp}
             >
