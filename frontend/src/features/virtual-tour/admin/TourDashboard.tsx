@@ -48,8 +48,13 @@ export function TourDashboard() {
   const createTour = () => setWizardOpen(true)
 
   const action = (fn: (id: number) => Promise<unknown>) => async (id: number) => {
-    await fn(id)
-    invalidate()
+    try {
+      await fn(id)
+      invalidate()
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      window.alert(msg || 'عملیات ناموفق بود.')
+    }
   }
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -56,6 +56,7 @@ import { VirtualTourPublicPage } from '@/pages/VirtualTourPublicPage'
 import { VirtualTourEmbedPage } from '@/pages/VirtualTourEmbedPage'
 import { VirtualToursPage } from '@/pages/VirtualToursPage'
 import { VirtualTourEditorPage } from '@/pages/VirtualTourEditorPage'
+import { VirtualTourPreviewPage } from '@/pages/VirtualTourPreviewPage'
 import { getOfficeSubdomain } from '@/lib/subdomain'
 
 const queryClient = new QueryClient({
@@ -126,6 +127,7 @@ export default function App() {
             <Route path="/properties/:id" element={<PropertyDetailPage />} />
             <Route path="/virtual-tours" element={<VirtualToursPage />} />
             <Route path="/virtual-tours/:id/edit" element={<VirtualTourEditorPage />} />
+            <Route path="/virtual-tours/:id/preview" element={<VirtualTourPreviewPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/team" element={<TeamPage />} />

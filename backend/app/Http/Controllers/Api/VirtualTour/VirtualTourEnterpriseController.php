@@ -53,10 +53,22 @@ class VirtualTourEnterpriseController extends Controller
 
     public function publish(Request $request, int $id): JsonResponse
     {
-        $tour = $this->tourManager->findForOffice($request->user(), $id);
-        $tour = $this->lifecycle->publish($request->user(), $tour);
+        try {
+            $tour = $this->tourManager->findForOffice($request->user(), $id);
+            $tour = $this->lifecycle->publish($request->user(), $tour);
 
-        return response()->json(['data' => $this->tourManager->toPayload($tour), 'message' => 'تور منتشر شد.']);
+            return response()->json(['data' => $this->tourManager->toPayload($tour), 'message' => 'تور منتشر شد.']);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => config('app.debug')
+                    ? $e->getMessage()
+                    : 'خطا در انتشار تور. لطفاً دوباره تلاش کنید.',
+            ], 500);
+        }
     }
 
     public function unpublish(Request $request, int $id): JsonResponse

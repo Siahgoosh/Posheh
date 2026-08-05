@@ -194,6 +194,11 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
           }}
           onWheel={engine.handleWheel}
           onClick={engine.handleClick}
+          onPointerDown={engine.onViewportPointerDown}
+          onPointerMove={engine.onViewportPointerMove}
+          onPointerUp={engine.onViewportPointerUp}
+          onPointerCancel={engine.onViewportPointerUp}
+          onDoubleClick={engine.onViewportDoubleClick}
           onMouseMove={handleViewportMouseMove}
           onMouseLeave={handleViewportMouseLeave}
         >

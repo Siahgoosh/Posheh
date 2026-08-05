@@ -53,6 +53,8 @@ export function TourEditorLayout({ tourId }: Props) {
   } = useTourEditorStore()
 
   const [pendingLinkHotspot, setPendingLinkHotspot] = useState<TourHotspot | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionMessage, setActionMessage] = useState<string | null>(null)
   const hotspotUndoRef = useRef<Record<number, TourHotspot[][]>>({})
   const hotspotRedoRef = useRef<Record<number, TourHotspot[][]>>({})
   const hotspotClipboardRef = useRef<TourHotspot[]>([])
@@ -140,12 +142,6 @@ export function TourEditorLayout({ tourId }: Props) {
     if (tour?.scenes) initHotspots(tour.scenes)
   }, [tour?.id, initHotspots])
 
-  useEffect(() => {
-    if (activeTab === 'hotspots') {
-      setIsLinkingScenes(true)
-    }
-  }, [activeTab, setIsLinkingScenes])
-
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['virtual-tour', tourId] })
     refetch()
@@ -153,7 +149,16 @@ export function TourEditorLayout({ tourId }: Props) {
 
   const publishMutation = useMutation({
     mutationFn: () => tourApi.publish(tourId),
-    onSuccess: invalidate,
+    onSuccess: (res) => {
+      setActionError(null)
+      setActionMessage(res.data?.message || 'تور منتشر شد.')
+      invalidate()
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setActionMessage(null)
+      setActionError(msg || 'انتشار تور ناموفق بود.')
+    },
   })
 
   const renameMutation = useMutation({
@@ -221,7 +226,16 @@ export function TourEditorLayout({ tourId }: Props) {
         popup: h.popup,
         sort_order: i,
       }))),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      setActionError(null)
+      setActionMessage('اتصال‌ها ذخیره شد.')
+      invalidate()
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setActionMessage(null)
+      setActionError(msg || 'ذخیره اتصال‌ها ناموفق بود.')
+    },
   })
 
   const saveSceneMutation = useMutation({
@@ -454,6 +468,13 @@ export function TourEditorLayout({ tourId }: Props) {
         <Badge variant={tour.status === 'published' ? 'default' : 'outline'}>
           {tour.status === 'published' ? 'منتشر شده' : 'پیش‌نویس'}
         </Badge>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => window.open(`/virtual-tours/${tourId}/preview`, '_blank', 'noopener,noreferrer')}
+        >
+          <ExternalLink className="h-4 w-4" />پیش‌نمایش
+        </Button>
         {tour.status !== 'published' ? (
           <Button size="sm" onClick={() => publishMutation.mutate()} disabled={publishMutation.isPending}>
             <Globe className="h-4 w-4" />{publishMutation.isPending ? 'در حال انتشار...' : 'انتشار تور'}
@@ -467,6 +488,12 @@ export function TourEditorLayout({ tourId }: Props) {
           <Button variant="ghost" size="sm"><BookOpen className="h-4 w-4" /></Button>
         </a>
       </div>
+
+      {(actionError || actionMessage) && (
+        <div className={`px-4 py-2 text-sm border-b ${actionError ? 'bg-danger/10 text-danger border-danger/20' : 'bg-success/10 text-success border-success/20'}`}>
+          {actionError || actionMessage}
+        </div>
+      )}
 
       <div className="flex flex-1 min-h-0 min-w-0 flex-col lg:flex-row">
         <aside className="w-full max-w-[min(100%,24rem)] lg:w-80 xl:w-96 shrink-0 border-l border-card-border/50 bg-black/30 backdrop-blur-xl overflow-hidden flex flex-col min-h-0">

@@ -52,6 +52,7 @@ export function useSmartWalkEngine({
   const [pendingSceneUrl, setPendingSceneUrl] = useState<string | null>(null)
   const pendingSceneIdRef = useRef<number | null>(null)
   const isTransitioningRef = useRef(false)
+  const loadedSceneRef = useRef<number | null>(null)
 
   const activeScene = tour.scenes.find((s) => s.id === activeSceneId) ?? defaultScene ?? null
   const hotspots = sceneHotspots ?? activeScene?.hotspots ?? []
@@ -65,7 +66,7 @@ export function useSmartWalkEngine({
   const camera = useSmartWalkCamera({
     imageWidth,
     imageHeight,
-    disabled: cameraDisabled || isTransitioning,
+    disabled: cameraDisabled || (!editorMode && isTransitioning),
   })
 
   const imageUrl = activeScene
@@ -105,23 +106,33 @@ export function useSmartWalkEngine({
     }
   }, [])
 
-  // Load scene image
+  // Load scene image — only block UI when switching scenes, not zoom variants
   useEffect(() => {
-    if (!imageUrl) {
+    if (!imageUrl || !activeSceneId) {
       setIsLoading(false)
       return
     }
-    setIsLoading(true)
-    setLoadProgress(15)
-    setLoadError(null)
+
+    const isNewScene = loadedSceneRef.current !== activeSceneId
+    if (isNewScene) {
+      setIsLoading(true)
+      setLoadProgress(15)
+      setLoadError(null)
+    }
+
     getCachedImage(imageUrl)
       .then(() => {
-        setLoadProgress(100)
-        setIsLoading(false)
+        loadedSceneRef.current = activeSceneId
+        if (isNewScene) {
+          setLoadProgress(100)
+          setIsLoading(false)
+        }
       })
       .catch(() => {
-        setLoadError('بارگذاری تصویر ناموفق بود.')
-        setIsLoading(false)
+        if (isNewScene) {
+          setLoadError('بارگذاری تصویر ناموفق بود.')
+          setIsLoading(false)
+        }
       })
   }, [imageUrl, activeSceneId])
 
@@ -155,6 +166,15 @@ export function useSmartWalkEngine({
     if (sceneId === activeSceneId || isTransitioningRef.current) return
     const scene = tour.scenes.find((s) => s.id === sceneId)
     if (!scene) return
+
+    if (editorMode) {
+      camera.stopMomentum()
+      setTransitionFrame({ overlayOpacity: 0, blurPx: 0, outgoingOpacity: 1, incomingOpacity: 1 })
+      setActiveSceneId(sceneId)
+      onSceneChange?.(sceneId)
+      markVisited(sceneId)
+      return
+    }
 
     const effect = options?.effect ?? (options?.walkFromHotspot ? 'fade' : 'crossfade')
     const duration = options?.duration ?? (options?.walkFromHotspot ? 900 : 700)
@@ -261,6 +281,7 @@ export function useSmartWalkEngine({
     imageHeight,
     onSceneChange,
     markVisited,
+    editorMode,
   ])
 
   const handleClick = useCallback((e: React.MouseEvent) => {

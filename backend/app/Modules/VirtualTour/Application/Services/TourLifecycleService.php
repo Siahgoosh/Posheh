@@ -19,20 +19,37 @@ class TourLifecycleService
 
     public function publish(User $user, VirtualTour $tour): VirtualTour
     {
+        if ($tour->scenes()->count() === 0) {
+            throw new \InvalidArgumentException('برای انتشار تور حداقل یک صحنه لازم است.');
+        }
+
         return DB::transaction(function () use ($user, $tour) {
-            $tour->update([
+            $updates = [
                 'status' => 'published',
                 'published_at' => now(),
                 'archived_at' => null,
                 'visibility' => 'public',
-            ]);
+            ];
+            if (empty($tour->share_token)) {
+                $updates['share_token'] = Str::random(32);
+            }
+            $tour->update($updates);
 
             $tour->scenes()
                 ->where('is_visible', true)
                 ->update(['status' => 'published']);
 
-            $this->versionService->createSnapshot($user, $tour->fresh(), 'انتشار');
-            $this->logger->log($tour, 'tour.published', $user);
+            try {
+                $this->versionService->createSnapshot($user, $tour->fresh(), 'انتشار');
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
+            try {
+                $this->logger->log($tour, 'tour.published', $user);
+            } catch (\Throwable $e) {
+                report($e);
+            }
 
             return $tour->fresh(['scenes.hotspots', 'media']);
         });

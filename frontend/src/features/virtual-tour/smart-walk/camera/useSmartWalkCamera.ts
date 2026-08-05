@@ -163,7 +163,71 @@ export function useSmartWalkCamera({
     return () => ro.disconnect()
   }, [imageWidth, imageHeight, getFitScale, applyCamera])
 
-  // Pointer drag + pinch
+  // Pointer drag (React handlers — reliable once ref is mounted)
+  const onViewportPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (disabled || e.button !== 0) return
+    dragMovedRef.current = false
+    stopMomentum()
+    dragRef.current = {
+      active: true,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      originX: cameraRef.current.x,
+      originY: cameraRef.current.y,
+      lastX: e.clientX,
+      lastY: e.clientY,
+      lastTime: performance.now(),
+    }
+    setIsDragging(true)
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }, [disabled, stopMomentum])
+
+  const onViewportPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current?.active || e.pointerId !== dragRef.current.pointerId) return
+    const now = performance.now()
+    const dx = e.clientX - dragRef.current.startX
+    const dy = e.clientY - dragRef.current.startY
+    if (Math.hypot(dx, dy) > 5) dragMovedRef.current = true
+    const dt = now - dragRef.current.lastTime
+    if (dt > 0) {
+      const vx = (e.clientX - dragRef.current.lastX) / dt * 16
+      const vy = (e.clientY - dragRef.current.lastY) / dt * 16
+      velocityRef.current = { x: vx, y: vy }
+    }
+    dragRef.current.lastX = e.clientX
+    dragRef.current.lastY = e.clientY
+    dragRef.current.lastTime = now
+    applyCamera({
+      x: dragRef.current.originX + dx,
+      y: dragRef.current.originY + dy,
+      scale: cameraRef.current.scale,
+    })
+  }, [applyCamera])
+
+  const onViewportPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current?.active || e.pointerId !== dragRef.current.pointerId) return
+    dragRef.current = null
+    setIsDragging(false)
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      // ignore if capture was already released
+    }
+    startMomentum()
+  }, [startMomentum])
+
+  const onViewportDoubleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (disabled) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const fx = e.clientX - rect.left
+    const fy = e.clientY - rect.top
+    const fit = getFitScale()
+    const target = cameraRef.current.scale < fit * 1.5 ? fit * 2.5 : fit
+    zoom(target - cameraRef.current.scale, fx, fy)
+  }, [disabled, getFitScale, zoom])
+
+  // Touch pinch zoom
   useEffect(() => {
     const el = containerRef.current
     if (!el || disabled) return
@@ -175,139 +239,43 @@ export function useSmartWalkCamera({
       return Math.hypot(dx, dy)
     }
 
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.pointerType === 'touch') return
-      dragMovedRef.current = false
-      stopMomentum()
-      dragRef.current = {
-        active: true,
-        pointerId: e.pointerId,
-        startX: e.clientX,
-        startY: e.clientY,
-        originX: cameraRef.current.x,
-        originY: cameraRef.current.y,
-        lastX: e.clientX,
-        lastY: e.clientY,
-        lastTime: performance.now(),
-      }
-      setIsDragging(true)
-      el.setPointerCapture(e.pointerId)
-    }
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!dragRef.current?.active || e.pointerId !== dragRef.current.pointerId) return
-      const now = performance.now()
-      const dx = e.clientX - dragRef.current.startX
-      const dy = e.clientY - dragRef.current.startY
-      if (Math.hypot(dx, dy) > 5) dragMovedRef.current = true
-      const dt = now - dragRef.current.lastTime
-      if (dt > 0) {
-        const vx = (e.clientX - dragRef.current.lastX) / dt * 16
-        const vy = (e.clientY - dragRef.current.lastY) / dt * 16
-        velocityRef.current = { x: vx, y: vy }
-      }
-      dragRef.current.lastX = e.clientX
-      dragRef.current.lastY = e.clientY
-      dragRef.current.lastTime = now
-      applyCamera({
-        x: dragRef.current.originX + dx,
-        y: dragRef.current.originY + dy,
-        scale: cameraRef.current.scale,
-      })
-    }
-
-    const onPointerUp = (e: PointerEvent) => {
-      if (!dragRef.current?.active || e.pointerId !== dragRef.current.pointerId) return
-      dragRef.current = null
-      setIsDragging(false)
-      el.releasePointerCapture(e.pointerId)
-      startMomentum()
-    }
-
     const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        e.preventDefault()
-        stopMomentum()
-        const rect = el.getBoundingClientRect()
-        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left
-        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top
-        pinchRef.current = {
-          active: true,
-          startDist: getTouchDist(e.touches),
-          startScale: cameraRef.current.scale,
-          focalX: midX,
-          focalY: midY,
-        }
-        dragRef.current = null
-      } else if (e.touches.length === 1 && !pinchRef.current?.active) {
-        dragMovedRef.current = false
-        stopMomentum()
-        const t = e.touches[0]
-        dragRef.current = {
-          active: true,
-          pointerId: -1,
-          startX: t.clientX,
-          startY: t.clientY,
-          originX: cameraRef.current.x,
-          originY: cameraRef.current.y,
-          lastX: t.clientX,
-          lastY: t.clientY,
-          lastTime: performance.now(),
-        }
-        setIsDragging(true)
+      if (e.touches.length !== 2) return
+      e.preventDefault()
+      stopMomentum()
+      const rect = el.getBoundingClientRect()
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top
+      pinchRef.current = {
+        active: true,
+        startDist: getTouchDist(e.touches),
+        startScale: cameraRef.current.scale,
+        focalX: midX,
+        focalY: midY,
       }
+      dragRef.current = null
     }
 
     const onTouchMove = (e: TouchEvent) => {
-      if (pinchRef.current?.active && e.touches.length >= 2) {
-        e.preventDefault()
-        const dist = getTouchDist(e.touches)
-        if (pinchRef.current.startDist > 0) {
-          const fit = getFitScale()
-          const ratio = dist / pinchRef.current.startDist
-          const targetScale = clampScale(pinchRef.current.startScale * ratio, fit)
-          const delta = targetScale - cameraRef.current.scale
-          const { w, h } = getViewSize()
-          applyCamera(
-            zoomAtPoint(cameraRef.current, delta, pinchRef.current.focalX, pinchRef.current.focalY, w, h, fit),
-          )
-        }
-        return
-      }
-      if (dragRef.current?.active && e.touches.length === 1) {
-        const t = e.touches[0]
-        const dx = t.clientX - dragRef.current.startX
-        const dy = t.clientY - dragRef.current.startY
-        if (Math.hypot(dx, dy) > 5) dragMovedRef.current = true
-        applyCamera({
-          x: dragRef.current.originX + dx,
-          y: dragRef.current.originY + dy,
-          scale: cameraRef.current.scale,
-        })
+      if (!pinchRef.current?.active || e.touches.length < 2) return
+      e.preventDefault()
+      const dist = getTouchDist(e.touches)
+      if (pinchRef.current.startDist > 0) {
+        const fit = getFitScale()
+        const ratio = dist / pinchRef.current.startDist
+        const targetScale = clampScale(pinchRef.current.startScale * ratio, fit)
+        const delta = targetScale - cameraRef.current.scale
+        const { w, h } = getViewSize()
+        applyCamera(
+          zoomAtPoint(cameraRef.current, delta, pinchRef.current.focalX, pinchRef.current.focalY, w, h, fit),
+        )
       }
     }
 
     const onTouchEnd = (e: TouchEvent) => {
       if (e.touches.length < 2) pinchRef.current = null
-      if (e.touches.length === 0) {
-        if (dragRef.current?.active) {
-          dragRef.current = null
-          setIsDragging(false)
-          startMomentum()
-        }
-      }
     }
 
-    const onDblClick = (e: MouseEvent) => {
-      const rect = el.getBoundingClientRect()
-      const fx = e.clientX - rect.left
-      const fy = e.clientY - rect.top
-      const fit = getFitScale()
-      const target = cameraRef.current.scale < fit * 1.5 ? fit * 2.5 : fit
-      zoom(target - cameraRef.current.scale, fx, fy)
-    }
-
-  // Double-tap on mobile
     const onTouchEndTap = (e: TouchEvent) => {
       if (e.touches.length > 0 || pinchRef.current?.active) return
       const t = e.changedTouches[0]
@@ -326,28 +294,18 @@ export function useSmartWalkCamera({
       }
     }
 
-    el.addEventListener('pointerdown', onPointerDown)
-    el.addEventListener('pointermove', onPointerMove)
-    el.addEventListener('pointerup', onPointerUp)
-    el.addEventListener('pointercancel', onPointerUp)
     el.addEventListener('touchstart', onTouchStart, { passive: false })
     el.addEventListener('touchmove', onTouchMove, { passive: false })
     el.addEventListener('touchend', onTouchEnd)
     el.addEventListener('touchend', onTouchEndTap)
-    el.addEventListener('dblclick', onDblClick)
 
     return () => {
-      el.removeEventListener('pointerdown', onPointerDown)
-      el.removeEventListener('pointermove', onPointerMove)
-      el.removeEventListener('pointerup', onPointerUp)
-      el.removeEventListener('pointercancel', onPointerUp)
       el.removeEventListener('touchstart', onTouchStart)
       el.removeEventListener('touchmove', onTouchMove)
       el.removeEventListener('touchend', onTouchEnd)
       el.removeEventListener('touchend', onTouchEndTap)
-      el.removeEventListener('dblclick', onDblClick)
     }
-  }, [disabled, applyCamera, getViewSize, getFitScale, startMomentum, stopMomentum, zoom])
+  }, [disabled, applyCamera, getViewSize, getFitScale, stopMomentum, zoom])
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     if (disabled) return
@@ -412,6 +370,10 @@ export function useSmartWalkCamera({
     zoomToScale,
     handleWheel,
     stopMomentum,
+    onViewportPointerDown,
+    onViewportPointerMove,
+    onViewportPointerUp,
+    onViewportDoubleClick,
     transformCss: cameraTransformCss(camera),
     zoomPercent: zoomPercent(camera.scale, fitScale),
     maxZoomFactor: MAX_ZOOM_FACTOR,

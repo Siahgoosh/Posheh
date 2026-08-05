@@ -49,8 +49,8 @@ export const useTourEditorStore = create<EditorState>((set) => ({
   uploadTasks: [],
   isPanelCollapsed: false,
   selectedHotspotId: null,
-  isPlacingHotspot: true,
-  isLinkingScenes: true,
+  isPlacingHotspot: false,
+  isLinkingScenes: false,
   isRepositioningHotspot: false,
   localHotspots: {},
   localScenePatches: {},
@@ -64,7 +64,7 @@ export const useTourEditorStore = create<EditorState>((set) => ({
   setPanelCollapsed: (collapsed) => set({ isPanelCollapsed: collapsed }),
   setSelectedHotspotId: (id) => set({ selectedHotspotId: id }),
   setIsPlacingHotspot: (v) => set((s) => ({ isPlacingHotspot: v, isRepositioningHotspot: v ? false : s.isRepositioningHotspot })),
-  setIsLinkingScenes: (v) => set({ isLinkingScenes: v, isPlacingHotspot: v }),
+  setIsLinkingScenes: (v) => set({ isLinkingScenes: v, isPlacingHotspot: v ? true : false }),
   setIsRepositioningHotspot: (v) => set({ isRepositioningHotspot: v, isPlacingHotspot: false, isLinkingScenes: false }),
   initHotspots: (scenes) => {
     const map: Record<number, TourHotspot[]> = {}
