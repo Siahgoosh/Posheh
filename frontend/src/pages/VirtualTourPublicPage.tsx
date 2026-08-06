@@ -148,8 +148,8 @@ export function VirtualTourPublicPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/40 backdrop-blur z-30">
+    <div className="h-[100dvh] max-h-[100dvh] bg-[#0a0a0f] text-white flex flex-col overflow-hidden">
+      <header className="flex shrink-0 items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-white/10 bg-black/40 backdrop-blur z-30 safe-top">
         <div className="flex items-center gap-3">
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold"
@@ -175,7 +175,7 @@ export function VirtualTourPublicPage() {
         </div>
       </header>
 
-      <div className="flex-1 relative min-h-[65vh]">
+      <div className="flex-1 min-h-0 relative w-full">
         <TourWatermark
           text={tour.security?.watermark_text}
           enabled={tour.security?.watermark_enabled}
@@ -184,7 +184,7 @@ export function VirtualTourPublicPage() {
           tour={tour}
           initialSceneId={initialSceneId}
           onSceneChange={handleSceneChange}
-          className="h-full"
+          className="absolute inset-0 h-full w-full"
           showControls
           showSceneName
           showFeatures={!isSmartWalk}
@@ -193,8 +193,8 @@ export function VirtualTourPublicPage() {
         />
       </div>
 
-      <div className="border-t border-white/10 bg-black/60 backdrop-blur px-4 py-4">
-        <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div className="shrink-0 border-t border-white/10 bg-black/80 backdrop-blur px-3 sm:px-4 py-2.5 sm:py-4 safe-bottom">
+        <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-3 sm:gap-4">
           <div>
             {tour.property && (
               <div className="flex flex-wrap gap-3 text-sm text-white/80">
@@ -276,7 +276,7 @@ export function VirtualTourPublicPage() {
         </div>
       )}
 
-      <footer className="text-center py-3 text-xs text-white/40 border-t border-white/5">
+      <footer className="shrink-0 text-center py-2 text-[10px] sm:text-xs text-white/40 border-t border-white/5 safe-bottom">
         {isSmartWalk ? 'Poshe Smart Walk' : 'تور مجازی ۳۶۰ درجه'} — قدرت گرفته از <Link to="/" className="text-primary hover:underline">پوشه</Link>
       </footer>
     </div>

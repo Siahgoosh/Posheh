@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Building2, Users, CreditCard, Wallet, Ticket, Settings,
   BookOpen, Download, Shield, BarChart3, Tag, Bell, ScrollText,
   LogOut, Moon, Sun, Menu, X, UserCog, ChevronDown,
+  Mail,
   UserCircle, Home, Handshake, Calendar, FileText, Percent,
   Calculator, Smartphone, TrendingDown, DollarSign, Database,
   Activity, Flag, DownloadCloud, Heart, Globe,
@@ -57,7 +58,9 @@ const navGroups = [
   {
     label: 'عملیات',
     items: [
-      { to: '/crm', icon: Handshake, label: 'CRM' },
+      { to: '/platform-crm', icon: Handshake, label: 'CRM پلتفرم' },
+      { to: '/crm', icon: Handshake, label: 'CRM دفاتر' },
+      { to: '/email-marketing', icon: Mail, label: 'ایمیل مارکتینگ' },
       { to: '/visits', icon: Calendar, label: 'بازدیدها' },
       { to: '/contracts', icon: FileText, label: 'قراردادها' },
     ],

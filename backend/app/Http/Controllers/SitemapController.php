@@ -33,6 +33,11 @@ class SitemapController extends Controller
             $xml .= $this->url($base.$entry['path'], $entry['priority'] ?? 0.75, $entry['lastmod'] ?? null);
         }
 
+        $officeSeo = app(\App\Services\Admin\OfficeSeoService::class);
+        foreach ($officeSeo->sitemapEntries() as $entry) {
+            $xml .= $this->url($base.$entry['path'], $entry['priority'] ?? 0.75, $entry['lastmod'] ?? null);
+        }
+
         $xml .= '</urlset>';
 
         return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);

@@ -179,10 +179,22 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
     <SmartWalkThemeProvider initialMode={themeMode}>
       <div className={`smart-walk-root relative overflow-hidden h-full min-h-[320px] ${className}`}>
         <TourBackgroundMusic musicUrl={tour.settings?.music_url} editorMode={editorMode} />
+        {engine.imageUrl && (
+          <div
+            className="absolute inset-0 z-0 scale-110 blur-2xl opacity-50 pointer-events-none"
+            style={{
+              backgroundImage: `url(${engine.imageUrl})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+            aria-hidden
+          />
+        )}
+
         {/* Viewport */}
         <div
           ref={engine.setContainerRef}
-          className={`smart-walk-viewport absolute inset-0 overflow-hidden ${
+          className={`smart-walk-viewport absolute inset-0 z-[1] overflow-hidden ${
             isPlacingHotspot
               ? 'cursor-crosshair'
               : editorMode

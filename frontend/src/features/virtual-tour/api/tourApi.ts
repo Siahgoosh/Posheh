@@ -38,7 +38,7 @@ export const tourApi = {
   get: (id: number | string) => api.get(`/virtual-tours/${id}`),
   create: (data: { title: string; description?: string; property_id?: number; tour_type?: TourType }) =>
     api.post('/virtual-tours', data),
-  update: (id: number | string, data: Partial<{ title: string; description: string; status: string; settings: Record<string, unknown> }>) =>
+  update: (id: number | string, data: Partial<{ title: string; description: string; status: string; property_id: number | null; settings: Record<string, unknown> }>) =>
     api.put(`/virtual-tours/${id}`, data),
   delete: (id: number | string) => api.delete(`/virtual-tours/${id}`),
 

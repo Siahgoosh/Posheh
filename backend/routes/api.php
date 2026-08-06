@@ -12,7 +12,8 @@ use App\Http\Controllers\Api\Admin\AdminSearchController;
 use App\Http\Controllers\Api\Admin\AdminSettingsController;
 use App\Http\Controllers\Api\Admin\AdminSubscriptionController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
-use App\Http\Controllers\Api\Admin\AdminDomainController;
+use App\Http\Controllers\Api\Admin\AdminEmailMarketingController;
+use App\Http\Controllers\Api\Admin\AdminPlatformLeadController;
 use App\Http\Controllers\Api\Admin\AdminWalletController;
 use App\Http\Middleware\EnsurePlatformStaff;
 use App\Http\Controllers\Api\Admin\AdminOfficeController;
@@ -333,6 +334,15 @@ Route::prefix('v1')->group(function () {
             Route::put('/feature-flags/{key}', [AdminPhase2Controller::class, 'updateFeatureFlag']);
             Route::get('/commissions/kpi', [AdminPhase2Controller::class, 'commissionKpi']);
             Route::get('/crm/follow-ups', [AdminPhase2Controller::class, 'crmFollowUps']);
+            Route::get('/platform-leads', [AdminPlatformLeadController::class, 'index']);
+            Route::get('/platform-leads/stages', [AdminPlatformLeadController::class, 'stages']);
+            Route::post('/platform-leads', [AdminPlatformLeadController::class, 'store']);
+            Route::put('/platform-leads/{id}', [AdminPlatformLeadController::class, 'update']);
+
+            Route::get('/email-campaigns', [AdminEmailMarketingController::class, 'index']);
+            Route::post('/email-campaigns', [AdminEmailMarketingController::class, 'store']);
+            Route::put('/email-campaigns/{id}', [AdminEmailMarketingController::class, 'update']);
+            Route::post('/email-campaigns/{id}/send', [AdminEmailMarketingController::class, 'send']);
             Route::get('/phase2/summary', [AdminPhase2Controller::class, 'phase2Summary']);
             Route::post('/system/sms-test', [AdminPhase2Controller::class, 'testSms']);
 

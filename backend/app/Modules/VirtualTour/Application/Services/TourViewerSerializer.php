@@ -41,6 +41,7 @@ class TourViewerSerializer
             'title' => $tour->title,
             'slug' => $tour->slug,
             'description' => $tour->description,
+            'property_id' => $tour->property_id,
             'tour_type' => $tour->tour_type ?? 'panorama_360',
             'status' => $tour->status,
             'view_count' => $tour->view_count,

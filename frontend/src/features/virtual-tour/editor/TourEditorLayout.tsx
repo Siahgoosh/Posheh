@@ -244,9 +244,19 @@ export function TourEditorLayout({ tourId }: Props) {
     onSuccess: invalidate,
   })
 
+  const [localPropertyId, setLocalPropertyId] = useState<number | null | undefined>(undefined)
+
   const saveTourSettingsMutation = useMutation({
     mutationFn: (settings: Record<string, unknown>) => tourApi.update(tourId, { settings }),
     onSuccess: invalidate,
+  })
+
+  const saveTourPropertyMutation = useMutation({
+    mutationFn: (propertyId: number | null) => tourApi.update(tourId, { property_id: propertyId }),
+    onSuccess: () => {
+      setLocalPropertyId(undefined)
+      invalidate()
+    },
   })
 
   const saveSharingMutation = useMutation({
@@ -414,10 +424,17 @@ export function TourEditorLayout({ tourId }: Props) {
         return (
           <div className="overflow-y-auto">
             <TourSettingsPanel
-              tour={liveTour}
+              tour={{
+                ...liveTour,
+                property_id: localPropertyId !== undefined ? localPropertyId : liveTour.property_id,
+              }}
               onUpdateSettings={setLocalTourSettings}
+              onUpdateProperty={(id) => {
+                setLocalPropertyId(id)
+                saveTourPropertyMutation.mutate(id)
+              }}
               onSave={() => saveTourSettingsMutation.mutate({ ...tour.settings, ...localTourSettings })}
-              isSaving={saveTourSettingsMutation.isPending}
+              isSaving={saveTourSettingsMutation.isPending || saveTourPropertyMutation.isPending}
             />
             <VersionHistoryPanel tourId={tourId} onRestored={invalidate} />
           </div>

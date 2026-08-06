@@ -9,7 +9,7 @@ export const MAX_ZOOM_FACTOR = 8
 export const DEFAULT_FRICTION = 0.92
 export const MOMENTUM_THRESHOLD = 0.5
 
-/** Scale so the full image fits inside the viewport. */
+/** Scale so the full image fits inside the viewport (letterbox). */
 export function computeFitScale(
   imageWidth: number,
   imageHeight: number,
@@ -18,6 +18,29 @@ export function computeFitScale(
 ): number {
   if (imageWidth <= 0 || imageHeight <= 0 || viewWidth <= 0 || viewHeight <= 0) return 1
   return Math.min(viewWidth / imageWidth, viewHeight / imageHeight)
+}
+
+/** Scale so the image fully covers the viewport (crop edges). */
+export function computeCoverScale(
+  imageWidth: number,
+  imageHeight: number,
+  viewWidth: number,
+  viewHeight: number,
+): number {
+  if (imageWidth <= 0 || imageHeight <= 0 || viewWidth <= 0 || viewHeight <= 0) return 1
+  return Math.max(viewWidth / imageWidth, viewHeight / imageHeight)
+}
+
+/** Portrait mobile: cover-fill avoids empty bars; landscape keeps fit. */
+export function computeInitialSmartWalkScale(
+  imageWidth: number,
+  imageHeight: number,
+  viewWidth: number,
+  viewHeight: number,
+): number {
+  const fit = computeFitScale(imageWidth, imageHeight, viewWidth, viewHeight)
+  if (viewHeight <= viewWidth) return fit
+  return computeCoverScale(imageWidth, imageHeight, viewWidth, viewHeight)
 }
 
 export function clampScale(scale: number, fitScale = 1): number {

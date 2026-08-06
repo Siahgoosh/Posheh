@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft, CheckCircle2, ChevronDown, Sparkles, Zap, Menu, X,
@@ -9,6 +10,7 @@ import { SeoBreadcrumb, getBreadcrumbJsonLd, getFaqJsonLd } from '@/components/s
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import api from '@/lib/api'
 import { getOrganizationJsonLd, getSiteUrl, getSoftwareJsonLd } from '@/lib/seo'
 import {
   getLandingBySlug,
@@ -20,6 +22,15 @@ function LandingView({ config }: { config: KeywordLandingConfig }) {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
   const [mobileNav, setMobileNav] = useState(false)
   const path = landingPath(config.slug)
+
+  const { data: blogPosts } = useQuery({
+    queryKey: ['landing-blog-posts'],
+    queryFn: async () => {
+      const res = await api.get('/blog', { params: { category: 'virtual-tour', per_page: 4 } })
+      return (res.data.data ?? []) as { slug: string; title: string; excerpt?: string }[]
+    },
+    staleTime: 120000,
+  })
 
   const breadcrumbs = [
     { label: 'خانه', href: '/' },
@@ -224,6 +235,27 @@ function LandingView({ config }: { config: KeywordLandingConfig }) {
                   <p className="px-4 pb-4 text-sm text-white/60 leading-relaxed">{f.a}</p>
                 )}
               </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {blogPosts && blogPosts.length > 0 && (
+        <section className="container mx-auto max-w-6xl px-4 py-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold">مقالات مرتبط در وبلاگ</h2>
+            <Link to="/blog/category/virtual-tour" className="text-sm text-primary hover:underline">
+              همه مقالات تور مجازی
+            </Link>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {blogPosts.map((post) => (
+              <Link key={post.slug} to={`/blog/${post.slug}`}>
+                <Card className="p-4 h-full border-white/10 bg-white/5 hover:border-primary/40 transition-colors">
+                  <p className="font-medium text-sm leading-snug mb-1">{post.title}</p>
+                  {post.excerpt && <p className="text-xs text-white/50 line-clamp-2">{post.excerpt}</p>}
+                </Card>
+              </Link>
             ))}
           </div>
         </section>

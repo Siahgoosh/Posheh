@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { tourApi } from '../api/tourApi'
+import { TourPropertyPicker } from '../settings/TourPropertyPicker'
 import type { TourType } from '../types'
 
 interface Props {
@@ -20,6 +21,7 @@ export function CreateTourWizard({ open, onClose, onCreated }: Props) {
   const [tourType, setTourType] = useState<TourType | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [propertyId, setPropertyId] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -30,6 +32,7 @@ export function CreateTourWizard({ open, onClose, onCreated }: Props) {
     setTourType(null)
     setTitle('')
     setDescription('')
+    setPropertyId(null)
     setError(null)
   }
 
@@ -47,6 +50,7 @@ export function CreateTourWizard({ open, onClose, onCreated }: Props) {
         title: title.trim(),
         description: description.trim() || undefined,
         tour_type: tourType,
+        property_id: propertyId ?? undefined,
       })
       const tour = res.data.data as { id: number }
       onCreated?.()
@@ -153,6 +157,10 @@ export function CreateTourWizard({ open, onClose, onCreated }: Props) {
               placeholder="توضیحات (اختیاری)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+            />
+            <TourPropertyPicker
+              propertyId={propertyId}
+              onChange={setPropertyId}
             />
             {error && <p className="text-xs text-red-400">{error}</p>}
             <div className="flex gap-2">

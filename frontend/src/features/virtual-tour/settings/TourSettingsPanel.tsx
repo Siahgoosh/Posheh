@@ -2,21 +2,31 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import type { TourData, TourSettings } from '../types'
 import { TourMusicPicker } from './TourMusicPicker'
+import { TourPropertyPicker } from './TourPropertyPicker'
 
 interface Props {
   tour: TourData
   onUpdateSettings: (settings: Partial<TourSettings>) => void
+  onUpdateProperty?: (propertyId: number | null) => void
   onSave: () => void
   isSaving?: boolean
 }
 
-export function TourSettingsPanel({ tour, onUpdateSettings, onSave, isSaving }: Props) {
+export function TourSettingsPanel({ tour, onUpdateSettings, onUpdateProperty, onSave, isSaving }: Props) {
   const s = tour.settings || {}
   const update = (patch: Partial<TourSettings>) => onUpdateSettings({ ...s, ...patch })
 
   return (
     <div className="p-4 space-y-4 overflow-y-auto">
       <h2 className="font-semibold text-sm">تنظیمات تور</h2>
+
+      {onUpdateProperty && (
+        <TourPropertyPicker
+          propertyId={tour.property_id}
+          linkedProperty={tour.property ? { code: tour.property.code, city: tour.property.city } : null}
+          onChange={onUpdateProperty}
+        />
+      )}
 
       <div className="space-y-3">
         <p className="text-xs font-medium text-muted">قابلیت‌های تور</p>

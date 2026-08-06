@@ -5,6 +5,7 @@ import {
   clampScale,
   cameraTransformCss,
   computeFitScale,
+  computeInitialSmartWalkScale,
   DEFAULT_FRICTION,
   MAX_ZOOM_FACTOR,
   MOMENTUM_THRESHOLD,
@@ -185,7 +186,9 @@ export function useSmartWalkCamera({
     if (!el) return
 
     const syncFit = (preserveRelativeZoom = false) => {
-      const fit = getFitScale()
+      const { w, h } = getViewSize()
+      const fit = computeFitScale(imageWidth, imageHeight, w, h)
+      const initial = computeInitialSmartWalkScale(imageWidth, imageHeight, w, h)
       const prevFit = fitScaleRef.current
       fitScaleRef.current = fit
       setFitScale(fit)
@@ -193,7 +196,7 @@ export function useSmartWalkCamera({
         const ratio = cameraRef.current.scale / prevFit
         applyCamera({ ...cameraRef.current, scale: clampScale(fit * ratio, fit) })
       } else {
-        applyCamera({ x: 0, y: 0, scale: fit })
+        applyCamera({ x: 0, y: 0, scale: initial })
       }
     }
 

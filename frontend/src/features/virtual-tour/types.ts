@@ -199,6 +199,7 @@ export interface TourData {
   title: string
   slug?: string
   description?: string
+  property_id?: number | null
   tour_type?: TourType
   status?: SceneStatus
   visibility?: 'public' | 'private'
