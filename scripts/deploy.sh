@@ -137,6 +137,15 @@ $COMPOSE exec -T app php artisan migrate --force --no-interaction \
 
 clear_laravel_cache
 
+clear_laravel_cache
+
+log "5b/10 Ensuring platform admin login"
+ADMIN_PASS="${SEED_ADMIN_PASSWORD:-Posheh@2026}"
+$COMPOSE exec -T app php artisan auth:ensure-platform-admin --password="$ADMIN_PASS" --no-interaction \
+  || log "auth:ensure-platform-admin warning"
+$COMPOSE exec -T app php artisan auth:diagnose --no-interaction \
+  || fail "Auth diagnose failed — check routes/api.php and docker compose logs app"
+
 log "5/10 Seeding settings, blog and demo data"
 $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --no-interaction \
   || fail "SystemSettingsSeeder failed"
@@ -227,6 +236,18 @@ OTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/
   -H "Content-Type: application/json" -H "Accept: application/json" \
   -d '{"mobile":"09120000000","purpose":"login"}' || echo "000")
 printf 'OTP /auth/otp/send: %s\n' "$OTP_CODE"
+
+CAP_BODY=$(curl -sS http://localhost:8000/api/v1/auth/capabilities 2>/dev/null || echo '{}')
+printf 'Auth capabilities: %s\n' "$CAP_BODY"
+echo "$CAP_BODY" | grep -q 'password' || fail "/auth/capabilities missing password — API routes may be broken"
+
+LOGIN_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"login":"info@posheapp.ir","password":"wrong-password-test"}' || echo "000")
+printf 'POST /auth/login HTTP %s (expect 422, not 404/502)\n' "$LOGIN_CODE"
+if [ "$LOGIN_CODE" = "404" ] || [ "$LOGIN_CODE" = "502" ] || [ "$LOGIN_CODE" = "000" ]; then
+  fail "POST /auth/login returned $LOGIN_CODE — run: docker compose logs app --tail=80"
+fi
 
 REDIS_PING=$($COMPOSE exec -T redis redis-cli ping 2>/dev/null || echo "FAIL")
 printf 'Redis ping: %s\n' "$REDIS_PING"

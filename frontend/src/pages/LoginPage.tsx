@@ -36,7 +36,7 @@ export function LoginPage({ panelMode = false }: { panelMode?: boolean }) {
         }
       })
       .catch(() => {
-        setDeployWarning('API قدیمی است یا در دسترس نیست. ./scripts/deploy-password-auth.sh را روی سرور اجرا کنید.')
+        setDeployWarning('API در دسترس نیست (احتمالاً 502). روی سرور: ./scripts/deploy.sh cursor/customer-communication-e117')
       })
   }, [])
 

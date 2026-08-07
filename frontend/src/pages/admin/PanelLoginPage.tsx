@@ -1,6 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Shield, KeyRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,8 +16,21 @@ export function PanelLoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [deployWarning, setDeployWarning] = useState('')
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    api.get('/auth/capabilities')
+      .then((r) => {
+        if (r.data?.login_method !== 'password') {
+          setError('سرور هنوز نسخه قدیمی OTP است. روی سرور: ./scripts/deploy.sh cursor/customer-communication-e117')
+        }
+      })
+      .catch(() => {
+        setError('API در دسترس نیست (502). روی سرور: ./scripts/deploy.sh cursor/customer-communication-e117')
+      })
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

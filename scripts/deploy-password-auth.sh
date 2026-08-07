@@ -5,7 +5,7 @@ set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 COMPOSE="docker compose"
-BRANCH="${1:-main}"
+BRANCH="${1:-cursor/customer-communication-e117}"
 
 log() { printf '\n==> %s\n' "$1"; }
 
@@ -24,15 +24,13 @@ log "3. Laravel migrate + clear caches"
 $COMPOSE exec -T app php artisan migrate --force --no-interaction
 $COMPOSE exec -T app php artisan optimize:clear --no-interaction
 
-log "4. Setup admin password (09170577873) if SEED_ADMIN_PASSWORD set"
+log "4. Ensure platform admin + legacy users"
 ADMIN_PASS="${SEED_ADMIN_PASSWORD:-Posheh@2026}"
+$COMPOSE exec -T app php artisan auth:ensure-platform-admin --password="$ADMIN_PASS" 2>/dev/null \
+  || log "ensure-platform-admin warning"
 $COMPOSE exec -T app php artisan auth:setup-legacy-user \
   09170577873 info@posheapp.ir posheh --password="$ADMIN_PASS" 2>/dev/null \
-  || log "Skip legacy user (may need migrate first)"
-
-$COMPOSE exec -T app php artisan auth:setup-legacy-user \
-  09120000000 admin@posheapp.ir admin --password="$ADMIN_PASS" 2>/dev/null \
-  || true
+  || log "Skip legacy user (may already updated)"
 
 log "5. Fresh frontend build"
 rm -rf frontend/dist frontend/node_modules/.vite
