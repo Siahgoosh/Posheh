@@ -11,6 +11,7 @@ use App\Modules\Communication\Application\Services\MessageService;
 use App\Modules\Communication\Application\Services\VisitorTrackingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class CommunicationPublicController extends Controller
@@ -58,32 +59,49 @@ class CommunicationPublicController extends Controller
             ], 503);
         }
 
-        $data = $request->validate([
-            'visitor_token' => ['nullable', 'uuid'],
-            'session_key' => ['required', 'string', 'max:64'],
-            'current_page' => ['nullable', 'string', 'max:500'],
-            'referrer' => ['nullable', 'string', 'max:500'],
-            'landing_page' => ['nullable', 'string', 'max:500'],
-            'language' => ['nullable', 'string', 'max:20'],
-            'timezone' => ['nullable', 'string', 'max:60'],
-            'screen_resolution' => ['nullable', 'string', 'max:20'],
-            'utm_source' => ['nullable', 'string', 'max:120'],
-            'utm_campaign' => ['nullable', 'string', 'max:120'],
-            'utm_medium' => ['nullable', 'string', 'max:120'],
-            'utm_term' => ['nullable', 'string', 'max:120'],
-            'utm_content' => ['nullable', 'string', 'max:120'],
+        $this->nullifyEmpty($request, [
+            'visitor_token', 'referrer', 'landing_page', 'language', 'timezone',
+            'screen_resolution', 'utm_source', 'utm_campaign', 'utm_medium', 'utm_term', 'utm_content',
         ]);
 
-        $dto = VisitorInitDTO::fromRequest(
-            $data,
-            (string) $request->ip(),
-            $request->userAgent(),
-            $request->user()?->id,
-        );
+        try {
+            $data = $request->validate([
+                'visitor_token' => ['nullable', 'uuid'],
+                'session_key' => ['required', 'string', 'max:64'],
+                'current_page' => ['nullable', 'string', 'max:500'],
+                'referrer' => ['nullable', 'string', 'max:500'],
+                'landing_page' => ['nullable', 'string', 'max:500'],
+                'language' => ['nullable', 'string', 'max:20'],
+                'timezone' => ['nullable', 'string', 'max:60'],
+                'screen_resolution' => ['nullable', 'string', 'max:20'],
+                'utm_source' => ['nullable', 'string', 'max:120'],
+                'utm_campaign' => ['nullable', 'string', 'max:120'],
+                'utm_medium' => ['nullable', 'string', 'max:120'],
+                'utm_term' => ['nullable', 'string', 'max:120'],
+                'utm_content' => ['nullable', 'string', 'max:120'],
+            ]);
 
-        $result = $this->visitors->init($dto);
+            $dto = VisitorInitDTO::fromRequest(
+                $data,
+                (string) $request->ip(),
+                $request->userAgent(),
+                null,
+            );
 
-        return response()->json(['data' => $result]);
+            $result = $this->visitors->init($dto);
+
+            return response()->json(['data' => $result]);
+        } catch (\Throwable $e) {
+            Log::error('communication visitor init failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'خطا در شروع چت: '.$this->publicErrorMessage($e),
+                'code' => 'comm_init_failed',
+            ], 500);
+        }
     }
 
     public function heartbeat(Request $request): JsonResponse
@@ -137,38 +155,55 @@ class CommunicationPublicController extends Controller
             ], 503);
         }
 
-        $data = $request->validate([
-            'visitor_token' => ['required', 'uuid'],
-            'session_key' => ['required', 'string', 'max:64'],
-            'first_name' => ['required', 'string', 'max:80'],
-            'last_name' => ['nullable', 'string', 'max:80'],
-            'mobile' => ['required', 'string', 'max:20'],
-            'mobile_verified' => ['nullable', 'boolean'],
-            'email' => ['nullable', 'email', 'max:120'],
-            'province' => ['nullable', 'string', 'max:80'],
-            'city' => ['nullable', 'string', 'max:80'],
-            'office_name' => ['nullable', 'string', 'max:120'],
-            'role_title' => ['nullable', 'string', 'max:80'],
-            'staff_count' => ['nullable', 'integer', 'min:0'],
-            'activity_type' => ['nullable', 'string', 'max:80'],
-            'request_type' => ['nullable', 'string', 'max:80'],
-            'budget' => ['nullable', 'string', 'max:80'],
-            'description' => ['nullable', 'string', 'max:2000'],
-            'source_channel' => ['nullable', 'string', 'max:40'],
-            'tracking_snapshot' => ['nullable', 'array'],
+        $this->nullifyEmpty($request, [
+            'last_name', 'email', 'province', 'city', 'office_name', 'role_title',
+            'activity_type', 'request_type', 'budget', 'description', 'source_channel',
         ]);
 
-        $dto = CaptureLeadDTO::fromRequest($data, (string) $request->ip(), $request->userAgent());
-        $result = $this->leads->capture($dto);
+        try {
+            $data = $request->validate([
+                'visitor_token' => ['required', 'uuid'],
+                'session_key' => ['required', 'string', 'max:64'],
+                'first_name' => ['required', 'string', 'max:80'],
+                'last_name' => ['nullable', 'string', 'max:80'],
+                'mobile' => ['required', 'string', 'max:20'],
+                'mobile_verified' => ['nullable', 'boolean'],
+                'email' => ['nullable', 'email', 'max:120'],
+                'province' => ['nullable', 'string', 'max:80'],
+                'city' => ['nullable', 'string', 'max:80'],
+                'office_name' => ['nullable', 'string', 'max:120'],
+                'role_title' => ['nullable', 'string', 'max:80'],
+                'staff_count' => ['nullable', 'integer', 'min:0', 'max:65535'],
+                'activity_type' => ['nullable', 'string', 'max:80'],
+                'request_type' => ['nullable', 'string', 'max:80'],
+                'budget' => ['nullable', 'string', 'max:80'],
+                'description' => ['nullable', 'string', 'max:2000'],
+                'source_channel' => ['nullable', 'string', 'max:40'],
+                'tracking_snapshot' => ['nullable', 'array'],
+            ]);
 
-        return response()->json([
-            'data' => [
-                'lead_id' => $result['lead']->id,
-                'conversation_uuid' => $result['conversation_uuid'],
-                'lead_score' => $result['lead']->lead_score,
-            ],
-            'message' => 'اطلاعات شما ثبت شد. به زودی پاسخ می‌دهیم.',
-        ], 201);
+            $dto = CaptureLeadDTO::fromRequest($data, (string) $request->ip(), $request->userAgent());
+            $result = $this->leads->capture($dto);
+
+            return response()->json([
+                'data' => [
+                    'lead_id' => $result['lead']->id,
+                    'conversation_uuid' => $result['conversation_uuid'],
+                    'lead_score' => $result['lead']->lead_score,
+                ],
+                'message' => 'اطلاعات شما ثبت شد. به زودی پاسخ می‌دهیم.',
+            ], 201);
+        } catch (\Throwable $e) {
+            Log::error('communication lead capture failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'خطا در ثبت اطلاعات: '.$this->publicErrorMessage($e),
+                'code' => 'comm_capture_failed',
+            ], 500);
+        }
     }
 
     public function messages(Request $request, string $conversationUuid): JsonResponse
@@ -213,5 +248,30 @@ class CommunicationPublicController extends Controller
                 'created_at' => $message->created_at?->toIso8601String(),
             ],
         ], 201);
+    }
+
+    private function nullifyEmpty(Request $request, array $keys): void
+    {
+        foreach ($keys as $key) {
+            $value = $request->input($key);
+            if ($value === '' || $value === null) {
+                $request->merge([$key => null]);
+            }
+        }
+    }
+
+    private function publicErrorMessage(\Throwable $e): string
+    {
+        $msg = $e->getMessage();
+
+        if (str_contains($msg, 'Base table or view not found')) {
+            return 'جداول چت ناقص است — php artisan communication:install';
+        }
+
+        if (str_contains($msg, 'SQLSTATE')) {
+            return 'خطای دیتابیس — لاگ سرور را بررسی کنید';
+        }
+
+        return mb_substr($msg, 0, 200);
     }
 }

@@ -36,29 +36,30 @@ class LeadCaptureService
                 ->orderBy('sort_order')
                 ->first();
 
-            $lead = CommLead::create([
-                'visitor_id' => $visitor->id,
-                'pipeline_stage_id' => $defaultStage?->id,
-                'first_name' => $dto->firstName,
-                'last_name' => $dto->lastName,
-                'mobile' => $dto->mobile,
-                'mobile_verified' => $dto->mobileVerified,
-                'email' => $dto->email,
-                'province' => $dto->province,
-                'city' => $dto->city,
-                'office_name' => $dto->officeName,
-                'role_title' => $dto->roleTitle,
-                'staff_count' => $dto->staffCount,
-                'activity_type' => $dto->activityType,
-                'request_type' => $dto->requestType,
-                'budget' => $dto->budget,
-                'description' => $dto->description,
-                'source_channel' => $dto->sourceChannel,
-                'status' => LeadStatus::New->value,
-                'ip' => $dto->ip,
-                'tracking_snapshot' => $dto->trackingSnapshot,
-            ]);
+        $lead = CommLead::create([
+            'visitor_id' => $visitor->id,
+            'pipeline_stage_id' => $defaultStage?->id,
+            'first_name' => $dto->firstName,
+            'last_name' => $dto->lastName,
+            'mobile' => $dto->mobile,
+            'mobile_verified' => $dto->mobileVerified,
+            'email' => $dto->email,
+            'province' => $dto->province,
+            'city' => $dto->city,
+            'office_name' => $dto->officeName,
+            'role_title' => $dto->roleTitle,
+            'staff_count' => $dto->staffCount,
+            'activity_type' => $dto->activityType,
+            'request_type' => $dto->requestType,
+            'budget' => $dto->budget,
+            'description' => $dto->description,
+            'source_channel' => $dto->sourceChannel,
+            'status' => LeadStatus::New->value,
+            'ip' => $dto->ip,
+            'tracking_snapshot' => $dto->trackingSnapshot,
+        ]);
 
+            $lead->load('visitor');
             $this->scoring->recalculateLead($lead);
 
             $conversation = $this->conversations->createForLead($visitor, $lead, $dto->sourceChannel);

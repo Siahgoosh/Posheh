@@ -140,8 +140,8 @@ clear_laravel_cache
 log "5/10 Seeding settings, blog and demo data"
 $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --no-interaction \
   || fail "SystemSettingsSeeder failed"
-$COMPOSE exec -T app php artisan communication:install --force --no-interaction 2>/dev/null \
-  || log "communication:install skipped (run manually if chat widget needed)"
+$COMPOSE exec -T app php artisan communication:install --force --no-interaction \
+  || log "communication:install warning — run: docker compose exec app php artisan communication:install --force"
 $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
   || log "BlogSeeder warning (may already be seeded)"
 $COMPOSE exec -T app php artisan blog:seed --count=300 --force --no-interaction 2>/dev/null \

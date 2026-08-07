@@ -1,4 +1,4 @@
-import api from '@/lib/api'
+import commPublicApi from './commPublicApi'
 
 export interface CommConfig {
   provinces: string[]
@@ -8,27 +8,29 @@ export interface CommConfig {
 }
 
 export const communicationApi = {
-  config: () => api.get('/communication/config'),
+  config: () => commPublicApi.get('/communication/config'),
+
+  health: () => commPublicApi.get('/communication/health'),
 
   initVisitor: (payload: Record<string, unknown>) =>
-    api.post('/communication/visitors/init', payload),
+    commPublicApi.post('/communication/visitors/init', payload),
 
   heartbeat: (payload: Record<string, unknown>) =>
-    api.post('/communication/visitors/heartbeat', payload),
+    commPublicApi.post('/communication/visitors/heartbeat', payload),
 
   trackEvent: (payload: Record<string, unknown>) =>
-    api.post('/communication/visitors/events', payload),
+    commPublicApi.post('/communication/visitors/events', payload),
 
   captureLead: (payload: Record<string, unknown>) =>
-    api.post('/communication/leads', payload),
+    commPublicApi.post('/communication/leads', payload),
 
   getMessages: (conversationUuid: string, visitorToken: string) =>
-    api.get(`/communication/conversations/${conversationUuid}/messages`, {
+    commPublicApi.get(`/communication/conversations/${conversationUuid}/messages`, {
       params: { visitor_token: visitorToken },
     }),
 
   sendMessage: (conversationUuid: string, visitorToken: string, body: string) =>
-    api.post(`/communication/conversations/${conversationUuid}/messages`, {
+    commPublicApi.post(`/communication/conversations/${conversationUuid}/messages`, {
       visitor_token: visitorToken,
       body,
     }),

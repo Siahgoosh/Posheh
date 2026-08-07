@@ -68,15 +68,19 @@ export async function ensureVisitorInitialized(): Promise<string> {
       sessionStorage.setItem('posheh_comm_landing', window.location.pathname)
     }
     return token
-  } catch (e: unknown) {
-    const err = e as { response?: { data?: { message?: string }; status?: number } }
-    console.error('[comm] visitor init failed', err?.response?.status, err?.response?.data)
-    const apiMsg = err?.response?.data?.message
-    if (err?.response?.status === 503 || err?.response?.status === 500 || err?.response?.status === 404) {
-      throw new Error(apiMsg || 'سرویس چت هنوز روی سرور فعال نشده. روی سرور: php artisan communication:install')
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string }; status?: number } }
+      console.error('[comm] visitor init failed', err?.response?.status, err?.response?.data)
+      const apiMsg = err?.response?.data?.message
+      if (err?.response?.status === 422) {
+        useCommVisitorStore.getState().setVisitorToken(null)
+        throw new Error(apiMsg || 'نشست چت منقضی شد. صفحه را رفرش کنید.')
+      }
+      if (err?.response?.status === 503 || err?.response?.status === 500 || err?.response?.status === 404) {
+        throw new Error(apiMsg || 'سرویس چت هنوز روی سرور فعال نشده. روی سرور: php artisan communication:install')
+      }
+      throw new Error(apiMsg || 'اتصال به سرور برقرار نشد. لطفاً صفحه را رفرش کنید.')
     }
-    throw new Error(apiMsg || 'اتصال به سرور برقرار نشد. لطفاً صفحه را رفرش کنید.')
-  }
 }
 
 async function sendHeartbeat(): Promise<void> {

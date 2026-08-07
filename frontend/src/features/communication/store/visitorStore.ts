@@ -6,7 +6,7 @@ interface VisitorState {
   sessionKey: string | null
   conversationUuid: string | null
   leadScore: number
-  setVisitorToken: (token: string) => void
+  setVisitorToken: (token: string | null) => void
   setSessionKey: (key: string) => void
   setConversationUuid: (uuid: string) => void
   setLeadScore: (score: number) => void

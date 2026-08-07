@@ -33,6 +33,9 @@ api.interceptors.response.use(
       }
     }
     if (error.response?.status === 402 && error.response?.data?.subscription_expired) {
+      if (requestUrl.includes('/communication/')) {
+        return Promise.reject(error)
+      }
       if (!window.location.pathname.startsWith('/renew') && !window.location.pathname.startsWith('/subscription')) {
         window.location.href = '/renew'
       }
