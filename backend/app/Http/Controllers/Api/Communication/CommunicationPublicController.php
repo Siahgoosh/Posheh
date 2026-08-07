@@ -11,6 +11,7 @@ use App\Modules\Communication\Application\Services\MessageService;
 use App\Modules\Communication\Application\Services\VisitorTrackingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class CommunicationPublicController extends Controller
 {
@@ -33,8 +34,30 @@ class CommunicationPublicController extends Controller
         ]);
     }
 
+    public function health(): JsonResponse
+    {
+        $installed = Schema::hasTable('comm_visitors')
+            && Schema::hasTable('comm_conversations')
+            && Schema::hasTable('comm_messages');
+
+        return response()->json([
+            'ok' => $installed,
+            'installed' => $installed,
+            'message' => $installed
+                ? 'Communication module is ready.'
+                : 'Run: php artisan communication:install',
+        ], $installed ? 200 : 503);
+    }
+
     public function init(Request $request): JsonResponse
     {
+        if (! Schema::hasTable('comm_visitors')) {
+            return response()->json([
+                'message' => 'ماژول مرکز ارتباطات نصب نشده. روی سرور: php artisan communication:install',
+                'code' => 'comm_not_installed',
+            ], 503);
+        }
+
         $data = $request->validate([
             'visitor_token' => ['nullable', 'uuid'],
             'session_key' => ['required', 'string', 'max:64'],
@@ -107,6 +130,13 @@ class CommunicationPublicController extends Controller
 
     public function captureLead(Request $request): JsonResponse
     {
+        if (! Schema::hasTable('comm_leads')) {
+            return response()->json([
+                'message' => 'ماژول مرکز ارتباطات نصب نشده. php artisan communication:install',
+                'code' => 'comm_not_installed',
+            ], 503);
+        }
+
         $data = $request->validate([
             'visitor_token' => ['required', 'uuid'],
             'session_key' => ['required', 'string', 'max:64'],

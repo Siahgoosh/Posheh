@@ -72,8 +72,8 @@ export async function ensureVisitorInitialized(): Promise<string> {
     const err = e as { response?: { data?: { message?: string }; status?: number } }
     console.error('[comm] visitor init failed', err?.response?.status, err?.response?.data)
     const apiMsg = err?.response?.data?.message
-    if (err?.response?.status === 500 || err?.response?.status === 404) {
-      throw new Error('سرویس چت هنوز روی سرور فعال نشده. لطفاً migration را اجرا کنید یا با پشتیبانی تماس بگیرید.')
+    if (err?.response?.status === 503 || err?.response?.status === 500 || err?.response?.status === 404) {
+      throw new Error(apiMsg || 'سرویس چت هنوز روی سرور فعال نشده. روی سرور: php artisan communication:install')
     }
     throw new Error(apiMsg || 'اتصال به سرور برقرار نشد. لطفاً صفحه را رفرش کنید.')
   }

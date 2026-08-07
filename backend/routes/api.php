@@ -80,6 +80,7 @@ Route::prefix('v1')->group(function () {
 
     Route::prefix('communication')->middleware('throttle:180,1')->group(function () {
         Route::get('/config', [CommunicationPublicController::class, 'config']);
+        Route::get('/health', [CommunicationPublicController::class, 'health']);
         Route::post('/visitors/init', [CommunicationPublicController::class, 'init']);
         Route::post('/visitors/heartbeat', [CommunicationPublicController::class, 'heartbeat']);
         Route::post('/visitors/events', [CommunicationPublicController::class, 'event']);
