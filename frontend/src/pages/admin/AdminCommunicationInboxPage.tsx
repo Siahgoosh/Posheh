@@ -93,7 +93,7 @@ export function AdminCommunicationInboxPage() {
   const { data: inbox, isError: inboxError, error: inboxErr } = useQuery({
     queryKey: ['comm-inbox'],
     queryFn: async () => (await api.get('/admin/communication/inbox')).data.data as ConversationItem[],
-    refetchInterval: statsError || inboxError ? false : 8000,
+    refetchInterval: statsError ? false : 8000,
     retry: false,
   })
 
