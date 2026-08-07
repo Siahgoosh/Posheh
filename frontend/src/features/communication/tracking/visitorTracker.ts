@@ -20,12 +20,35 @@ export async function initCommunicationTracking(): Promise<void> {
   if (initialized || typeof window === 'undefined') return
   initialized = true
 
-  const sessionKey = createSessionKey()
-  useCommVisitorStore.getState().setSessionKey(sessionKey)
+  await ensureVisitorInitialized()
+
   startTime = Date.now()
 
-  const utm = getUtmParams()
+  document.addEventListener('click', () => {
+    clickCount += 1
+  }, { passive: true })
+
+  document.addEventListener('mousemove', () => {
+    mouseMoveCount += 1
+  }, { passive: true })
+
+  window.addEventListener('scroll', () => {
+    maxScroll = Math.max(maxScroll, scrollDepth())
+  }, { passive: true })
+
+  const interval = (await communicationApi.config().catch(() => null))?.data?.data?.heartbeat_interval ?? 25
+  heartbeatTimer = setInterval(sendHeartbeat, interval * 1000)
+}
+
+/** Ensure visitor token exists — required before lead capture / chat */
+export async function ensureVisitorInitialized(): Promise<string | null> {
   const store = useCommVisitorStore.getState()
+  if (store.visitorToken) return store.visitorToken
+
+  const sessionKey = store.sessionKey || createSessionKey()
+  store.setSessionKey(sessionKey)
+
+  const utm = getUtmParams()
 
   try {
     const res = await communicationApi.initVisitor({
@@ -44,24 +67,10 @@ export async function initCommunicationTracking(): Promise<void> {
     if (!sessionStorage.getItem('posheh_comm_landing')) {
       sessionStorage.setItem('posheh_comm_landing', window.location.pathname)
     }
+    return token
   } catch {
-    // silent — widget still works
+    return null
   }
-
-  document.addEventListener('click', () => {
-    clickCount += 1
-  }, { passive: true })
-
-  document.addEventListener('mousemove', () => {
-    mouseMoveCount += 1
-  }, { passive: true })
-
-  window.addEventListener('scroll', () => {
-    maxScroll = Math.max(maxScroll, scrollDepth())
-  }, { passive: true })
-
-  const interval = (await communicationApi.config().catch(() => null))?.data?.data?.heartbeat_interval ?? 25
-  heartbeatTimer = setInterval(sendHeartbeat, interval * 1000)
 }
 
 async function sendHeartbeat(): Promise<void> {

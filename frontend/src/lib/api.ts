@@ -20,7 +20,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const requestUrl = String(error.config?.url ?? '')
+
     if (error.response?.status === 401) {
+      // Public communication widget must not redirect when a stale office token exists
+      if (requestUrl.includes('/communication/')) {
+        return Promise.reject(error)
+      }
       localStorage.removeItem('token')
       if (!window.location.pathname.includes('/login') && window.location.pathname !== '/') {
         window.location.href = '/login'

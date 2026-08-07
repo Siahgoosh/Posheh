@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/stores/auth'
 import { communicationApi } from '../api/communicationApi'
 import { useCommVisitorStore, createSessionKey } from '../store/visitorStore'
-import { trackCommEvent } from '../tracking/visitorTracker'
+import { trackCommEvent, ensureVisitorInitialized } from '../tracking/visitorTracker'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react'
@@ -24,7 +24,7 @@ export function FloatingChatWidget() {
   const { user, isAuthenticated } = useAuthStore()
   const {
     visitorToken, sessionKey, conversationUuid,
-    setConversationUuid, setLeadScore,
+    setSessionKey, setConversationUuid, setLeadScore,
   } = useCommVisitorStore()
 
   const [open, setOpen] = useState(false)
@@ -72,24 +72,51 @@ export function FloatingChatWidget() {
     return () => clearInterval(t)
   }, [open, step, conversationUuid, visitorToken])
 
-  const openWidget = () => {
+  useEffect(() => {
+    if (!open) return
+    ensureVisitorInitialized().catch(() => {})
+  }, [open])
+
+  const openWidget = async () => {
     setOpen(true)
     setUnread(0)
     trackCommEvent('chat_open')
-    if (conversationUuid) setStep('chat')
-    else if (isAuthenticated && user?.mobile) setStep('form')
+    if (conversationUuid) {
+      setStep('chat')
+      return
+    }
+    await ensureVisitorInitialized()
+    if (isAuthenticated && user?.mobile) setStep('form')
   }
 
   const submitForm = async () => {
-    if (!visitorToken) return
     setLoading(true)
     setError(null)
     try {
-      const res = await communicationApi.captureLead({
-        visitor_token: visitorToken,
-        session_key: sessionKey || createSessionKey(),
-        ...form,
-        staff_count: form.staff_count ? Number(form.staff_count) : undefined,
+      const token = visitorToken || await ensureVisitorInitialized()
+      if (!token) {
+        setError('اتصال به سرور برقرار نشد. لطفاً صفحه را رفرش کنید.')
+        return
+      }
+
+      const key = sessionKey || createSessionKey()
+      if (!sessionKey) setSessionKey(key)
+
+      const payload: Record<string, unknown> = {
+        visitor_token: token,
+        session_key: key,
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim() || undefined,
+        mobile: form.mobile.trim(),
+        email: form.email.trim() || undefined,
+        province: form.province || undefined,
+        city: form.city.trim() || undefined,
+        office_name: form.office_name.trim() || undefined,
+        role_title: form.role_title.trim() || undefined,
+        request_type: form.request_type || undefined,
+        activity_type: form.activity_type || undefined,
+        budget: form.budget.trim() || undefined,
+        description: form.description.trim() || undefined,
         tracking_snapshot: {
           landing_page: sessionStorage.getItem('posheh_comm_landing'),
           current_page: window.location.pathname,
@@ -99,14 +126,25 @@ export function FloatingChatWidget() {
           language: navigator.language,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
-      })
+      }
+
+      if (form.staff_count.trim()) {
+        const n = Number(form.staff_count)
+        if (!Number.isNaN(n)) payload.staff_count = n
+      }
+
+      const res = await communicationApi.captureLead(payload)
       const uuid = res.data.data.conversation_uuid as string
       setConversationUuid(uuid)
       setLeadScore(res.data.data.lead_score as number)
       trackCommEvent('form_submit')
       setStep('chat')
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+      const err = e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      const validation = err?.response?.data?.errors
+      const msg = validation
+        ? Object.values(validation).flat().join(' ')
+        : err?.response?.data?.message
       setError(msg || 'ثبت اطلاعات ناموفق بود.')
     } finally {
       setLoading(false)
