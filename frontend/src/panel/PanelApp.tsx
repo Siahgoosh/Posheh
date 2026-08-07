@@ -44,6 +44,7 @@ import { AdminExportsPage } from '@/pages/admin/AdminExportsPage'
 import { AdminChurnPage } from '@/pages/admin/AdminChurnPage'
 import { AdminHealthPage } from '@/pages/admin/AdminHealthPage'
 import { AdminVirtualToursStatsPage } from '@/pages/admin/AdminVirtualToursStatsPage'
+import { AdminCommunicationInboxPage } from '@/pages/admin/AdminCommunicationInboxPage'
 import { AdminDomainOrdersPage } from '@/pages/admin/AdminDomainOrdersPage'
 
 const queryClient = new QueryClient({
@@ -122,6 +123,7 @@ export function PanelApp() {
             <Route path="churn" element={<AdminChurnPage />} />
             <Route path="health" element={<AdminHealthPage />} />
             <Route path="virtual-tours" element={<AdminVirtualToursStatsPage />} />
+            <Route path="communication" element={<AdminCommunicationInboxPage />} />
             <Route path="domain-orders" element={<AdminDomainOrdersPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />

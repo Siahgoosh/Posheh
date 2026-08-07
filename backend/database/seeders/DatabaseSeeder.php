@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(SystemSettingsSeeder::class);
         $this->call(BlogSeeder::class);
+        $this->call(CommunicationSeeder::class);
         if (class_exists(VirtualTourSeeder::class)) {
             $this->call(VirtualTourSeeder::class);
         }

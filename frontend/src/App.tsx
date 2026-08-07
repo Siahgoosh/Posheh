@@ -28,6 +28,7 @@ import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
 import { AdminSuperPanelPage } from '@/pages/admin/AdminSuperPanelPage'
+import { CommunicationWidgetRoot } from '@/features/communication/CommunicationWidgetRoot'
 import { AnalyticsTracker } from '@/components/AnalyticsTracker'
 import { SubscriptionGuard } from '@/components/SubscriptionGuard'
 import { AdminPlansPage } from '@/pages/admin/AdminPlansPage'
@@ -89,6 +90,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthBootstrap>
         <AnalyticsTracker />
+        <CommunicationWidgetRoot />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/blog" element={<BlogListPage />} />

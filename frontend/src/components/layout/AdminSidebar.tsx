@@ -5,7 +5,7 @@ import {
   LogOut, Moon, Sun, Menu, X, UserCog, ChevronDown,
   UserCircle, Home, Handshake, Calendar, FileText, Percent,
   Calculator, Smartphone, TrendingDown, DollarSign, Database,
-  Activity, Flag, DownloadCloud, Heart, Globe,
+  Activity, Flag, DownloadCloud, Heart, Globe, MessageCircle,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -28,7 +28,7 @@ const navGroups = [
     label: 'مدیریت پلتفرم',
     items: [
       { to: '/health', icon: Heart, label: 'Health Score' },
-      { to: '/virtual-tours', icon: Globe, label: 'تور مجازی' },
+      { to: '/communication', icon: MessageCircle, label: 'مرکز ارتباطات' },
       { to: '/tenants', icon: Building2, label: 'دفاتر' },
       { to: '/users', icon: Users, label: 'کاربران' },
       { to: '/customers', icon: UserCircle, label: 'مشتریان' },

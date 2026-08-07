@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Api\AccountingController;
 use App\Http\Controllers\Api\Admin\AdminController;
-use App\Http\Controllers\Api\Admin\AdminAuditController;
+use App\Http\Controllers\Api\Admin\AdminCommunicationController;
 use App\Http\Controllers\Api\Admin\AdminDataController;
 use App\Http\Controllers\Api\Admin\AdminPhase2Controller;
 use App\Http\Controllers\Api\Admin\AdminCouponController;
@@ -30,7 +30,7 @@ use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\BotWebhookController;
-use App\Http\Controllers\Api\ConsultantDirectoryController;
+use App\Http\Controllers\Api\Communication\CommunicationPublicController;
 use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\CommissionController;
 use App\Http\Controllers\Api\CrmController;
@@ -75,6 +75,16 @@ Route::prefix('v1')->group(function () {
     Route::get('/sites/{subdomain}', [OfficeSiteController::class, 'show']);
     Route::post('/sites/{subdomain}/visit-request', [OfficeSiteController::class, 'visitRequest'])->middleware('throttle:20,1');
     Route::post('/analytics/track', [AnalyticsController::class, 'track'])->middleware('throttle:120,1');
+
+    Route::prefix('communication')->middleware('throttle:180,1')->group(function () {
+        Route::get('/config', [CommunicationPublicController::class, 'config']);
+        Route::post('/visitors/init', [CommunicationPublicController::class, 'init']);
+        Route::post('/visitors/heartbeat', [CommunicationPublicController::class, 'heartbeat']);
+        Route::post('/visitors/events', [CommunicationPublicController::class, 'event']);
+        Route::post('/leads', [CommunicationPublicController::class, 'captureLead'])->middleware('throttle:30,1');
+        Route::get('/conversations/{uuid}/messages', [CommunicationPublicController::class, 'messages']);
+        Route::post('/conversations/{uuid}/messages', [CommunicationPublicController::class, 'sendMessage']);
+    });
     Route::post('/auth/register', [RegistrationController::class, 'register'])->middleware('throttle:10,1');
     Route::post('/auth/password/forgot', [PasswordResetController::class, 'forgot'])->middleware('throttle:10,1');
     Route::post('/auth/password/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:10,1');
@@ -290,6 +300,15 @@ Route::prefix('v1')->group(function () {
             Route::put('/feature-flags/{key}', [AdminPhase2Controller::class, 'updateFeatureFlag']);
             Route::get('/commissions/kpi', [AdminPhase2Controller::class, 'commissionKpi']);
             Route::get('/crm/follow-ups', [AdminPhase2Controller::class, 'crmFollowUps']);
+
+            Route::prefix('communication')->group(function () {
+                Route::get('/dashboard', [AdminCommunicationController::class, 'dashboard']);
+                Route::get('/inbox', [AdminCommunicationController::class, 'inbox']);
+                Route::get('/conversations/{uuid}', [AdminCommunicationController::class, 'showConversation']);
+                Route::post('/conversations/{uuid}/reply', [AdminCommunicationController::class, 'reply']);
+                Route::get('/visitors/live', [AdminCommunicationController::class, 'liveVisitors']);
+                Route::put('/leads/{id}', [AdminCommunicationController::class, 'updateLead']);
+            });
             Route::get('/phase2/summary', [AdminPhase2Controller::class, 'phase2Summary']);
             Route::post('/system/sms-test', [AdminPhase2Controller::class, 'testSms']);
 
