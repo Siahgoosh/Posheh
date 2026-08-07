@@ -45,11 +45,28 @@ export function PanelLoginPage() {
       setAuth(data.user, data.token)
       navigate('/')
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } }
+      const axiosErr = err as {
+        response?: { status?: number; data?: { errors?: Record<string, string[]>; message?: string } }
+        message?: string
+        code?: string
+      }
+      if (!axiosErr.response) {
+        setError(
+          axiosErr.code === 'ECONNABORTED'
+            ? 'زمان پاسخ سرور تمام شد. دوباره تلاش کنید.'
+            : 'ارتباط با سرور برقرار نشد (ممکن است خطای 502 باشد). چند دقیقه بعد دوباره امتحان کنید.',
+        )
+        return
+      }
+      const status = axiosErr.response.status
+      if (status === 502 || status === 503 || status === 504) {
+        setError('سرور موقتاً در دسترس نیست (خطای '+status+'). لطفاً چند دقیقه بعد دوباره تلاش کنید.')
+        return
+      }
       setError(
         axiosErr.response?.data?.errors?.login?.[0]
           || axiosErr.response?.data?.message
-          || 'خطا در ورود'
+          || 'خطا در ورود',
       )
     } finally {
       setLoading(false)

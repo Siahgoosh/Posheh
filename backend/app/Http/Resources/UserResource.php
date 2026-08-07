@@ -20,7 +20,10 @@ class UserResource extends JsonResource
             'avatar_url' => $this->avatar_path ? url('storage/'.$this->avatar_path) : null,
             'is_active' => $this->is_active,
             'last_login_at' => $this->last_login_at?->toIso8601String(),
-            'office' => new OfficeResource($this->whenLoaded('office')),
+            'office' => $this->when(
+                $this->relationLoaded('office') && $this->office !== null,
+                fn () => new OfficeResource($this->office),
+            ),
         ];
     }
 }

@@ -16,6 +16,7 @@ use App\Modules\Communication\Application\Services\InboxService;
 use App\Modules\Communication\Application\Services\LiveVisitorService;
 use App\Modules\Communication\Application\Services\MessageService;
 use App\Modules\Communication\Application\Services\TicketService;
+use App\Modules\Communication\Infrastructure\Telegram\TelegramApiClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -31,6 +32,7 @@ class AdminCommunicationController extends Controller
         private readonly TicketService $tickets,
         private readonly AiCopilotService $ai,
         private readonly AttachmentService $attachments,
+        private readonly TelegramApiClient $telegram,
     ) {}
 
     private function authorizeComm(Request $request, string $permission): void
@@ -55,6 +57,32 @@ class AdminCommunicationController extends Controller
         $this->authorizeComm($request, 'comm.dashboard.view');
 
         return response()->json(['data' => $this->inbox->dashboardStats()]);
+    }
+
+    public function registerTelegramWebhook(Request $request): JsonResponse
+    {
+        $this->authorizeComm($request, 'comm.dashboard.view');
+
+        if (! $this->telegram->isConfigured()) {
+            return response()->json(['message' => 'توکن ربات تلگرام در تنظیمات مرکز ارتباطات تنظیم نشده است.'], 422);
+        }
+
+        $result = $this->telegram->registerCommunicationWebhook();
+        $webhookUrl = rtrim((string) config('app.url'), '/').'/api/v1/communication/telegram/webhook';
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json([
+                'message' => 'ثبت webhook در تلگرام ناموفق بود: '.($result['description'] ?? 'خطای ناشناخته'),
+                'telegram' => $result,
+                'url' => $webhookUrl,
+            ], 502);
+        }
+
+        return response()->json([
+            'message' => 'Webhook تلگرام با موفقیت در Bot API ثبت شد.',
+            'data' => $result['result'] ?? null,
+            'url' => $webhookUrl,
+        ]);
     }
 
     public function inbox(Request $request): JsonResponse

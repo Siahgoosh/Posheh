@@ -27,9 +27,13 @@ class OperatorAlertService
         $text = $this->buildAlertText($conversation, $preview);
         $this->dispatchTelegramAlerts($conversation, $text);
 
-        $analysis = $this->ai->summarize($conversation);
-        if ($analysis['alert'] ?? false) {
-            $this->sendToAllOperators('⚠️ <b>هشدار:</b> مشتری ناراضی به نظر می‌رسد!');
+        try {
+            $analysis = $this->ai->summarize($conversation);
+            if ($analysis['alert'] ?? false) {
+                $this->sendToAllOperators('⚠️ <b>هشدار:</b> مشتری ناراضی به نظر می‌رسد!');
+            }
+        } catch (\Throwable) {
+            // AI summary must not block message delivery or Telegram alerts
         }
     }
 

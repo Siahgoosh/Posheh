@@ -90,6 +90,17 @@ class TelegramApiClient
         return $this->call('getFile', ['file_id' => $fileId]);
     }
 
+    public function registerCommunicationWebhook(): array
+    {
+        $baseUrl = rtrim((string) config('app.url'), '/');
+        $url = $baseUrl.'/api/v1/communication/telegram/webhook';
+
+        return $this->call('setWebhook', [
+            'url' => $url,
+            'allowed_updates' => ['message', 'edited_message'],
+        ]);
+    }
+
     public function downloadFile(string $filePath): ?string
     {
         $token = $this->token();

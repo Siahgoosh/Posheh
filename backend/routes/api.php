@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\Communication\CommunicationPublicController;
 use App\Http\Controllers\Api\Communication\CommunicationTelegramWebhookController;
 use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\CommissionController;
+use App\Http\Controllers\Api\ConsultantDirectoryController;
 use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\DownloadController;
@@ -87,6 +88,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/leads', [CommunicationPublicController::class, 'captureLead'])->middleware('throttle:30,1');
         Route::get('/conversations/{uuid}/messages', [CommunicationPublicController::class, 'messages']);
         Route::post('/conversations/{uuid}/messages', [CommunicationPublicController::class, 'sendMessage']);
+        Route::get('/telegram/webhook', [CommunicationTelegramWebhookController::class, 'ping']);
         Route::post('/telegram/webhook', [CommunicationTelegramWebhookController::class, 'handle']);
         Route::post('/email/inbound', [CommunicationEmailWebhookController::class, 'inbound']);
     });
@@ -308,6 +310,7 @@ Route::prefix('v1')->group(function () {
 
             Route::prefix('communication')->group(function () {
                 Route::get('/dashboard', [AdminCommunicationController::class, 'dashboard']);
+                Route::post('/telegram/webhook/register', [AdminCommunicationController::class, 'registerTelegramWebhook']);
                 Route::get('/inbox', [AdminCommunicationController::class, 'inbox']);
                 Route::get('/conversations/{uuid}', [AdminCommunicationController::class, 'showConversation']);
                 Route::post('/conversations/{uuid}/reply', [AdminCommunicationController::class, 'reply']);

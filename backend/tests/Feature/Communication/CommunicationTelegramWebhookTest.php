@@ -10,6 +10,13 @@ class CommunicationTelegramWebhookTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_telegram_webhook_ping_returns_ok(): void
+    {
+        $this->getJson('/api/v1/communication/telegram/webhook')
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+    }
+
     public function test_telegram_webhook_creates_visitor_message(): void
     {
         config(['communication.telegram.platform_bot_token' => 'test-token']);

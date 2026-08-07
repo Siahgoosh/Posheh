@@ -50,6 +50,11 @@ export function AdminSettingsPage() {
     },
   })
 
+  const webhookMutation = useMutation({
+    mutationFn: async () => (await api.post('/admin/communication/telegram/webhook/register')).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-settings'] }),
+  })
+
   const groups = data?.data ?? {}
   const comm = data?.communication
 
@@ -76,7 +81,26 @@ export function AdminSettingsPage() {
             <p className="text-muted">دامنه inbound تیکت: <span className="text-foreground">{comm.email_inbound_domain}</span></p>
             <p className="text-muted break-all">Webhook تلگرام: <code className="text-xs">{comm.telegram_webhook_url}</code></p>
             <p className="text-muted break-all">Webhook ایمیل inbound: <code className="text-xs">{comm.email_inbound_url}</code></p>
-            <p className="text-xs text-muted">پارامترهای اتصال را در بخش «مرکز ارتباطات» پایین همین صفحه تنظیم کنید.</p>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!comm.telegram_configured || webhookMutation.isPending}
+                onClick={() => webhookMutation.mutate()}
+              >
+                {webhookMutation.isPending ? 'در حال ثبت…' : 'ثبت Webhook در تلگرام'}
+              </Button>
+              {webhookMutation.isSuccess && (
+                <span className="text-xs text-primary">{(webhookMutation.data as { message?: string })?.message}</span>
+              )}
+              {webhookMutation.isError && (
+                <span className="text-xs text-danger">
+                  {(webhookMutation.error as { response?: { data?: { message?: string } } })?.response?.data?.message
+                    || 'ثبت webhook ناموفق بود'}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted">باز کردن URL webhook در مرورگر فقط health-check است؛ ثبت واقعی با دکمه بالا یا Bot API انجام می‌شود.</p>
           </CardContent>
         </Card>
       )}
