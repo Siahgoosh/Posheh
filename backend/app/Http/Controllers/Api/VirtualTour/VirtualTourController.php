@@ -24,6 +24,7 @@ class VirtualTourController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'property_id' => ['nullable', 'integer', 'exists:properties,id'],
+            'office_id' => ['nullable', 'integer', 'exists:offices,id'],
         ]);
 
         $tour = $this->service->create($request->user(), $data);

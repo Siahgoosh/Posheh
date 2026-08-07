@@ -5,7 +5,7 @@ import {
   LogOut, Moon, Sun, Menu, X, UserCog, ChevronDown,
   UserCircle, Home, Handshake, Calendar, FileText, Percent,
   Calculator, Smartphone, TrendingDown, DollarSign, Database,
-  Activity, Flag, DownloadCloud, Heart, Globe, MessageCircle,
+  Activity, Flag, DownloadCloud, Heart, Globe, MessageCircle, Box,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -29,6 +29,7 @@ const navGroups = [
     items: [
       { to: '/health', icon: Heart, label: 'Health Score' },
       { to: '/communication', icon: MessageCircle, label: 'مرکز ارتباطات' },
+      { to: '/virtual-tours', icon: Box, label: 'تور مجازی ۳۶۰' },
       { to: '/tenants', icon: Building2, label: 'دفاتر' },
       { to: '/users', icon: Users, label: 'کاربران' },
       { to: '/customers', icon: UserCircle, label: 'مشتریان' },

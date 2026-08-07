@@ -2,6 +2,7 @@
 
 namespace App\Services\VirtualTour;
 
+use App\Models\Office;
 use App\Models\User;
 use App\Models\VirtualTour;
 use App\Models\VirtualTourLead;
@@ -15,8 +16,14 @@ class VirtualTourService
 {
     public function list(User $user)
     {
-        return VirtualTour::where('office_id', $user->office_id)
-            ->with(['property:id,code,city', 'scenes:id,virtual_tour_id,name'])
+        $query = VirtualTour::query();
+
+        if (! $this->isPlatformScope($user)) {
+            $query->where('office_id', $user->office_id);
+        }
+
+        return $query
+            ->with(['property:id,code,city', 'office:id,name', 'scenes:id,virtual_tour_id,name'])
             ->withCount('views', 'leads')
             ->latest()
             ->paginate(20);
@@ -24,10 +31,16 @@ class VirtualTourService
 
     public function create(User $user, array $data): VirtualTour
     {
+        $officeId = $user->office_id ?? $this->platformOfficeId($data['office_id'] ?? null);
+
+        if (! $officeId) {
+            throw new \InvalidArgumentException('office_id is required to create a virtual tour.');
+        }
+
         $slug = $this->uniqueSlug($data['title']);
 
         return VirtualTour::create([
-            'office_id' => $user->office_id,
+            'office_id' => $officeId,
             'property_id' => $data['property_id'] ?? null,
             'created_by' => $user->id,
             'title' => $data['title'],
@@ -55,9 +68,14 @@ class VirtualTourService
 
     public function findForOffice(User $user, int $id): VirtualTour
     {
-        return VirtualTour::where('office_id', $user->office_id)
-            ->with(['scenes.hotspots.targetScene', 'media', 'property'])
-            ->findOrFail($id);
+        $query = VirtualTour::query()
+            ->with(['scenes.hotspots.targetScene', 'media', 'property', 'office']);
+
+        if (! $this->isPlatformScope($user)) {
+            $query->where('office_id', $user->office_id);
+        }
+
+        return $query->findOrFail($id);
     }
 
     public function findPublic(string $slug): VirtualTour
@@ -240,10 +258,15 @@ class VirtualTourService
 
     private function defaultSettings(User $user): array
     {
+        $office = $user->office;
+        if (! $office && $this->isPlatformScope($user)) {
+            $office = Office::where('slug', 'demo-office')->first();
+        }
+
         return [
             'brand_color' => '#6366f1',
             'logo_url' => null,
-            'phone' => $user->office?->phone ?? null,
+            'phone' => $office?->phone ?? null,
             'whatsapp' => null,
             'telegram' => null,
             'music_url' => null,
@@ -256,5 +279,20 @@ class VirtualTourService
             'enable_vr' => true,
             'enable_gyroscope' => true,
         ];
+    }
+
+    private function isPlatformScope(User $user): bool
+    {
+        return $user->isSuperAdmin() || $user->role->isPlatformStaff();
+    }
+
+    private function platformOfficeId(?int $requestedOfficeId): ?int
+    {
+        if ($requestedOfficeId) {
+            return $requestedOfficeId;
+        }
+
+        return Office::where('slug', 'demo-office')->value('id')
+            ?? Office::query()->orderBy('id')->value('id');
     }
 }

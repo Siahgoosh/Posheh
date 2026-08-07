@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Plus, Eye, Users, ExternalLink, Box, BookOpen } from 'lucide-react'
 import api from '@/lib/api'
+import { publicTourUrl, virtualTourGuideUrl } from '@/lib/tourUrls'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -29,10 +30,12 @@ export function VirtualToursPage() {
             <Box className="h-6 w-6 text-primary" />
             تور مجازی ۳۶۰ درجه
           </h1>
-          <p className="text-muted text-sm mt-1">ساخت و مدیریت تور مجازی املاک — مشابه ۳۶۰نما</p>
+          <p className="text-muted text-sm mt-1">
+            ساخت تور ۳۶۰ با اسمارت‌واک بین صحنه‌ها — پیمایش هوشمند مثل ۳۶۰نما
+          </p>
         </div>
-        <div className="flex gap-2">
-          <a href="/virtual-tour-guide.html" target="_blank" rel="noreferrer">
+        <div className="flex gap-2 flex-wrap">
+          <a href={virtualTourGuideUrl()} target="_blank" rel="noreferrer">
             <Button variant="outline"><BookOpen className="h-4 w-4" />راهنما</Button>
           </a>
           <Button onClick={createTour}><Plus className="h-4 w-4" />تور جدید</Button>
@@ -61,7 +64,7 @@ export function VirtualToursPage() {
                   <Button variant="outline" size="sm" className="w-full">ویرایش</Button>
                 </Link>
                 {t.status === 'published' && (
-                  <a href={`/tour/${t.slug}`} target="_blank" rel="noreferrer">
+                  <a href={publicTourUrl(t.slug)} target="_blank" rel="noreferrer">
                     <Button size="sm" variant="ghost"><ExternalLink className="h-4 w-4" /></Button>
                   </a>
                 )}

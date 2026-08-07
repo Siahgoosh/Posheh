@@ -24,11 +24,11 @@ export function PanelLoginPage() {
     api.get('/auth/capabilities')
       .then((r) => {
         if (r.data?.login_method !== 'password') {
-          setError('سرور هنوز نسخه قدیمی OTP است. روی سرور: ./scripts/deploy.sh cursor/customer-communication-e117')
+          setDeployWarning('سرور هنوز نسخه قدیمی OTP است. روی سرور: ./scripts/deploy.sh cursor/customer-communication-e117')
         }
       })
       .catch(() => {
-        setError('API در دسترس نیست (502). روی سرور: ./scripts/deploy.sh cursor/customer-communication-e117')
+        setDeployWarning('API در دسترس نیست (502). روی سرور: ./scripts/deploy.sh cursor/customer-communication-e117')
       })
   }, [])
 
@@ -112,6 +112,7 @@ export function PanelLoginPage() {
               autoComplete="current-password"
               required
             />
+            {deployWarning && <p className="text-sm text-warning">{deployWarning}</p>}
             {error && <p className="text-sm text-danger">{error}</p>}
             <Button type="submit" className="w-full gap-2" disabled={loading}>
               <KeyRound className="h-4 w-4" />

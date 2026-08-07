@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { ArrowRight, Plus, Trash2, Globe, BookOpen } from 'lucide-react'
 import api from '@/lib/api'
+import { publicTourUrl, virtualTourGuideUrl } from '@/lib/tourUrls'
 import { VirtualTourViewer } from '@/components/virtual-tour/VirtualTourViewer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -45,17 +46,17 @@ export function VirtualTourEditorPage() {
         <Link to="/virtual-tours"><Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button></Link>
         <div className="flex-1">
           <h1 className="text-xl font-bold">{tour.title}</h1>
-          <p className="text-xs text-muted">ویرایش تور مجازی ۳۶۰ درجه</p>
+          <p className="text-xs text-muted">ویرایش تور ۳۶۰ — اسمارت‌واک بین صحنه‌ها با لینک hotspot</p>
         </div>
         <Badge>{tour.status === 'published' ? 'منتشر شده' : 'پیش‌نویس'}</Badge>
         {tour.status !== 'published' ? (
           <Button onClick={() => publishMutation.mutate('published')}><Globe className="h-4 w-4" />انتشار</Button>
         ) : (
-          <a href={`/tour/${tour.slug}`} target="_blank" rel="noreferrer">
+          <a href={publicTourUrl(tour.slug)} target="_blank" rel="noreferrer">
             <Button variant="outline">مشاهده عمومی</Button>
           </a>
         )}
-        <a href="/virtual-tour-guide.html" target="_blank" rel="noreferrer">
+        <a href={virtualTourGuideUrl()} target="_blank" rel="noreferrer">
           <Button variant="ghost" size="sm"><BookOpen className="h-4 w-4" />راهنما</Button>
         </a>
       </div>
@@ -72,9 +73,16 @@ export function VirtualTourEditorPage() {
         <div className="space-y-4">
           <Card className="p-4 space-y-3">
             <h2 className="font-semibold">صحنه‌ها</h2>
-            {tour.scenes?.map((s: { id: number; name: string }) => (
+            {tour.scenes?.map((s: { id: number; name: string; hotspots?: { length?: number }[] }) => (
               <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/10">
-                <span>{s.name}</span>
+                <div>
+                  <span>{s.name}</span>
+                  <p className="text-[10px] text-muted">
+                    {(s.hotspots?.length ?? 0) > 0
+                      ? `${s.hotspots?.length} لینک اسمارت‌واک`
+                      : 'بدون لینک بین صحنه‌ها'}
+                  </p>
+                </div>
                 <Button variant="ghost" size="icon" onClick={() => deleteScene(s.id)}><Trash2 className="h-4 w-4 text-danger" /></Button>
               </div>
             ))}
