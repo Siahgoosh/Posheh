@@ -12,6 +12,7 @@ class MessageService
     public function __construct(
         private readonly LeadScoringService $scoring,
         private readonly ChannelDispatcher $channels,
+        private readonly OperatorAlertService $alerts,
     ) {}
 
     public function sendFromVisitor(CommConversation $conversation, string $body): CommMessage
@@ -33,6 +34,8 @@ class MessageService
         if ($conversation->lead) {
             $this->scoring->recalculateLead($conversation->lead);
         }
+
+        $this->alerts->notifyVisitorMessage($conversation->fresh(['lead', 'visitor']), $body);
 
         $this->channels->dispatchToVisitor($conversation->fresh(), $message);
 

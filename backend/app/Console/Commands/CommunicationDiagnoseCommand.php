@@ -4,8 +4,10 @@ namespace App\Console\Commands;
 
 use App\Modules\Communication\Application\DTOs\CaptureLeadDTO;
 use App\Modules\Communication\Application\DTOs\VisitorInitDTO;
+use App\Modules\Communication\Application\Services\CommunicationSettingsService;
 use App\Modules\Communication\Application\Services\LeadCaptureService;
 use App\Modules\Communication\Application\Services\VisitorTrackingService;
+use App\Models\Communication\CommConversation;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -19,6 +21,7 @@ class CommunicationDiagnoseCommand extends Command
     public function handle(
         VisitorTrackingService $visitors,
         LeadCaptureService $leads,
+        CommunicationSettingsService $commSettings,
     ): int {
         $tables = ['comm_visitors', 'comm_visitor_sessions', 'comm_leads', 'comm_conversations', 'comm_messages'];
         foreach ($tables as $table) {
@@ -67,6 +70,19 @@ class CommunicationDiagnoseCommand extends Command
             $this->error('Capture FAILED: '.$e->getMessage());
 
             return self::FAILURE;
+        }
+
+        $conversations = CommConversation::count();
+        $this->line("Conversations in DB: {$conversations}");
+
+        $telegramOk = $commSettings->telegramBotToken() !== '';
+        $alertIds = $commSettings->telegramAlertChatIds();
+        $this->line(($telegramOk ? '✓' : '✗').' Telegram bot token (comm_telegram_bot_token)');
+        if ($telegramOk) {
+            $this->line('  Alert chat IDs: '.($alertIds ? implode(', ', $alertIds) : 'none — set comm_telegram_alert_chat_ids in panel settings'));
+            $this->line('  Webhook: '.$commSettings->adminStatus()['telegram_webhook_url']);
+        } else {
+            $this->warn('  Telegram alerts disabled until bot token is set in پنل → تنظیمات → مرکز ارتباطات');
         }
 
         $this->info('Communication module is working.');

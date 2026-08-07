@@ -84,16 +84,29 @@ export function AdminCommunicationInboxPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const queryClient = useQueryClient()
 
-  const { data: stats } = useQuery({
+  const { data: stats, isError: statsError, error: statsErr } = useQuery({
     queryKey: ['comm-dashboard'],
     queryFn: async () => (await api.get('/admin/communication/dashboard')).data.data,
+    retry: false,
   })
 
-  const { data: inbox } = useQuery({
+  const { data: inbox, isError: inboxError, error: inboxErr } = useQuery({
     queryKey: ['comm-inbox'],
     queryFn: async () => (await api.get('/admin/communication/inbox')).data.data as ConversationItem[],
-    refetchInterval: 8000,
+    refetchInterval: statsError || inboxError ? false : 8000,
+    retry: false,
   })
+
+  const commApiError = statsError || inboxError
+  const commApiMessage = (() => {
+    const err = (statsErr ?? inboxErr) as { response?: { status?: number; data?: { message?: string } } }
+    const status = err?.response?.status
+    const msg = err?.response?.data?.message
+    if (status === 403) return msg || 'دسترسی به مرکز ارتباطات مجاز نیست. با super_admin وارد شوید یا دسترسی comm را بررسی کنید.'
+    if (status === 401) return 'نشست ورود منقضی شده — دوباره وارد پنل شوید.'
+    if (msg) return msg
+    return 'بارگذاری مرکز ارتباطات ناموفق بود. لاگ سرور یا communication:diagnose را بررسی کنید.'
+  })()
 
   const { data: live } = useQuery({
     queryKey: ['comm-live'],
@@ -159,6 +172,12 @@ export function AdminCommunicationInboxPage() {
         title="مرکز ارتباطات"
         description="اینباکس یکپارچه — وب، تلگرام، ایمیل و واتساپ"
       />
+
+      {commApiError && (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive shrink-0">
+          {commApiMessage}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
         <Card><CardContent className="pt-4"><p className="text-xs text-muted">چت فعال</p><p className="text-xl font-bold">{stats?.active_chats ?? 0}</p></CardContent></Card>

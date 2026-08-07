@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Enums\UserRole;
 use App\Models\Communication\CommKnowledgeArticle;
 use App\Models\Communication\CommKnowledgeCategory;
 use App\Models\Communication\CommLead;
@@ -34,11 +35,17 @@ class AdminCommunicationController extends Controller
 
     private function authorizeComm(Request $request, string $permission): void
     {
-        $role = $request->user()?->role ?? '';
-        if ($role === 'super_admin') {
+        $user = $request->user();
+        if (! $user) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        if ($user->isSuperAdmin() || $user->role === UserRole::PlatformAdmin) {
             return;
         }
-        if (! $this->permissions->userCan($role, $permission)) {
+
+        $roleValue = $user->role instanceof \BackedEnum ? $user->role->value : (string) $user->role;
+        if (! $this->permissions->userCan($roleValue, $permission)) {
             abort(403, 'دسترسی به این بخش مجاز نیست.');
         }
     }

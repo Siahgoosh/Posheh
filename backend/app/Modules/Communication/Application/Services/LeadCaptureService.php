@@ -14,6 +14,7 @@ class LeadCaptureService
     public function __construct(
         private readonly LeadScoringService $scoring,
         private readonly ConversationService $conversations,
+        private readonly OperatorAlertService $alerts,
     ) {}
 
     /** @return array{lead: CommLead, conversation_uuid: string} */
@@ -63,6 +64,8 @@ class LeadCaptureService
             $this->scoring->recalculateLead($lead);
 
             $conversation = $this->conversations->createForLead($visitor, $lead, $dto->sourceChannel);
+
+            $this->alerts->notifyNewConversation($conversation->fresh(['lead', 'visitor']));
 
             return [
                 'lead' => $lead->fresh(['stage', 'visitor']),

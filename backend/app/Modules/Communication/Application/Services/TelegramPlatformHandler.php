@@ -22,8 +22,6 @@ class TelegramPlatformHandler
         private readonly TelegramApiClient $api,
         private readonly MessageService $messages,
         private readonly TicketService $tickets,
-        private readonly AiCopilotService $ai,
-        private readonly CommunicationSettingsService $commSettings,
     ) {}
 
     public function handle(array $update): void
@@ -126,7 +124,6 @@ class TelegramPlatformHandler
         if ($text) {
             $commMessage = $this->messages->sendFromVisitor($conversation, $text);
             $this->mapTelegramMessage($message, $conversation->id, $commMessage->id);
-            $this->notifyOperators($conversation, $text);
         } else {
             $this->handleInboundMedia($conversation, $message, $chatId);
         }
@@ -268,46 +265,6 @@ class TelegramPlatformHandler
         return CommConversation::where('uuid', 'like', $part.'%')->first();
     }
 
-    private function notifyOperators(CommConversation $conversation, string $preview): void
-    {
-        $lead = $conversation->lead;
-        $short = Str::substr($conversation->uuid, 0, 8);
-        $text = "🔔 <b>پیام جدید</b>\n";
-        $text .= $lead?->office_name ? "دفتر: {$lead->office_name}\n" : '';
-        $text .= $lead?->mobile ? "موبایل: {$lead->mobile}\n" : '';
-        $text .= 'امتیاز: '.($lead?->lead_score ?? $conversation->visitor?->lead_score ?? 0)."\n";
-        $text .= "پیام: ".Str::limit($preview, 200)."\n\n";
-        $text .= "پاسخ: روی این پیام Reply کنید\n";
-        $text .= "/close {$short} | /ticket {$short} | /note {$short} یادداشت";
-
-        $operators = CommTelegramAccount::where('account_type', 'operator')->where('is_active', true)->get();
-        foreach ($operators as $op) {
-            $result = $this->api->sendMessage($op->telegram_chat_id, $text);
-            if (($result['ok'] ?? false) && isset($result['result']['message_id'])) {
-                CommChannelMessageMap::create([
-                    'channel' => CommChannel::Telegram->value,
-                    'external_message_id' => (string) $result['result']['message_id'],
-                    'conversation_id' => $conversation->id,
-                    'map_type' => 'operator_alert',
-                ]);
-            }
-        }
-
-        $alertChats = $this->commSettings->telegramAlertChatIds();
-        foreach ($alertChats as $alertChat) {
-            if ($alertChat) {
-                $this->api->sendMessage($alertChat, $text);
-            }
-        }
-
-        $analysis = $this->ai->summarize($conversation);
-        if ($analysis['alert'] ?? false) {
-            foreach ($operators as $op) {
-                $this->api->sendMessage($op->telegram_chat_id, '⚠️ <b>هشدار:</b> مشتری ناراضی به نظر می‌رسد!');
-            }
-        }
-    }
-
     private function handleInboundMedia(CommConversation $conversation, array $message, int|string $chatId): void
     {
         $type = 'file';
@@ -343,7 +300,6 @@ class TelegramPlatformHandler
             'original_name' => basename($local),
             'message_type' => $type,
         ]);
-        $this->notifyOperators($conversation, $body);
     }
 
     private function handleOperatorMedia(CommTelegramAccount $account, CommConversation $conversation, array $message, int|string $chatId): void
