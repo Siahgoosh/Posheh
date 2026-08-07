@@ -166,7 +166,11 @@ export const TourViewer = forwardRef<TourViewerHandle, Props>(function TourViewe
     <div className={`relative w-full h-full min-h-[50vh] bg-black overflow-hidden ${className}`}>
       <div ref={containerRef} className="absolute inset-0" />
 
-      <TourBackgroundMusic musicUrl={tour.settings?.music_url} editorMode={editorMode} />
+      <TourBackgroundMusic
+        musicUrl={tour.settings?.music_url}
+        editorMode={editorMode}
+        previewInEditor={editorMode}
+      />
 
       {isPlacingHotspot && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 px-4 py-2 rounded-full bg-primary/90 text-primary-foreground text-sm font-medium pointer-events-none animate-pulse">

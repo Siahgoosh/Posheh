@@ -8,6 +8,7 @@ import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin'
 import type { TourData, TourScene, TourHotspot, ViewerPosition } from '../types'
 import { syncHotspotMarkers } from '../hotspots/useHotspotMarkers'
 import { resolvePanoramaUrl } from '../utils/panoramaUrl'
+import { buildEquirectangularPanoData } from '../utils/sceneDimensions'
 
 export interface TourEngineControls {
   zoomIn: () => void
@@ -109,16 +110,7 @@ export function useTourEngine({
       panorama: resolvePanoramaUrl(scene.panorama_url),
       thumbnail: scene.thumbnail_url ? resolvePanoramaUrl(scene.thumbnail_url) : undefined,
       name: scene.name,
-      panoData: scene.panorama_width && scene.panorama_height
-        ? {
-            fullWidth: scene.panorama_width,
-            fullHeight: scene.panorama_height,
-            croppedWidth: scene.panorama_width,
-            croppedHeight: scene.panorama_height,
-            croppedX: 0,
-            croppedY: 0,
-          }
-        : undefined,
+      panoData: buildEquirectangularPanoData(scene),
       links: [],
     }))
   }, [editorMode])
@@ -173,8 +165,8 @@ export function useTourEngine({
       navbar: false,
       defaultYaw: `${startScene.default_yaw ?? 0}deg`,
       defaultPitch: `${startScene.default_pitch ?? 0}deg`,
-      defaultZoomLvl: 50,
-      minFov: 30,
+      defaultZoomLvl: editorMode ? 35 : 50,
+      minFov: editorMode ? 45 : 30,
       maxFov: 90,
       touchmoveTwoFingers: true,
       mousewheelCtrlKey: false,
@@ -254,7 +246,11 @@ export function useTourEngine({
       onSceneChange?.(id)
     }
 
-    const onClick = (e: { data: { yaw: number; pitch: number } }) => {
+    const onClick = (e: { data: { yaw: number; pitch: number }; target?: EventTarget | null }) => {
+      if (isPlacingHotspot || isRepositioningHotspot) {
+        const target = e.target as HTMLElement | null
+        if (target?.closest?.('.psv-marker')) return
+      }
       const yaw = (e.data.yaw * 180) / Math.PI
       const pitch = (e.data.pitch * 180) / Math.PI
       if (isRepositioningHotspot && onHotspotMove && repositionHotspot) {

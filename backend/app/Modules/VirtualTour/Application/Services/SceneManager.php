@@ -206,6 +206,11 @@ class SceneManager
         return $tour->scenes()->findOrFail($sceneId);
     }
 
+    private function isCrediblePanoramaDimensions(int $width, int $height): bool
+    {
+        return $width >= 512 && $height >= 256;
+    }
+
     private function processPanoramaMetadata(VirtualTourScene $scene, UploadedFile $file): void
     {
         try {
@@ -226,10 +231,12 @@ class SceneManager
                 if ($this->hasSceneColumn('thumbnail_path')) {
                     $updates['thumbnail_path'] = $thumb['thumbnail_path'];
                 }
-                if ($this->hasSceneColumn('panorama_width') && ! isset($updates['panorama_width'])) {
-                    $updates['panorama_width'] = $thumb['width'];
-                    $updates['panorama_height'] = $thumb['height'];
-                }
+            }
+
+            // Never store thumbnail dimensions as panorama size — tiny values break 360 zoom / Smart Walk layout.
+            if (isset($updates['panorama_width'], $updates['panorama_height'])
+                && ! $this->isCrediblePanoramaDimensions($updates['panorama_width'], $updates['panorama_height'])) {
+                unset($updates['panorama_width'], $updates['panorama_height']);
             }
 
             if ($updates) {
@@ -295,6 +302,11 @@ class SceneManager
                 if ($this->hasSceneColumn('panorama_height')) {
                     $updates['panorama_height'] = $imageInfo[1];
                 }
+            }
+
+            if (isset($updates['panorama_width'], $updates['panorama_height'])
+                && ! $this->isCrediblePanoramaDimensions($updates['panorama_width'], $updates['panorama_height'])) {
+                unset($updates['panorama_width'], $updates['panorama_height']);
             }
 
             $variantData = $this->imageVariantService->generateVariants(

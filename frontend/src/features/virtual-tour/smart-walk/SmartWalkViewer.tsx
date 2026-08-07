@@ -178,7 +178,11 @@ export const SmartWalkViewer = forwardRef<SmartWalkViewerHandle, Props>(function
   return (
     <SmartWalkThemeProvider initialMode={themeMode}>
       <div className={`smart-walk-root relative overflow-hidden h-full min-h-[320px] ${className}`}>
-        <TourBackgroundMusic musicUrl={tour.settings?.music_url} editorMode={editorMode} />
+        <TourBackgroundMusic
+          musicUrl={tour.settings?.music_url}
+          editorMode={editorMode}
+          previewInEditor={editorMode}
+        />
         {engine.imageUrl && (
           <div
             className="absolute inset-0 z-0 scale-110 blur-2xl opacity-50 pointer-events-none"

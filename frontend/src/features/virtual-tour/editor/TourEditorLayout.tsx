@@ -1,7 +1,7 @@
 import { useRef, useEffect, useMemo, useCallback, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Globe, ExternalLink, BookOpen } from 'lucide-react'
+import { ArrowRight, Globe, ExternalLink, BookOpen, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { tourApi } from '../api/tourApi'
@@ -151,7 +151,12 @@ export function TourEditorLayout({ tourId }: Props) {
     mutationFn: () => tourApi.publish(tourId),
     onSuccess: (res) => {
       setActionError(null)
-      setActionMessage(res.data?.message || 'تور منتشر شد.')
+      const msg = res.data?.message
+      setActionMessage(
+        tour?.status === 'published'
+          ? msg || 'تور بروزرسانی و مجدداً منتشر شد.'
+          : msg || 'تور منتشر شد.',
+      )
       invalidate()
     },
     onError: (err: unknown) => {
@@ -499,9 +504,20 @@ export function TourEditorLayout({ tourId }: Props) {
             <Globe className="h-4 w-4" />{publishMutation.isPending ? 'در حال انتشار...' : 'انتشار تور'}
           </Button>
         ) : (
-          <a href={tour.visibility === 'private' ? (tour.private_url || `/tour/${tour.slug}`) : `/tour/${tour.slug}`} target="_blank" rel="noreferrer">
-            <Button size="sm" variant="outline"><ExternalLink className="h-4 w-4" />مشاهده عمومی</Button>
-          </a>
+          <>
+            <Button
+              size="sm"
+              onClick={() => publishMutation.mutate()}
+              disabled={publishMutation.isPending}
+              title="اعمال تغییرات روی نسخه عمومی"
+            >
+              <RefreshCw className="h-4 w-4" />
+              {publishMutation.isPending ? 'در حال بروزرسانی...' : 'بروزرسانی / انتشار مجدد'}
+            </Button>
+            <a href={tour.visibility === 'private' ? (tour.private_url || `/tour/${tour.slug}`) : `/tour/${tour.slug}`} target="_blank" rel="noreferrer">
+              <Button size="sm" variant="outline"><ExternalLink className="h-4 w-4" />مشاهده عمومی</Button>
+            </a>
+          </>
         )}
         <a href="/posheh-platform-guide.html" target="_blank" rel="noreferrer" title="راهنمای پلتفرم">
           <Button variant="ghost" size="sm" className="shrink-0"><BookOpen className="h-4 w-4" /></Button>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TourData, TourHotspot, TourScene } from '../types'
 import { getCachedImage, pickSceneImageUrlForZoom, preloadSceneImages } from '../utils/imageCache'
 import { clickToImagePercent } from './smartWalkHotspots'
+import { resolveSmartWalkDimensions } from '../utils/sceneDimensions'
 import { hotspotToPanTarget } from './camera/cameraMath'
 import { useSmartWalkCamera } from './camera/useSmartWalkCamera'
 import {
@@ -57,11 +58,10 @@ export function useSmartWalkEngine({
   const activeScene = tour.scenes.find((s) => s.id === activeSceneId) ?? defaultScene ?? null
   const hotspots = sceneHotspots ?? activeScene?.hotspots ?? []
 
-  const metaWidth = activeScene?.image_variants?.width ?? activeScene?.panorama_width ?? 1920
-  const metaHeight = activeScene?.image_variants?.height ?? activeScene?.panorama_height ?? 1080
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null)
-  const imageWidth = naturalSize?.w ?? metaWidth
-  const imageHeight = naturalSize?.h ?? metaHeight
+  const dims = resolveSmartWalkDimensions(activeScene, naturalSize)
+  const imageWidth = dims.w
+  const imageHeight = dims.h
 
   const camera = useSmartWalkCamera({
     imageWidth,

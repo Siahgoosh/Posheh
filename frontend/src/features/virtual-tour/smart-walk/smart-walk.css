@@ -54,7 +54,9 @@
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-tap-highlight-color: transparent;
+  min-height: 100%;
+  min-height: 100dvh;
 }
 
 .smart-walk-layer {
@@ -67,7 +69,8 @@
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: fill;
+  object-fit: contain;
+  object-position: center center;
   image-rendering: auto;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
@@ -76,6 +79,14 @@
 @media (max-width: 640px) {
   .sw-sidebar {
     max-width: 100%;
+  }
+
+  .smart-walk-viewport {
+    padding: 0;
+  }
+
+  .smart-walk-image {
+    object-fit: contain;
   }
 }
 

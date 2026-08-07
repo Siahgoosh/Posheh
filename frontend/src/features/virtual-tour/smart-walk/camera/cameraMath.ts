@@ -31,16 +31,14 @@ export function computeCoverScale(
   return Math.max(viewWidth / imageWidth, viewHeight / imageHeight)
 }
 
-/** Portrait mobile: cover-fill avoids empty bars; landscape keeps fit. */
+/** Portrait mobile: fit to avoid aggressive crop on Android WebView. */
 export function computeInitialSmartWalkScale(
   imageWidth: number,
   imageHeight: number,
   viewWidth: number,
   viewHeight: number,
 ): number {
-  const fit = computeFitScale(imageWidth, imageHeight, viewWidth, viewHeight)
-  if (viewHeight <= viewWidth) return fit
-  return computeCoverScale(imageWidth, imageHeight, viewWidth, viewHeight)
+  return computeFitScale(imageWidth, imageHeight, viewWidth, viewHeight)
 }
 
 export function clampScale(scale: number, fitScale = 1): number {
