@@ -3,9 +3,10 @@ import {
   LayoutDashboard, Building2, Users, CreditCard, Wallet, Ticket, Settings,
   BookOpen, Download, Shield, BarChart3, Tag, Bell, ScrollText,
   LogOut, Moon, Sun, Menu, X, UserCog, ChevronDown,
+  Mail,
   UserCircle, Home, Handshake, Calendar, FileText, Percent,
   Calculator, Smartphone, TrendingDown, DollarSign, Database,
-  Activity, Flag, DownloadCloud, Heart, Globe,
+  Activity, Flag, DownloadCloud, Heart, Globe, MessageCircle, Box,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -28,7 +29,8 @@ const navGroups = [
     label: 'مدیریت پلتفرم',
     items: [
       { to: '/health', icon: Heart, label: 'Health Score' },
-      { to: '/virtual-tours', icon: Globe, label: 'تور مجازی' },
+      { to: '/communication', icon: MessageCircle, label: 'مرکز ارتباطات' },
+      { to: '/virtual-tours', icon: Box, label: 'تور مجازی ۳۶۰' },
       { to: '/tenants', icon: Building2, label: 'دفاتر' },
       { to: '/users', icon: Users, label: 'کاربران' },
       { to: '/customers', icon: UserCircle, label: 'مشتریان' },
@@ -57,7 +59,9 @@ const navGroups = [
   {
     label: 'عملیات',
     items: [
-      { to: '/crm', icon: Handshake, label: 'CRM' },
+      { to: '/platform-crm', icon: Handshake, label: 'CRM پلتفرم' },
+      { to: '/crm', icon: Handshake, label: 'CRM دفاتر' },
+      { to: '/email-marketing', icon: Mail, label: 'ایمیل مارکتینگ' },
       { to: '/visits', icon: Calendar, label: 'بازدیدها' },
       { to: '/contracts', icon: FileText, label: 'قراردادها' },
     ],
@@ -157,7 +161,7 @@ export function AdminSidebar() {
           <Button variant="ghost" size="sm" className="flex-1" onClick={toggleTheme}>
             {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
-          <Button variant="ghost" size="sm" className="flex-1 text-danger" onClick={() => logout()}>
+          <Button variant="ghost" size="sm" className="flex-1 text-danger" onClick={() => logout().then(() => { window.location.href = '/login' })}>
             <LogOut className="h-4 w-4" />
           </Button>
         </div>

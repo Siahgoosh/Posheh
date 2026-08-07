@@ -26,6 +26,7 @@ class BlogController extends Controller
         'bots' => 'ربات تلگرام و واتساپ',
         'reports' => 'گزارش و KPI',
         'security' => 'امنیت و OTP',
+        'virtual-tour' => 'تور مجازی املاک',
     ];
 
     public function categories(): JsonResponse
@@ -103,12 +104,18 @@ class BlogController extends Controller
         $static = [
             ['path' => '/', 'priority' => 1.0],
             ['path' => '/blog', 'priority' => 0.9],
-            ['path' => '/register', 'priority' => 0.9],
+            ['path' => '/register', 'priority' => 0.95],
+            ['path' => '/login', 'priority' => 0.6],
             ['path' => '/download', 'priority' => 0.8],
             ['path' => '/contact', 'priority' => 0.7],
             ['path' => '/privacy', 'priority' => 0.5],
             ['path' => '/terms', 'priority' => 0.5],
+            ['path' => '/blog/category/virtual-tour', 'priority' => 0.85],
         ];
+
+        foreach (config('keyword_landings', []) as $landingSlug) {
+            $static[] = ['path' => '/r/'.$landingSlug, 'priority' => 0.88];
+        }
 
         $categories = [];
         foreach (self::CATEGORIES as $slug => $label) {

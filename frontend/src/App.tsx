@@ -28,6 +28,7 @@ import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
 import { AdminSuperPanelPage } from '@/pages/admin/AdminSuperPanelPage'
+import { CommunicationWidgetRoot } from '@/features/communication/CommunicationWidgetRoot'
 import { AnalyticsTracker } from '@/components/AnalyticsTracker'
 import { SubscriptionGuard } from '@/components/SubscriptionGuard'
 import { AdminPlansPage } from '@/pages/admin/AdminPlansPage'
@@ -53,8 +54,11 @@ import { TermsPage } from '@/pages/TermsPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
 import { ContactPage } from '@/pages/ContactPage'
 import { VirtualTourPublicPage } from '@/pages/VirtualTourPublicPage'
+import { VirtualTourEmbedPage } from '@/pages/VirtualTourEmbedPage'
 import { VirtualToursPage } from '@/pages/VirtualToursPage'
 import { VirtualTourEditorPage } from '@/pages/VirtualTourEditorPage'
+import { VirtualTourPreviewPage } from '@/pages/VirtualTourPreviewPage'
+import { KeywordLandingPage } from '@/pages/KeywordLandingPage'
 import { getOfficeSubdomain } from '@/lib/subdomain'
 
 const queryClient = new QueryClient({
@@ -89,8 +93,10 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthBootstrap>
         <AnalyticsTracker />
+        <CommunicationWidgetRoot />
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/r/:slug" element={<KeywordLandingPage />} />
           <Route path="/blog" element={<BlogListPage />} />
           <Route path="/blog/category/:category" element={<BlogCategoryPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
@@ -102,7 +108,9 @@ export default function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/tour/:slug/scene/:sceneId" element={<VirtualTourPublicPage />} />
           <Route path="/tour/:slug" element={<VirtualTourPublicPage />} />
+          <Route path="/embed/tour/:slug" element={<VirtualTourEmbedPage />} />
           <Route path="/payment/callback" element={<PaymentCallbackPage />} />
           <Route path="/p/:token" element={<PropertyPublicPage />} />
           <Route path="/o/:slug" element={<OfficeLandingPage />} />
@@ -123,6 +131,7 @@ export default function App() {
             <Route path="/properties/:id" element={<PropertyDetailPage />} />
             <Route path="/virtual-tours" element={<VirtualToursPage />} />
             <Route path="/virtual-tours/:id/edit" element={<VirtualTourEditorPage />} />
+            <Route path="/virtual-tours/:id/preview" element={<VirtualTourPreviewPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/team" element={<TeamPage />} />

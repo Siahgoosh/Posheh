@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Communication\Application\Services\CommunicationSettingsService;
 use App\Services\Admin\AuditLogService;
 use App\Services\Settings\SystemSettingsService;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,7 @@ class AdminSettingsController extends Controller
 {
     public function __construct(
         private readonly SystemSettingsService $settings,
+        private readonly CommunicationSettingsService $communicationSettings,
         private readonly AuditLogService $audit,
     ) {}
 
@@ -26,6 +28,7 @@ class AdminSettingsController extends Controller
                 'plan_skus' => config('services.cafe_bazaar.plan_skus'),
                 'api_configured' => ! empty(config('services.cafe_bazaar.api_token')),
             ],
+            'communication' => $this->communicationSettings->adminStatus(),
         ]);
     }
 

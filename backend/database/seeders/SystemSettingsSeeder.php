@@ -29,6 +29,17 @@ class SystemSettingsSeeder extends Seeder
             ['group' => 'general', 'key' => 'trial_hours_solo', 'value' => '48', 'label' => 'ساعت دوره آزمایشی پنل فردی', 'type' => 'number'],
             ['group' => 'general', 'key' => 'frontend_url', 'value' => env('FRONTEND_URL', env('APP_URL', 'http://localhost:8000')), 'label' => 'آدرس فرانت‌اند', 'type' => 'text'],
             ['group' => 'general', 'key' => 'invite_sms_template', 'value' => 'شما به دفتر {office} در پوشه دعوت شدید. با شماره موبایل خود وارد شوید.', 'label' => 'متن پیامک دعوت', 'type' => 'textarea'],
+            ['group' => 'communication', 'key' => 'comm_telegram_bot_token', 'value' => env('TELEGRAM_PLATFORM_BOT_TOKEN', ''), 'label' => 'توکن ربات تلگرام پلتفرم (Communication Center)', 'type' => 'password', 'is_secret' => true],
+            ['group' => 'communication', 'key' => 'comm_telegram_alert_chat_ids', 'value' => env('TELEGRAM_PLATFORM_ALERT_CHAT_IDS', ''), 'label' => 'چت‌آیدی اعلان مدیر (با کاما جدا کنید)', 'type' => 'text'],
+            ['group' => 'communication', 'key' => 'comm_whatsapp_phone_number_id', 'value' => env('WHATSAPP_PHONE_NUMBER_ID', ''), 'label' => 'WhatsApp Phone Number ID', 'type' => 'text'],
+            ['group' => 'communication', 'key' => 'comm_whatsapp_access_token', 'value' => env('WHATSAPP_ACCESS_TOKEN', ''), 'label' => 'WhatsApp Access Token', 'type' => 'password', 'is_secret' => true],
+            ['group' => 'communication', 'key' => 'comm_email_from', 'value' => env('COMM_EMAIL_FROM', env('MAIL_FROM_ADDRESS', '')), 'label' => 'ایمیل ارسال پشتیبانی', 'type' => 'text'],
+            ['group' => 'communication', 'key' => 'comm_email_from_name', 'value' => env('COMM_EMAIL_FROM_NAME', 'پشتیبانی پوشه'), 'label' => 'نام ارسال‌کننده ایمیل', 'type' => 'text'],
+            ['group' => 'communication', 'key' => 'comm_email_inbound_domain', 'value' => env('COMM_EMAIL_INBOUND_DOMAIN', 'support.posheapp.ir'), 'label' => 'دامنه inbound ایمیل تیکت', 'type' => 'text'],
+            ['group' => 'communication', 'key' => 'comm_email_webhook_secret', 'value' => env('COMM_EMAIL_WEBHOOK_SECRET', ''), 'label' => 'Secret webhook ایمیل inbound', 'type' => 'password', 'is_secret' => true],
+            ['group' => 'communication', 'key' => 'comm_ai_provider', 'value' => env('COMM_AI_PROVIDER', 'internal'), 'label' => 'ارائه‌دهنده AI (internal یا openai)', 'type' => 'select'],
+            ['group' => 'communication', 'key' => 'comm_ai_openai_key', 'value' => env('OPENAI_API_KEY', ''), 'label' => 'کلید OpenAI', 'type' => 'password', 'is_secret' => true],
+            ['group' => 'communication', 'key' => 'comm_ai_openai_model', 'value' => env('COMM_AI_OPENAI_MODEL', 'gpt-4o-mini'), 'label' => 'مدل OpenAI', 'type' => 'text'],
         ];
 
         foreach ($settings as $setting) {

@@ -1,5 +1,6 @@
 const SITE_NAME = 'پوشه'
-const DEFAULT_DESCRIPTION = 'پوشه — سامانه ابری ثبت و مدیریت املاک برای مشاوران و آژانس‌های املاک در ایران'
+const DEFAULT_DESCRIPTION = 'پوشه — نرم‌افزار املاک پوشه: فایلینگ املاک، CRM املاک، حسابداری املاک، تور مجازی املاک، مبایعه‌نامه و اجاره‌نامه دیجیتال برای مشاوران و آژانس‌های ایران'
+const DEFAULT_KEYWORDS = 'فایلینگ املاک, CRM املاک, حسابداری املاک, نرم افزار حسابداری املاک, برنامه CRM املاک, تور مجازی املاک, تور مجازی ملک, حقوق املاک, مبایعه نامه املاک, اجاره نامه املاک, نرم افزار فایلینگ املاک, مشارکت در ساخت, دستیار املاک پوشه, نرم افزار املاک پوشه, پوشه, بازدید مجازی املاک, املاک مجازی, بازدید ملک مجازی'
 
 export function getSiteUrl(): string {
   return import.meta.env.VITE_SITE_URL || window.location.origin
@@ -67,7 +68,7 @@ export function applySeo({
 
   document.title = fullTitle
   setMeta('description', description)
-  if (keywords) setMeta('keywords', keywords)
+  setMeta('keywords', keywords || DEFAULT_KEYWORDS)
   setMeta('robots', noindex ? 'noindex,nofollow' : 'index,follow')
 
   setMeta('og:title', fullTitle, 'property')

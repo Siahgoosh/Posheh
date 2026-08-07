@@ -1,6 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Shield, KeyRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,8 +16,21 @@ export function PanelLoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [deployWarning, setDeployWarning] = useState('')
   const { setAuth } = useAuthStore()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    api.get('/auth/capabilities')
+      .then((r) => {
+        if (r.data?.login_method !== 'password') {
+          setDeployWarning('سرور هنوز نسخه قدیمی OTP است. روی سرور: ./scripts/deploy.sh cursor/customer-communication-e117')
+        }
+      })
+      .catch(() => {
+        setDeployWarning('API در دسترس نیست (502). روی سرور: ./scripts/deploy.sh cursor/customer-communication-e117')
+      })
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,11 +57,28 @@ export function PanelLoginPage() {
       setAuth(data.user, data.token)
       navigate('/')
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { errors?: Record<string, string[]>; message?: string } } }
+      const axiosErr = err as {
+        response?: { status?: number; data?: { errors?: Record<string, string[]>; message?: string } }
+        message?: string
+        code?: string
+      }
+      if (!axiosErr.response) {
+        setError(
+          axiosErr.code === 'ECONNABORTED'
+            ? 'زمان پاسخ سرور تمام شد. دوباره تلاش کنید.'
+            : 'ارتباط با سرور برقرار نشد (ممکن است خطای 502 باشد). چند دقیقه بعد دوباره امتحان کنید.',
+        )
+        return
+      }
+      const status = axiosErr.response.status
+      if (status === 502 || status === 503 || status === 504) {
+        setError('سرور موقتاً در دسترس نیست (خطای '+status+'). لطفاً چند دقیقه بعد دوباره تلاش کنید.')
+        return
+      }
       setError(
         axiosErr.response?.data?.errors?.login?.[0]
           || axiosErr.response?.data?.message
-          || 'خطا در ورود'
+          || 'خطا در ورود',
       )
     } finally {
       setLoading(false)
@@ -83,6 +112,7 @@ export function PanelLoginPage() {
               autoComplete="current-password"
               required
             />
+            {deployWarning && <p className="text-sm text-warning">{deployWarning}</p>}
             {error && <p className="text-sm text-danger">{error}</p>}
             <Button type="submit" className="w-full gap-2" disabled={loading}>
               <KeyRound className="h-4 w-4" />

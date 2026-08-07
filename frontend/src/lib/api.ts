@@ -14,19 +14,32 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  // Let axios set multipart boundary — default application/json breaks file uploads
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
   return config
 })
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const requestUrl = String(error.config?.url ?? '')
+
     if (error.response?.status === 401) {
+      // Public communication widget must not redirect when a stale office token exists
+      if (requestUrl.includes('/communication/')) {
+        return Promise.reject(error)
+      }
       localStorage.removeItem('token')
       if (!window.location.pathname.includes('/login') && window.location.pathname !== '/') {
         window.location.href = '/login'
       }
     }
     if (error.response?.status === 402 && error.response?.data?.subscription_expired) {
+      if (requestUrl.includes('/communication/')) {
+        return Promise.reject(error)
+      }
       if (!window.location.pathname.startsWith('/renew') && !window.location.pathname.startsWith('/subscription')) {
         window.location.href = '/renew'
       }

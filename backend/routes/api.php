@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Api\AccountingController;
 use App\Http\Controllers\Api\Admin\AdminController;
-use App\Http\Controllers\Api\Admin\AdminAuditController;
+use App\Http\Controllers\Api\Admin\AdminCommunicationController;
 use App\Http\Controllers\Api\Admin\AdminDataController;
 use App\Http\Controllers\Api\Admin\AdminPhase2Controller;
 use App\Http\Controllers\Api\Admin\AdminCouponController;
@@ -12,7 +12,8 @@ use App\Http\Controllers\Api\Admin\AdminSearchController;
 use App\Http\Controllers\Api\Admin\AdminSettingsController;
 use App\Http\Controllers\Api\Admin\AdminSubscriptionController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
-use App\Http\Controllers\Api\Admin\AdminDomainController;
+use App\Http\Controllers\Api\Admin\AdminEmailMarketingController;
+use App\Http\Controllers\Api\Admin\AdminPlatformLeadController;
 use App\Http\Controllers\Api\Admin\AdminWalletController;
 use App\Http\Middleware\EnsurePlatformStaff;
 use App\Http\Controllers\Api\Admin\AdminOfficeController;
@@ -30,12 +31,16 @@ use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\BotWebhookController;
-use App\Http\Controllers\Api\ConsultantDirectoryController;
+use App\Http\Controllers\Api\Communication\CommunicationEmailWebhookController;
+use App\Http\Controllers\Api\Communication\CommunicationPublicController;
+use App\Http\Controllers\Api\Communication\CommunicationTelegramWebhookController;
 use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\CommissionController;
+use App\Http\Controllers\Api\ConsultantDirectoryController;
 use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\DownloadController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Office\OfficeController;
 use App\Http\Controllers\Api\Office\TeamChatController;
 use App\Http\Controllers\Api\OfficePublicController;
@@ -47,6 +52,8 @@ use App\Http\Controllers\Api\Customer\CustomerController;
 use App\Http\Controllers\Api\Visit\VisitController;
 use App\Http\Controllers\Api\VirtualTour\PublicVirtualTourController;
 use App\Http\Controllers\Api\VirtualTour\VirtualTourController;
+use App\Http\Controllers\Api\VirtualTour\VirtualTourAiController;
+use App\Http\Controllers\Api\VirtualTour\VirtualTourEnterpriseController;
 use App\Http\Controllers\Api\PublicApiController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\Subscription\SubscriptionController;
@@ -75,6 +82,20 @@ Route::prefix('v1')->group(function () {
     Route::get('/sites/{subdomain}', [OfficeSiteController::class, 'show']);
     Route::post('/sites/{subdomain}/visit-request', [OfficeSiteController::class, 'visitRequest'])->middleware('throttle:20,1');
     Route::post('/analytics/track', [AnalyticsController::class, 'track'])->middleware('throttle:120,1');
+
+    Route::prefix('communication')->middleware('throttle:180,1')->group(function () {
+        Route::get('/config', [CommunicationPublicController::class, 'config']);
+        Route::get('/health', [CommunicationPublicController::class, 'health']);
+        Route::post('/visitors/init', [CommunicationPublicController::class, 'init']);
+        Route::post('/visitors/heartbeat', [CommunicationPublicController::class, 'heartbeat']);
+        Route::post('/visitors/events', [CommunicationPublicController::class, 'event']);
+        Route::post('/leads', [CommunicationPublicController::class, 'captureLead'])->middleware('throttle:30,1');
+        Route::get('/conversations/{uuid}/messages', [CommunicationPublicController::class, 'messages']);
+        Route::post('/conversations/{uuid}/messages', [CommunicationPublicController::class, 'sendMessage']);
+        Route::get('/telegram/webhook', [CommunicationTelegramWebhookController::class, 'ping']);
+        Route::post('/telegram/webhook', [CommunicationTelegramWebhookController::class, 'handle']);
+        Route::post('/email/inbound', [CommunicationEmailWebhookController::class, 'inbound']);
+    });
     Route::post('/auth/register', [RegistrationController::class, 'register'])->middleware('throttle:10,1');
     Route::post('/auth/password/forgot', [PasswordResetController::class, 'forgot'])->middleware('throttle:10,1');
     Route::post('/auth/password/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:10,1');
@@ -86,8 +107,14 @@ Route::prefix('v1')->group(function () {
     Route::get('/public/properties', [PublicApiController::class, 'properties'])->middleware('throttle:60,1');
     Route::get('/p/qr/{token}', [PropertyPublicController::class, 'byQr']);
 
-    Route::get('/tour/{slug}', [PublicVirtualTourController::class, 'show']);
+    Route::get('/tour/{slug}', [PublicVirtualTourController::class, 'show'])->middleware('throttle:60,1');
+    Route::get('/tour/{slug}/meta', [PublicVirtualTourController::class, 'meta']);
+    Route::post('/tour/{slug}/events', [PublicVirtualTourController::class, 'recordEvents'])->middleware('throttle:120,1');
+    Route::post('/tour/{slug}/verify-password', [PublicVirtualTourController::class, 'verifyPassword'])->middleware('throttle:20,1');
     Route::post('/tour/{slug}/lead', [PublicVirtualTourController::class, 'submitLead'])->middleware('throttle:20,1');
+    Route::get('/tour-media', [\App\Http\Controllers\VirtualTourMediaController::class, 'show'])
+        ->name('virtual-tour.media')
+        ->middleware('throttle:180,1');
 
     Route::middleware(['auth:sanctum', EnsureOfficeIsActive::class, EnsureSubscriptionAccess::class])->group(function () {
         Route::prefix('auth')->group(function () {
@@ -103,6 +130,10 @@ Route::prefix('v1')->group(function () {
             ->middleware(EnsureUserHasRole::class.':office_manager,super_admin');
 
         Route::get('/dashboard', [DashboardController::class, 'index']);
+
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 
         Route::get('/filing/schema', [\App\Http\Controllers\Api\Property\FilingSchemaController::class, 'index']);
         Route::get('/filing/fields', [\App\Http\Controllers\Api\Property\FilingSchemaController::class, 'fields']);
@@ -154,15 +185,45 @@ Route::prefix('v1')->group(function () {
         Route::post('/commissions/{id}/pay', [CommissionController::class, 'markPaid']);
 
         Route::prefix('virtual-tours')->group(function () {
-            Route::get('/', [VirtualTourController::class, 'index']);
+            Route::get('/dashboard', [VirtualTourEnterpriseController::class, 'dashboard']);
+            Route::post('/import', [VirtualTourEnterpriseController::class, 'import']);
+            Route::get('/', [VirtualTourEnterpriseController::class, 'list']);
             Route::post('/', [VirtualTourController::class, 'store']);
             Route::get('/{id}', [VirtualTourController::class, 'show']);
             Route::put('/{id}', [VirtualTourController::class, 'update']);
+            Route::delete('/{id}', [VirtualTourEnterpriseController::class, 'destroy']);
+            Route::post('/{id}/duplicate', [VirtualTourEnterpriseController::class, 'duplicate']);
+            Route::post('/{id}/publish', [VirtualTourEnterpriseController::class, 'publish']);
+            Route::post('/{id}/unpublish', [VirtualTourEnterpriseController::class, 'unpublish']);
+            Route::post('/{id}/archive', [VirtualTourEnterpriseController::class, 'archive']);
+            Route::post('/{id}/unarchive', [VirtualTourEnterpriseController::class, 'unarchive']);
+            Route::put('/{id}/sharing', [VirtualTourEnterpriseController::class, 'updateSharing']);
+            Route::get('/{id}/export/json', [VirtualTourEnterpriseController::class, 'exportJson']);
+            Route::get('/{id}/export/zip', [VirtualTourEnterpriseController::class, 'exportZip']);
+            Route::post('/{id}/backup', [VirtualTourEnterpriseController::class, 'backup']);
+            Route::get('/{id}/versions', [VirtualTourEnterpriseController::class, 'versions']);
+            Route::post('/{id}/versions/{versionId}/restore', [VirtualTourEnterpriseController::class, 'restoreVersion']);
+            Route::get('/{id}/activity', [VirtualTourEnterpriseController::class, 'activity']);
             Route::get('/{id}/analytics', [VirtualTourController::class, 'analytics']);
+            Route::get('/ai/capabilities', [VirtualTourAiController::class, 'capabilities']);
+            Route::post('/{id}/ai/hotspot-suggestions', [VirtualTourAiController::class, 'hotspotSuggestions']);
+            Route::post('/{id}/ai/scene-ordering', [VirtualTourAiController::class, 'sceneOrdering']);
+            Route::post('/{id}/ai/generate-description', [VirtualTourAiController::class, 'generateDescription']);
+            Route::post('/{id}/ai/generate-narration', [VirtualTourAiController::class, 'generateNarration']);
             Route::post('/{id}/scenes', [VirtualTourController::class, 'addScene']);
+            Route::post('/{id}/scenes/upload', [VirtualTourController::class, 'uploadPanorama']);
+            Route::post('/{id}/scenes/upload-image', [VirtualTourController::class, 'uploadSceneImage']);
+            Route::put('/{id}/scenes/reorder', [VirtualTourController::class, 'reorderScenes']);
             Route::put('/{id}/scenes/{sceneId}', [VirtualTourController::class, 'updateScene']);
             Route::delete('/{id}/scenes/{sceneId}', [VirtualTourController::class, 'deleteScene']);
+            Route::post('/{id}/scenes/{sceneId}/duplicate', [VirtualTourController::class, 'duplicateScene']);
+            Route::post('/{id}/scenes/{sceneId}/publish', [VirtualTourController::class, 'publishScene']);
+            Route::post('/{id}/scenes/{sceneId}/unpublish', [VirtualTourController::class, 'unpublishScene']);
+            Route::post('/{id}/scenes/{sceneId}/default', [VirtualTourController::class, 'setDefaultScene']);
             Route::put('/{id}/scenes/{sceneId}/hotspots', [VirtualTourController::class, 'syncHotspots']);
+            Route::post('/{id}/scenes/{sceneId}/hotspots', [VirtualTourController::class, 'addHotspot']);
+            Route::put('/{id}/scenes/{sceneId}/hotspots/{hotspotId}', [VirtualTourController::class, 'updateHotspot']);
+            Route::delete('/{id}/scenes/{sceneId}/hotspots/{hotspotId}', [VirtualTourController::class, 'deleteHotspot']);
             Route::post('/{id}/media', [VirtualTourController::class, 'uploadMedia']);
         });
 
@@ -290,6 +351,35 @@ Route::prefix('v1')->group(function () {
             Route::put('/feature-flags/{key}', [AdminPhase2Controller::class, 'updateFeatureFlag']);
             Route::get('/commissions/kpi', [AdminPhase2Controller::class, 'commissionKpi']);
             Route::get('/crm/follow-ups', [AdminPhase2Controller::class, 'crmFollowUps']);
+
+            Route::prefix('communication')->group(function () {
+                Route::get('/dashboard', [AdminCommunicationController::class, 'dashboard']);
+                Route::post('/telegram/webhook/register', [AdminCommunicationController::class, 'registerTelegramWebhook']);
+                Route::get('/inbox', [AdminCommunicationController::class, 'inbox']);
+                Route::get('/conversations/{uuid}', [AdminCommunicationController::class, 'showConversation']);
+                Route::post('/conversations/{uuid}/reply', [AdminCommunicationController::class, 'reply']);
+                Route::put('/conversations/{uuid}', [AdminCommunicationController::class, 'updateConversation']);
+                Route::post('/conversations/{uuid}/notes', [AdminCommunicationController::class, 'addNote']);
+                Route::post('/conversations/{uuid}/tickets', [AdminCommunicationController::class, 'createTicket']);
+                Route::post('/conversations/{uuid}/tickets/close', [AdminCommunicationController::class, 'closeTicket']);
+                Route::get('/conversations/{uuid}/ai/suggestions', [AdminCommunicationController::class, 'aiSuggestions']);
+                Route::get('/conversations/{uuid}/ai/summary', [AdminCommunicationController::class, 'aiSummarize']);
+                Route::get('/knowledge/articles', [AdminCommunicationController::class, 'knowledgeIndex']);
+                Route::post('/knowledge/articles', [AdminCommunicationController::class, 'knowledgeStore']);
+                Route::get('/knowledge/categories', [AdminCommunicationController::class, 'knowledgeCategories']);
+                Route::get('/visitors/live', [AdminCommunicationController::class, 'liveVisitors']);
+                Route::put('/leads/{id}', [AdminCommunicationController::class, 'updateLead']);
+            });
+
+            Route::get('/platform-leads', [AdminPlatformLeadController::class, 'index']);
+            Route::get('/platform-leads/stages', [AdminPlatformLeadController::class, 'stages']);
+            Route::post('/platform-leads', [AdminPlatformLeadController::class, 'store']);
+            Route::put('/platform-leads/{id}', [AdminPlatformLeadController::class, 'update']);
+
+            Route::get('/email-campaigns', [AdminEmailMarketingController::class, 'index']);
+            Route::post('/email-campaigns', [AdminEmailMarketingController::class, 'store']);
+            Route::put('/email-campaigns/{id}', [AdminEmailMarketingController::class, 'update']);
+            Route::post('/email-campaigns/{id}/send', [AdminEmailMarketingController::class, 'send']);
             Route::get('/phase2/summary', [AdminPhase2Controller::class, 'phase2Summary']);
             Route::post('/system/sms-test', [AdminPhase2Controller::class, 'testSms']);
 
