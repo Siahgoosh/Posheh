@@ -34,6 +34,26 @@ return [
         'partnership' => 'همکاری',
         'other' => 'سایر',
     ],
+    'telegram' => [
+        'platform_bot_token' => env('TELEGRAM_PLATFORM_BOT_TOKEN'),
+        'alert_chat_ids' => array_filter(array_map('trim', explode(',', env('TELEGRAM_PLATFORM_ALERT_CHAT_IDS', '')))),
+    ],
+    'whatsapp' => [
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
+        'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
+    ],
+    'email' => [
+        'from_address' => env('COMM_EMAIL_FROM', env('MAIL_FROM_ADDRESS')),
+        'from_name' => env('COMM_EMAIL_FROM_NAME', 'پشتیبانی پوشه'),
+        'inbound_domain' => env('COMM_EMAIL_INBOUND_DOMAIN', 'support.posheapp.ir'),
+        'webhook_secret' => env('COMM_EMAIL_WEBHOOK_SECRET'),
+    ],
+    'ai' => [
+        'provider' => env('COMM_AI_PROVIDER', 'internal'),
+        'openai_key' => env('OPENAI_API_KEY'),
+        'openai_model' => env('COMM_AI_OPENAI_MODEL', 'gpt-4o-mini'),
+    ],
     'roles' => [
         'super_admin' => 'Super Admin',
         'platform_admin' => 'Manager',

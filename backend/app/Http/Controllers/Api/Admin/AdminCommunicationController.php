@@ -3,14 +3,21 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Communication\CommKnowledgeArticle;
+use App\Models\Communication\CommKnowledgeCategory;
 use App\Models\Communication\CommLead;
+use App\Models\Communication\CommLeadNote;
+use App\Modules\Communication\Application\Services\AiCopilotService;
+use App\Modules\Communication\Application\Services\AttachmentService;
 use App\Modules\Communication\Application\Services\CommPermissionService;
 use App\Modules\Communication\Application\Services\ConversationService;
 use App\Modules\Communication\Application\Services\InboxService;
 use App\Modules\Communication\Application\Services\LiveVisitorService;
 use App\Modules\Communication\Application\Services\MessageService;
+use App\Modules\Communication\Application\Services\TicketService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class AdminCommunicationController extends Controller
 {
@@ -20,6 +27,9 @@ class AdminCommunicationController extends Controller
         private readonly ConversationService $conversations,
         private readonly MessageService $messages,
         private readonly CommPermissionService $permissions,
+        private readonly TicketService $tickets,
+        private readonly AiCopilotService $ai,
+        private readonly AttachmentService $attachments,
     ) {}
 
     private function authorizeComm(Request $request, string $permission): void
@@ -75,8 +85,9 @@ class AdminCommunicationController extends Controller
         $this->authorizeComm($request, 'comm.messages.send');
 
         $data = $request->validate([
-            'body' => ['required', 'string', 'max:5000'],
+            'body' => ['required_without:file', 'nullable', 'string', 'max:5000'],
             'is_internal' => ['nullable', 'boolean'],
+            'file' => ['nullable', 'file', 'max:20480'],
         ]);
 
         $conversation = $this->conversations->findByUuid($uuid);
@@ -84,14 +95,177 @@ class AdminCommunicationController extends Controller
             return response()->json(['message' => 'گفتگو یافت نشد.'], 404);
         }
 
+        $body = $data['body'] ?? '';
+        if ($request->hasFile('file') && $body === '') {
+            $body = '['.$request->file('file')->getClientOriginalName().']';
+        }
+
+        $hasFile = $request->hasFile('file');
+
         $message = $this->messages->sendFromOperator(
             $conversation,
             $request->user()->id,
-            $data['body'],
+            $body,
             (bool) ($data['is_internal'] ?? false),
+            ! $hasFile,
         );
 
-        return response()->json(['data' => $message, 'message' => 'پیام ارسال شد.']);
+        if ($hasFile) {
+            $this->attachments->storeForMessage($conversation, $message, $request->file('file'));
+            if (! ($data['is_internal'] ?? false)) {
+                app(\App\Modules\Communication\Application\Services\ChannelDispatcher::class)
+                    ->dispatchToVisitor($conversation->fresh(), $message);
+            }
+        }
+
+        return response()->json(['data' => $message->fresh('commAttachments'), 'message' => 'پیام ارسال شد.']);
+    }
+
+    public function updateConversation(Request $request, string $uuid): JsonResponse
+    {
+        $this->authorizeComm($request, 'comm.inbox.manage');
+
+        $conversation = $this->conversations->findByUuid($uuid);
+        if (! $conversation) {
+            return response()->json(['message' => 'گفتگو یافت نشد.'], 404);
+        }
+
+        $data = $request->validate([
+            'status' => ['nullable', 'string', 'max:30'],
+            'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        $conversation->update($data);
+
+        return response()->json(['data' => $conversation->fresh(['assignee']), 'message' => 'گفتگو به‌روز شد.']);
+    }
+
+    public function addNote(Request $request, string $uuid): JsonResponse
+    {
+        $this->authorizeComm($request, 'comm.leads.manage');
+
+        $conversation = $this->conversations->findByUuid($uuid);
+        if (! $conversation || ! $conversation->lead_id) {
+            return response()->json(['message' => 'سرنخ مرتبط یافت نشد.'], 404);
+        }
+
+        $data = $request->validate(['body' => ['required', 'string', 'max:5000']]);
+
+        $note = CommLeadNote::create([
+            'lead_id' => $conversation->lead_id,
+            'user_id' => $request->user()->id,
+            'body' => $data['body'],
+        ]);
+
+        return response()->json(['data' => $note, 'message' => 'یادداشت ثبت شد.']);
+    }
+
+    public function createTicket(Request $request, string $uuid): JsonResponse
+    {
+        $this->authorizeComm($request, 'comm.tickets.manage');
+
+        $conversation = $this->conversations->findByUuid($uuid);
+        if (! $conversation) {
+            return response()->json(['message' => 'گفتگو یافت نشد.'], 404);
+        }
+
+        $data = $request->validate([
+            'subject' => ['nullable', 'string', 'max:200'],
+            'priority' => ['nullable', 'string', 'max:20'],
+            'department' => ['nullable', 'string', 'max:60'],
+        ]);
+
+        $ticket = $this->tickets->createFromConversation($conversation, $request->user()->id, $data);
+
+        return response()->json(['data' => $ticket, 'message' => 'تیکت ایجاد شد.']);
+    }
+
+    public function closeTicket(Request $request, string $uuid): JsonResponse
+    {
+        $this->authorizeComm($request, 'comm.tickets.manage');
+
+        $conversation = $this->conversations->findByUuid($uuid);
+        if (! $conversation?->ticket) {
+            return response()->json(['message' => 'تیکت یافت نشد.'], 404);
+        }
+
+        $ticket = $this->tickets->close($conversation->ticket, $request->user()->id);
+
+        return response()->json(['data' => $ticket, 'message' => 'تیکت بسته شد.']);
+    }
+
+    public function aiSuggestions(Request $request, string $uuid): JsonResponse
+    {
+        $this->authorizeComm($request, 'comm.ai.use');
+
+        $conversation = $this->conversations->findByUuid($uuid);
+        if (! $conversation) {
+            return response()->json(['message' => 'گفتگو یافت نشد.'], 404);
+        }
+
+        $suggestions = $this->ai->suggestReplies($conversation);
+        $knowledge = $this->ai->knowledgeMatches(
+            $conversation->messages()->latest()->value('body') ?? '',
+            $conversation->office_id,
+        );
+
+        return response()->json(['data' => ['suggestions' => $suggestions, 'knowledge' => $knowledge]]);
+    }
+
+    public function aiSummarize(Request $request, string $uuid): JsonResponse
+    {
+        $this->authorizeComm($request, 'comm.ai.use');
+
+        $conversation = $this->conversations->findByUuid($uuid);
+        if (! $conversation) {
+            return response()->json(['message' => 'گفتگو یافت نشد.'], 404);
+        }
+
+        return response()->json(['data' => $this->ai->summarize($conversation)]);
+    }
+
+    public function knowledgeIndex(Request $request): JsonResponse
+    {
+        $this->authorizeComm($request, 'comm.knowledge.view');
+
+        $articles = CommKnowledgeArticle::query()
+            ->when($request->input('q'), fn ($q, $search) => $q->where('title', 'like', '%'.$search.'%'))
+            ->orderByDesc('updated_at')
+            ->limit(50)
+            ->get();
+
+        return response()->json(['data' => $articles]);
+    }
+
+    public function knowledgeStore(Request $request): JsonResponse
+    {
+        $this->authorizeComm($request, 'comm.knowledge.manage');
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:200'],
+            'body' => ['nullable', 'string'],
+            'category_id' => ['nullable', 'integer', 'exists:comm_knowledge_categories,id'],
+            'type' => ['nullable', 'string', 'max:20'],
+            'is_published' => ['nullable', 'boolean'],
+        ]);
+
+        $article = CommKnowledgeArticle::create([
+            'title' => $data['title'],
+            'slug' => Str::slug($data['title']).'-'.Str::lower(Str::random(6)),
+            'body' => $data['body'] ?? null,
+            'category_id' => $data['category_id'] ?? null,
+            'type' => $data['type'] ?? 'article',
+            'is_published' => (bool) ($data['is_published'] ?? false),
+        ]);
+
+        return response()->json(['data' => $article, 'message' => 'مقاله ایجاد شد.'], 201);
+    }
+
+    public function knowledgeCategories(Request $request): JsonResponse
+    {
+        $this->authorizeComm($request, 'comm.knowledge.view');
+
+        return response()->json(['data' => CommKnowledgeCategory::orderBy('sort_order')->get()]);
     }
 
     public function liveVisitors(Request $request): JsonResponse
@@ -172,6 +346,15 @@ class AdminCommunicationController extends Controller
             'status' => $c->status,
             'channel' => $c->channel,
             'subject' => $c->subject,
+            'assigned_to' => $c->assigned_to,
+            'assignee' => $c->assignee,
+            'ticket' => $c->ticket ? [
+                'uuid' => $c->ticket->uuid,
+                'status' => $c->ticket->status,
+                'priority' => $c->ticket->priority,
+                'email_alias' => $c->ticket->email_alias,
+                'subject' => $c->ticket->subject,
+            ] : null,
             'visitor' => $c->visitor,
             'lead' => $c->lead,
             'messages' => $c->messages->map(fn ($m) => [
@@ -179,10 +362,17 @@ class AdminCommunicationController extends Controller
                 'sender_type' => $m->sender_type,
                 'sender_id' => $m->sender_id,
                 'body' => $m->body,
+                'message_type' => $m->message_type,
                 'is_internal' => $m->is_internal,
                 'created_at' => $m->created_at?->toIso8601String(),
                 'read_by_visitor_at' => $m->read_by_visitor_at?->toIso8601String(),
                 'read_by_operator_at' => $m->read_by_operator_at?->toIso8601String(),
+                'attachments' => $m->commAttachments->map(fn ($a) => [
+                    'id' => $a->id,
+                    'original_name' => $a->original_name,
+                    'message_type' => $a->message_type,
+                    'mime_type' => $a->mime_type,
+                ]),
             ]),
         ];
     }

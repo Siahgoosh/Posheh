@@ -29,7 +29,9 @@ class InboxService
                 'lead.notes.user:id,name',
                 'lead.tasks',
                 'assignee:id,name',
+                'ticket',
                 'messages' => fn ($q) => $q->orderBy('created_at'),
+                'messages.commAttachments',
             ])
             ->first();
     }

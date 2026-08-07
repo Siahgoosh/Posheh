@@ -19,6 +19,11 @@ class CommunicationSeeder extends Seeder
             ['slug' => 'comm.leads.manage', 'name' => 'مدیریت سرنخ‌ها', 'group' => 'communication'],
             ['slug' => 'comm.visitors.live', 'name' => 'مشاهده بازدیدکنندگان آنلاین', 'group' => 'communication'],
             ['slug' => 'comm.settings.manage', 'name' => 'تنظیمات ارتباطات', 'group' => 'communication'],
+            ['slug' => 'comm.inbox.manage', 'name' => 'مدیریت گفتگوها', 'group' => 'communication'],
+            ['slug' => 'comm.tickets.manage', 'name' => 'مدیریت تیکت‌ها', 'group' => 'communication'],
+            ['slug' => 'comm.ai.use', 'name' => 'استفاده از AI Copilot', 'group' => 'communication'],
+            ['slug' => 'comm.knowledge.view', 'name' => 'مشاهده پایگاه دانش', 'group' => 'communication'],
+            ['slug' => 'comm.knowledge.manage', 'name' => 'مدیریت پایگاه دانش', 'group' => 'communication'],
         ];
 
         foreach ($permissions as $p) {
@@ -30,7 +35,7 @@ class CommunicationSeeder extends Seeder
         $roleMap = [
             'super_admin' => array_keys($allPermissionIds->all()),
             'platform_admin' => array_keys($allPermissionIds->all()),
-            'platform_support' => ['comm.dashboard.view', 'comm.inbox.view', 'comm.messages.send', 'comm.leads.manage', 'comm.visitors.live'],
+            'platform_support' => ['comm.dashboard.view', 'comm.inbox.view', 'comm.inbox.manage', 'comm.messages.send', 'comm.leads.manage', 'comm.visitors.live', 'comm.tickets.manage', 'comm.ai.use', 'comm.knowledge.view'],
             'platform_finance' => ['comm.dashboard.view', 'comm.inbox.view', 'comm.visitors.live'],
         ];
 

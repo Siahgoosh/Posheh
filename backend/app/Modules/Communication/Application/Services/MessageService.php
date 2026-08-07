@@ -11,6 +11,7 @@ class MessageService
 {
     public function __construct(
         private readonly LeadScoringService $scoring,
+        private readonly ChannelDispatcher $channels,
     ) {}
 
     public function sendFromVisitor(CommConversation $conversation, string $body): CommMessage
@@ -33,10 +34,12 @@ class MessageService
             $this->scoring->recalculateLead($conversation->lead);
         }
 
+        $this->channels->dispatchToVisitor($conversation->fresh(), $message);
+
         return $message;
     }
 
-    public function sendFromOperator(CommConversation $conversation, int $userId, string $body, bool $internal = false): CommMessage
+    public function sendFromOperator(CommConversation $conversation, int $userId, string $body, bool $internal = false, bool $dispatch = true): CommMessage
     {
         $message = CommMessage::create([
             'conversation_id' => $conversation->id,
@@ -53,6 +56,10 @@ class MessageService
             'last_message_at' => now(),
             'unread_visitor' => $internal ? $conversation->unread_visitor : $conversation->unread_visitor + 1,
         ]);
+
+        if (! $internal && $dispatch) {
+            $this->channels->dispatchToVisitor($conversation->fresh(), $message);
+        }
 
         return $message;
     }
