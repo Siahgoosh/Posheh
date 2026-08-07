@@ -9,9 +9,11 @@ use Illuminate\Support\Str;
 
 class TicketService
 {
+    public function __construct(private readonly CommunicationSettingsService $commSettings) {}
+
     public function createFromConversation(CommConversation $conversation, ?int $userId = null, array $data = []): CommTicket
     {
-        $alias = 'ticket-'.Str::lower(Str::random(10)).'@'.config('communication.email.inbound_domain', 'support.posheapp.ir');
+        $alias = 'ticket-'.Str::lower(Str::random(10)).'@'.$this->commSettings->emailInboundDomain();
 
         $ticket = CommTicket::create([
             'uuid' => (string) Str::uuid(),

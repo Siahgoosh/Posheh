@@ -4,17 +4,21 @@ namespace App\Http\Controllers\Api\Communication;
 
 use App\Http\Controllers\Controller;
 use App\Models\Communication\CommWebhookLog;
+use App\Modules\Communication\Application\Services\CommunicationSettingsService;
 use App\Modules\Communication\Application\Services\EmailInboundService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CommunicationEmailWebhookController extends Controller
 {
-    public function __construct(private readonly EmailInboundService $emailInbound) {}
+    public function __construct(
+        private readonly EmailInboundService $emailInbound,
+        private readonly CommunicationSettingsService $commSettings,
+    ) {}
 
     public function inbound(Request $request): JsonResponse
     {
-        $secret = config('communication.email.webhook_secret');
+        $secret = $this->commSettings->emailWebhookSecret();
         if ($secret && $request->header('X-Comm-Email-Secret') !== $secret) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }

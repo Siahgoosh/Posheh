@@ -9,12 +9,15 @@ use App\Models\Communication\CommMessage;
 use App\Models\Communication\CommMessageStatus;
 use App\Models\Communication\CommWebhookLog;
 use App\Modules\Communication\Application\Contracts\ChannelGatewayInterface;
+use App\Modules\Communication\Application\Services\CommunicationSettingsService;
 use App\Modules\Communication\Domain\Enums\CommChannel;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class EmailChannelGateway implements ChannelGatewayInterface
 {
+    public function __construct(private readonly CommunicationSettingsService $commSettings) {}
+
     public function channel(): string
     {
         return CommChannel::Email->value;
@@ -22,7 +25,7 @@ class EmailChannelGateway implements ChannelGatewayInterface
 
     public function isConfigured(): bool
     {
-        return (bool) config('communication.email.from_address');
+        return (bool) $this->commSettings->emailFromAddress();
     }
 
     public function sendText(CommConversation $conversation, CommMessage $message, array $options = []): bool
@@ -42,9 +45,12 @@ class EmailChannelGateway implements ChannelGatewayInterface
         }
 
         try {
-            Mail::raw($message->body, function ($mail) use ($to, $thread, $message) {
+            $from = $this->commSettings->emailFromAddress();
+            $fromName = $this->commSettings->emailFromName();
+
+            Mail::raw($message->body, function ($mail) use ($to, $thread, $message, $from, $fromName) {
                 $mail->to($to)
-                    ->from(config('communication.email.from_address'), config('communication.email.from_name'))
+                    ->from($from, $fromName)
                     ->subject($thread->subject ?? 'پاسخ پشتیبانی پوشه')
                     ->replyTo($thread->alias_email);
             });
@@ -53,7 +59,7 @@ class EmailChannelGateway implements ChannelGatewayInterface
                 'thread_id' => $thread->id,
                 'message_id' => $message->id,
                 'direction' => 'outbound',
-                'from_email' => config('communication.email.from_address'),
+                'from_email' => $from,
                 'to_email' => $to,
                 'subject' => $thread->subject,
                 'body_text' => $message->body,

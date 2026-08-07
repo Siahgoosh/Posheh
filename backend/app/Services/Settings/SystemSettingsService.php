@@ -313,6 +313,17 @@ class SystemSettingsService
             'zibal_sandbox' => env('ZIBAL_SANDBOX', $default ?? false),
             'sms_mode' => env('SMS_MODE', $default),
             'sms_provider' => env('SMS_PROVIDER', $default),
+            'comm_telegram_bot_token' => env('TELEGRAM_PLATFORM_BOT_TOKEN', $default),
+            'comm_telegram_alert_chat_ids' => env('TELEGRAM_PLATFORM_ALERT_CHAT_IDS', $default),
+            'comm_whatsapp_phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID', $default),
+            'comm_whatsapp_access_token' => env('WHATSAPP_ACCESS_TOKEN', $default),
+            'comm_email_from' => env('COMM_EMAIL_FROM', env('MAIL_FROM_ADDRESS', $default)),
+            'comm_email_from_name' => env('COMM_EMAIL_FROM_NAME', $default),
+            'comm_email_inbound_domain' => env('COMM_EMAIL_INBOUND_DOMAIN', $default),
+            'comm_email_webhook_secret' => env('COMM_EMAIL_WEBHOOK_SECRET', $default),
+            'comm_ai_provider' => env('COMM_AI_PROVIDER', $default),
+            'comm_ai_openai_key' => env('OPENAI_API_KEY', $default),
+            'comm_ai_openai_model' => env('COMM_AI_OPENAI_MODEL', $default),
             default => $default,
         };
     }

@@ -23,6 +23,7 @@ class TelegramPlatformHandler
         private readonly MessageService $messages,
         private readonly TicketService $tickets,
         private readonly AiCopilotService $ai,
+        private readonly CommunicationSettingsService $commSettings,
     ) {}
 
     public function handle(array $update): void
@@ -292,7 +293,7 @@ class TelegramPlatformHandler
             }
         }
 
-        $alertChats = config('communication.telegram.alert_chat_ids', []);
+        $alertChats = $this->commSettings->telegramAlertChatIds();
         foreach ($alertChats as $alertChat) {
             if ($alertChat) {
                 $this->api->sendMessage($alertChat, $text);

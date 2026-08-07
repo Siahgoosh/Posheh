@@ -85,7 +85,7 @@ export function FloatingChatWidget() {
       setStep('chat')
       return
     }
-    await ensureVisitorInitialized()
+    await ensureVisitorInitialized().catch(() => {})
     if (isAuthenticated && user?.mobile) setStep('form')
   }
 
@@ -94,10 +94,6 @@ export function FloatingChatWidget() {
     setError(null)
     try {
       const token = visitorToken || await ensureVisitorInitialized()
-      if (!token) {
-        setError('اتصال به سرور برقرار نشد. لطفاً صفحه را رفرش کنید.')
-        return
-      }
 
       const key = sessionKey || createSessionKey()
       if (!sessionKey) setSessionKey(key)
@@ -140,7 +136,11 @@ export function FloatingChatWidget() {
       trackCommEvent('form_submit')
       setStep('chat')
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
+      const err = e as { response?: { data?: { message?: string; errors?: Record<string, string[]> } }; message?: string }
+      if (err.message && !err.response) {
+        setError(err.message)
+        return
+      }
       const validation = err?.response?.data?.errors
       const msg = validation
         ? Object.values(validation).flat().join(' ')

@@ -6,6 +6,7 @@ use App\Models\Communication\CommConversation;
 use App\Models\Communication\CommMessage;
 use App\Models\Communication\CommWebhookLog;
 use App\Modules\Communication\Application\Contracts\ChannelGatewayInterface;
+use App\Modules\Communication\Application\Services\CommunicationSettingsService;
 use App\Modules\Communication\Domain\Enums\CommChannel;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Log;
 /** WhatsApp Cloud API — ready for credentials without structural changes. */
 class WhatsAppChannelGateway implements ChannelGatewayInterface
 {
+    public function __construct(private readonly CommunicationSettingsService $commSettings) {}
+
     public function channel(): string
     {
         return CommChannel::WhatsApp->value;
@@ -20,8 +23,8 @@ class WhatsAppChannelGateway implements ChannelGatewayInterface
 
     public function isConfigured(): bool
     {
-        return (bool) config('communication.whatsapp.phone_number_id')
-            && (bool) config('communication.whatsapp.access_token');
+        return $this->commSettings->whatsappPhoneNumberId()
+            && $this->commSettings->whatsappAccessToken();
     }
 
     public function sendText(CommConversation $conversation, CommMessage $message, array $options = []): bool
@@ -30,8 +33,8 @@ class WhatsAppChannelGateway implements ChannelGatewayInterface
             return false;
         }
 
-        $token = config('communication.whatsapp.access_token');
-        $phoneId = config('communication.whatsapp.phone_number_id');
+        $token = $this->commSettings->whatsappAccessToken();
+        $phoneId = $this->commSettings->whatsappPhoneNumberId();
 
         try {
             $response = Http::withToken($token)->post(

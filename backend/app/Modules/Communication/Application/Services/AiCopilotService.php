@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 
 class AiCopilotService
 {
+    public function __construct(private readonly CommunicationSettingsService $commSettings) {}
+
     /** @return list<string> */
     public function suggestReplies(CommConversation $conversation, int $count = 3): array
     {
@@ -75,14 +77,14 @@ class AiCopilotService
     /** @return list<string> */
     private function generateSuggestions(string $context, CommConversation $conversation): array
     {
-        $provider = config('communication.ai.provider', 'internal');
+        $provider = $this->commSettings->aiProvider();
 
-        if ($provider === 'openai' && config('communication.ai.openai_key')) {
+        if ($provider === 'openai' && $this->commSettings->aiOpenaiKey()) {
             try {
-                $response = Http::withToken(config('communication.ai.openai_key'))
+                $response = Http::withToken($this->commSettings->aiOpenaiKey())
                     ->timeout(20)
                     ->post('https://api.openai.com/v1/chat/completions', [
-                        'model' => config('communication.ai.openai_model', 'gpt-4o-mini'),
+                        'model' => $this->commSettings->aiOpenaiModel(),
                         'messages' => [
                             ['role' => 'system', 'content' => 'You are a helpful Persian support agent for Posheh real estate SaaS. Reply with 3 short suggested responses in Persian, separated by |||'],
                             ['role' => 'user', 'content' => $context],

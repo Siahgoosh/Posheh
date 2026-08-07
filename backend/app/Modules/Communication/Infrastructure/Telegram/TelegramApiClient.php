@@ -3,14 +3,17 @@
 namespace App\Modules\Communication\Infrastructure\Telegram;
 
 use App\Models\Communication\CommTelegramLog;
+use App\Modules\Communication\Application\Services\CommunicationSettingsService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class TelegramApiClient
 {
+    public function __construct(private readonly CommunicationSettingsService $commSettings) {}
+
     public function token(): string
     {
-        return trim((string) config('communication.telegram.platform_bot_token', env('TELEGRAM_PLATFORM_BOT_TOKEN')));
+        return $this->commSettings->telegramBotToken();
     }
 
     public function isConfigured(): bool

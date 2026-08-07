@@ -40,8 +40,8 @@ export async function initCommunicationTracking(): Promise<void> {
   heartbeatTimer = setInterval(sendHeartbeat, interval * 1000)
 }
 
-/** Ensure visitor token exists — required before lead capture / chat */
-export async function ensureVisitorInitialized(): Promise<string | null> {
+/** @returns token or throws with user-facing message */
+export async function ensureVisitorInitialized(): Promise<string> {
   const store = useCommVisitorStore.getState()
   if (store.visitorToken) return store.visitorToken
 
@@ -68,8 +68,14 @@ export async function ensureVisitorInitialized(): Promise<string | null> {
       sessionStorage.setItem('posheh_comm_landing', window.location.pathname)
     }
     return token
-  } catch {
-    return null
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string }; status?: number } }
+    console.error('[comm] visitor init failed', err?.response?.status, err?.response?.data)
+    const apiMsg = err?.response?.data?.message
+    if (err?.response?.status === 500 || err?.response?.status === 404) {
+      throw new Error('سرویس چت هنوز روی سرور فعال نشده. لطفاً migration را اجرا کنید یا با پشتیبانی تماس بگیرید.')
+    }
+    throw new Error(apiMsg || 'اتصال به سرور برقرار نشد. لطفاً صفحه را رفرش کنید.')
   }
 }
 

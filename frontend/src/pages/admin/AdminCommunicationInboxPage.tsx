@@ -294,9 +294,9 @@ export function AdminCommunicationInboxPage() {
                   placeholder="پاسخ..."
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (reply.trim() || fileRef.current?.files?.length) && replyMutation.mutate()}
+                  onKeyDown={(e) => e.key === 'Enter' && (reply.trim() || fileRef.current?.files?.[0]) && replyMutation.mutate()}
                 />
-                <Button size="icon" onClick={() => replyMutation.mutate()} disabled={!reply.trim() && !fileRef.current?.files?.length}>
+                <Button size="icon" onClick={() => replyMutation.mutate()} disabled={!reply.trim() && !fileRef.current?.files?.[0]}>
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
