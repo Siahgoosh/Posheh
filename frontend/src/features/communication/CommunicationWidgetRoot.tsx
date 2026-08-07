@@ -1,17 +1,16 @@
 import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { FloatingChatWidget } from './widget/FloatingChatWidget'
 import { initCommunicationTracking } from './tracking/visitorTracker'
-import { getOfficeSubdomain, isPanelSubdomain } from '@/lib/subdomain'
-import { useAuthStore } from '@/stores/auth'
+import { shouldHideCommunicationWidget } from './communicationWidgetVisibility'
 
-/** Public marketing site only — hidden on panel, office sites, and logged-in users */
+/**
+ * Floating chat on public marketing pages (landing, blog, contact, public tours).
+ * Hidden on panel subdomain, office sites, admin routes, and inside the tenant panel app (/dashboard, …).
+ */
 export function CommunicationWidgetRoot() {
-  const officeSub = getOfficeSubdomain()
-  const isPanel = isPanelSubdomain()
-  const onAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
-  const { isAuthenticated, hydrated } = useAuthStore()
-
-  const hideWidget = officeSub || isPanel || onAdminPath || (hydrated && isAuthenticated)
+  const { pathname } = useLocation()
+  const hideWidget = shouldHideCommunicationWidget(pathname)
 
   useEffect(() => {
     if (hideWidget) return

@@ -1,6 +1,6 @@
 # سند انتقال پروژه پوشه (Posheh) — راهنمای کامل برای ادامه کار با Cursor
 
-> **نسخه سند:** ۱۴۰۴/۰۵/۱۳ (۲۰۲۶-۰۸-۰۴)  
+> **نسخه سند:** ۱۴۰۴/۰۵/۱۷ (۲۰۲۶-۰۸-۰۷)  
 > **ریپوزیتوری:** https://github.com/Siahgoosh/Posheh  
 > **دامنه production:** https://posheapp.ir  
 > **سرور:** همان سرور قبلی — مسیر `/var/www/posheh`
@@ -16,6 +16,7 @@
 
    ```
    فایل docs/CURSOR-HANDOFF-FA.md را بخوان و کامل بفهم داستان پروژه چی بوده.
+   فایل docs/CURSOR-AGENT-CHANGELOG-FA.md را برای آخرین تغییرات این دوره بخوان.
    سرور همان قبلی است (/var/www/posheh). از همین‌جا ادامه بده.
    ```
 
@@ -323,6 +324,13 @@ git push origin main
 - AI فعلاً **rule-based** (بدون OpenAI) — Premium gate در صفحه
 - کیف پول در داشبورد + شارژ از زیبال
 - رفع باگ پرداخت کیف پول (trial باقی می‌ماند)
+
+### فاز ۷ — مرکز ارتباطات + تور مجازی enterprise (PR #55 — `cursor/customer-communication-e117`)
+- ماژول Communication (چت وب، تلگرام، اینباکس ادمین، لید)
+- ویجت چت شناور روی **صفحات عمومی** (`communicationWidgetVisibility.ts`)
+- ادغام Smart Walk + ویرایشگر تور ۳۶۰ enterprise در پنل
+- رفع زوم پانوراما، موزیک، اندروید، انتشار مجدد، واتساپ/بازدید تور
+- **جزئیات کامل:** `docs/CURSOR-AGENT-CHANGELOG-FA.md`
 
 ### باگ‌های گزارش‌شده توسط مالک
 1. پرداخت با کیف پول → اشتراک فعال نمی‌شد، هنوز «۳ روز آزمایشی» → **رفع در PR #46**
@@ -713,10 +721,11 @@ docker compose exec app php artisan system:sms-probe 09XXXXXXXXX --send
 
 لطفاً این فایل‌ها را بخوان:
 1. docs/CURSOR-HANDOFF-FA.md (اولویت اول — کل داستان)
-2. README.md
-3. وضعیت PRهای باز (#43 تا #46)
+2. docs/CURSOR-AGENT-CHANGELOG-FA.md (آخرین تغییرات Agent — PR #55)
+3. README.md
+4. وضعیت PR #55 (customer-communication-e117)
 
-main احتمالاً عقب است؛ آخرین کار روی cursor/plan-pricing-ai-notifications-e117 (PR #46).
+main احتمالاً عقب است؛ آخرین کار روی cursor/customer-communication-e117 (PR #55).
 
 از همین‌جا ادامه بده. قبل از deploy بپرس.
 ```
