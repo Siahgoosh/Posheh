@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>راهنمای جامع پلتفرم پوشه — Posheh</title>
+  <meta name="description" content="آموزش کامل فایلینگ، CRM، Smart Walk، تور ۳۶۰، بازدید، نوتیفیکیشن و موبایل در نرم‌افزار پوشه" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <style>
+    :root {
+      --bg: #07070c;
+      --surface: #111118;
+      --card: #181824;
+      --border: rgba(255,255,255,0.08);
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --accent: #2dd4bf;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 16px;
+      --shadow: 0 24px 60px rgba(0,0,0,0.5);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.85;
+      font-size: 16px;
+    }
+    .hero {
+      padding: 3.5rem 1.25rem 4.5rem;
+      text-align: center;
+      background:
+        radial-gradient(ellipse 70% 50% at 50% -10%, rgba(99,102,241,0.35), transparent),
+        radial-gradient(ellipse 40% 30% at 90% 20%, rgba(45,212,191,0.15), transparent),
+        var(--bg);
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.35rem 1rem;
+      border-radius: 999px;
+      background: rgba(45,212,191,0.15);
+      border: 1px solid rgba(45,212,191,0.35);
+      color: var(--accent);
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: clamp(1.6rem, 5vw, 2.6rem);
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, #fff, #c7d2fe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p { color: var(--muted); max-width: 640px; margin: 0 auto 1.5rem; }
+    .hero-actions { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.7rem 1.25rem; border-radius: 12px;
+      font-weight: 600; text-decoration: none; font-size: 0.92rem;
+      transition: transform 0.15s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), #4f46e5); color: #fff; }
+    .btn-outline { border: 1px solid var(--border); color: var(--text); }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 1.25rem 4rem; }
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin: -2rem auto 2.5rem;
+      box-shadow: var(--shadow);
+    }
+    .toc h2 { font-size: 1rem; color: var(--primary-light); margin-bottom: 1rem; }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.5rem 1rem;
+      list-style: none;
+    }
+    .toc a { color: var(--muted); text-decoration: none; font-size: 0.88rem; }
+    .toc a:hover { color: var(--accent); }
+    section { margin-bottom: 2.5rem; scroll-margin-top: 1.5rem; }
+    section h2 {
+      font-size: 1.35rem;
+      margin-bottom: 0.75rem;
+      display: flex; align-items: center; gap: 0.65rem;
+    }
+    section h2 .num {
+      width: 32px; height: 32px; border-radius: 10px;
+      background: rgba(99,102,241,0.2); color: var(--primary-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 700; flex-shrink: 0;
+    }
+    h3 { font-size: 1.05rem; color: var(--primary-light); margin: 1.25rem 0 0.5rem; }
+    p, li { color: var(--muted); }
+    ul, ol { padding-right: 1.25rem; margin: 0.5rem 0; }
+    li { margin-bottom: 0.4rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin: 1rem 0;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .mini-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem;
+    }
+    .mini-card .icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .mini-card h4 { font-size: 0.95rem; margin-bottom: 0.35rem; color: var(--text); }
+    .mini-card p { font-size: 0.85rem; }
+    .tip {
+      border-right: 4px solid var(--success);
+      background: rgba(34,197,94,0.08);
+      padding: 0.85rem 1rem;
+      border-radius: 0 12px 12px 0;
+      margin: 1rem 0;
+    }
+    .warn {
+      border-right: 4px solid var(--warning);
+      background: rgba(245,158,11,0.08);
+      padding: 0.85rem 1rem;
+      border-radius: 0 12px 12px 0;
+      margin: 1rem 0;
+    }
+    kbd {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.1rem 0.45rem;
+      font-size: 0.82em;
+      direction: ltr;
+      display: inline-block;
+    }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.88rem; }
+    th, td { border: 1px solid var(--border); padding: 0.65rem 0.85rem; text-align: right; }
+    th { background: var(--surface); color: var(--text); }
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    @media (max-width: 640px) {
+      .hero { padding: 2.5rem 1rem 3.5rem; }
+      .toc { margin-top: -1.5rem; padding: 1rem; }
+      section h2 { font-size: 1.15rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <span class="badge">Posheh Platform Guide · ۱۴۰۴</span>
+    <h1>راهنمای جامع پلتفرم پوشه</h1>
+    <p>آموزش گام‌به‌گام فایلینگ، CRM، تور مجازی (Smart Walk + ۳۶۰)، بازدید، نوتیفیکیشن و استفاده روی موبایل — برای مشاوران و مدیران دفتر.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="/virtual-tours">ورود به تور مجازی</a>
+      <a class="btn btn-outline" href="/virtual-tour-guide.html">راهنمای تور ۳۶۰</a>
+      <a class="btn btn-outline" href="/dashboard">بازگشت به پنل</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <nav class="toc">
+      <h2>فهرست مطالب</h2>
+      <ul class="toc-grid">
+        <li><a href="#start">۱. شروع سریع</a></li>
+        <li><a href="#filing">۲. فایلینگ ملک</a></li>
+        <li><a href="#crm">۳. CRM و مشتری</a></li>
+        <li><a href="#visits">۴. بازدید و تقویم</a></li>
+        <li><a href="#smart-walk">۵. Smart Walk</a></li>
+        <li><a href="#tour360">۶. تور ۳۶۰</a></li>
+        <li><a href="#publish">۷. انتشار و پیش‌نمایش</a></li>
+        <li><a href="#notifications">۸. نوتیفیکیشن</a></li>
+        <li><a href="#mobile">۹. موبایل و ریسپانسیو</a></li>
+        <li><a href="#support">۱۰. پشتیبانی</a></li>
+      </ul>
+    </nav>
+
+    <section id="start">
+      <h2><span class="num">۱</span>شروع سریع</h2>
+      <p>پس از ورود با OTP، از منوی کناری به بخش مورد نیاز بروید. روی موبایل آیکن <strong>☰</strong> منو را باز می‌کند.</p>
+      <div class="grid-2">
+        <div class="mini-card"><div class="icon">🏠</div><h4>املاک</h4><p>ثبت، ویرایش و انتشار فایل</p></div>
+        <div class="mini-card"><div class="icon">📦</div><h4>تور مجازی</h4><p>Smart Walk یا پانوراما ۳۶۰</p></div>
+        <div class="mini-card"><div class="icon">📅</div><h4>بازدیدها</h4><p>تقویم شمسی و درخواست وب</p></div>
+        <div class="mini-card"><div class="icon">🔔</div><h4>اعلان‌ها</h4><p>زنگ بالای صفحه (موبایل/دسکتاپ)</p></div>
+      </div>
+    </section>
+
+    <section id="filing">
+      <h2><span class="num">۲</span>فایلینگ ملک</h2>
+      <ol>
+        <li>منوی <strong>املاک</strong> → <strong>ملک جدید</strong></li>
+        <li>نوع معامله، محله، متراژ، قیمت و عکس‌ها را کامل کنید</li>
+        <li>وضعیت «منتشر در وبسایت» را برای نمایش عمومی فعال کنید</li>
+      </ol>
+      <div class="tip"><strong>نکته:</strong> عکس‌های با کیفیت و افقی برای Smart Walk و ۳۶۰ بهتر است.</div>
+    </section>
+
+    <section id="crm">
+      <h2><span class="num">۳</span>CRM و مشتری</h2>
+      <p>در پلن‌های حرفه‌ای: کانبان معاملات، پیگیری تماس، مالک/مشتری جداگانه. از <strong>CRM</strong> در منو وارد شوید.</p>
+    </section>
+
+    <section id="visits">
+      <h2><span class="num">۴</span>بازدید و تقویم</h2>
+      <p>درخواست بازدید از وبسایت دفتر → نوتیف در پنل + (در صورت تنظیم) تلگرام. از <strong>بازدیدها</strong> زمان را تأیید یا رد کنید.</p>
+    </section>
+
+    <section id="smart-walk">
+      <h2><span class="num">۵</span>Poshe Smart Walk — عکس موبایل</h2>
+      <p>تور با عکس‌های معمولی (نه ۳۶۰). مناسب راهرو، پله و اتاق‌ها.</p>
+      <h3>کنترل تصویر در ویرایشگر</h3>
+      <table>
+        <tr><th>عمل</th><th>دسکتاپ</th><th>موبایل/تبلت</th></tr>
+        <tr><td>جابجایی (Pan)</td><td>کلیک + درگ</td><td>یک انگشت بکشید</td></tr>
+        <tr><td>زوم</td><td>اسکرول ماوس / دکمه ±</td><td>پینچ دو انگشت / دوبار ضربه</td></tr>
+        <tr><td>بازنشانی</td><td>دکمه ↺</td><td>دکمه ↺</td></tr>
+        <tr><td>ثبت نقطه اتصال</td><td>«اتصال صحنه» → کلیک</td><td>همان</td></tr>
+      </table>
+      <div class="warn"><strong>مهم:</strong> قبل از ثبت نقطه، با درگ تصویر را جابجا کنید. نشانگر خط‌چین محل کلیک را نشان می‌دهد.</div>
+      <h3>مراحل ساخت</h3>
+      <ol>
+        <li>تور جدید → نوع <strong>Smart Walk</strong></li>
+        <li>آپلود عکس هر اتاق (صحنه)</li>
+        <li>تب اتصال صحنه‌ها → فلش بین اتاق‌ها</li>
+        <li>ذخیره اتصال‌ها → پیش‌نمایش → انتشار</li>
+      </ol>
+    </section>
+
+    <section id="tour360">
+      <h2><span class="num">۶</span>تور ۳۶۰ درجه</h2>
+      <p>پانورامای equirectangular (نسبت ۲:۱، حداقل ۴۰۰۰×۲۰۰۰). جزئیات کامل:</p>
+      <p><a class="btn btn-outline" href="/virtual-tour-guide.html">راهنمای تور ۳۶۰ ←</a></p>
+    </section>
+
+    <section id="publish">
+      <h2><span class="num">۷</span>انتشار و پیش‌نمایش</h2>
+      <ul>
+        <li><strong>پیش‌نمایش:</strong> دکمه پیش‌نمایش در ویرایشگر — حتی قبل از انتشار کار می‌کند</li>
+        <li><strong>انتشار تور:</strong> دکمه «انتشار تور» — حداقل یک صحنه لازم است</li>
+        <li>پیام سبز/قرمز بالای صفحه نتیجه را نشان می‌دهد</li>
+        <li>بعد از انتشار: لینک عمومی <code>/tour/slug</code></li>
+      </ul>
+    </section>
+
+    <section id="notifications">
+      <h2><span class="num">۸</span>نوتیفیکیشن</h2>
+      <p>آیکن زنگ → لیست اعلان‌ها. دکمه ✓ کنار هر مورد = خوانده شد. «همه خوانده» همه اعلان‌های سیستمی را پاک می‌کند.</p>
+      <div class="tip"><strong>تفاوت:</strong> «اطلاعیه عمومی» (announcement) جدا از اعلان شخصی است و روی شمارنده تأثیر نمی‌گذارد.</div>
+    </section>
+
+    <section id="mobile">
+      <h2><span class="num">۹</span>موبایل و ریسپانسیو</h2>
+      <ul>
+        <li>پنل PWA: از مرورگر «Add to Home Screen»</li>
+        <li>اپ اندروید: <a href="/download" style="color:var(--accent)">صفحه دانلود</a></li>
+        <li>ویرایشگر تور: روی موبایل sidebar بالا، تصویر پایین — عمودی اسکرول نکنید، روی تصویر درگ/پینچ کنید</li>
+        <li>منوی ☰ در گوشه برای ناوبری</li>
+      </ul>
+      <div class="card">
+        <h3>چک‌لیست ریسپانسیو</h3>
+        <ul>
+          <li>✅ هدر موبایل با safe-area</li>
+          <li>✅ sidebar کشویی</li>
+          <li>✅ ویرایشگر تور: flex-col در موبایل</li>
+          <li>✅ پاپ‌آپ اعلان: عرض متناسب با صفحه</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="support">
+      <h2><span class="num">۱۰</span>پشتیبانی</h2>
+      <p>منوی <strong>پشتیبانی</strong> → ثبت تیکت. برای راهنمای ربات تلگرام: <a href="/telegram-bot-guide.html" style="color:var(--accent)">telegram-bot-guide.html</a></p>
+    </section>
+  </div>
+
+  <footer>
+    <p>پوشه (Posheh) · posheapp.ir · آخرین به‌روزرسانی: مرداد ۱۴۰۴</p>
+  </footer>
+</body>
+</html>

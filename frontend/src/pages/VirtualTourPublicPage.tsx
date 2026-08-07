@@ -1,45 +1,43 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import {
-  Share2, Phone, MessageCircle, MapPin, Images, X, Copy, Check,
-  Eye,
+  Share2, Phone, MessageCircle, MapPin, Images, X, Copy, Check, Eye, Lock,
 } from 'lucide-react'
 import api from '@/lib/api'
-import { VirtualTourViewer, type TourData } from '@/components/virtual-tour/VirtualTourViewer'
+import { UnifiedTourViewer } from '@/features/virtual-tour/engine/UnifiedTourViewer'
+import { usePublicTour } from '@/features/virtual-tour/hooks/usePublicTour'
+import { useTourSessionAnalytics } from '@/features/virtual-tour/hooks/useTourSessionAnalytics'
+import { applyTourSeo, tourScenePath } from '@/features/virtual-tour/utils/tourSeo'
+import { TourWatermark } from '@/features/virtual-tour/components/TourWatermark'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-
-interface TourPayload extends TourData {
-  slug: string
-  view_count: number
-  property?: { code: string; type: string; price?: number; area?: number; city?: string; district?: string }
-  office?: { name: string; phone?: string }
-  gallery?: { id: number; type: string; url: string; title?: string }[]
-  public_url?: string
-  settings?: TourData['settings'] & {
-    phone?: string
-    whatsapp?: string
-    show_contact_form?: boolean
-    show_gallery?: boolean
-    music_url?: string
-  }
-}
+import type { TourHotspot } from '@/features/virtual-tour/types'
 
 export function VirtualTourPublicPage() {
-  const { slug } = useParams<{ slug: string }>()
+  const { slug, sceneId: sceneIdParam } = useParams<{ slug: string; sceneId?: string }>()
+  const initialSceneId = sceneIdParam ? Number(sceneIdParam) : undefined
+  const { tour, gate, deniedMessage, verifyPassword, verifyError, isVerifying } = usePublicTour(slug)
+  const analytics = useTourSessionAnalytics(slug, gate === 'ok')
   const [showGallery, setShowGallery] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
   const [form, setForm] = useState({ name: '', mobile: '', message: '' })
 
-  const { data: tour, isLoading, error } = useQuery({
-    queryKey: ['public-tour', slug],
-    queryFn: async () => (await api.get(`/tour/${slug}`)).data.data as TourPayload,
-    enabled: !!slug,
-  })
+  useEffect(() => {
+    if (tour) applyTourSeo(tour, tour.seo)
+  }, [tour?.id, tour?.title])
+
+  useEffect(() => {
+    if (tour?.security?.disable_direct_download) {
+      const block = (e: Event) => e.preventDefault()
+      document.addEventListener('contextmenu', block)
+      return () => document.removeEventListener('contextmenu', block)
+    }
+  }, [tour?.security?.disable_direct_download])
 
   const leadMutation = useMutation({
     mutationFn: async () => (await api.post(`/tour/${slug}/lead`, form)).data,
@@ -50,15 +48,7 @@ export function VirtualTourPublicPage() {
     },
   })
 
-  const shareUrl = tour?.public_url || `${window.location.origin}/tour/${slug}`
-
-  const copyLink = async () => {
-    await navigator.clipboard.writeText(shareUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  if (isLoading) {
+  if (gate === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -66,30 +56,106 @@ export function VirtualTourPublicPage() {
     )
   }
 
-  if (error || !tour) {
+  if (gate === 'expired') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-muted">تور مجازی یافت نشد</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0a0a0f] text-white">
+        <p className="text-muted">این تور منقضی شده است.</p>
         <Link to="/"><Button variant="outline">صفحه اصلی</Button></Link>
       </div>
     )
   }
 
+  if (gate === 'password') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f] p-4">
+        <Card className="w-full max-w-sm p-6 space-y-4">
+          <div className="text-center">
+            <Lock className="h-10 w-10 mx-auto mb-3 text-primary" />
+            <h1 className="font-bold text-lg">تور محافظت‌شده</h1>
+            <p className="text-sm text-muted mt-1">برای مشاهده، رمز دسترسی را وارد کنید.</p>
+          </div>
+          <Input
+            type="password"
+            placeholder="رمز دسترسی"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && verifyPassword(passwordInput)}
+          />
+          {verifyError && <p className="text-xs text-red-400">{verifyError}</p>}
+          <Button
+            className="w-full"
+            disabled={!passwordInput || isVerifying}
+            onClick={() => verifyPassword(passwordInput)}
+          >
+            {isVerifying ? 'در حال بررسی...' : 'ورود به تور'}
+          </Button>
+        </Card>
+      </div>
+    )
+  }
+
+  if (gate === 'private') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0a0a0f] text-white p-4 text-center">
+        <p className="text-muted max-w-md">{deniedMessage || 'این تور خصوصی است و نیاز به لینک دسترسی دارد.'}</p>
+        <Link to="/"><Button variant="outline">صفحه اصلی</Button></Link>
+      </div>
+    )
+  }
+
+  if (gate === 'denied' || !tour) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <p className="text-muted">{deniedMessage || 'تور مجازی یافت نشد یا دسترسی مجاز نیست.'}</p>
+        <Link to="/"><Button variant="outline">صفحه اصلی</Button></Link>
+      </div>
+    )
+  }
+
+  const isSmartWalk = tour.tour_type === 'smart_walk'
+  const shareUrl = tour.public_url || `${window.location.origin}/tour/${slug}`
   const whatsapp = tour.settings?.whatsapp || tour.settings?.phone
   const mapUrl = tour.settings?.map_lat && tour.settings?.map_lng
     ? `https://maps.google.com/?q=${tour.settings.map_lat},${tour.settings.map_lng}`
     : null
 
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(shareUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleSceneChange = (id: number) => {
+    analytics.trackSceneView(id)
+    analytics.trackTourComplete(tour.scenes.length)
+    const scene = tour.scenes.find((s) => s.id === id)
+    if (scene && slug) {
+      applyTourSeo(tour, {
+        ...tour.seo,
+        title: `${tour.title} — ${scene.name}`,
+        canonical: `${window.location.origin}${tourScenePath(slug, id)}`,
+      })
+    }
+  }
+
+  const handleHotspotActivate = (hotspot: TourHotspot, activeSceneId: number) => {
+    analytics.trackHotspotClick(
+      hotspot.id,
+      activeSceneId,
+      hotspot.position_x ?? undefined,
+      hotspot.position_y ?? undefined,
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
-      {/* Header — like 360nama branding bar */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/40 backdrop-blur z-30">
+    <div className="h-[100dvh] max-h-[100dvh] bg-[#0a0a0f] text-white flex flex-col overflow-hidden">
+      <header className="flex shrink-0 items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-white/10 bg-black/40 backdrop-blur z-30 safe-top">
         <div className="flex items-center gap-3">
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold"
-            style={{ background: tour.settings?.brand_color || '#6366f1' }}
+            style={{ background: tour.settings?.brand_color || '#2dd4bf' }}
           >
-            ۳۶۰
+            {isSmartWalk ? 'SW' : '۳۶۰'}
           </div>
           <div>
             <h1 className="font-bold text-sm md:text-base leading-tight">{tour.title}</h1>
@@ -109,14 +175,26 @@ export function VirtualTourPublicPage() {
         </div>
       </header>
 
-      {/* 360 Viewer */}
-      <div className="flex-1 relative" style={{ minHeight: '65vh' }}>
-        <VirtualTourViewer tour={tour} className="h-full" showSceneList />
+      <div className="flex-1 min-h-0 relative w-full">
+        <TourWatermark
+          text={tour.security?.watermark_text}
+          enabled={tour.security?.watermark_enabled}
+        />
+        <UnifiedTourViewer
+          tour={tour}
+          initialSceneId={initialSceneId}
+          onSceneChange={handleSceneChange}
+          className="absolute inset-0 h-full w-full"
+          showControls
+          showSceneName
+          showFeatures={!isSmartWalk}
+          publicUrl={shareUrl}
+          onHotspotActivate={handleHotspotActivate}
+        />
       </div>
 
-      {/* Property info bar */}
-      <div className="border-t border-white/10 bg-black/60 backdrop-blur px-4 py-4">
-        <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div className="shrink-0 border-t border-white/10 bg-black/80 backdrop-blur px-3 sm:px-4 py-2.5 sm:py-4 safe-bottom">
+        <div className="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-3 sm:gap-4">
           <div>
             {tour.property && (
               <div className="flex flex-wrap gap-3 text-sm text-white/80">
@@ -152,7 +230,7 @@ export function VirtualTourPublicPage() {
               </a>
             )}
             {tour.settings?.show_contact_form !== false && (
-              <Button size="sm" onClick={() => setShowForm(true)} style={{ background: tour.settings?.brand_color || '#6366f1' }}>
+              <Button size="sm" onClick={() => setShowForm(true)} style={{ background: tour.settings?.brand_color || '#2dd4bf' }}>
                 درخواست بازدید
               </Button>
             )}
@@ -160,7 +238,6 @@ export function VirtualTourPublicPage() {
         </div>
       </div>
 
-      {/* Gallery modal */}
       {showGallery && tour.gallery && (
         <div className="fixed inset-0 z-50 bg-black/90 flex flex-col">
           <div className="flex justify-between items-center p-4">
@@ -170,7 +247,7 @@ export function VirtualTourPublicPage() {
           <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 gap-3">
             {tour.gallery.map((g) => (
               <Card key={g.id} className="overflow-hidden">
-                <img src={g.url} alt={g.title || ''} className="w-full aspect-video object-cover" />
+                <img src={g.url} alt={g.title || ''} className="w-full aspect-video object-cover" loading="lazy" />
                 {g.title && <p className="p-2 text-xs text-muted">{g.title}</p>}
               </Card>
             ))}
@@ -178,7 +255,6 @@ export function VirtualTourPublicPage() {
         </div>
       )}
 
-      {/* Contact form modal — like 360nama consultation form */}
       {showForm && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <Card className="w-full max-w-md p-6 space-y-4">
@@ -200,8 +276,8 @@ export function VirtualTourPublicPage() {
         </div>
       )}
 
-      <footer className="text-center py-3 text-xs text-white/40 border-t border-white/5">
-        تور مجازی ۳۶۰ درجه — قدرت گرفته از <Link to="/" className="text-primary hover:underline">پوشه</Link>
+      <footer className="shrink-0 text-center py-2 text-[10px] sm:text-xs text-white/40 border-t border-white/5 safe-bottom">
+        {isSmartWalk ? 'Poshe Smart Walk' : 'تور مجازی ۳۶۰ درجه'} — قدرت گرفته از <Link to="/" className="text-primary hover:underline">پوشه</Link>
       </footer>
     </div>
   )

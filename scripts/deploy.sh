@@ -5,6 +5,12 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 BRANCH="${1:-main}"
+# Common typo: cursor/visit/notifications-e117 → cursor/visit-notifications-e117
+case "$BRANCH" in
+  cursor/visit/notifications-e117) BRANCH="cursor/visit-notifications-e117" ;;
+  cursor/virtual/tour/enterprise-e117) BRANCH="cursor/virtual-tour-enterprise-e117" ;;
+  cursor/smart/walk/module-e117) BRANCH="cursor/smart-walk-module-e117" ;;
+esac
 COMPOSE="docker compose"
 COMPOSE_MAIL="docker compose -f docker-compose.yml -f docker-compose.mail.yml"
 
@@ -92,7 +98,20 @@ if ! docker compose version >/dev/null 2>&1; then
 fi
 
 sync_code() {
-  git fetch origin "$BRANCH" || fail "Could not fetch branch $BRANCH from origin"
+  if ! git fetch origin "$BRANCH" 2>/dev/null; then
+    log "Branch '$BRANCH' not found on origin."
+    MATCHES=$(git branch -r 2>/dev/null | sed 's|^[[:space:]]*origin/||' | grep -i "$(echo "$BRANCH" | tr '/_' '-')" | head -8 || true)
+    if [ -z "$MATCHES" ]; then
+      KEY=$(echo "$BRANCH" | tr '/-' ' ' | awk '{print $NF}')
+      MATCHES=$(git branch -r 2>/dev/null | sed 's|^[[:space:]]*origin/||' | grep -i "$KEY" | head -8 || true)
+    fi
+    if [ -n "$MATCHES" ]; then
+      printf '\nSimilar branches on origin:\n'
+      echo "$MATCHES" | sed 's/^/  - /'
+      printf '\nExample: ./scripts/deploy.sh %s\n' "$(echo "$MATCHES" | head -1)"
+    fi
+    fail "Could not fetch branch $BRANCH from origin"
+  fi
 
   # Laravel/Docker runtime edits tracked .gitignore files under storage/ and bootstrap/cache/.
   # Local Flutter scaffolds under mobile/ can also block checkout on production servers.
@@ -142,6 +161,8 @@ $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --
   || fail "SystemSettingsSeeder failed"
 $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
   || log "BlogSeeder warning (may already be seeded)"
+$COMPOSE exec -T app php artisan db:seed --class=VirtualTourBlogSeeder --force --no-interaction 2>/dev/null \
+  || log "VirtualTourBlogSeeder skipped (run: ./scripts/seed-virtual-tour-blog.sh)"
 $COMPOSE exec -T app php artisan blog:seed --count=300 --force --no-interaction 2>/dev/null \
   || log "Run ./scripts/seed-blog.sh to seed 300 SEO articles"
 $COMPOSE exec -T app php artisan db:seed --class=VirtualTourSeeder --force --no-interaction 2>/dev/null \
@@ -221,6 +242,12 @@ printf 'API /plans status: %s\n' "$HTTP_CODE"
 DEMO_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/demo/sphere.jpg || echo "000")
 printf 'Demo panorama /demo/sphere.jpg: %s\n' "$DEMO_CODE"
 
+NOTIF_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/notifications || echo "000")
+printf 'Notifications API (auth required): %s\n' "$NOTIF_CODE"
+
+TOUR_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/tour/demo-apartment-pasdaran || echo "000")
+printf 'Public tour API: %s\n' "$TOUR_CODE"
+
 OTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/api/v1/auth/otp/send \
   -H "Content-Type: application/json" -H "Accept: application/json" \
   -d '{"mobile":"09120000000","purpose":"login"}' || echo "000")
@@ -251,7 +278,9 @@ fi
 cat <<EOF
 
 Next steps:
+  - Deploy ALL features: ./scripts/deploy.sh cursor/release-deploy-e117
   - Deploy from main: ./scripts/deploy.sh main
+  - Full guide: docs/DEPLOY.md
   - Platform admin panel: https://panel.posheapp.ir/login
   - Email setup: cp docker/mail/secrets.env.example docker/mail/secrets.env && ./scripts/setup-mail.sh
   - Fix broken mail: ./scripts/fix-mail-restart.sh  or  ./scripts/fix-site-and-mail.sh
@@ -276,6 +305,7 @@ Next steps:
   - OTP trace log:          docker compose exec app tail -30 storage/logs/otp-sms.log
   - Site URL:            http://YOUR_SERVER_IP/  (or :8000)
   - Admin settings:       /admin/settings
-  - If sms_mode=log only: login OTP code is 123456
-
-EOF
+  - Seed virtual tour articles: ./scripts/seed-virtual-tour-blog.sh
+  - Reset platform revenue:     ./scripts/reset-platform-revenue.sh
+  - Artisan (always via Docker): docker compose exec app php artisan ...
+  - Never run bare \`php artisan\` on the host — PHP is only inside the app container

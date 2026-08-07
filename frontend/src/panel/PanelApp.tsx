@@ -31,6 +31,8 @@ import { AdminCustomersPage } from '@/pages/admin/AdminCustomersPage'
 import { AdminOwnersPage } from '@/pages/admin/AdminOwnersPage'
 import { AdminPropertiesPage } from '@/pages/admin/AdminPropertiesPage'
 import { AdminCrmPage } from '@/pages/admin/AdminCrmPage'
+import { AdminPlatformCrmPage } from '@/pages/admin/AdminPlatformCrmPage'
+import { AdminEmailMarketingPage } from '@/pages/admin/AdminEmailMarketingPage'
 import { AdminVisitsPage } from '@/pages/admin/AdminVisitsPage'
 import { AdminContractsPage } from '@/pages/admin/AdminContractsPage'
 import { AdminCommissionsPage } from '@/pages/admin/AdminCommissionsPage'
@@ -105,6 +107,8 @@ export function PanelApp() {
             <Route path="accounting" element={<AdminAccountingPage />} />
             <Route path="exports" element={<AdminExportsPage />} />
             <Route path="crm" element={<AdminCrmPage />} />
+            <Route path="platform-crm" element={<AdminPlatformCrmPage />} />
+            <Route path="email-marketing" element={<AdminEmailMarketingPage />} />
             <Route path="visits" element={<AdminVisitsPage />} />
             <Route path="contracts" element={<AdminContractsPage />} />
             <Route path="tickets" element={<AdminTicketsPage />} />

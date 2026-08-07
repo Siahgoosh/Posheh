@@ -130,7 +130,11 @@ jobs:
 
   publish-downloads:
     needs: [android, windows]
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/cursor/release-deploy-e117' ||
+      github.ref == 'refs/heads/cursor/mobile-pwa-releases-e117'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

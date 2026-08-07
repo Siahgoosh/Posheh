@@ -37,19 +37,35 @@ interface BlogPostDetail {
   related?: { slug: string; title: string; excerpt?: string }[]
 }
 
-function extractToc(html: string): { id: string; text: string }[] {
-  const matches = [...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/gi)]
-  return matches.map((m, i) => ({
-    id: `section-${i + 1}`,
-    text: m[1].replace(/<[^>]+>/g, '').trim(),
-  }))
+function normalizeArticleHeadings(html: string): string {
+  let out = html.replace(/<h1([^>]*)>/gi, '<h2$1>').replace(/<\/h1>/gi, '</h2>')
+  out = out.replace(/<h4([^>]*)>/gi, '<h3$1>').replace(/<\/h4>/gi, '</h3>')
+  return out
+}
+
+function extractToc(html: string): { id: string; text: string; level: number }[] {
+  const items: { id: string; text: string; level: number }[] = []
+  const re = /<h([23])[^>]*>(.*?)<\/h\1>/gi
+  let m
+  let i = 0
+  while ((m = re.exec(html)) !== null) {
+    i += 1
+    items.push({
+      id: `section-${i}`,
+      text: m[2].replace(/<[^>]+>/g, '').trim(),
+      level: Number(m[1]),
+    })
+  }
+  return items
 }
 
 function injectHeadingIds(html: string): string {
   let i = 0
-  return html.replace(/<h2([^>]*)>/gi, () => {
+  return html.replace(/<h([23])([^>]*)>/gi, (_match, level: string, attrs: string) => {
     i += 1
-    return `<h2 id="section-${i}"$1>`
+    const hasId = /id\s*=/i.test(attrs)
+    if (hasId) return `<h${level}${attrs}>`
+    return `<h${level} id="section-${i}"${attrs}>`
   })
 }
 
@@ -65,8 +81,11 @@ export function BlogPostPage() {
     enabled: !!slug,
   })
 
-  const toc = useMemo(() => (post ? extractToc(post.content) : []), [post])
-  const contentWithIds = useMemo(() => (post ? injectHeadingIds(post.content) : ''), [post])
+  const toc = useMemo(() => (post ? extractToc(normalizeArticleHeadings(post.content)) : []), [post])
+  const contentWithIds = useMemo(
+    () => (post ? injectHeadingIds(normalizeArticleHeadings(post.content)) : ''),
+    [post],
+  )
 
   if (isLoading) {
     return (
@@ -171,7 +190,7 @@ export function BlogPostPage() {
           )}
 
           <div
-            className="prose prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted prose-p:leading-relaxed prose-a:text-primary prose-strong:text-foreground prose-li:text-muted"
+            className="prose prose-invert max-w-none prose-headings:text-foreground prose-h2:text-xl prose-h2:font-bold prose-h2:mt-8 prose-h2:mb-3 prose-h3:text-lg prose-h3:font-semibold prose-h3:mt-6 prose-h3:mb-2 prose-p:text-muted prose-p:leading-relaxed prose-a:text-primary prose-strong:text-foreground prose-li:text-muted prose-img:rounded-xl prose-img:my-6"
             dangerouslySetInnerHTML={{ __html: contentWithIds }}
           />
 
@@ -205,9 +224,16 @@ export function BlogPostPage() {
 
           <div className="mt-12 p-6 rounded-2xl bg-primary/10 border border-primary/20 text-center">
             <p className="font-medium mb-3">{post.cta_text || 'آماده مدیریت حرفه‌ای املاک هستید؟'}</p>
-            <Link to={post.cta_url || '/register'}>
-              <Button>شروع ۴۸ ساعت رایگان</Button>
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              {post.cta_url && post.cta_url.startsWith('/r/') && (
+                <Link to={post.cta_url}>
+                  <Button variant="outline" className="w-full sm:w-auto">صفحه راهکار</Button>
+                </Link>
+              )}
+              <Link to={post.cta_url?.startsWith('/r/') ? '/register' : (post.cta_url || '/register')}>
+                <Button className="w-full sm:w-auto">ثبت‌نام رایگان — ۴۸ ساعت</Button>
+              </Link>
+            </div>
           </div>
         </article>
 

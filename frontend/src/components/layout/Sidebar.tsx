@@ -30,7 +30,7 @@ export function Sidebar() {
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'داشبورد' },
     { to: '/properties', icon: Building2, label: 'املاک' },
-    { to: '/virtual-tours', icon: Box, label: 'تور مجازی ۳۶۰' },
+    { to: '/virtual-tours', icon: Box, label: 'تور مجازی' },
     { to: '/owners', icon: UserCircle, label: 'مالکین' },
     { to: '/customers', icon: Contact, label: 'مشتریان' },
     { to: '/visits', icon: CalendarDays, label: 'بازدیدها' },
@@ -142,7 +142,7 @@ export function Sidebar() {
       <Button
         variant="ghost"
         size="icon"
-        className="fixed top-3 right-3 z-50 lg:hidden glass"
+        className="fixed top-[max(0.5rem,env(safe-area-inset-top))] right-3 z-50 lg:hidden glass h-10 w-10"
         onClick={() => setMobileOpen(true)}
         aria-label="منو"
       >
