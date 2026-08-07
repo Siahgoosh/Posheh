@@ -143,7 +143,7 @@ class PublicVirtualTourController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'mobile' => ['required', 'string', 'max:15'],
+            'mobile' => ['required', 'string', 'max:20'],
             'message' => ['nullable', 'string', 'max:2000'],
         ]);
 

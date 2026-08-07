@@ -49,6 +49,7 @@ export function TourEditorLayout({ tourId }: Props) {
     removeHotspot,
     patchScene,
     setLocalTourSettings,
+    clearLocalTourSettings,
     setSceneHotspots,
   } = useTourEditorStore()
 
@@ -253,7 +254,10 @@ export function TourEditorLayout({ tourId }: Props) {
 
   const saveTourSettingsMutation = useMutation({
     mutationFn: (settings: Record<string, unknown>) => tourApi.update(tourId, { settings }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      clearLocalTourSettings()
+      invalidate()
+    },
   })
 
   const saveTourPropertyMutation = useMutation({
@@ -438,7 +442,10 @@ export function TourEditorLayout({ tourId }: Props) {
                 setLocalPropertyId(id)
                 saveTourPropertyMutation.mutate(id)
               }}
-              onSave={() => saveTourSettingsMutation.mutate({ ...tour.settings, ...localTourSettings })}
+              onSave={() => {
+                const merged = { ...(liveTour?.settings || {}), ...(localTourSettings || {}) }
+                saveTourSettingsMutation.mutate(merged)
+              }}
               isSaving={saveTourSettingsMutation.isPending || saveTourPropertyMutation.isPending}
             />
             <VersionHistoryPanel tourId={tourId} onRestored={invalidate} />

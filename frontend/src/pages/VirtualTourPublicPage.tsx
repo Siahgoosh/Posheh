@@ -4,12 +4,19 @@ import { useMutation } from '@tanstack/react-query'
 import {
   Share2, Phone, MessageCircle, MapPin, Images, X, Copy, Check, Eye, Lock,
 } from 'lucide-react'
-import api from '@/lib/api'
 import { UnifiedTourViewer } from '@/features/virtual-tour/engine/UnifiedTourViewer'
 import { usePublicTour } from '@/features/virtual-tour/hooks/usePublicTour'
 import { useTourSessionAnalytics } from '@/features/virtual-tour/hooks/useTourSessionAnalytics'
 import { applyTourSeo, tourScenePath } from '@/features/virtual-tour/utils/tourSeo'
 import { TourWatermark } from '@/features/virtual-tour/components/TourWatermark'
+import { tourApi } from '@/features/virtual-tour/api/tourApi'
+import {
+  buildWhatsAppUrl,
+  normalizeTourMobileInput,
+  resolveTourCallPhone,
+  resolveTourWhatsAppPhone,
+} from '@/features/virtual-tour/utils/tourContact'
+import { normalizeMobile } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -26,6 +33,7 @@ export function VirtualTourPublicPage() {
   const [copied, setCopied] = useState(false)
   const [passwordInput, setPasswordInput] = useState('')
   const [form, setForm] = useState({ name: '', mobile: '', message: '' })
+  const [leadError, setLeadError] = useState<string | null>(null)
 
   useEffect(() => {
     if (tour) applyTourSeo(tour, tour.seo)
@@ -40,11 +48,24 @@ export function VirtualTourPublicPage() {
   }, [tour?.security?.disable_direct_download])
 
   const leadMutation = useMutation({
-    mutationFn: async () => (await api.post(`/tour/${slug}/lead`, form)).data,
+    mutationFn: async () => {
+      if (!slug) throw new Error('تور نامعتبر است.')
+      const mobile = normalizeMobile(form.mobile)
+      return (await tourApi.submitPublicLead(slug, {
+        name: form.name.trim(),
+        mobile,
+        message: form.message.trim() || undefined,
+      })).data
+    },
     onSuccess: () => {
+      setLeadError(null)
       setForm({ name: '', mobile: '', message: '' })
       setShowForm(false)
       alert('درخواست شما ثبت شد. به زودی با شما تماس می‌گیریم.')
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setLeadError(msg || 'ثبت درخواست ناموفق بود. دوباره تلاش کنید.')
     },
   })
 
@@ -114,7 +135,9 @@ export function VirtualTourPublicPage() {
 
   const isSmartWalk = tour.tour_type === 'smart_walk'
   const shareUrl = tour.public_url || `${window.location.origin}/tour/${slug}`
-  const whatsapp = tour.settings?.whatsapp || tour.settings?.phone
+  const whatsappPhone = resolveTourWhatsAppPhone(tour.settings, tour.office?.phone)
+  const whatsappUrl = buildWhatsAppUrl(whatsappPhone)
+  const callPhone = resolveTourCallPhone(tour.settings, tour.office?.phone)
   const mapUrl = tour.settings?.map_lat && tour.settings?.map_lng
     ? `https://maps.google.com/?q=${tour.settings.map_lat},${tour.settings.map_lng}`
     : null
@@ -145,6 +168,11 @@ export function VirtualTourPublicPage() {
       hotspot.position_x ?? undefined,
       hotspot.position_y ?? undefined,
     )
+  }
+
+  const openLeadForm = () => {
+    setLeadError(null)
+    setShowForm(true)
   }
 
   return (
@@ -190,6 +218,7 @@ export function VirtualTourPublicPage() {
           showFeatures={!isSmartWalk}
           publicUrl={shareUrl}
           onHotspotActivate={handleHotspotActivate}
+          onLeadForm={openLeadForm}
         />
       </div>
 
@@ -219,18 +248,18 @@ export function VirtualTourPublicPage() {
                 <Button size="sm" variant="outline" className="border-white/20"><MapPin className="h-4 w-4" />نقشه</Button>
               </a>
             )}
-            {whatsapp && (
-              <a href={`https://wa.me/98${whatsapp.replace(/^0/, '')}`} target="_blank" rel="noreferrer">
+            {whatsappUrl && (
+              <a href={whatsappUrl} target="_blank" rel="noreferrer">
                 <Button size="sm" className="bg-green-600 hover:bg-green-700"><MessageCircle className="h-4 w-4" />واتساپ</Button>
               </a>
             )}
-            {(tour.settings?.phone || tour.office?.phone) && (
-              <a href={`tel:${tour.settings?.phone || tour.office?.phone}`}>
+            {callPhone && (
+              <a href={`tel:${callPhone}`}>
                 <Button size="sm" variant="outline" className="border-white/20"><Phone className="h-4 w-4" />تماس</Button>
               </a>
             )}
             {tour.settings?.show_contact_form !== false && (
-              <Button size="sm" onClick={() => setShowForm(true)} style={{ background: tour.settings?.brand_color || '#2dd4bf' }}>
+              <Button size="sm" onClick={openLeadForm} style={{ background: tour.settings?.brand_color || '#2dd4bf' }}>
                 درخواست بازدید
               </Button>
             )}
@@ -263,11 +292,17 @@ export function VirtualTourPublicPage() {
               <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}><X /></Button>
             </div>
             <Input placeholder="نام و نام خانوادگی" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <Input placeholder="شماره همراه" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
+            <Input
+              placeholder="شماره همراه"
+              value={form.mobile}
+              dir="ltr"
+              onChange={(e) => setForm({ ...form, mobile: normalizeTourMobileInput(e.target.value) })}
+            />
             <Input placeholder="پیام (اختیاری)" value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
+            {leadError && <p className="text-xs text-red-400">{leadError}</p>}
             <Button
               className="w-full"
-              disabled={!form.name || !form.mobile || leadMutation.isPending}
+              disabled={!form.name.trim() || form.mobile.length < 10 || leadMutation.isPending}
               onClick={() => leadMutation.mutate()}
             >
               {leadMutation.isPending ? 'در حال ارسال...' : 'ثبت درخواست'}

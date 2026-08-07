@@ -4,6 +4,7 @@ import axios from 'axios'
 import api from '@/lib/api'
 import { tourApi } from '../api/tourApi'
 import { getTourSessionQueryParams } from '../hooks/useTourSessionAnalytics'
+import { buildTourPublicHeaders, buildTourPublicParams, tourPasswordStorageKey } from '../utils/tourPublicAccess'
 import type { TourData } from '../types'
 
 export type PublicTourGate = 'loading' | 'password' | 'expired' | 'denied' | 'private' | 'ok'
@@ -36,14 +37,10 @@ export interface PublicTourPayload extends TourData {
   }
 }
 
-function passwordStorageKey(slug: string) {
-  return `vt-pwd-${slug}`
-}
-
 export function usePublicTour(slug: string | undefined, options?: { embed?: boolean }) {
   const token = new URLSearchParams(window.location.search).get('token')
   const [password, setPassword] = useState(() =>
-    slug ? sessionStorage.getItem(passwordStorageKey(slug)) || '' : '',
+    slug ? sessionStorage.getItem(tourPasswordStorageKey(slug)) || '' : '',
   )
   const [gate, setGate] = useState<PublicTourGate>('loading')
   const [deniedMessage, setDeniedMessage] = useState<string | null>(null)
@@ -53,13 +50,14 @@ export function usePublicTour(slug: string | undefined, options?: { embed?: bool
   const query = useQuery({
     queryKey: ['public-tour', slug, token, password, options?.embed],
     queryFn: async () => {
+      if (!slug) throw new Error('slug required')
       const res = await api.get(`/tour/${slug}`, {
         params: {
-          ...(token ? { token } : {}),
+          ...buildTourPublicParams(slug),
           ...(options?.embed ? { embed: 1 } : {}),
           ...getTourSessionQueryParams(),
         },
-        headers: password ? { 'X-Tour-Password': password } : undefined,
+        headers: buildTourPublicHeaders(slug),
       })
       return res.data.data as PublicTourPayload
     },
@@ -110,7 +108,7 @@ export function usePublicTour(slug: string | undefined, options?: { embed?: bool
     setVerifyError(null)
     try {
       await tourApi.verifyPublicPassword(slug, value)
-      sessionStorage.setItem(passwordStorageKey(slug), value)
+      sessionStorage.setItem(tourPasswordStorageKey(slug), value)
       setPassword(value)
       return true
     } catch (e) {

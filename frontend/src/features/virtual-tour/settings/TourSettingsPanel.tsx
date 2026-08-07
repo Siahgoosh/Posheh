@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { toEnglishDigits } from '@/lib/utils'
 import type { TourData, TourSettings } from '../types'
 import { TourMusicPicker } from './TourMusicPicker'
 import { TourPropertyPicker } from './TourPropertyPicker'
@@ -59,8 +60,18 @@ export function TourSettingsPanel({ tour, onUpdateSettings, onUpdateProperty, on
         ))}
       </div>
 
-      <Input placeholder="شماره تماس" value={s.phone || ''} onChange={(e) => update({ phone: e.target.value })} />
-      <Input placeholder="واتساپ" value={s.whatsapp || ''} onChange={(e) => update({ whatsapp: e.target.value })} />
+      <Input
+        placeholder="شماره تماس"
+        value={s.phone || ''}
+        dir="ltr"
+        onChange={(e) => update({ phone: toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 11) })}
+      />
+      <Input
+        placeholder="واتساپ"
+        value={s.whatsapp || ''}
+        dir="ltr"
+        onChange={(e) => update({ whatsapp: toEnglishDigits(e.target.value).replace(/\D/g, '').slice(0, 11) })}
+      />
       <Input placeholder="تلگرام" value={s.telegram || ''} onChange={(e) => update({ telegram: e.target.value })} />
 
       <div className="grid grid-cols-2 gap-3">

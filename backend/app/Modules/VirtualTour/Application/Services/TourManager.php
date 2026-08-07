@@ -54,11 +54,23 @@ class TourManager
     {
         $tour = $this->findForOffice($user, $id);
 
+        $settingsUpdate = null;
+        if (isset($data['settings']) && is_array($data['settings'])) {
+            $settings = array_merge($tour->settings ?? [], $data['settings']);
+            if (isset($settings['phone'])) {
+                $settings['phone'] = $this->normalizeSettingPhone($settings['phone']);
+            }
+            if (isset($settings['whatsapp'])) {
+                $settings['whatsapp'] = $this->normalizeSettingPhone($settings['whatsapp']);
+            }
+            $settingsUpdate = $settings;
+        }
+
         $updates = array_filter([
             'title' => $data['title'] ?? null,
             'description' => $data['description'] ?? null,
             'property_id' => $data['property_id'] ?? null,
-            'settings' => isset($data['settings']) ? array_merge($tour->settings ?? [], $data['settings']) : null,
+            'settings' => $settingsUpdate,
             'status' => $data['status'] ?? null,
             'visibility' => $data['visibility'] ?? null,
             'expires_at' => $data['expires_at'] ?? null,
@@ -121,6 +133,28 @@ class TourManager
         }
 
         return $slug;
+    }
+
+    private function normalizeSettingPhone(?string $phone): ?string
+    {
+        if ($phone === null || trim($phone) === '') {
+            return null;
+        }
+
+        $persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        $arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        $normalized = str_replace($persian, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], $phone);
+        $normalized = str_replace($arabic, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], $normalized);
+        $digits = preg_replace('/\D+/', '', $normalized) ?? '';
+
+        if (str_starts_with($digits, '98')) {
+            $digits = '0'.substr($digits, 2);
+        }
+        if ($digits !== '' && ! str_starts_with($digits, '0')) {
+            $digits = '0'.$digits;
+        }
+
+        return $digits !== '' ? Str::limit($digits, 15, '') : null;
     }
 
     private function defaultSettings(User $user): array

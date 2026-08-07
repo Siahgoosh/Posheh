@@ -72,6 +72,24 @@ export function TourAnalyticsPanel({ tourId }: { tourId: number | string }) {
           </div>
         </div>
       )}
+
+      {(data.recent_leads?.length ?? 0) > 0 && (
+        <div>
+          <p className="text-xs text-muted mb-2">آخرین درخواست‌های بازدید</p>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {(data.recent_leads ?? []).map((lead) => (
+              <div key={lead.id} className="text-xs py-2 border-b border-card-border/30">
+                <p className="font-medium">{lead.name}</p>
+                <p className="text-muted" dir="ltr">{lead.mobile}</p>
+                {lead.message && <p className="text-muted mt-0.5 truncate">{lead.message}</p>}
+                {lead.created_at && (
+                  <p className="text-[10px] text-muted mt-0.5">{lead.created_at.slice(0, 16).replace('T', ' ')}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -99,4 +117,5 @@ interface AnalyticsPayload {
   scene_views?: { scene_id: number; views: number }[]
   hotspot_clicks?: { hotspot_id: number; clicks: number }[]
   device_breakdown?: { device_type: string | null; count: number }[]
+  recent_leads?: { id: number; name: string; mobile: string; message?: string | null; created_at?: string }[]
 }

@@ -1,4 +1,5 @@
 import api from '@/lib/api'
+import { buildTourPublicHeaders, buildTourPublicParams } from '../utils/tourPublicAccess'
 import type { SceneStatus, TourData, TourScene, TourType } from '../types'
 
 export interface TourDashboardStats {
@@ -140,6 +141,15 @@ export const tourApi = {
 
   verifyPublicPassword: (slug: string, password: string) =>
     api.post(`/tour/${slug}/verify-password`, { password }),
+
+  submitPublicLead: (
+    slug: string,
+    data: { name: string; mobile: string; message?: string },
+  ) =>
+    api.post(`/tour/${slug}/lead`, data, {
+      headers: buildTourPublicHeaders(slug),
+      params: buildTourPublicParams(slug),
+    }),
 }
 
 export function parseTourResponse(data: unknown): TourData {

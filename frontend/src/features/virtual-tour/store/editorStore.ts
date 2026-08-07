@@ -34,6 +34,7 @@ interface EditorState {
   removeHotspot: (sceneId: number, hotspotId: number | string) => void
   patchScene: (sceneId: number, patch: Partial<TourScene>) => void
   setLocalTourSettings: (settings: Partial<TourSettings>) => void
+  clearLocalTourSettings: () => void
   addUploadTask: (task: UploadTask) => void
   updateUploadTask: (id: string, patch: Partial<UploadTask>) => void
   removeUploadTask: (id: string) => void
@@ -106,6 +107,7 @@ export const useTourEditorStore = create<EditorState>((set) => ({
     })),
   setLocalTourSettings: (settings) =>
     set((s) => ({ localTourSettings: { ...(s.localTourSettings || {}), ...settings } })),
+  clearLocalTourSettings: () => set({ localTourSettings: null }),
   addUploadTask: (task) => set((s) => ({ uploadTasks: [...s.uploadTasks, task] })),
   updateUploadTask: (id, patch) =>
     set((s) => ({

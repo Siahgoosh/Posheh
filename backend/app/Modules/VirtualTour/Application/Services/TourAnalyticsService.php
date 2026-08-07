@@ -2,6 +2,7 @@
 
 namespace App\Modules\VirtualTour\Application\Services;
 
+use App\Models\OfficeVisitRequest;
 use App\Models\VirtualTour;
 use App\Models\VirtualTourAnalyticsEvent;
 use App\Models\VirtualTourLead;
@@ -86,12 +87,51 @@ class TourAnalyticsService
 
     public function submitLead(VirtualTour $tour, array $data): VirtualTourLead
     {
-        return VirtualTourLead::create([
+        $mobile = $this->normalizeMobile($data['mobile']);
+        $message = isset($data['message']) ? trim((string) $data['message']) : null;
+
+        $lead = VirtualTourLead::create([
             'virtual_tour_id' => $tour->id,
-            'name' => $data['name'],
-            'mobile' => $data['mobile'],
-            'message' => $data['message'] ?? null,
+            'name' => trim((string) $data['name']),
+            'mobile' => $mobile,
+            'message' => $message,
+            'source' => 'tour_form',
         ]);
+
+        if ($tour->office_id) {
+            $visitMessage = $message
+                ? $message."\n\nدرخواست از تور مجازی: {$tour->title}"
+                : "درخواست بازدید از تور مجازی: {$tour->title}";
+
+            OfficeVisitRequest::create([
+                'office_id' => $tour->office_id,
+                'property_id' => $tour->property_id,
+                'name' => trim((string) $data['name']),
+                'mobile' => $mobile,
+                'message' => $visitMessage,
+                'status' => 'new',
+            ]);
+        }
+
+        return $lead;
+    }
+
+    private function normalizeMobile(string $mobile): string
+    {
+        $persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        $arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        $normalized = str_replace($persian, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], $mobile);
+        $normalized = str_replace($arabic, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], $normalized);
+        $digits = preg_replace('/\D+/', '', $normalized) ?? '';
+
+        if (str_starts_with($digits, '98')) {
+            $digits = '0'.substr($digits, 2);
+        }
+        if ($digits !== '' && ! str_starts_with($digits, '0')) {
+            $digits = '0'.$digits;
+        }
+
+        return Str::limit($digits, 15, '');
     }
 
     public function getAnalytics(User $user, int $tourId): array

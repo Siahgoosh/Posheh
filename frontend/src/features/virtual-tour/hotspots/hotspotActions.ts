@@ -1,4 +1,5 @@
 import type { TourData, TourHotspot } from '../types'
+import { buildWhatsAppUrl, resolveTourCallPhone, resolveTourWhatsAppPhone } from '../utils/tourContact'
 import { DEFAULT_HOTSPOT_STYLE } from './constants'
 
 export interface HotspotActionContext {
@@ -63,13 +64,14 @@ export function executeHotspotAction(hotspot: TourHotspot, ctx: HotspotActionCon
       break
 
     case 'whatsapp': {
-      const phone = action?.phone || hotspot.link_url || ctx.tour.settings?.whatsapp
-      if (phone) window.open(`https://wa.me/98${phone.replace(/^0/, '').replace(/\D/g, '')}`, '_blank')
+      const phone = action?.phone || hotspot.link_url || resolveTourWhatsAppPhone(ctx.tour.settings, ctx.tour.office?.phone)
+      const url = buildWhatsAppUrl(phone)
+      if (url) window.open(url, '_blank')
       break
     }
 
     case 'phone': {
-      const phone = action?.phone || hotspot.link_url || ctx.tour.settings?.phone
+      const phone = action?.phone || hotspot.link_url || resolveTourCallPhone(ctx.tour.settings, ctx.tour.office?.phone)
       if (phone) window.location.href = `tel:${phone}`
       break
     }

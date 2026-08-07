@@ -4,6 +4,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { TourData } from '../../types'
+import { buildWhatsAppUrl, resolveTourCallPhone, resolveTourWhatsAppPhone } from '../../utils/tourContact'
 import { useSmartWalkTheme, type SmartWalkThemeMode } from '../theme/SmartWalkTheme'
 
 interface Props {
@@ -29,6 +30,8 @@ export function SmartWalkSidebar({
   const p = tour.property
   const settings = tour.settings ?? {}
   const brand = settings.brand_color || '#2dd4bf'
+  const whatsappUrl = buildWhatsAppUrl(resolveTourWhatsAppPhone(settings, tour.office?.phone))
+  const callPhone = resolveTourCallPhone(settings, tour.office?.phone)
 
   const specs = [
     { label: 'قیمت', value: p?.price ? `${p.price.toLocaleString('fa-IR')} تومان` : settings.property_price },
@@ -117,20 +120,15 @@ export function SmartWalkSidebar({
                 تماس با مشاور
               </Button>
             )}
-            {(settings.whatsapp || settings.phone) && (
-              <a
-                href={`https://wa.me/98${(settings.whatsapp || settings.phone || '').replace(/^0/, '').replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1"
-              >
+            {whatsappUrl && (
+              <a href={whatsappUrl} target="_blank" rel="noreferrer" className="flex-1">
                 <Button size="sm" variant="outline" className="w-full sw-btn">
                   <MessageCircle className="h-3.5 w-3.5" />واتساپ
                 </Button>
               </a>
             )}
-            {(settings.phone || tour.office?.phone) && (
-              <a href={`tel:${settings.phone || tour.office?.phone}`} className="flex-1">
+            {callPhone && (
+              <a href={`tel:${callPhone}`} className="flex-1">
                 <Button size="sm" variant="outline" className="w-full sw-btn">
                   <Phone className="h-3.5 w-3.5" />تماس
                 </Button>

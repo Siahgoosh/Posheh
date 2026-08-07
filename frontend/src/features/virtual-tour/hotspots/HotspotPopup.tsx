@@ -1,6 +1,7 @@
 import { X, Phone, MessageCircle, Download, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { TourData, TourHotspot } from '../types'
+import { buildWhatsAppUrl, resolveTourCallPhone, resolveTourWhatsAppPhone } from '../utils/tourContact'
 
 interface Props {
   hotspot: TourHotspot
@@ -14,6 +15,8 @@ export function HotspotPopup({ hotspot, tour, onClose, onLeadForm }: Props) {
   const property = popup.property || tour.property
   const images = popup.gallery || popup.images || []
   const brandColor = tour.settings?.brand_color || '#2dd4bf'
+  const callPhone = resolveTourCallPhone(tour.settings, tour.office?.phone) || popup.property?.phone
+  const whatsappUrl = buildWhatsAppUrl(resolveTourWhatsAppPhone(tour.settings, tour.office?.phone))
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
@@ -65,15 +68,15 @@ export function HotspotPopup({ hotspot, tour, onClose, onLeadForm }: Props) {
           )}
 
           <div className="flex flex-wrap gap-2">
-            {(popup.property?.phone || tour.settings?.phone) && (
-              <a href={`tel:${popup.property?.phone || tour.settings?.phone}`}>
+            {callPhone && (
+              <a href={`tel:${callPhone}`}>
                 <Button size="sm" variant="outline" className="border-white/20">
                   <Phone className="h-4 w-4" />تماس
                 </Button>
               </a>
             )}
-            {tour.settings?.whatsapp && (
-              <a href={`https://wa.me/98${tour.settings.whatsapp.replace(/^0/, '')}`} target="_blank" rel="noreferrer">
+            {whatsappUrl && (
+              <a href={whatsappUrl} target="_blank" rel="noreferrer">
                 <Button size="sm" className="bg-green-600 hover:bg-green-700">
                   <MessageCircle className="h-4 w-4" />واتساپ
                 </Button>
