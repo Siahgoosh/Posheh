@@ -21,7 +21,28 @@ export function OfficeLandingPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SeoHead title={data.name} description={data.description || `دفتر املاک ${data.name}`} path={`/o/${slug}`} />
+      <SeoHead
+        title={data.name}
+        description={data.description || `دفتر املاک ${data.name} — املاک ${data.city || 'ایران'}`}
+        keywords={`${data.name}, املاک ${data.city || ''}, آژانس املاک, مشاور املاک`}
+        path={`/o/${slug}`}
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'RealEstateAgent',
+            name: data.name,
+            description: data.description,
+            url: `${window.location.origin}/o/${slug}`,
+            telephone: data.phone,
+            address: data.city ? {
+              '@type': 'PostalAddress',
+              addressLocality: data.city,
+              streetAddress: data.address,
+              addressCountry: 'IR',
+            } : undefined,
+          },
+        ]}
+      />
       <header className="border-b border-card-border glass">
         <div className="container mx-auto max-w-5xl px-4 py-8 flex flex-wrap items-center gap-4">
           {data.logo_url ? <img src={data.logo_url} alt="" className="h-16 w-16 rounded-xl object-cover" /> : (

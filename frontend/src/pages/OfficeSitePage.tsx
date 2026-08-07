@@ -153,7 +153,37 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-800">
-      <SeoHead title={`${office.name} | املاک`} description={office.description || `دفتر املاک ${office.name}`} path={`/site/${subdomain}`} />
+      <SeoHead
+        title={`${office.name} | املاک ${office.city || ''}`}
+        description={office.description || `وبسایت املاک ${office.name} — ${office.city || 'ایران'}`}
+        keywords={`${office.name}, املاک ${office.city || ''}, آژانس املاک, وبسایت املاک`}
+        path={`/site/${subdomain}`}
+        image={office.logo_url}
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'RealEstateAgent',
+            name: office.brand_name || office.name,
+            description: office.description,
+            url: office.url || `${window.location.origin}/site/${subdomain}`,
+            telephone: office.phone,
+            image: office.logo_url,
+            address: office.city ? {
+              '@type': 'PostalAddress',
+              addressLocality: office.city,
+              streetAddress: office.address,
+              addressCountry: 'IR',
+            } : undefined,
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: office.name,
+            url: office.url || `${window.location.origin}/site/${subdomain}`,
+            inLanguage: 'fa-IR',
+          },
+        ]}
+      />
 
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-200">

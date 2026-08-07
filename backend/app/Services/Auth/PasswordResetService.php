@@ -63,7 +63,8 @@ class PasswordResetService
             ['token' => Hash::make($plainToken), 'created_at' => now()]
         );
 
-        $resetUrl = rtrim(config('app.url'), '/').'/reset-password?token='.$plainToken.'&email='.urlencode($user->email);
+        $frontend = rtrim(config('app.frontend_url', config('app.url')), '/');
+        $resetUrl = $frontend.'/reset-password?token='.$plainToken.'&email='.urlencode($user->email);
 
         try {
             Mail::raw(

@@ -2,7 +2,7 @@
 
 Flutter app for **Android** and **Windows**, synced with the web app at `https://posheapp.ir`.
 
-**Version:** 1.0.1+2 · **Package:** `ir.posheapp.posheh`
+**Version:** 1.0.3+8 · **Package:** `ir.posheapp.posheh`
 
 ## Features (synced with web)
 

@@ -1,117 +1,146 @@
-# پوشه (Posheh) — Property Filing Platform
+# پوشه (Posheh) — سامانه ابری ثبت و مدیریت املاک
 
-Affordable cloud-based property filing software for Iranian real estate agencies.
+پلتفرم SaaS چندمستاجری برای دفاتر املاک ایرانی — فایلینگ، CRM، بازدید، تور مجازی ۳۶۰، وبسایت اختصاصی، اپ اندروید و ویندوز.
 
-## Overview
+| | |
+|---|---|
+| **دامنه** | https://posheapp.ir |
+| **پنل ادمین** | https://panel.posheapp.ir |
+| **ریپو** | https://github.com/Siahgoosh/Posheh |
+| **سرور production** | `/var/www/posheh` |
 
-پوشه is a multi-tenant SaaS platform that enables real estate offices to manage property listings, team members, and subscriptions. Built with clean architecture principles for scalability to thousands of offices.
+---
 
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Backend | Laravel 12, PHP 8.4, MySQL 8.4, Redis 7 |
-| Web | React 19, TypeScript, TailwindCSS 4, Shadcn-style UI |
-| Mobile | Flutter (Android + iOS PWA) |
-| Desktop | Flutter Desktop (Windows, macOS, Linux) |
-| Infrastructure | Docker, Nginx |
-
-## Project Structure
+## شروع سریع برای Cursor (اکانت جدید)
 
 ```
-posheh/
-├── backend/          # Laravel 12 API
+فایل docs/CURSOR-HANDOFF-FA.md را بخوان — منبع حقیقت کل پروژه است.
+```
+
+---
+
+## Deploy یکجا (آخرین نسخه)
+
+```bash
+cd /var/www/posheh
+./scripts/deploy.sh cursor/release-deploy-e117
+```
+
+جزئیات: [docs/DEPLOY.md](docs/DEPLOY.md)
+
+**نام شاخه:** با خط تیره `-` نه `/` — مثلاً `cursor/release-deploy-e117`
+
+---
+
+## ساختار پروژه
+
+```
+Posheh/
+├── backend/                 # Laravel 12 API (PHP 8.4)
 │   ├── app/
-│   │   ├── Enums/
-│   │   ├── DTOs/
-│   │   ├── Repositories/
-│   │   ├── Services/
-│   │   ├── Http/
+│   │   ├── Modules/VirtualTour/   # تور مجازی Enterprise
+│   │   ├── Services/              # منطق کسب‌وکار
+│   │   ├── Http/Controllers/
 │   │   └── Models/
-│   ├── database/
-│   ├── routes/
+│   ├── database/migrations/
+│   ├── routes/api.php
 │   └── tests/
-├── frontend/         # React web application
-├── mobile/           # Flutter mobile app
-├── desktop/          # Flutter desktop builds
-├── docker/           # Docker configuration
-└── docs/             # Documentation
+├── frontend/                # React 19 + TypeScript + Tailwind 4
+│   ├── src/
+│   │   ├── pages/           # صفحات پنل و لندینگ
+│   │   ├── features/virtual-tour/
+│   │   ├── components/
+│   │   └── panel/           # پنل super-admin
+│   └── public/downloads/    # APK و ZIP ویندوز
+├── mobile/                  # Flutter — Android + Windows (کد مشترک)
+├── docker/                  # Nginx, PHP, MySQL
+├── scripts/
+│   ├── deploy.sh            # Deploy اصلی
+│   ├── build-releases.sh    # بیلد APK/ZIP
+│   └── migrate.sh
+└── docs/
+    ├── CURSOR-HANDOFF-FA.md # ⭐ سند انتقال / ادامه کار
+    ├── DEPLOY.md
+    ├── VISIT-NOTIFICATIONS.md
+    ├── VIRTUAL-TOUR.md
+    ├── architecture/
+    └── api/
 ```
 
-## Quick Start
+---
 
-### Prerequisites
+## استک فنی
 
-- Docker & Docker Compose
-- Node.js 20+ (for frontend development)
-- PHP 8.4 + Composer (for local backend development)
-- Flutter 3.5+ (for mobile/desktop)
+| لایه | تکنولوژی |
+|------|----------|
+| Backend | Laravel 12, MySQL 8.4, Redis 7 |
+| Frontend | React 19, Vite, TanStack Query |
+| Mobile/Desktop | Flutter 3.x (Android APK + Windows) |
+| Infra | Docker Compose, Nginx |
 
-### Docker (Recommended)
+---
+
+## قابلیت‌های اصلی
+
+- فایلینگ ملک، مالک، مشتری، CRM کانبان
+- تقویم بازدید شمسی + نوتیف درخواست وبسایت (پنل + تلگرام)
+- **تور مجازی:** Smart Walk (عکس موبایل) + پانوراما ۳۶۰ (Photo Sphere Viewer)
+- وبسایت اختصاصی `name.posheapp.ir`
+- اشتراک، کیف پول، زیبال، کافه‌بازار
+- ربات تلگرام دفتر
+- PWA + اپ اندروید + ویندوز
+
+---
+
+## بیلد اندروید و ویندوز
 
 ```bash
-# Clone and configure
-cp backend/.env.example backend/.env
+./scripts/build-releases.sh
+```
 
-# Start all services
+خروجی:
+- `frontend/public/downloads/posheh-android.apk`
+- `frontend/public/downloads/posheh-windows.zip`
+
+CI: GitHub Actions → **Build Android & Windows** (روی push به `cursor/**` با تغییر `mobile/`)
+
+---
+
+## توسعه محلی
+
+```bash
 docker compose up -d
-
-# Run migrations and seed
 docker compose exec app php artisan migrate --seed
-
-# Build frontend
-cd frontend && npm install && npm run build
+cd frontend && npm install && npm run dev
 ```
 
-Access:
-- API: http://localhost:8000/api/v1
-- Web: http://localhost:8000
+---
 
-### Local Development
+## مستندات
 
-```bash
-# Backend
-cd backend
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate --seed
-php artisan serve
+| سند | محتوا |
+|-----|--------|
+| [docs/CURSOR-HANDOFF-FA.md](docs/CURSOR-HANDOFF-FA.md) | انتقال پروژه، تاریخچه، env، PRها |
+| [docs/DEPLOY.md](docs/DEPLOY.md) | Deploy و رفع خطای نام شاخه |
+| [docs/VIRTUAL-TOUR.md](docs/VIRTUAL-TOUR.md) | تور مجازی |
+| [docs/SMART-WALK.md](docs/SMART-WALK.md) | Smart Walk (عکس موبایل) |
+| [docs/ENTERPRISE-VIRTUAL-TOUR.md](docs/ENTERPRISE-VIRTUAL-TOUR.md) | پلتفرم Enterprise تور |
+| [docs/VISIT-NOTIFICATIONS.md](docs/VISIT-NOTIFICATIONS.md) | نوتیف بازدید |
+| [frontend/public/posheh-platform-guide.html](frontend/public/posheh-platform-guide.html) | راهنمای HTML جامع UI |
+| [frontend/public/virtual-tour-guide.html](frontend/public/virtual-tour-guide.html) | راهنمای HTML تور ۳۶۰ |
+| [docs/api/README.md](docs/api/README.md) | API |
+| [mobile/README.md](mobile/README.md) | اپ Flutter |
 
-# Frontend
-cd frontend
-npm install
-npm run dev
-```
+---
 
-### Demo Accounts
+## حساب دمو (محیط log SMS)
 
-| Role | Mobile | OTP (dev) |
-|------|--------|-----------|
+| نقش | موبایل | OTP |
+|-----|--------|-----|
 | Super Admin | 09120000000 | 123456 |
-| Office Manager | 09121111111 | 123456 |
-| Consultant | 09122222222 | 123456 |
+| مدیر دفتر | 09121111111 | 123456 |
 
-## Features
-
-- **Multi-tenant** — Complete office isolation
-- **OTP Authentication** — Mobile-based login with device management
-- **Property Filing** — 9 property types with rich metadata
-- **Permission System** — Private, Team, Office, Manager-only
-- **Search** — Quick search, advanced filters, saved searches
-- **Dashboard** — Statistics, activities, tasks, expiring properties
-- **Subscriptions** — Basic, Professional, Unlimited plans
-- **Payments** — ZarinPal, Cafe Bazaar, Internal Wallet
-- **Jalali Calendar** — Persian date support throughout
-- **RTL Design** — Premium Persian UI with dark/light modes
-
-## API Documentation
-
-See [docs/api/README.md](docs/api/README.md)
-
-## Architecture
-
-See [docs/architecture/README.md](docs/architecture/README.md)
+---
 
 ## License
 

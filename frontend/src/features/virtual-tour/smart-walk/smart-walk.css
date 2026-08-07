@@ -1,0 +1,86 @@
+/* Poshe Smart Walk — immersive viewer theme tokens */
+.smart-walk-dark {
+  --sw-bg: #0a0a0f;
+  --sw-panel-bg: rgba(0, 0, 0, 0.55);
+  --sw-sidebar-bg: rgba(10, 12, 18, 0.92);
+  --sw-text: #f4f4f5;
+  --sw-muted: rgba(255, 255, 255, 0.55);
+  --sw-border: rgba(255, 255, 255, 0.12);
+  --sw-spec-bg: rgba(255, 255, 255, 0.06);
+  color: var(--sw-text);
+}
+
+.smart-walk-light {
+  --sw-bg: #f8fafc;
+  --sw-panel-bg: rgba(255, 255, 255, 0.85);
+  --sw-sidebar-bg: rgba(255, 255, 255, 0.95);
+  --sw-text: #0f172a;
+  --sw-muted: rgba(15, 23, 42, 0.55);
+  --sw-border: rgba(15, 23, 42, 0.12);
+  --sw-spec-bg: rgba(15, 23, 42, 0.04);
+  color: var(--sw-text);
+}
+
+.smart-walk-root {
+  background: var(--sw-bg);
+}
+
+.sw-panel {
+  background: var(--sw-panel-bg);
+  border: 1px solid var(--sw-border);
+  color: var(--sw-text);
+  backdrop-filter: blur(12px);
+}
+
+.sw-sidebar {
+  color: var(--sw-text);
+}
+
+.sw-spec {
+  background: var(--sw-spec-bg);
+  border: 1px solid var(--sw-border);
+}
+
+.sw-btn {
+  border-color: var(--sw-border) !important;
+  color: var(--sw-text) !important;
+}
+
+.sw-timeline {
+  background: var(--sw-panel-bg);
+}
+
+.smart-walk-viewport {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.smart-walk-layer {
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+.smart-walk-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: fill;
+  image-rendering: auto;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+@media (max-width: 640px) {
+  .sw-sidebar {
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 1920px) {
+  .smart-walk-image {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
