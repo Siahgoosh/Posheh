@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Globe, Eye, Users, FileImage } from 'lucide-react'
+import { Globe, Eye, Users, FileImage, Box, ArrowRight } from 'lucide-react'
 import api from '@/lib/api'
+import { publicTourUrl } from '@/lib/tourUrls'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { formatNumber } from '@/lib/utils'
 
 interface TourStats {
@@ -27,10 +29,19 @@ export function AdminVirtualToursStatsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <AdminPageHeader
-        title="آمار تور مجازی پلتفرم"
-        description="تورهای ۳۶۰ درجه، بازدید و سرنخ‌های جمع‌آوری‌شده"
-      />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <AdminPageHeader
+          title="آمار تور مجازی پلتفرم"
+          description="تورهای ۳۶۰ درجه، بازدید و سرنخ‌های جمع‌آوری‌شده"
+        />
+        <Link to="/virtual-tours">
+          <Button size="sm" className="gap-2 shrink-0">
+            <Box className="h-4 w-4" />
+            مدیریت تورها و اسمارت‌واک
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card><CardContent className="pt-6 flex gap-3"><FileImage className="h-8 w-8 text-primary" /><div><p className="text-sm text-muted">کل تورها</p><p className="text-2xl font-bold">{formatNumber(data.total_tours)}</p></div></CardContent></Card>
@@ -47,7 +58,7 @@ export function AdminVirtualToursStatsPage() {
           ) : (
             data.top_tours?.map((tour) => (
               <div key={tour.id} className="flex justify-between text-sm border-b border-card-border pb-2">
-                <a href={`/tour/${tour.slug}`} target="_blank" rel="noreferrer" className="hover:text-primary">{tour.title}</a>
+                <a href={publicTourUrl(tour.slug)} target="_blank" rel="noreferrer" className="hover:text-primary">{tour.title}</a>
                 <span className="text-muted">{formatNumber(tour.view_count)} بازدید</span>
               </div>
             ))
@@ -55,7 +66,12 @@ export function AdminVirtualToursStatsPage() {
         </CardContent>
       </Card>
 
-      <p className="text-xs text-muted">دموی پلتفرم: <Link to="/tour/demo-apartment-pasdaran" className="text-primary">/tour/demo-apartment-pasdaran</Link></p>
+      <p className="text-xs text-muted">
+        دموی پلتفرم:{' '}
+        <a href={publicTourUrl('demo-apartment-pasdaran')} className="text-primary" target="_blank" rel="noreferrer">
+          demo-apartment-pasdaran
+        </a>
+      </p>
     </div>
   )
 }
