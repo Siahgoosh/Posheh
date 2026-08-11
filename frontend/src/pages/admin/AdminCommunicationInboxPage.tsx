@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '@/lib/api'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
@@ -6,7 +6,20 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { MessageCircle, Users, Send, Sparkles, Ticket, Paperclip, XCircle } from 'lucide-react'
+import { MessageCircle, Users, Send, Sparkles, Ticket, Paperclip, XCircle, Bell, BellOff, Volume2 } from 'lucide-react'
+import {
+  type InboxNotifySnapshot,
+  isAdminChatDesktopEnabled,
+  isAdminChatSoundEnabled,
+  notifyAdminNewChatMessage,
+  playAdminChatSound,
+  requestDesktopNotifyPermission,
+  setAdminChatDesktopEnabled,
+  setAdminChatSoundEnabled,
+  shouldAlertFromInbox,
+  snapshotInbox,
+  unlockAdminChatAudio,
+} from '@/features/communication/admin/chatNotify'
 
 interface ConversationItem {
   uuid: string
@@ -81,7 +94,12 @@ export function AdminCommunicationInboxPage() {
   const [reply, setReply] = useState('')
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [knowledge, setKnowledge] = useState<{ title: string; slug: string }[]>([])
+  const [soundOn, setSoundOn] = useState(() => isAdminChatSoundEnabled())
+  const [desktopOn, setDesktopOn] = useState(() => isAdminChatDesktopEnabled())
+  const [notifyReady, setNotifyReady] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const inboxSnapshotRef = useRef<InboxNotifySnapshot | null>(null)
+  const detailLastVisitorMsgRef = useRef<number>(0)
   const queryClient = useQueryClient()
 
   const { data: stats, isError: statsError, error: statsErr } = useQuery({
@@ -93,7 +111,7 @@ export function AdminCommunicationInboxPage() {
   const { data: inbox, isError: inboxError, error: inboxErr } = useQuery({
     queryKey: ['comm-inbox'],
     queryFn: async () => (await api.get('/admin/communication/inbox')).data.data as ConversationItem[],
-    refetchInterval: statsError ? false : 8000,
+    refetchInterval: statsError ? false : 5000,
     retry: false,
   })
 
@@ -118,8 +136,100 @@ export function AdminCommunicationInboxPage() {
     queryKey: ['comm-conversation', selectedUuid],
     queryFn: async () => (await api.get(`/admin/communication/conversations/${selectedUuid}`)).data.data as ConversationDetail,
     enabled: !!selectedUuid,
-    refetchInterval: 5000,
+    refetchInterval: 4000,
   })
+
+  // Unlock audio + optional desktop permission on first visit to this page.
+  useEffect(() => {
+    const onInteract = () => {
+      void unlockAdminChatAudio().then((ok) => {
+        if (ok) setNotifyReady(true)
+      })
+    }
+    window.addEventListener('pointerdown', onInteract, { once: true, passive: true })
+    window.addEventListener('keydown', onInteract, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', onInteract)
+      window.removeEventListener('keydown', onInteract)
+    }
+  }, [])
+
+  // Alert when inbox shows new visitor activity.
+  useEffect(() => {
+    if (!inbox) return
+    const next = snapshotInbox(inbox)
+    const alert = shouldAlertFromInbox(inboxSnapshotRef.current, next, inbox)
+    inboxSnapshotRef.current = next
+    if (!alert) return
+    void notifyAdminNewChatMessage({
+      title: alert.title,
+      body: alert.body,
+      tag: alert.tag,
+    })
+  }, [inbox])
+
+  // Also alert when the open thread receives a new visitor message.
+  useEffect(() => {
+    if (!detail?.messages?.length) return
+    const visitorIds = detail.messages
+      .filter((m) => m.sender_type === 'visitor' && !m.is_internal)
+      .map((m) => m.id)
+    const maxId = visitorIds.length ? Math.max(...visitorIds) : 0
+    const prev = detailLastVisitorMsgRef.current
+    if (prev > 0 && maxId > prev) {
+      const newest = detail.messages.find((m) => m.id === maxId)
+      void notifyAdminNewChatMessage({
+        title: 'پیام جدید در گفتگوی باز',
+        body: newest?.body?.slice(0, 120) || 'پیام جدید',
+        tag: `posheh-comm-${detail.uuid}`,
+      })
+    }
+    detailLastVisitorMsgRef.current = maxId
+  }, [detail?.uuid, detail?.messages])
+
+  useEffect(() => {
+    detailLastVisitorMsgRef.current = 0
+  }, [selectedUuid])
+
+  const enableNotifications = async () => {
+    const ok = await unlockAdminChatAudio()
+    setNotifyReady(ok)
+    setAdminChatSoundEnabled(true)
+    setSoundOn(true)
+    const perm = await requestDesktopNotifyPermission()
+    if (perm === 'granted') {
+      setAdminChatDesktopEnabled(true)
+      setDesktopOn(true)
+    }
+    await playAdminChatSound()
+  }
+
+  const toggleSound = async () => {
+    const next = !soundOn
+    setAdminChatSoundEnabled(next)
+    setSoundOn(next)
+    if (next) {
+      await unlockAdminChatAudio()
+      setNotifyReady(true)
+      await playAdminChatSound()
+    }
+  }
+
+  const toggleDesktop = async () => {
+    if (!desktopOn) {
+      const perm = await requestDesktopNotifyPermission()
+      if (perm !== 'granted') {
+        setDesktopOn(false)
+        setAdminChatDesktopEnabled(false)
+        return
+      }
+      setAdminChatDesktopEnabled(true)
+      setDesktopOn(true)
+      return
+    }
+    setAdminChatDesktopEnabled(false)
+    setDesktopOn(false)
+  }
 
   const replyMutation = useMutation({
     mutationFn: async () => {
@@ -172,6 +282,26 @@ export function AdminCommunicationInboxPage() {
         title="مرکز ارتباطات"
         description="اینباکس یکپارچه — وب، تلگرام، ایمیل و واتساپ"
       />
+
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
+        {!notifyReady && soundOn && (
+          <Button size="sm" variant="outline" onClick={() => void enableNotifications()}>
+            <Volume2 className="h-3.5 w-3.5 ml-1" />
+            فعال‌سازی صدای اعلان
+          </Button>
+        )}
+        <Button size="sm" variant={soundOn ? 'default' : 'outline'} onClick={() => void toggleSound()}>
+          {soundOn ? <Volume2 className="h-3.5 w-3.5 ml-1" /> : <BellOff className="h-3.5 w-3.5 ml-1" />}
+          صدای پیام {soundOn ? 'روشن' : 'خاموش'}
+        </Button>
+        <Button size="sm" variant={desktopOn ? 'default' : 'outline'} onClick={() => void toggleDesktop()}>
+          {desktopOn ? <Bell className="h-3.5 w-3.5 ml-1" /> : <BellOff className="h-3.5 w-3.5 ml-1" />}
+          پاپ‌آپ مرورگر {desktopOn ? 'روشن' : 'خاموش'}
+        </Button>
+        <span className="text-[11px] text-muted">
+          با پیام جدید بازدیدکننده صدای کوتاه پخش می‌شود؛ اگر تب در پس‌زمینه باشد پاپ‌آپ هم می‌آید.
+        </span>
+      </div>
 
       {commApiError && (
         <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive shrink-0">
