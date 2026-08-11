@@ -58,6 +58,7 @@ import { VirtualToursPage } from '@/pages/VirtualToursPage'
 import { VirtualTourEditorPage } from '@/pages/VirtualTourEditorPage'
 import { VirtualTourPreviewPage } from '@/pages/VirtualTourPreviewPage'
 import { CommunicationWidgetRoot } from '@/features/communication/CommunicationWidgetRoot'
+import { NotFoundPage } from '@/pages/NotFoundPage'
 import { getOfficeSubdomain } from '@/lib/subdomain'
 
 const queryClient = new QueryClient({
@@ -214,7 +215,7 @@ export default function App() {
               }
             />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthBootstrap>
     </QueryClientProvider>

@@ -6,6 +6,7 @@ import { usePublicTour } from '@/features/virtual-tour/hooks/usePublicTour'
 import { TourWatermark } from '@/features/virtual-tour/components/TourWatermark'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 export function VirtualTourEmbedPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -15,6 +16,7 @@ export function VirtualTourEmbedPage() {
   if (gate === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
+        <SeoHead title="تور مجازی" path={`/embed/tour/${slug}`} noindex />
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     )
@@ -23,6 +25,7 @@ export function VirtualTourEmbedPage() {
   if (gate === 'password') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black p-4">
+        <SeoHead title="تور مجازی محافظت‌شده" path={`/embed/tour/${slug}`} noindex />
         <div className="w-full max-w-xs space-y-3 text-white text-center">
           <Lock className="h-8 w-8 mx-auto text-primary" />
           <p className="text-sm text-white/70">رمز دسترسی</p>
@@ -48,6 +51,7 @@ export function VirtualTourEmbedPage() {
   if (gate !== 'ok' || !tour) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white/60 text-sm">
+        <SeoHead title="تور در دسترس نیست" path={`/embed/tour/${slug}`} noindex />
         تور در دسترس نیست
       </div>
     )
@@ -55,6 +59,7 @@ export function VirtualTourEmbedPage() {
 
   return (
     <div className="h-screen w-screen bg-black overflow-hidden touch-none relative">
+      <SeoHead title={tour.title || 'تور مجازی'} path={`/embed/tour/${slug}`} noindex />
       <TourWatermark
         text={tour.security?.watermark_text}
         enabled={tour.security?.watermark_enabled}

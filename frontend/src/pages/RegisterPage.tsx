@@ -11,6 +11,7 @@ import { getDeviceId, getDeviceName, getPlatform } from '@/lib/device'
 import { useAuthStore } from '@/stores/auth'
 import { formatPrice, normalizeMobile, toEnglishDigits, toPersianDigits } from '@/lib/utils'
 import { FALLBACK_PLANS, PLAN_FEATURE_LABELS, trialBadgeForPlan, type PlanOption } from '@/constants/plans'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 const planIcons: Record<string, typeof User> = {
   solo: User,
@@ -111,6 +112,7 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-background p-4 py-10">
+      <SeoHead title="ثبت‌نام رایگان" description="ثبت‌نام در پوشه — نرم‌افزار مدیریت املاک با دوره آزمایشی رایگان برای مشاوران و دفاتر املاک." path="/register" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-1/4 h-96 w-96 rounded-full bg-primary/10 blur-[120px]" />
         <div className="absolute bottom-0 left-1/4 h-80 w-80 rounded-full bg-accent/10 blur-[100px]" />

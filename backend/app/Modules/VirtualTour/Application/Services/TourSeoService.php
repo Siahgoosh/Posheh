@@ -83,11 +83,11 @@ class TourSeoService
 
         $schemas[] = [
             '@context' => 'https://schema.org',
-            '@type' => 'VirtualTour',
+            '@type' => 'ImageGallery',
             'name' => $tour->title,
             'url' => $url,
             'image' => $image,
-            'tourType' => $tour->tour_type ?? 'panorama_360',
+            'description' => $tour->description ?: $this->defaultDescription($tour),
         ];
 
         return $schemas;

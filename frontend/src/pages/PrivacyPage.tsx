@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { SITE_CONTACT } from '@/constants/site'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 export function PrivacyPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SeoHead title="حریم خصوصی" description="سیاست حریم خصوصی سامانه پوشه" path="/privacy" />
       <div className="container mx-auto max-w-3xl px-4 py-12 space-y-8 flex-1">
         <div className="flex items-center gap-4">
           <Link to="/">
