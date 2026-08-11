@@ -101,7 +101,8 @@ class SubscriptionAccessService
 
     public function userHasAccess(User $user): bool
     {
-        if ($user->isSuperAdmin()) {
+        // Platform staff (panel.posheapp.ir) are not office tenants and must bypass office subscription gates.
+        if ($user->isSuperAdmin() || $user->isPlatformStaff()) {
             return true;
         }
 

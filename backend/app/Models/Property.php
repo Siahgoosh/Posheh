@@ -111,6 +111,12 @@ class Property extends Model
 
     public function coverImage(): ?PropertyMedia
     {
+        if ($this->relationLoaded('media')) {
+            return $this->media->firstWhere('is_cover', true)
+                ?? $this->media->first(fn (PropertyMedia $m) => $m->type?->value === 'image' || $m->type === 'image')
+                ?? $this->media->first();
+        }
+
         return $this->media()->where('is_cover', true)->first()
             ?? $this->media()->where('type', 'image')->first();
     }

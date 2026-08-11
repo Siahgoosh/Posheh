@@ -2,6 +2,7 @@
 
 namespace App\Services\VirtualTour;
 
+use App\Models\Property;
 use App\Models\User;
 use App\Models\VirtualTour;
 use App\Models\VirtualTourLead;
@@ -10,6 +11,7 @@ use App\Models\VirtualTourView;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class VirtualTourService
 {
@@ -28,7 +30,7 @@ class VirtualTourService
 
         return VirtualTour::create([
             'office_id' => $user->office_id,
-            'property_id' => $data['property_id'] ?? null,
+            'property_id' => $this->assertOfficeProperty($user, $data['property_id'] ?? null),
             'created_by' => $user->id,
             'title' => $data['title'],
             'slug' => $slug,
@@ -41,6 +43,9 @@ class VirtualTourService
     public function update(User $user, int $id, array $data): VirtualTour
     {
         $tour = $this->findForOffice($user, $id);
+        if (array_key_exists('property_id', $data)) {
+            $data['property_id'] = $this->assertOfficeProperty($user, $data['property_id']);
+        }
         $tour->update(array_filter([
             'title' => $data['title'] ?? null,
             'description' => $data['description'] ?? null,
@@ -256,5 +261,22 @@ class VirtualTourService
             'enable_vr' => true,
             'enable_gyroscope' => true,
         ];
+    }
+
+    private function assertOfficeProperty(User $user, mixed $propertyId): ?int
+    {
+        if ($propertyId === null || $propertyId === '') {
+            return null;
+        }
+
+        $id = (int) $propertyId;
+        $exists = Property::where('office_id', $user->office_id)->where('id', $id)->exists();
+        if (! $exists) {
+            throw ValidationException::withMessages([
+                'property_id' => ['ملک انتخاب‌شده متعلق به دفتر شما نیست.'],
+            ]);
+        }
+
+        return $id;
     }
 }

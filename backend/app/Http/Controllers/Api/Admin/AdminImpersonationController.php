@@ -31,6 +31,7 @@ class AdminImpersonationController extends Controller
         ]);
 
         $token = $target->createToken('impersonation-'.$session->id)->plainTextToken;
+        $frontend = rtrim(config('app.frontend_url', config('app.url')), '/');
 
         $this->audit->log(
             'impersonation.start',
@@ -44,6 +45,7 @@ class AdminImpersonationController extends Controller
         return response()->json([
             'token' => $token,
             'user' => $target,
+            'url' => $frontend.'/dashboard?impersonation_token='.urlencode($token).'&impersonation_session='.$session->id,
             'impersonation' => [
                 'session_id' => $session->id,
                 'admin_name' => $request->user()->name,

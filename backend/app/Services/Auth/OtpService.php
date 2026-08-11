@@ -210,6 +210,13 @@ class OtpService
             ]);
         }
 
+        $lockedOtp = $otp ?? ($cacheMatches ? $latestOtp : null);
+        if ($lockedOtp && $lockedOtp->attempts >= 5) {
+            throw ValidationException::withMessages([
+                'code' => ['تعداد تلاش‌های ناموفق بیش از حد است. لطفاً کد جدید درخواست دهید.'],
+            ]);
+        }
+
         if ($otp) {
             $otp->update(['verified_at' => now()]);
         } elseif ($latestOtp && $cacheMatches) {
@@ -282,11 +289,13 @@ class OtpService
 
     public function logout(User $user, ?string $deviceId = null): void
     {
+        // Always revoke the token used for this request (device_name vs device_id mismatch-safe).
+        $user->currentAccessToken()?->delete();
+
         if ($deviceId) {
             Device::where('user_id', $user->id)->where('device_id', $deviceId)->delete();
+            // Legacy: some clients named tokens with device_id
             $user->tokens()->where('name', $deviceId)->delete();
-        } else {
-            $user->currentAccessToken()?->delete();
         }
     }
 
