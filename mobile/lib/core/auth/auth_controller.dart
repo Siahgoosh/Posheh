@@ -111,9 +111,16 @@ class AuthController extends StateNotifier<AuthState> {
       } else {
         state = const AuthState(loading: false);
       }
+    } on ApiException catch (e) {
+      // Only revoke local session on true auth failure — never on 402/network blips.
+      if (e.statusCode == 401) {
+        await storage.delete(key: 'token');
+        state = const AuthState(loading: false);
+        return;
+      }
+      state = state.copyWith(loading: false);
     } catch (_) {
-      await storage.delete(key: 'token');
-      state = const AuthState(loading: false);
+      state = state.copyWith(loading: false);
     }
   }
 

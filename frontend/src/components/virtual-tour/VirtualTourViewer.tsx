@@ -7,6 +7,15 @@ import '@photo-sphere-viewer/core/index.css'
 import '@photo-sphere-viewer/markers-plugin/index.css'
 import '@photo-sphere-viewer/virtual-tour-plugin/index.css'
 
+function escapeHtmlAttr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
 export interface TourScene {
   id: number
   name: string
@@ -73,7 +82,12 @@ export const VirtualTourViewer = forwardRef<VirtualTourViewerHandle, Props>(
     }))
 
     useEffect(() => {
-      if (!containerRef.current || !tour.scenes.length) return
+      if (!containerRef.current) return
+      if (!tour.scenes.length) {
+        setIsLoading(false)
+        setLoadError('هنوز صحنه‌ای برای این تور تعریف نشده است.')
+        return
+      }
 
       setLoadError(null)
       setIsLoading(true)
@@ -88,7 +102,7 @@ export const VirtualTourViewer = forwardRef<VirtualTourViewerHandle, Props>(
           .map((h) => ({
             id: `info-${h.id}`,
             position: { yaw: `${h.yaw}deg`, pitch: `${h.pitch}deg` },
-            html: `<div class="vt-info-marker" title="${h.title || ''}">ℹ️</div>`,
+            html: `<div class="vt-info-marker" title="${escapeHtmlAttr(h.title || '')}">ℹ️</div>`,
             tooltip: h.title || 'اطلاعات',
             data: h,
           })),

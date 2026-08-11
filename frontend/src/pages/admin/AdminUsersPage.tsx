@@ -84,8 +84,11 @@ export function AdminUsersPage() {
       return res.data
     },
     onSuccess: (data) => {
-      if (data.token) {
-        window.open(`https://posheapp.ir/dashboard?token=${data.token}`, '_blank')
+      if (data.url) {
+        window.open(data.url, '_blank')
+      } else if (data.token) {
+        const frontend = 'https://posheapp.ir'
+        window.open(`${frontend}/dashboard?impersonation_token=${encodeURIComponent(data.token)}`, '_blank')
       }
     },
   })

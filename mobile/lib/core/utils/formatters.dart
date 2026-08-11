@@ -15,21 +15,30 @@ String toPersianDigits(String input) {
   return buffer.toString();
 }
 
+num? _asNum(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value;
+  return num.tryParse(value.toString().replaceAll(',', '').replaceAll('٬', ''));
+}
+
 /// Group an integer with thousands separators then localize to Persian digits.
-String formatNumber(num? value) {
-  if (value == null) return '۰';
-  final intPart = value.round().abs().toString();
+/// Accepts num or numeric strings (Laravel decimal casts often arrive as strings).
+String formatNumber(dynamic value) {
+  final n = _asNum(value);
+  if (n == null) return '۰';
+  final intPart = n.round().abs().toString();
   final buffer = StringBuffer();
   for (var i = 0; i < intPart.length; i++) {
     if (i > 0 && (intPart.length - i) % 3 == 0) buffer.write('٬');
     buffer.write(intPart[i]);
   }
-  final sign = value < 0 ? '-' : '';
+  final sign = n < 0 ? '-' : '';
   return toPersianDigits('$sign$buffer');
 }
 
 /// Format a price in tomans, matching the web `formatPrice`.
-String formatPrice(num? value) {
-  if (value == null || value == 0) return 'رایگان';
-  return '${formatNumber(value)} تومان';
+String formatPrice(dynamic value) {
+  final n = _asNum(value);
+  if (n == null || n == 0) return 'رایگان';
+  return '${formatNumber(n)} تومان';
 }

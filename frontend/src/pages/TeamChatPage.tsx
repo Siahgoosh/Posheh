@@ -16,7 +16,10 @@ interface ChatMessage {
 }
 
 export function TeamChatPage() {
-  const hasTeamChat = usePlanFeature('team')
+  const hasTeam = usePlanFeature('team')
+  const hasTeamChatFeature = usePlanFeature('team_chat')
+  // Seeded plans historically used `team`; newer plans add `team_chat`.
+  const hasTeamChat = hasTeam || hasTeamChatFeature
   const { user } = useAuthStore()
   const queryClient = useQueryClient()
   const [text, setText] = useState('')

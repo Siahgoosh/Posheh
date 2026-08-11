@@ -112,6 +112,43 @@ function FieldRenderer({
     )
   }
 
+  if (field.type === 'user_select') {
+    return (
+      <div className={span}>
+        <label className="text-sm text-muted mb-1 block">
+          {field.label}{field.required ? ' *' : ''}
+        </label>
+        <Input
+          type="number"
+          value={String(val ?? '')}
+          onChange={(e) => onChange(field.key, e.target.value)}
+          required={field.required}
+          dir="ltr"
+          placeholder="شناسه کاربر (اختیاری)"
+        />
+        <p className="text-xs text-muted mt-1">خالی بگذارید تا به خودتان اختصاص یابد.</p>
+      </div>
+    )
+  }
+
+  if (field.type === 'jalali_date') {
+    return (
+      <div className={span}>
+        <label className="text-sm text-muted mb-1 block">
+          {field.label}{field.required ? ' *' : ''}
+        </label>
+        <Input
+          type="date"
+          value={String(val ?? '')}
+          onChange={(e) => onChange(field.key, e.target.value)}
+          required={field.required}
+          dir="ltr"
+        />
+        <p className="text-xs text-muted mt-1">تاریخ میلادی ذخیره می‌شود (YYYY-MM-DD).</p>
+      </div>
+    )
+  }
+
   const inputType = ['currency', 'number'].includes(field.type) ? 'number' : field.type === 'phone' ? 'tel' : 'text'
 
   return (
