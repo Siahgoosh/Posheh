@@ -1,6 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\AccountingController;
+use App\Http\Controllers\Api\Accounting\AccountController as AccountingAccountController;
+use App\Http\Controllers\Api\Accounting\CashAccountController as AccountingCashAccountController;
+use App\Http\Controllers\Api\Accounting\ChequeController as AccountingChequeController;
+use App\Http\Controllers\Api\Accounting\SettlementController as AccountingSettlementController;
+use App\Http\Controllers\Api\Accounting\ReportController as AccountingReportController;
 use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AdminAuditController;
 use App\Http\Controllers\Api\Admin\AdminCommunicationController;
@@ -160,7 +165,34 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/accounting', [AccountingController::class, 'index']);
         Route::get('/accounting/summary', [AccountingController::class, 'summary']);
+        Route::get('/accounting/dashboard', [AccountingController::class, 'dashboard']);
+        Route::get('/accounting/reports/profit-loss', [AccountingController::class, 'profitAndLoss']);
         Route::post('/accounting', [AccountingController::class, 'store']);
+        Route::post('/accounting/transfer', [AccountingController::class, 'transfer']);
+        Route::post('/accounting/{id}/void', [AccountingController::class, 'void']);
+        Route::post('/accounting/bootstrap', [AccountingController::class, 'bootstrap']);
+        Route::get('/accounting/cheque-alerts', [AccountingController::class, 'chequeAlerts']);
+        Route::post('/accounting/commissions/{commissionId}/settle', [AccountingController::class, 'settleCommission']);
+        Route::get('/accounting/accounts', [AccountingAccountController::class, 'index']);
+        Route::post('/accounting/accounts', [AccountingAccountController::class, 'store']);
+        Route::put('/accounting/accounts/{id}', [AccountingAccountController::class, 'update']);
+        Route::delete('/accounting/accounts/{id}', [AccountingAccountController::class, 'destroy']);
+        Route::get('/accounting/cash-accounts', [AccountingCashAccountController::class, 'index']);
+        Route::post('/accounting/cash-accounts', [AccountingCashAccountController::class, 'store']);
+        Route::put('/accounting/cash-accounts/{id}', [AccountingCashAccountController::class, 'update']);
+        Route::get('/accounting/pos-terminals', [AccountingCashAccountController::class, 'posIndex']);
+        Route::post('/accounting/pos-terminals', [AccountingCashAccountController::class, 'posStore']);
+        Route::get('/accounting/cheques/alerts', [AccountingChequeController::class, 'alerts']);
+        Route::get('/accounting/cheques', [AccountingChequeController::class, 'index']);
+        Route::post('/accounting/cheques', [AccountingChequeController::class, 'store']);
+        Route::post('/accounting/cheques/{id}/status', [AccountingChequeController::class, 'updateStatus']);
+        Route::get('/accounting/settlements', [AccountingSettlementController::class, 'index']);
+        Route::get('/accounting/reports/debtors', [AccountingReportController::class, 'debtors']);
+        Route::get('/accounting/reports/creditors', [AccountingReportController::class, 'creditors']);
+        Route::get('/accounting/reports/consultants', [AccountingReportController::class, 'consultants']);
+        Route::get('/accounting/people-ledger', [AccountingReportController::class, 'peopleLedger']);
+        Route::get('/accounting/deals/{dealId}/finance', [AccountingReportController::class, 'dealFinance']);
+        Route::get('/accounting/properties/{propertyId}/finance', [AccountingReportController::class, 'propertyFinance']);
 
         Route::get('/crm/deals', [CrmController::class, 'index']);
         Route::get('/crm/pipeline', [CrmController::class, 'pipeline']);
