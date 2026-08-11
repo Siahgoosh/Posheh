@@ -45,6 +45,7 @@ import { AdminChurnPage } from '@/pages/admin/AdminChurnPage'
 import { AdminHealthPage } from '@/pages/admin/AdminHealthPage'
 import { AdminVirtualToursStatsPage } from '@/pages/admin/AdminVirtualToursStatsPage'
 import { AdminDomainOrdersPage } from '@/pages/admin/AdminDomainOrdersPage'
+import { AdminCommunicationInboxPage } from '@/pages/admin/AdminCommunicationInboxPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -108,6 +109,7 @@ export function PanelApp() {
             <Route path="visits" element={<AdminVisitsPage />} />
             <Route path="contracts" element={<AdminContractsPage />} />
             <Route path="tickets" element={<AdminTicketsPage />} />
+            <Route path="communication" element={<AdminCommunicationInboxPage />} />
             <Route path="announcements" element={<AdminAnnouncementsPage />} />
             <Route path="blog" element={<AdminBlogListPage />} />
             <Route path="blog/new" element={<AdminBlogEditorPage />} />

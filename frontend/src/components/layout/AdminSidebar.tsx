@@ -5,7 +5,7 @@ import {
   LogOut, Moon, Sun, Menu, X, UserCog, ChevronDown,
   UserCircle, Home, Handshake, Calendar, FileText, Percent,
   Calculator, Smartphone, TrendingDown, DollarSign, Database,
-  Activity, Flag, DownloadCloud, Heart, Globe,
+  Activity, Flag, DownloadCloud, Heart, Globe, MessageCircle,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -65,6 +65,7 @@ const navGroups = [
   {
     label: 'پشتیبانی و محتوا',
     items: [
+      { to: '/communication', icon: MessageCircle, label: 'مرکز ارتباطات' },
       { to: '/tickets', icon: Ticket, label: 'تیکت‌ها' },
       { to: '/announcements', icon: Bell, label: 'اطلاعیه‌ها' },
       { to: '/blog', icon: BookOpen, label: 'وبلاگ' },

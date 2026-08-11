@@ -57,6 +57,7 @@ import { VirtualTourEmbedPage } from '@/pages/VirtualTourEmbedPage'
 import { VirtualToursPage } from '@/pages/VirtualToursPage'
 import { VirtualTourEditorPage } from '@/pages/VirtualTourEditorPage'
 import { VirtualTourPreviewPage } from '@/pages/VirtualTourPreviewPage'
+import { CommunicationWidgetRoot } from '@/features/communication/CommunicationWidgetRoot'
 import { getOfficeSubdomain } from '@/lib/subdomain'
 
 const queryClient = new QueryClient({
@@ -91,6 +92,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthBootstrap>
         <AnalyticsTracker />
+        <CommunicationWidgetRoot />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/blog" element={<BlogListPage />} />

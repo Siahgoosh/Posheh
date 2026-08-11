@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AccountingController;
 use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AdminAuditController;
+use App\Http\Controllers\Api\Admin\AdminCommunicationController;
 use App\Http\Controllers\Api\Admin\AdminDataController;
 use App\Http\Controllers\Api\Admin\AdminPhase2Controller;
 use App\Http\Controllers\Api\Admin\AdminCouponController;
@@ -33,6 +34,9 @@ use App\Http\Controllers\Api\BotWebhookController;
 use App\Http\Controllers\Api\ConsultantDirectoryController;
 use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\CommissionController;
+use App\Http\Controllers\Api\Communication\CommunicationEmailWebhookController;
+use App\Http\Controllers\Api\Communication\CommunicationPublicController;
+use App\Http\Controllers\Api\Communication\CommunicationTelegramWebhookController;
 use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\DownloadController;
@@ -84,6 +88,20 @@ Route::prefix('v1')->group(function () {
 
     Route::post('/bots/telegram/{officeSlug}', [BotWebhookController::class, 'telegram']);
     Route::post('/bots/whatsapp/{officeSlug}', [BotWebhookController::class, 'whatsapp']);
+
+    Route::prefix('communication')->middleware('throttle:180,1')->group(function () {
+        Route::get('/config', [CommunicationPublicController::class, 'config']);
+        Route::get('/health', [CommunicationPublicController::class, 'health']);
+        Route::post('/visitors/init', [CommunicationPublicController::class, 'init']);
+        Route::post('/visitors/heartbeat', [CommunicationPublicController::class, 'heartbeat']);
+        Route::post('/visitors/events', [CommunicationPublicController::class, 'event']);
+        Route::post('/leads', [CommunicationPublicController::class, 'captureLead'])->middleware('throttle:30,1');
+        Route::get('/conversations/{uuid}/messages', [CommunicationPublicController::class, 'messages']);
+        Route::post('/conversations/{uuid}/messages', [CommunicationPublicController::class, 'sendMessage']);
+        Route::get('/telegram/webhook', [CommunicationTelegramWebhookController::class, 'ping']);
+        Route::post('/telegram/webhook', [CommunicationTelegramWebhookController::class, 'handle']);
+        Route::post('/email/inbound', [CommunicationEmailWebhookController::class, 'inbound']);
+    });
 
     Route::get('/public/properties', [PublicApiController::class, 'properties'])->middleware('throttle:60,1');
     Route::get('/p/qr/{token}', [PropertyPublicController::class, 'byQr']);
@@ -309,6 +327,26 @@ Route::prefix('v1')->group(function () {
             Route::post('/tickets/{id}/reply', [TicketAdminController::class, 'reply']);
             Route::put('/tickets/{id}/status', [TicketAdminController::class, 'updateStatus']);
             Route::put('/tickets/{id}/assign', [TicketAdminController::class, 'assign']);
+
+            Route::prefix('communication')->group(function () {
+                Route::get('/dashboard', [AdminCommunicationController::class, 'dashboard']);
+                Route::post('/telegram/webhook/register', [AdminCommunicationController::class, 'registerTelegramWebhook']);
+                Route::get('/inbox', [AdminCommunicationController::class, 'inbox']);
+                Route::get('/conversations/{uuid}', [AdminCommunicationController::class, 'showConversation']);
+                Route::post('/conversations/{uuid}/reply', [AdminCommunicationController::class, 'reply']);
+                Route::put('/conversations/{uuid}', [AdminCommunicationController::class, 'updateConversation']);
+                Route::post('/conversations/{uuid}/notes', [AdminCommunicationController::class, 'addNote']);
+                Route::post('/conversations/{uuid}/tickets', [AdminCommunicationController::class, 'createTicket']);
+                Route::post('/conversations/{uuid}/tickets/close', [AdminCommunicationController::class, 'closeTicket']);
+                Route::get('/conversations/{uuid}/ai/suggestions', [AdminCommunicationController::class, 'aiSuggestions']);
+                Route::get('/conversations/{uuid}/ai/summary', [AdminCommunicationController::class, 'aiSummarize']);
+                Route::get('/knowledge/articles', [AdminCommunicationController::class, 'knowledgeIndex']);
+                Route::post('/knowledge/articles', [AdminCommunicationController::class, 'knowledgeStore']);
+                Route::get('/knowledge/categories', [AdminCommunicationController::class, 'knowledgeCategories']);
+                Route::get('/visitors/live', [AdminCommunicationController::class, 'liveVisitors']);
+                Route::put('/leads/{id}', [AdminCommunicationController::class, 'updateLead']);
+            });
+
             Route::get('/announcements', [AdminController::class, 'announcements']);
             Route::post('/announcements', [AdminController::class, 'createAnnouncement']);
             Route::put('/announcements/{id}', [AdminController::class, 'updateAnnouncement']);
