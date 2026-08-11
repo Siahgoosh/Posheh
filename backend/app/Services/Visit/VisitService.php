@@ -2,6 +2,8 @@
 
 namespace App\Services\Visit;
 
+use App\Models\Customer;
+use App\Models\Property;
 use App\Models\PropertyVisit;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -34,6 +36,8 @@ class VisitService
 
     public function create(User $user, array $data): PropertyVisit
     {
+        $this->assertOfficeRefs($user, $data);
+
         return PropertyVisit::create([
             ...$data,
             'office_id' => $user->office_id,
@@ -45,6 +49,7 @@ class VisitService
     public function update(User $user, int $id, array $data): PropertyVisit
     {
         $visit = $this->find($user, $id);
+        $this->assertOfficeRefs($user, $data);
         $visit->update($data);
 
         return $visit->fresh()->load(['property', 'customer', 'assignee']);
@@ -64,5 +69,27 @@ class VisitService
         }
 
         return $visit;
+    }
+
+    private function assertOfficeRefs(User $user, array $data): void
+    {
+        if (isset($data['property_id'])) {
+            $ok = Property::where('office_id', $user->office_id)->where('id', $data['property_id'])->exists();
+            if (! $ok) {
+                throw ValidationException::withMessages(['property_id' => ['ملک متعلق به دفتر شما نیست.']]);
+            }
+        }
+        if (isset($data['customer_id']) && $data['customer_id']) {
+            $ok = Customer::where('office_id', $user->office_id)->where('id', $data['customer_id'])->exists();
+            if (! $ok) {
+                throw ValidationException::withMessages(['customer_id' => ['مشتری متعلق به دفتر شما نیست.']]);
+            }
+        }
+        if (isset($data['assigned_to']) && $data['assigned_to']) {
+            $ok = User::where('office_id', $user->office_id)->where('id', $data['assigned_to'])->exists();
+            if (! $ok) {
+                throw ValidationException::withMessages(['assigned_to' => ['کاربر تخصیص‌یافته متعلق به دفتر شما نیست.']]);
+            }
+        }
     }
 }

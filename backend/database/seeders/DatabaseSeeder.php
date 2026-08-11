@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(SystemSettingsSeeder::class);
         $this->call(BlogSeeder::class);
+        $this->call(CommunicationSeeder::class);
         if (class_exists(VirtualTourSeeder::class)) {
             $this->call(VirtualTourSeeder::class);
         }
@@ -63,7 +64,7 @@ class DatabaseSeeder extends Seeder
                     'filing', 'properties', 'search', 'favorites', 'crm',
                     'excel_export', 'pdf_export', 'jalali_calendar', 'saved_searches',
                     'property_share', 'ad_copy', 'quality_score', 'lead_scoring',
-                    'accounting', 'team', 'telegram_bot', 'activity_logs',
+                    'accounting', 'team', 'team_chat', 'telegram_bot', 'activity_logs',
                     'commissions', 'visit_calendar', 'owner_portal',
                 ],
                 'sort_order' => 2,
@@ -84,7 +85,7 @@ class DatabaseSeeder extends Seeder
                     'filing', 'properties', 'search', 'favorites', 'crm',
                     'excel_export', 'pdf_export', 'jalali_calendar', 'saved_searches',
                     'property_share', 'ad_copy', 'quality_score', 'lead_scoring',
-                    'accounting', 'team', 'telegram_bot', 'whatsapp_bot',
+                    'accounting', 'team', 'team_chat', 'telegram_bot', 'whatsapp_bot',
                     'website_listing', 'verified_badge', 'activity_logs',
                     'advanced_analytics', 'commissions', 'visit_calendar',
                     'owner_portal', 'demand_heatmap', 'property_compare',

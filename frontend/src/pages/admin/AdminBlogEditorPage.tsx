@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ArrowRight, Plus, Save, Trash2 } from 'lucide-react'
 import api from '@/lib/api'
+import { adminPath } from '@/lib/adminPaths'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -130,7 +131,7 @@ export function AdminBlogEditorPage() {
     },
     onSuccess: (res) => {
       setSeo(res.data.seo as SeoAnalysis)
-      if (isNew) navigate(`/admin/blog/${res.data.data.id}/edit`, { replace: true })
+      if (isNew) navigate(adminPath(`blog/${res.data.data.id}/edit`), { replace: true })
     },
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }
@@ -185,7 +186,7 @@ export function AdminBlogEditorPage() {
     <div className="space-y-6 animate-fade-in max-w-6xl mx-auto">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link to="/admin/blog">
+          <Link to={adminPath('blog')}>
             <Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button>
           </Link>
           <h1 className="text-2xl font-bold">{isNew ? 'مقاله جدید' : 'ویرایش مقاله'}</h1>

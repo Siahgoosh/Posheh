@@ -17,7 +17,18 @@ interface SeoHeadProps {
 export function SeoHead(props: SeoHeadProps) {
   useEffect(() => {
     applySeo(props)
-  }, [props.title, props.description, props.keywords, props.path, props.image, props.type, props.publishedTime, props.modifiedTime, props.noindex])
+  }, [
+    props.title,
+    props.description,
+    props.keywords,
+    props.path,
+    props.image,
+    props.type,
+    props.publishedTime,
+    props.modifiedTime,
+    props.noindex,
+    props.jsonLd,
+  ])
 
   return null
 }

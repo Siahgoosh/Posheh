@@ -274,7 +274,7 @@ class _PropertyCard extends StatelessWidget {
                       const Icon(Icons.straighten_rounded,
                           size: 15, color: AppColors.muted),
                       const SizedBox(width: 4),
-                      Text('${formatNumber(p['area'] as num?)} متر',
+                      Text('${formatNumber(p['area'])} متر',
                           style: const TextStyle(
                               color: AppColors.muted, fontSize: 13)),
                       const SizedBox(width: 14),
@@ -283,7 +283,7 @@ class _PropertyCard extends StatelessWidget {
                       const Icon(Icons.bed_outlined,
                           size: 15, color: AppColors.muted),
                       const SizedBox(width: 4),
-                      Text('${formatNumber(p['rooms'] as num?)} خواب',
+                      Text('${formatNumber(p['rooms'])} خواب',
                           style: const TextStyle(
                               color: AppColors.muted, fontSize: 13)),
                     ],

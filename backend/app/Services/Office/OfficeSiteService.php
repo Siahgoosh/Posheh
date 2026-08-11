@@ -183,9 +183,23 @@ class OfficeSiteService
             ->where('website_status', 'published')
             ->firstOrFail();
 
+        $propertyId = $data['property_id'] ?? null;
+        if ($propertyId) {
+            $belongs = Property::where('office_id', $office->id)
+                ->where('id', $propertyId)
+                ->where('show_on_website', true)
+                ->where('website_approved', true)
+                ->exists();
+            if (! $belongs) {
+                throw ValidationException::withMessages([
+                    'property_id' => ['ملک انتخاب‌شده در وبسایت این دفتر موجود نیست.'],
+                ]);
+            }
+        }
+
         return OfficeVisitRequest::create([
             'office_id' => $office->id,
-            'property_id' => $data['property_id'] ?? null,
+            'property_id' => $propertyId,
             'name' => $data['name'],
             'mobile' => $data['mobile'],
             'email' => $data['email'] ?? null,

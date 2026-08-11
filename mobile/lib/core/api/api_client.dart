@@ -39,6 +39,7 @@ final dioProvider = Provider<Dio>((ref) {
     },
     connectTimeout: const Duration(seconds: 30),
     receiveTimeout: const Duration(seconds: 30),
+    // Keep 4xx as responses so ApiClient can map Persian errors; clear auth on 401 below.
     validateStatus: (status) => status != null && status < 500,
   ));
 
@@ -49,6 +50,12 @@ final dioProvider = Provider<Dio>((ref) {
         options.headers['Authorization'] = 'Bearer $token';
       }
       handler.next(options);
+    },
+    onResponse: (response, handler) {
+      if (response.statusCode == 401) {
+        storage.delete(key: 'token');
+      }
+      handler.next(response);
     },
     onError: (error, handler) {
       if (error.response?.statusCode == 401) {

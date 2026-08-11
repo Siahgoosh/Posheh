@@ -148,8 +148,21 @@ class PasswordResetService
             ->first();
 
         if (! $otp || ! hash_equals($otp->code, $validated['code'])) {
+            if ($otp) {
+                $otp->increment('attempts');
+                if ($otp->attempts >= 5) {
+                    $otp->update(['expires_at' => now()]);
+                }
+            }
+
             throw ValidationException::withMessages([
                 'code' => ['کد تأیید نامعتبر یا منقضی شده است.'],
+            ]);
+        }
+
+        if ($otp->attempts >= 5) {
+            throw ValidationException::withMessages([
+                'code' => ['تعداد تلاش بیش از حد مجاز است. دوباره درخواست کد دهید.'],
             ]);
         }
 

@@ -1,0 +1,100 @@
+<?php
+
+namespace App\Modules\VirtualTour\Application\Services;
+
+use App\Models\User;
+use App\Models\VirtualTourMedia;
+use App\Modules\VirtualTour\Application\Contracts\PanoramaStorageInterface;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
+
+class PanoramaUploader
+{
+  private function maxSizeBytes(): int
+  {
+    return (int) config('virtual-tour.max_panorama_size_mb', 100) * 1024 * 1024;
+  }
+
+  /** @return string[] */
+  private function allowedMimes(): array
+  {
+    return config('virtual-tour.allowed_panorama_mimes', [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+    ]);
+  }
+
+  public function __construct(
+    private readonly TourManager $tourManager,
+    private readonly SceneManager $sceneManager,
+    private readonly PanoramaStorageInterface $storage,
+  ) {}
+
+  /**
+   * @return array{valid: bool, errors: string[]}
+   */
+  public function validate(UploadedFile $file): array
+  {
+    $errors = [];
+
+    if (! in_array($file->getMimeType(), $this->allowedMimes(), true)) {
+      $errors[] = 'فرمت فایل باید JPEG، PNG یا WebP باشد.';
+    }
+
+    $maxMb = (int) config('virtual-tour.max_panorama_size_mb', 100);
+    if ($file->getSize() > $this->maxSizeBytes()) {
+      $errors[] = "حداکثر حجم فایل {$maxMb} مگابایت است.";
+    }
+
+    $info = @getimagesize($file->getRealPath());
+    if ($info) {
+      $ratio = $info[0] / max(1, $info[1]);
+      if ($ratio < 1.8 || $ratio > 2.2) {
+        $errors[] = 'تصویر باید equirectangular با نسبت ۲:۱ باشد.';
+      }
+    }
+
+    return ['valid' => empty($errors), 'errors' => $errors];
+  }
+
+  public function uploadScenePanorama(
+    User $user,
+    int $tourId,
+    UploadedFile $file,
+    ?string $name = null,
+    ?int $sceneId = null,
+  ) {
+    $validation = $this->validate($file);
+    if (! $validation['valid']) {
+      throw new \InvalidArgumentException(implode(' ', $validation['errors']));
+    }
+
+    if ($sceneId) {
+      return $this->sceneManager->update($user, $tourId, $sceneId, [
+        'name' => $name,
+      ], $file);
+    }
+
+    $sceneName = Str::limit($name ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) ?: 'صحنه جدید', 200);
+
+    return $this->sceneManager->create($user, $tourId, [
+      'name' => $sceneName,
+      'status' => 'draft',
+    ], $file);
+  }
+
+  public function uploadMedia(User $user, int $tourId, UploadedFile $file, string $type, ?string $title = null): VirtualTourMedia
+  {
+    $tour = $this->tourManager->findForOffice($user, $tourId);
+    $path = $file->store("virtual-tours/{$tour->id}/media", 'public');
+
+    return $tour->media()->create([
+      'type' => $type,
+      'path' => $path,
+      'title' => $title ?? $file->getClientOriginalName(),
+      'sort_order' => $tour->media()->count(),
+    ]);
+  }
+}

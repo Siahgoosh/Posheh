@@ -80,6 +80,22 @@ class CommissionService
 
     public function createManual(User $user, array $data): Commission
     {
+        if (! $user->canManageOffice()) {
+            throw ValidationException::withMessages(['commission' => ['فقط مدیر می‌تواند کمیسیون ثبت کند.']]);
+        }
+
+        $assigneeOk = User::where('office_id', $user->office_id)->where('id', $data['user_id'])->exists();
+        if (! $assigneeOk) {
+            throw ValidationException::withMessages(['user_id' => ['کاربر متعلق به دفتر شما نیست.']]);
+        }
+
+        if (! empty($data['property_id'])) {
+            $propertyOk = \App\Models\Property::where('office_id', $user->office_id)->where('id', $data['property_id'])->exists();
+            if (! $propertyOk) {
+                throw ValidationException::withMessages(['property_id' => ['ملک متعلق به دفتر شما نیست.']]);
+            }
+        }
+
         $rate = $data['rate_percent'];
         $base = $data['base_amount'];
 
