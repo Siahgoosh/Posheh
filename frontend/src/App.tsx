@@ -27,6 +27,7 @@ import { SettingsPage } from '@/pages/SettingsPage'
 import { SuperAdminRoute } from '@/components/SuperAdminRoute'
 import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
+import { AdminSeoGrowthPage } from '@/pages/admin/AdminSeoGrowthPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
 import { AdminSuperPanelPage } from '@/pages/admin/AdminSuperPanelPage'
 import { AnalyticsTracker } from '@/components/AnalyticsTracker'
@@ -189,6 +190,14 @@ export default function App() {
               element={
                 <SuperAdminRoute>
                   <AdminBlogListPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/seo-growth"
+              element={
+                <SuperAdminRoute>
+                  <AdminSeoGrowthPage />
                 </SuperAdminRoute>
               }
             />

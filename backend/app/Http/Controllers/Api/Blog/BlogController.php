@@ -39,6 +39,7 @@ class BlogController extends Controller
         private readonly BlogSearchService $searchService,
         private readonly BlogRelatedArticlesService $relatedService,
         private readonly BlogSitemapService $sitemapService,
+        private readonly \App\Services\Seo\SeoInternalSearchLogger $internalSearchLogger,
     ) {}
 
     public function home(): JsonResponse
@@ -136,6 +137,16 @@ class BlogController extends Controller
             (int) $request->input('page', 1),
             (int) $request->input('per_page', 12),
         );
+
+        try {
+            $this->internalSearchLogger->log(
+                (string) ($result['meta']['query'] ?? $request->input('q', '')),
+                (int) ($result['meta']['total'] ?? 0),
+                $request->ip()
+            );
+        } catch (\Throwable) {
+            // Search must never fail because of analytics logging
+        }
 
         return response()->json($result + [
             'seo' => ['robots' => 'noindex,follow'],

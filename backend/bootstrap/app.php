@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('subscriptions:remind')->dailyAt('09:00');
         $schedule->command('visits:remind')->hourly();
         $schedule->command('blog:publish-scheduled')->everyMinute();
+        // SEO Growth Engine — automatic-safe jobs only (no auto rewrite/merge)
+        $schedule->command('seo:collect-gsc')->dailyAt('03:15');
+        $schedule->command('seo:analyze')->weeklyOn(1, '04:00');
+        $schedule->command('seo:analyze --weekly-report')->weeklyOn(1, '04:30');
     })
     ->withMiddleware(function (Middleware $middleware): void {
         //
