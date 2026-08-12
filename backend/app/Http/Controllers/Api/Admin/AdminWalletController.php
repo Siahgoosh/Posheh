@@ -78,15 +78,6 @@ class AdminWalletController extends Controller
                     'description' => $data['description'].' (مدیر سیستم)',
                 ]);
 
-                $this->audit->log(
-                    'wallet.adjusted',
-                    Wallet::class,
-                    $wallet->id,
-                    $data['description'],
-                    null,
-                    ['type' => $data['type'], 'amount' => $amount, 'office_id' => $officeId]
-                );
-
                 return $wallet->fresh('office');
             });
         } catch (\RuntimeException $e) {
@@ -95,6 +86,16 @@ class AdminWalletController extends Controller
             }
             throw $e;
         }
+
+        // Outside the money transaction so audit schema issues cannot roll back the charge.
+        $this->audit->log(
+            'wallet.adjusted',
+            Wallet::class,
+            $wallet->id,
+            $data['description'],
+            null,
+            ['type' => $data['type'], 'amount' => $amount, 'office_id' => $officeId]
+        );
 
         return response()->json([
             'data' => $wallet,
