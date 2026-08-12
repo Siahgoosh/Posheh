@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Accounting;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AccountingChequeResource;
 use App\Services\Accounting\ChequeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class ChequeController extends Controller
             'direction', 'status', 'due_from', 'due_to',
         ]));
 
-        return response()->json($paginator);
+        return AccountingChequeResource::collection($paginator)->response();
     }
 
     public function store(Request $request): JsonResponse
@@ -42,7 +43,7 @@ class ChequeController extends Controller
 
         $cheque = $this->cheques->create($request->user(), $data);
 
-        return response()->json(['data' => $cheque], 201);
+        return response()->json(['data' => new AccountingChequeResource($cheque)], 201);
     }
 
     public function updateStatus(Request $request, int $id): JsonResponse
@@ -53,7 +54,7 @@ class ChequeController extends Controller
 
         $cheque = $this->cheques->updateStatus($request->user(), $id, $data['status']);
 
-        return response()->json(['data' => $cheque]);
+        return response()->json(['data' => new AccountingChequeResource($cheque)]);
     }
 
     public function alerts(Request $request): JsonResponse

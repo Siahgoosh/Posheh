@@ -36,7 +36,10 @@ export function toPersianDigits(str: string): string {
 /** Format ISO date or Date to Jalali string */
 export function formatJalaliDate(value?: string | Date | null, withTime = false): string {
   if (!value) return '—'
-  const date = typeof value === 'string' ? new Date(value) : value
+  const raw = typeof value === 'string'
+    ? (value.includes('T') || value.includes(' ') ? value : `${value.slice(0, 10)}T12:00:00`)
+    : value
+  const date = typeof raw === 'string' ? new Date(raw) : raw
   if (Number.isNaN(date.getTime())) return '—'
   try {
     const opts: Intl.DateTimeFormatOptions = withTime

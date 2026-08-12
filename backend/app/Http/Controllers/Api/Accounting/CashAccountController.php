@@ -55,7 +55,17 @@ class CashAccountController extends Controller
             'is_active' => true,
         ]);
 
-        return response()->json(['data' => $item], 201);
+        if (empty($data['ledger_account_id'])) {
+            $code = ($data['kind'] ?? '') === 'bank' ? '1102' : '1101';
+            $ledgerId = \App\Models\AccountingAccount::where('office_id', $user->office_id)
+                ->where('code', $code)
+                ->value('id');
+            if ($ledgerId) {
+                $item->update(['ledger_account_id' => $ledgerId]);
+            }
+        }
+
+        return response()->json(['data' => $item->fresh()], 201);
     }
 
     public function update(Request $request, int $id): JsonResponse

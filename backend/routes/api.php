@@ -190,6 +190,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/accounting/reports/debtors', [AccountingReportController::class, 'debtors']);
         Route::get('/accounting/reports/creditors', [AccountingReportController::class, 'creditors']);
         Route::get('/accounting/reports/consultants', [AccountingReportController::class, 'consultants']);
+        Route::get('/accounting/reports/monthly-trend', [AccountingReportController::class, 'monthlyTrend']);
         Route::get('/accounting/people-ledger', [AccountingReportController::class, 'peopleLedger']);
         Route::get('/accounting/deals/{dealId}/finance', [AccountingReportController::class, 'dealFinance']);
         Route::get('/accounting/properties/{propertyId}/finance', [AccountingReportController::class, 'propertyFinance']);

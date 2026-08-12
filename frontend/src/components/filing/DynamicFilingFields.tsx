@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input'
 import { Select, SelectOption } from '@/components/ui/select'
+import { JalaliDatePicker } from '@/components/ui/JalaliDatePicker'
 import { IRAN_PROVINCES } from '@/constants/property'
 import type { FilingField, FilingFormValues } from '@/lib/filing'
 
@@ -134,17 +135,11 @@ function FieldRenderer({
   if (field.type === 'jalali_date') {
     return (
       <div className={span}>
-        <label className="text-sm text-muted mb-1 block">
-          {field.label}{field.required ? ' *' : ''}
-        </label>
-        <Input
-          type="date"
+        <JalaliDatePicker
+          label={`${field.label}${field.required ? ' *' : ''}`}
           value={String(val ?? '')}
-          onChange={(e) => onChange(field.key, e.target.value)}
-          required={field.required}
-          dir="ltr"
+          onChange={(d) => onChange(field.key, d)}
         />
-        <p className="text-xs text-muted mt-1">تاریخ میلادی ذخیره می‌شود (YYYY-MM-DD).</p>
       </div>
     )
   }

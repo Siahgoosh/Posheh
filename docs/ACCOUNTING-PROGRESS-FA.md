@@ -30,12 +30,12 @@
 - Feature test: `tests/Feature/Accounting/AccountingLedgerTest.php`
 - دسترسی حساس با `canManageOffice`؛ مشاور فقط حساب خودش در people ledger
 
-## Deploy
-```bash
-./scripts/deploy.sh cursor/accounting-professional-a876
-docker compose exec app php artisan migrate --force
-docker compose exec app php artisan optimize:clear
-```
+## تاریخ شمسی (UI)
+- کامپوننت `JalaliDatePicker` با تقویم جلالی واقعی (نه `type=date` میلادی)
+- در حسابداری: درآمد/هزینه، انتقال، چک (صدور+سررسید)، فیلترها، سودوزیان
+- نمایش لیست‌ها با `formatJalaliLong` / `formatJalaliYmd`
+- فیلدهای `jalali_date` فرم پرونده نیز از همین picker استفاده می‌کنند
+- API همچنان تاریخ را به صورت استاندارد `YYYY-MM-DD` میلادی ذخیره می‌کند
 
 ## باقیمانده (نسخه بعدی)
 - Permissionهای دانه‌ای `accounting.*` در جدول جدا

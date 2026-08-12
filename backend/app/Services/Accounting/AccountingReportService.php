@@ -278,4 +278,40 @@ class AccountingReportService
             'deal' => $finance,
         ];
     }
+
+    /**
+     * Last 6 Gregorian months trend (labels shown Jalali on frontend).
+     *
+     * @return array{months: list<array{key:string,label:string,income:int,expense:int,profit:int}>}
+     */
+    public function monthlyTrend(User $user): array
+    {
+        $officeId = $this->assertOffice($user);
+        $months = [];
+
+        for ($i = 5; $i >= 0; $i--) {
+            $start = now()->startOfMonth()->subMonths($i);
+            $end = (clone $start)->endOfMonth();
+            $income = (int) AccountingTransaction::where('office_id', $officeId)
+                ->where('type', 'income')
+                ->where(fn ($q) => $q->whereNull('status')->orWhere('status', 'approved'))
+                ->whereBetween('transaction_date', [$start->toDateString(), $end->toDateString()])
+                ->sum('amount');
+            $expense = (int) AccountingTransaction::where('office_id', $officeId)
+                ->where('type', 'expense')
+                ->where(fn ($q) => $q->whereNull('status')->orWhere('status', 'approved'))
+                ->whereBetween('transaction_date', [$start->toDateString(), $end->toDateString()])
+                ->sum('amount');
+
+            $months[] = [
+                'key' => $start->format('Y-m'),
+                'label' => \Morilog\Jalali\Jalalian::fromDateTime($start)->format('%B %Y'),
+                'income' => $income,
+                'expense' => $expense,
+                'profit' => $income - $expense,
+            ];
+        }
+
+        return ['months' => $months];
+    }
 }

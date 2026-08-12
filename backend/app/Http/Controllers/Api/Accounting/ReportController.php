@@ -54,4 +54,9 @@ class ReportController extends Controller
     {
         return response()->json(['data' => $this->reports->propertyFinance($request->user(), $propertyId)]);
     }
+
+    public function monthlyTrend(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->reports->monthlyTrend($request->user())]);
+    }
 }
