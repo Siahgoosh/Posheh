@@ -27,6 +27,8 @@ import { SettingsPage } from '@/pages/SettingsPage'
 import { SuperAdminRoute } from '@/components/SuperAdminRoute'
 import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
+import { AdminBlogCalendarPage } from '@/pages/admin/AdminBlogCalendarPage'
+import { AdminBlogMediaPage } from '@/pages/admin/AdminBlogMediaPage'
 import { AdminSeoGrowthPage } from '@/pages/admin/AdminSeoGrowthPage'
 import { AdminCroDashboardPage } from '@/pages/admin/AdminCroDashboardPage'
 import { AboutPage } from '@/pages/AboutPage'
@@ -193,6 +195,22 @@ export default function App() {
               element={
                 <SuperAdminRoute>
                   <AdminBlogListPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/blog/calendar"
+              element={
+                <SuperAdminRoute>
+                  <AdminBlogCalendarPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/blog/media"
+              element={
+                <SuperAdminRoute>
+                  <AdminBlogMediaPage />
                 </SuperAdminRoute>
               }
             />

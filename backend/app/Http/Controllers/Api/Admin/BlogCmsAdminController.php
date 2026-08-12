@@ -255,7 +255,23 @@ class BlogCmsAdminController extends Controller
             'is_active' => ['sometimes', 'boolean'],
         ]);
         $data['from_path'] = '/'.ltrim($data['from_path'], '/');
+        $data['to_path'] = '/'.ltrim($data['to_path'], '/');
         $data['status_code'] = $data['status_code'] ?? 301;
+
+        if ($data['from_path'] === $data['to_path']) {
+            return response()->json(['message' => 'Redirect loop: source equals destination.'], 422);
+        }
+
+        // Simple chain/loop detection (one hop)
+        $destIsSource = BlogRedirect::where('is_active', true)->where('from_path', $data['to_path'])->exists();
+        $sourceIsDest = BlogRedirect::where('is_active', true)->where('to_path', $data['from_path'])->exists();
+        if ($destIsSource || $sourceIsDest) {
+            return response()->json([
+                'message' => 'Redirect chain/loop risk detected. Resolve existing redirects first.',
+                'code' => 'redirect_chain_or_loop',
+            ], 422);
+        }
+
         $redirect = BlogRedirect::create($data);
 
         return response()->json(['data' => $redirect], 201);
@@ -273,13 +289,45 @@ class BlogCmsAdminController extends Controller
         $data = $request->validate([
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'exists:blog_posts,id'],
-            'action' => ['required', 'string', 'in:set_category,set_status,export'],
+            'action' => ['required', 'string', 'in:set_category,set_status,set_author,set_tags,publish,unpublish,archive,trash,noindex,index,export'],
             'category_slug' => ['nullable', 'string'],
             'review_status' => ['nullable', 'string'],
+            'author_name' => ['nullable', 'string', 'max:100'],
+            'blog_author_id' => ['nullable', 'integer', 'exists:blog_authors,id'],
+            'tag_ids' => ['nullable', 'array'],
+            'tag_ids.*' => ['integer', 'exists:blog_tags,id'],
             'confirm_destructive' => ['sometimes', 'boolean'],
+            'confirm_affected' => ['sometimes', 'boolean'],
         ]);
 
         $posts = BlogPost::whereIn('id', $data['ids'])->get();
+
+        $destructive = in_array($data['action'], ['publish', 'trash', 'noindex', 'archive'], true);
+        if ($destructive && ! $request->boolean('confirm_destructive')) {
+            return response()->json([
+                'message' => 'عملیات خطرناک — confirm_destructive=1 لازم است.',
+                'affected' => $posts->map(fn (BlogPost $p) => [
+                    'id' => $p->id,
+                    'title' => $p->title,
+                    'slug' => $p->slug,
+                    'is_published' => $p->is_published,
+                    'review_status' => $p->review_status,
+                ]),
+                'count' => $posts->count(),
+            ], 422);
+        }
+
+        if (! $request->boolean('confirm_affected') && $data['action'] !== 'export') {
+            return response()->json([
+                'message' => 'قبل از اجرا Affected Articles را تأیید کنید (confirm_affected=1).',
+                'affected' => $posts->map(fn (BlogPost $p) => [
+                    'id' => $p->id,
+                    'title' => $p->title,
+                    'slug' => $p->slug,
+                ]),
+                'count' => $posts->count(),
+            ], 422);
+        }
 
         if ($data['action'] === 'export') {
             return response()->json([
@@ -291,31 +339,162 @@ class BlogCmsAdminController extends Controller
         }
 
         foreach ($posts as $post) {
-            if ($data['action'] === 'set_category' && ! empty($data['category_slug'])) {
-                $label = BlogCategory::where('slug', $data['category_slug'])->value('name')
-                    ?? (\App\Http\Controllers\Api\Blog\BlogController::CATEGORIES[$data['category_slug']] ?? $data['category_slug']);
-                $post->update([
+            match ($data['action']) {
+                'set_category' => ! empty($data['category_slug']) ? $post->update([
                     'category_slug' => $data['category_slug'],
-                    'category_label' => $label,
-                ]);
-            }
-            if ($data['action'] === 'set_status' && ! empty($data['review_status'])) {
-                $post->update(['review_status' => $data['review_status']]);
-            }
+                    'category_label' => BlogCategory::where('slug', $data['category_slug'])->value('name')
+                        ?? (\App\Http\Controllers\Api\Blog\BlogController::CATEGORIES[$data['category_slug']] ?? $data['category_slug']),
+                ]) : null,
+                'set_status' => ! empty($data['review_status']) ? $post->update(['review_status' => $data['review_status']]) : null,
+                'set_author' => $post->update(array_filter([
+                    'author_name' => $data['author_name'] ?? null,
+                    'blog_author_id' => $data['blog_author_id'] ?? null,
+                ], fn ($v) => $v !== null)),
+                'set_tags' => is_array($data['tag_ids'] ?? null) ? $post->tags()->sync($data['tag_ids']) : null,
+                'publish' => $post->update(['is_published' => true, 'review_status' => BlogPost::REVIEW_PUBLISHED, 'published_at' => $post->published_at ?? now()]),
+                'unpublish' => $post->update(['is_published' => false, 'review_status' => BlogPost::REVIEW_UNPUBLISHED]),
+                'archive' => $post->update(['is_published' => false, 'review_status' => BlogPost::REVIEW_ARCHIVED, 'robots_directive' => 'noindex,follow']),
+                'trash' => $post->update(['is_published' => false, 'review_status' => BlogPost::REVIEW_TRASH, 'robots_directive' => 'noindex,nofollow']),
+                'noindex' => $post->update(['robots_directive' => 'noindex,follow']),
+                'index' => $post->update(['robots_directive' => 'index,follow']),
+                default => null,
+            };
         }
 
+        $this->sitemap->invalidate();
+
         return response()->json(['message' => 'Bulk action applied.', 'count' => $posts->count()]);
+    }
+
+    public function calendar(Request $request): JsonResponse
+    {
+        $from = $request->input('from', now()->subMonth()->toDateString());
+        $to = $request->input('to', now()->addMonth()->toDateString());
+
+        $posts = BlogPost::query()
+            ->where(function ($q) use ($from, $to) {
+                $q->whereBetween('scheduled_at', [$from, $to])
+                    ->orWhereBetween('published_at', [$from, $to])
+                    ->orWhere(function ($qq) use ($from, $to) {
+                        $qq->where('is_published', false)
+                            ->whereBetween('updated_at', [$from, $to]);
+                    });
+            })
+            ->orderBy('scheduled_at')
+            ->orderBy('published_at')
+            ->limit(300)
+            ->get(['id', 'title', 'slug', 'review_status', 'is_published', 'scheduled_at', 'published_at', 'category_slug']);
+
+        return response()->json([
+            'data' => $posts->map(fn (BlogPost $p) => [
+                'id' => $p->id,
+                'title' => $p->title,
+                'slug' => $p->slug,
+                'review_status' => $p->review_status,
+                'is_published' => $p->is_published,
+                'scheduled_at' => $p->scheduled_at?->toIso8601String(),
+                'published_at' => $p->published_at?->toIso8601String(),
+                'category_slug' => $p->category_slug,
+                'kind' => $p->scheduled_at && ! $p->is_published
+                    ? 'scheduled'
+                    : ($p->is_published ? 'published' : 'draft'),
+            ]),
+            'range' => compact('from', 'to'),
+        ]);
+    }
+
+    public function media(Request $request): JsonResponse
+    {
+        $disk = \Illuminate\Support\Facades\Storage::disk('public');
+        $files = collect($disk->files('blog'))
+            ->filter(fn ($p) => preg_match('/\.(jpe?g|png|webp|gif)$/i', $p))
+            ->sortDesc()
+            ->values();
+
+        $q = trim((string) $request->input('q', ''));
+        if ($q !== '') {
+            $files = $files->filter(fn ($p) => str_contains(mb_strtolower($p), mb_strtolower($q)))->values();
+        }
+
+        $page = max(1, (int) $request->input('page', 1));
+        $perPage = min(50, max(10, (int) $request->input('per_page', 24)));
+        $slice = $files->slice(($page - 1) * $perPage, $perPage)->values();
+
+        $items = $slice->map(function (string $path) use ($disk) {
+            $url = $disk->url($path);
+            $usage = BlogPost::query()
+                ->where('cover_image', 'like', '%'.$path.'%')
+                ->orWhere('content', 'like', '%'.$path.'%')
+                ->orWhere('og_image', 'like', '%'.$path.'%')
+                ->count();
+
+            return [
+                'path' => $path,
+                'url' => $url,
+                'size' => $disk->exists($path) ? $disk->size($path) : null,
+                'last_modified' => $disk->exists($path) ? $disk->lastModified($path) : null,
+                'usage_count' => $usage,
+                'unused' => $usage === 0,
+            ];
+        });
+
+        return response()->json([
+            'data' => $items,
+            'meta' => [
+                'total' => $files->count(),
+                'page' => $page,
+                'per_page' => $perPage,
+                'unused' => $files->filter(function ($path) {
+                    return BlogPost::query()
+                        ->where('cover_image', 'like', '%'.$path.'%')
+                        ->orWhere('content', 'like', '%'.$path.'%')
+                        ->orWhere('og_image', 'like', '%'.$path.'%')
+                        ->count() === 0;
+                })->count(),
+            ],
+        ]);
+    }
+
+    public function deleteMedia(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'path' => ['required', 'string', 'max:500'],
+            'confirm' => ['required', 'boolean'],
+        ]);
+        if (! $data['confirm']) {
+            return response()->json(['message' => 'confirm=true لازم است.'], 422);
+        }
+        $path = ltrim($data['path'], '/');
+        if (! str_starts_with($path, 'blog/')) {
+            return response()->json(['message' => 'Path outside blog media isolation.'], 422);
+        }
+        $usage = BlogPost::query()
+            ->where('cover_image', 'like', '%'.$path.'%')
+            ->orWhere('content', 'like', '%'.$path.'%')
+            ->orWhere('og_image', 'like', '%'.$path.'%')
+            ->limit(5)
+            ->get(['id', 'slug', 'title']);
+        if ($usage->isNotEmpty() && ! $request->boolean('force')) {
+            return response()->json([
+                'message' => 'Usage Check failed — فایل در حال استفاده است.',
+                'usage' => $usage,
+            ], 422);
+        }
+        \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
+
+        return response()->json(['message' => 'حذف شد.']);
     }
 
     public function suggestLinks(int $id): JsonResponse
     {
         $post = BlogPost::findOrFail($id);
         $items = $this->related->suggest($post, 10)->map(fn ($row) => [
-            'slug' => $row['post']->slug,
-            'title' => $row['post']->title,
-            'score' => $row['score'],
-            'breakdown' => $row['breakdown'],
-            'suggested_anchor' => $row['post']->title,
+            'slug' => $row['post']->slug ?? ($row['slug'] ?? null),
+            'title' => $row['post']->title ?? ($row['title'] ?? null),
+            'score' => $row['score'] ?? null,
+            'reason' => $row['reason'] ?? 'semantic/topic',
+            'breakdown' => $row['breakdown'] ?? null,
+            'suggested_anchor' => $row['post']->title ?? ($row['title'] ?? 'مقاله مرتبط'),
         ]);
 
         return response()->json(['data' => $items]);

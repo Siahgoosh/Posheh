@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, ArrowRight, Eye, Download } from 'lucide-react'
+import { Plus, Pencil, Trash2, ArrowRight, Eye, Download, CalendarDays, Image as ImageIcon } from 'lucide-react'
 import api from '@/lib/api'
 import { adminPath } from '@/lib/adminPaths'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface BlogPostRow {
@@ -15,6 +17,10 @@ interface BlogPostRow {
   views: number
   updated_at?: string
   rebuild_locked?: boolean
+  cover_image?: string
+  category_label?: string
+  author_name?: string
+  word_count?: number
 }
 
 interface Dashboard {
@@ -32,6 +38,9 @@ interface Dashboard {
 
 export function AdminBlogListPage() {
   const queryClient = useQueryClient()
+  const [status, setStatus] = useState('')
+  const [q, setQ] = useState('')
+  const [selected, setSelected] = useState<number[]>([])
 
   const { data: dash } = useQuery({
     queryKey: ['admin-blog-dashboard'],
@@ -39,10 +48,16 @@ export function AdminBlogListPage() {
   })
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-blog'],
+    queryKey: ['admin-blog', status, q],
     queryFn: async () => {
-      const res = await api.get('/admin/blog')
-      return res.data.data as BlogPostRow[]
+      const res = await api.get('/admin/blog', {
+        params: {
+          review_status: status || undefined,
+          q: q || undefined,
+          per_page: 30,
+        },
+      })
+      return { rows: res.data.data as BlogPostRow[], meta: res.data.meta as { total: number; last_page: number } }
     },
   })
 
@@ -59,6 +74,32 @@ export function AdminBlogListPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-blog-dashboard'] }),
   })
 
+  const bulkMutation = useMutation({
+    mutationFn: async (action: string) => {
+      const first = await api.post('/admin/blog/bulk', {
+        ids: selected,
+        action,
+        confirm_affected: false,
+        confirm_destructive: false,
+      }).catch((err) => err.response)
+      const affected = first?.data?.affected || first?.data?.count
+      if (!confirm(`Affected: ${JSON.stringify(affected)}\nادامه برای «${action}»؟`)) return
+      return api.post('/admin/blog/bulk', {
+        ids: selected,
+        action,
+        confirm_affected: true,
+        confirm_destructive: true,
+      })
+    },
+    onSuccess: () => {
+      setSelected([])
+      queryClient.invalidateQueries({ queryKey: ['admin-blog'] })
+    },
+  })
+
+  const toggle = (id: number) =>
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -68,25 +109,20 @@ export function AdminBlogListPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">مدیریت وبلاگ</h1>
-            <p className="text-sm text-muted">CMS حرفه‌ای — Draft / Review / Publish</p>
+            <p className="text-sm text-muted">Phase 7 CMS — Draft / Review / Schedule / Publish</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Link to={adminPath('seo-growth')}>
-            <Button variant="outline">SEO Growth</Button>
-          </Link>
-          <Link to={adminPath('cro')}>
-            <Button variant="outline">CRO / Leads</Button>
-          </Link>
-          <Button variant="outline" onClick={() => bootstrapMutation.mutate()}>Bootstrap دسته‌ها</Button>
+        <div className="flex flex-wrap gap-2">
+          <Link to={adminPath('blog/calendar')}><Button variant="outline"><CalendarDays className="h-4 w-4" /> تقویم</Button></Link>
+          <Link to={adminPath('blog/media')}><Button variant="outline"><ImageIcon className="h-4 w-4" /> Media</Button></Link>
+          <Link to={adminPath('seo-growth')}><Button variant="outline">SEO Issues</Button></Link>
+          <Link to={adminPath('cro')}><Button variant="outline">CRO / Leads</Button></Link>
+          <Button variant="outline" onClick={() => bootstrapMutation.mutate()}>Bootstrap</Button>
           <a href="/api/v1/admin/blog/export.csv" target="_blank" rel="noreferrer">
-            <Button variant="outline"><Download className="h-4 w-4" /> خروجی CSV</Button>
+            <Button variant="outline"><Download className="h-4 w-4" /> CSV</Button>
           </a>
           <Link to={adminPath('blog/new')}>
-            <Button>
-              <Plus className="h-4 w-4" />
-              مقاله جدید
-            </Button>
+            <Button><Plus className="h-4 w-4" /> مقاله جدید</Button>
           </Link>
         </div>
       </div>
@@ -113,37 +149,62 @@ export function AdminBlogListPage() {
         </div>
       )}
 
-      {dash?.gsc && (
+      {dash?.seo_health && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Search Console</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Health (داخلی)</CardTitle></CardHeader>
           <CardContent className="text-sm text-muted">
-            وضعیت: <strong>{dash.gsc.status}</strong> — {dash.gsc.message}
+            {String(dash.seo_health.note || 'امتیاز داخلی — نمره گوگل نیست')}
           </CardContent>
         </Card>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>مقالات</CardTitle>
+          <CardTitle className="flex flex-wrap items-center justify-between gap-3">
+            <span>مقالات</span>
+            <div className="flex flex-wrap gap-2 font-normal">
+              <Input placeholder="جستجو…" value={q} onChange={(e) => setQ(e.target.value)} className="w-40" />
+              <select className="rounded-xl border border-card-border bg-background/50 px-3 text-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option value="">همه وضعیت‌ها</option>
+                {['draft', 'in_review', 'approved', 'scheduled', 'published', 'archived', 'trash'].map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              {selected.length > 0 && (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate('archive')}>Bulk Archive</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate('noindex')}>Bulk Noindex</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate('index')}>Bulk Index</Button>
+                </>
+              )}
+            </div>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <p className="text-muted text-sm">در حال بارگذاری…</p>
-          ) : !data?.length ? (
+          ) : !data?.rows?.length ? (
             <p className="text-muted text-sm">هنوز مقاله‌ای ثبت نشده.</p>
           ) : (
             <div className="space-y-2">
-              {data.map((post) => (
-                <div
-                  key={post.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-card-border px-4 py-3"
-                >
-                  <div>
-                    <p className="font-medium">{post.title}</p>
-                    <p className="text-xs text-muted">
-                      /blog/{post.slug} · {post.review_status || (post.is_published ? 'published' : 'draft')}
-                      {post.rebuild_locked ? ' · locked' : ''} · {post.views} بازدید
-                    </p>
+              {data.rows.map((post) => (
+                <div key={post.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-card-border px-4 py-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <input type="checkbox" checked={selected.includes(post.id)} onChange={() => toggle(post.id)} />
+                    {post.cover_image ? (
+                      <img src={post.cover_image} alt="" className="h-10 w-14 object-cover rounded-md" />
+                    ) : (
+                      <div className="h-10 w-14 rounded-md bg-muted/30" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{post.title}</p>
+                      <p className="text-xs text-muted">
+                        /blog/{post.slug} · {post.review_status || (post.is_published ? 'published' : 'draft')}
+                        {post.author_name ? ` · ${post.author_name}` : ''}
+                        {post.category_label ? ` · ${post.category_label}` : ''}
+                        {post.rebuild_locked ? ' · locked' : ''} · {post.views} بازدید
+                      </p>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     {post.is_published && (
@@ -158,7 +219,7 @@ export function AdminBlogListPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        if (confirm('حذف این مقاله؟')) deleteMutation.mutate(post.id)
+                        if (confirm('انتقال به سطل زباله؟')) deleteMutation.mutate(post.id)
                       }}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -166,6 +227,7 @@ export function AdminBlogListPage() {
                   </div>
                 </div>
               ))}
+              <p className="text-xs text-muted">جمع فیلتر: {data.meta?.total ?? data.rows.length}</p>
             </div>
           )}
         </CardContent>

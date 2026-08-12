@@ -14,6 +14,8 @@ import { AdminPlansPage } from '@/pages/admin/AdminPlansPage'
 import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage'
 import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
+import { AdminBlogCalendarPage } from '@/pages/admin/AdminBlogCalendarPage'
+import { AdminBlogMediaPage } from '@/pages/admin/AdminBlogMediaPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage'
 import { AdminUserDetailPage } from '@/pages/admin/AdminUserDetailPage'
@@ -113,6 +115,8 @@ export function PanelApp() {
             <Route path="announcements" element={<AdminAnnouncementsPage />} />
             <Route path="blog" element={<AdminBlogListPage />} />
             <Route path="blog/new" element={<AdminBlogEditorPage />} />
+            <Route path="blog/calendar" element={<AdminBlogCalendarPage />} />
+            <Route path="blog/media" element={<AdminBlogMediaPage />} />
             <Route path="blog/:id/edit" element={<AdminBlogEditorPage />} />
             <Route path="downloads" element={<AdminDownloadsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />

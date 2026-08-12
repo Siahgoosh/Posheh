@@ -30,6 +30,17 @@ class BlogPost extends Model
 
     public const REVIEW_REJECTED = 'rejected';
 
+    public const REVIEW_TRASH = 'trash';
+
+    public const CONTENT_TYPES = [
+        'guide', 'news', 'analysis', 'list', 'how_to', 'comparison',
+        'faq', 'case_study', 'local', 'product_led',
+    ];
+
+    public const SEARCH_INTENTS = [
+        'informational', 'commercial', 'transactional', 'navigational', 'local', 'mixed',
+    ];
+
     protected $fillable = [
         'blog_category_id',
         'blog_author_id',
@@ -55,6 +66,8 @@ class BlogPost extends Model
         'search_intent',
         'business_intent',
         'funnel_stage',
+        'content_type',
+        'schema_type',
         'faq',
         'related_slugs',
         'cta_text',
@@ -62,6 +75,7 @@ class BlogPost extends Model
         'cro_cta_key',
         'author_name',
         'reading_time',
+        'word_count',
         'views',
         'view_score',
         'is_published',
@@ -69,12 +83,17 @@ class BlogPost extends Model
         'is_editors_pick',
         'review_status',
         'rebuild_locked',
+        'edit_locked_by',
+        'edit_locked_at',
         'quality_scores',
+        'autosave_payload',
         'content_brief',
+        'sources',
         'image_prompt',
         'published_at',
         'scheduled_at',
         'content_updated_at',
+        'last_reviewed_at',
     ];
 
     protected function casts(): array
@@ -87,11 +106,15 @@ class BlogPost extends Model
             'published_at' => 'datetime',
             'scheduled_at' => 'datetime',
             'content_updated_at' => 'datetime',
+            'last_reviewed_at' => 'datetime',
+            'edit_locked_at' => 'datetime',
             'faq' => 'array',
             'related_slugs' => 'array',
             'secondary_keywords' => 'array',
             'quality_scores' => 'array',
             'content_brief' => 'array',
+            'sources' => 'array',
+            'autosave_payload' => 'array',
         ];
     }
 
