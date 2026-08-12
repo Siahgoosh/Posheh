@@ -50,16 +50,38 @@ class VisitController extends Controller
         $data = $request->validate([
             'property_id' => ['sometimes', 'integer', 'exists:properties,id'],
             'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
+            'crm_deal_id' => ['nullable', 'integer'],
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
             'visit_at' => ['sometimes', 'date'],
             'duration_minutes' => ['nullable', 'integer', 'min:15', 'max:480'],
-            'status' => ['nullable', 'string', 'in:scheduled,completed,cancelled'],
+            'status' => ['nullable', 'string', 'in:scheduled,completed,cancelled,confirmed,no_show,rescheduled'],
             'notes' => ['nullable', 'string'],
+            'customer_reaction' => ['nullable', 'string', 'max:40'],
+            'property_rating' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'price_opinion' => ['nullable', 'string', 'max:40'],
+            'likelihood_to_buy' => ['nullable', 'string', 'max:40'],
+            'next_action' => ['nullable', 'string', 'max:255'],
         ]);
 
         $visit = $this->visitService->update($request->user(), $id, $data);
 
         return response()->json(['data' => $visit, 'message' => 'بازدید ویرایش شد.']);
+    }
+
+    public function complete(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'customer_reaction' => ['nullable', 'string', 'max:40'],
+            'property_rating' => ['nullable', 'integer', 'min:1', 'max:5'],
+            'price_opinion' => ['nullable', 'string', 'max:40'],
+            'likelihood_to_buy' => ['nullable', 'string', 'in:very_interested,interested,maybe,not_interested'],
+            'next_action' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $visit = $this->visitService->complete($request->user(), $id, $data);
+
+        return response()->json(['data' => $visit, 'message' => 'بازدید تکمیل شد.']);
     }
 
     public function destroy(Request $request, int $id): JsonResponse

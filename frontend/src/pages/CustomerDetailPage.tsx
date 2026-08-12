@@ -55,15 +55,31 @@ export function CustomerDetailPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {!matches?.length && <p className="text-muted text-sm">ملک منطبقی یافت نشد. فیلترها را گسترده‌تر کنید.</p>}
-          {matches?.map((m: { score: number; reasons: string[]; property: { id: number; code: string; type_label: string; price?: number; city?: string } }) => (
+          {matches?.map((m: {
+            score: number
+            match_type?: string
+            reasons: string[]
+            warnings?: string[]
+            checks?: Array<{ ok: boolean; label: string; detail?: string }>
+            property: { id: number; code: string; type_label: string; price?: number; city?: string }
+          }) => (
             <Link key={m.property.id} to={`/properties/${m.property.id}`}
-              className="flex items-center justify-between p-4 rounded-xl glass-hover">
-              <div>
+              className="flex items-center justify-between p-4 rounded-xl glass-hover gap-3">
+              <div className="min-w-0">
                 <p className="font-medium">{m.property.code}</p>
-                <p className="text-xs text-muted">{m.property.type_label} · {m.property.city}</p>
-                <div className="flex gap-1 mt-1">{m.reasons.map((r) => <Badge key={r} variant="outline" className="text-[10px]">{r}</Badge>)}</div>
+                <p className="text-xs text-muted">{m.property.type_label} · {m.property.city}
+                  {m.match_type ? ` · ${m.match_type}` : ''}
+                </p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {(m.checks?.length ? m.checks.filter((c) => c.ok) : m.reasons.map((r) => ({ ok: true, label: r }))).map((c) => (
+                    <Badge key={c.label} variant="outline" className="text-[10px] text-emerald-600">✓ {c.label}</Badge>
+                  ))}
+                  {(m.warnings ?? m.checks?.filter((c) => !c.ok).map((c) => c.detail || c.label) ?? []).map((w) => (
+                    <Badge key={w} variant="outline" className="text-[10px] text-amber-600">⚠ {w}</Badge>
+                  ))}
+                </div>
               </div>
-              <div className="text-left">
+              <div className="text-left shrink-0">
                 <p className="text-lg font-bold text-primary">{m.score}%</p>
                 <p className="text-xs text-muted">تطابق</p>
               </div>

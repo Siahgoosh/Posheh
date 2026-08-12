@@ -37,6 +37,7 @@ class VisitService
     public function create(User $user, array $data): PropertyVisit
     {
         $this->assertOfficeRefs($user, $data);
+        $this->assertNoDoubleBooking($user, $data);
 
         return PropertyVisit::create([
             ...$data,
@@ -50,9 +51,76 @@ class VisitService
     {
         $visit = $this->find($user, $id);
         $this->assertOfficeRefs($user, $data);
+        if (isset($data['visit_at']) || isset($data['assigned_to']) || isset($data['duration_minutes'])) {
+            $this->assertNoDoubleBooking($user, [
+                'visit_at' => $data['visit_at'] ?? $visit->visit_at,
+                'assigned_to' => $data['assigned_to'] ?? $visit->assigned_to,
+                'duration_minutes' => $data['duration_minutes'] ?? $visit->duration_minutes,
+            ], $visit->id);
+        }
         $visit->update($data);
 
         return $visit->fresh()->load(['property', 'customer', 'assignee']);
+    }
+
+    private function assertNoDoubleBooking(User $user, array $data, ?int $ignoreId = null): void
+    {
+        $start = \Carbon\Carbon::parse($data['visit_at'] ?? now());
+        $duration = (int) ($data['duration_minutes'] ?? 30);
+        $end = (clone $start)->addMinutes($duration);
+        $assignee = $data['assigned_to'] ?? $user->id;
+
+        // Portable overlap check (works on MySQL + SQLite): existing.start < new.end AND existing.end > new.start
+        $candidates = PropertyVisit::where('office_id', $user->office_id)
+            ->where('assigned_to', $assignee)
+            ->where('status', 'scheduled')
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->where('visit_at', '<', $end)
+            ->where('visit_at', '>=', (clone $start)->subHours(6))
+            ->get(['id', 'visit_at', 'duration_minutes']);
+
+        foreach ($candidates as $existing) {
+            $existingStart = \Carbon\Carbon::parse($existing->visit_at);
+            $existingEnd = (clone $existingStart)->addMinutes((int) ($existing->duration_minutes ?? 30));
+            if ($existingStart->lt($end) && $existingEnd->gt($start)) {
+                throw ValidationException::withMessages([
+                    'visit_at' => ['تداخل زمانی با بازدید دیگری برای این مشاور وجود دارد.'],
+                ]);
+            }
+        }
+    }
+
+    public function complete(User $user, int $id, array $feedback = []): PropertyVisit
+    {
+        $visit = $this->find($user, $id);
+        $visit->update(array_merge([
+            'status' => 'completed',
+        ], array_filter([
+            'customer_reaction' => $feedback['customer_reaction'] ?? null,
+            'property_rating' => $feedback['property_rating'] ?? null,
+            'price_opinion' => $feedback['price_opinion'] ?? null,
+            'likelihood_to_buy' => $feedback['likelihood_to_buy'] ?? null,
+            'next_action' => $feedback['next_action'] ?? null,
+            'notes' => $feedback['notes'] ?? null,
+        ], fn ($v) => $v !== null)));
+
+        $visit = $visit->fresh()->load(['property', 'customer', 'assignee']);
+
+        try {
+            $deal = null;
+            if ($visit->crm_deal_id) {
+                $deal = \App\Models\CrmDeal::where('office_id', $user->office_id)->find($visit->crm_deal_id);
+            }
+            app(\App\Services\Crm\CrmAutomationService::class)
+                ->dispatch($user, 'visit_completed', $deal ?? $visit, [
+                    'visit_id' => $visit->id,
+                    'likelihood_to_buy' => $visit->likelihood_to_buy,
+                ]);
+        } catch (\Throwable) {
+            // Automation optional if tables not migrated
+        }
+
+        return $visit;
     }
 
     public function delete(User $user, int $id): void

@@ -39,6 +39,8 @@ class CustomerService
 
     public function create(User $user, array $data): Customer
     {
+        $this->assertAssigneeInOffice($user, $data['assigned_to'] ?? null);
+
         return Customer::create([
             ...$data,
             'office_id' => $user->office_id,
@@ -50,6 +52,9 @@ class CustomerService
     public function update(User $user, int $id, array $data): Customer
     {
         $customer = $this->find($user, $id);
+        if (array_key_exists('assigned_to', $data)) {
+            $this->assertAssigneeInOffice($user, $data['assigned_to']);
+        }
         $customer->update($data);
 
         return $customer->fresh()->load('assignee');
@@ -60,64 +65,32 @@ class CustomerService
         $this->find($user, $id)->delete();
     }
 
+    private function assertAssigneeInOffice(User $user, mixed $assignedTo): void
+    {
+        if ($assignedTo === null || $assignedTo === '') {
+            return;
+        }
+        $ok = User::where('office_id', $user->office_id)->where('id', (int) $assignedTo)->exists();
+        if (! $ok) {
+            throw ValidationException::withMessages(['assigned_to' => ['کاربر متعلق به دفتر شما نیست.']]);
+        }
+    }
+
     public function matchProperties(User $user, int $customerId, int $limit = 10): Collection
     {
         $customer = $this->find($user, $customerId);
 
-        $properties = Property::where('office_id', $user->office_id)
-            ->where('status', 'active')
-            ->with('media')
-            ->get();
+        return app(\App\Services\Crm\PropertyMatchingService::class)
+            ->matchForCustomer($user, $customer, $limit);
+    }
 
-        return $properties
-            ->map(function (Property $property) use ($customer) {
-                $score = 0;
-                $reasons = [];
+    public function upsertNeedProfile(User $user, int $customerId, array $data): \App\Models\CrmNeedProfile
+    {
+        $customer = $this->find($user, $customerId);
 
-                if ($customer->preferred_type && $property->type?->value === $customer->preferred_type) {
-                    $score += 25;
-                    $reasons[] = 'نوع معامله';
-                }
-                if ($customer->preferred_city && $property->city && str_contains($property->city, $customer->preferred_city)) {
-                    $score += 20;
-                    $reasons[] = 'شهر';
-                }
-                if ($customer->preferred_district && $property->district && str_contains($property->district, $customer->preferred_district)) {
-                    $score += 15;
-                    $reasons[] = 'منطقه';
-                }
-                if ($customer->budget_min || $customer->budget_max) {
-                    $price = $property->price ?? $property->rent ?? $property->deposit;
-                    if ($price) {
-                        $min = $customer->budget_min ?? 0;
-                        $max = $customer->budget_max ?? PHP_INT_MAX;
-                        if ($price >= $min && $price <= $max) {
-                            $score += 25;
-                            $reasons[] = 'بودجه';
-                        }
-                    }
-                }
-                if ($customer->min_area && $property->area && $property->area >= $customer->min_area) {
-                    $score += 10;
-                    $reasons[] = 'متراژ';
-                }
-                if ($customer->max_area && $property->area && $property->area <= $customer->max_area) {
-                    $score += 5;
-                }
-                if ($customer->min_rooms && $property->rooms && $property->rooms >= $customer->min_rooms) {
-                    $score += 10;
-                    $reasons[] = 'تعداد خواب';
-                }
-
-                return [
-                    'property' => $property,
-                    'score' => $score,
-                    'reasons' => $reasons,
-                ];
-            })
-            ->filter(fn ($item) => $item['score'] > 0)
-            ->sortByDesc('score')
-            ->take($limit)
-            ->values();
+        return \App\Models\CrmNeedProfile::updateOrCreate(
+            ['customer_id' => $customer->id],
+            array_merge($data, ['office_id' => $user->office_id])
+        );
     }
 }
