@@ -2,7 +2,7 @@
 
 منبع اولویت‌بندی: `SEO-BLOG-AUDIT.md`  
 تاریخ: 2026-08-12  
-وضعیت: Batch 1 انتخاب و بازسازی شده (Draft) — بقیه در صف
+وضعیت: Top 10 اولویت‌دار بازسازی شده به‌صورت Draft (Batch1 + Phase4 Batch1) — بقیه در صف
 
 ## فرمول Priority Score (۰–۱۰۰)
 
@@ -36,20 +36,30 @@ Priority =
 جزئیات briefs: `content/blog-rebuild/batch-1/briefs/`  
 محتوای نهایی در کد: `backend/app/Services/Blog/Rebuild/Batch1RebuiltArticles.php`
 
+## Phase 4 Batch 1 — پنج مقالهٔ بعدی (Draft)
+
+| Slug | Priority | Action | Code |
+|------|----------|--------|------|
+| `property-filing-tips-for-agents` | P0 | REWRITE | `Phase4Batch1RebuiltArticles` |
+| `digital-transformation-real-estate-agency` | P0 | REWRITE | همان |
+| `real-estate-accounting-commission-guide` | P0 | REWRITE | همان |
+| `property-customer-matching-system` | P1 | REWRITE | همان |
+| `real-estate-website-subdomain-guide` | P1 | REWRITE | همان |
+
+Import: `php artisan blog:rebuild-batch 2 --force`
+
 ## صف بعدی (خلاصه خوشه‌ها — هنوز بازنویسی نشود)
 
 ### P0
-- `property-filing-tips-for-agents` — فایلینگ (Conversion support)
-- `digital-transformation-real-estate-agency` — پیلار دیجیتال
-- `real-estate-accounting-commission-guide` — تجاری
+- پیلار آموزشی تور مجازی ۳۶۰
 - ایمپورت/ادغام کیفیت از `SEO-POSHE/articles/*.md` با map اسلاگ
 
 ### P1
-- `property-customer-matching-system`
-- `real-estate-website-subdomain-guide`
 - `telegram-whatsapp-bot-real-estate`
 - `solo-agent-software-iran`
 - `real-estate-kpi-reports-dashboard`
+- اجاره‌نامه/رهن (جدید با disclaimer)
+- پیش‌فروش ریسک‌ها (جدید با disclaimer)
 
 ### P2
 - مقالات دسته‌ای با keyword P1 واقعی و intent مشخص (انتخاب دستی از CSV، نه هر ۲۰ قالب)

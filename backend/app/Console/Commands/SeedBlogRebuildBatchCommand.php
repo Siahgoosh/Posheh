@@ -7,11 +7,12 @@ use App\Services\Blog\BlogContentQualityScorer;
 use App\Services\Blog\BlogQualityGate;
 use App\Services\Blog\BlogVersioningService;
 use App\Services\Blog\Rebuild\Batch1RebuiltArticles;
+use App\Services\Blog\Rebuild\Phase4Batch1RebuiltArticles;
 use Illuminate\Console\Command;
 
 class SeedBlogRebuildBatchCommand extends Command
 {
-    protected $signature = 'blog:rebuild-batch {batch=1 : Batch number} {--force : Skip confirmation}';
+    protected $signature = 'blog:rebuild-batch {batch=1 : Batch number (1=first five, 2=phase4 next five)} {--force : Skip confirmation}';
 
     protected $description = 'Seed rebuilt blog articles as drafts (never auto-publish)';
 
@@ -21,17 +22,22 @@ class SeedBlogRebuildBatchCommand extends Command
         BlogVersioningService $versions,
     ): int {
         $batch = (int) $this->argument('batch');
-        if ($batch !== 1) {
-            $this->error('Only batch 1 is implemented in this release.');
+        $articles = match ($batch) {
+            1 => (new Batch1RebuiltArticles)->all(),
+            2 => (new Phase4Batch1RebuiltArticles)->all(),
+            default => null,
+        };
+
+        if ($articles === null) {
+            $this->error('Supported batches: 1 (CONTENT-REBUILD-BATCH-1), 2 (PHASE-4 next five).');
 
             return self::FAILURE;
         }
 
-        if (! $this->option('force') && ! $this->confirm('Import batch 1 rebuilt articles as drafts (is_published=false)?')) {
+        if (! $this->option('force') && ! $this->confirm("Import batch {$batch} rebuilt articles as drafts (is_published=false)?")) {
             return self::SUCCESS;
         }
 
-        $articles = (new Batch1RebuiltArticles)->all();
         $rows = [];
 
         foreach ($articles as $data) {
@@ -45,6 +51,10 @@ class SeedBlogRebuildBatchCommand extends Command
 
             $scores = $scorer->score($data);
             $gateResult = $gate->evaluate($data, forPublish: false);
+            if (! $gateResult['passed']) {
+                $this->warn("Quality gate warnings/blockers for {$data['slug']}: ".implode('; ', array_merge($gateResult['blockers'], $gateResult['warnings'])));
+            }
+
             $data['quality_scores'] = [
                 'before' => $beforeScore,
                 'after' => $scores,
@@ -53,12 +63,12 @@ class SeedBlogRebuildBatchCommand extends Command
                     'warnings' => $gateResult['warnings'],
                     'blockers' => $gateResult['blockers'],
                 ],
-                'batch' => 1,
+                'batch' => $batch,
             ];
 
             /** @var BlogPost $post */
             $post = BlogPost::updateOrCreate(['slug' => $data['slug']], $data);
-            $versions->snapshot($post, 'rebuild-batch-1', 'system');
+            $versions->snapshot($post, 'rebuild-batch-'.$batch, 'system');
 
             $rows[] = [
                 $post->slug,
@@ -71,7 +81,7 @@ class SeedBlogRebuildBatchCommand extends Command
         }
 
         $this->table(['slug', 'before', 'after', 'grade', 'review', 'published'], $rows);
-        $this->info('Batch 1 imported as drafts with rebuild_locked=true. Do not publish without approval.');
+        $this->info("Batch {$batch} imported as drafts with rebuild_locked=true. Do not publish without approval.");
 
         return self::SUCCESS;
     }
