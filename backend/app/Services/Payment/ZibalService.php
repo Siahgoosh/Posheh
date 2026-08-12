@@ -80,9 +80,11 @@ class ZibalService
         }
 
         $paidRials = (int) ($body['amount'] ?? 0);
-        if ($paidRials > 0 && $paidRials !== $expectedAmountToman * 10) {
+        $expectedRials = $expectedAmountToman * 10;
+        // Require a positive amount that matches the order (reject missing/zero amounts).
+        if ($paidRials <= 0 || $paidRials !== $expectedRials) {
             Log::warning('Zibal amount mismatch', [
-                'expected_rials' => $expectedAmountToman * 10,
+                'expected_rials' => $expectedRials,
                 'paid_rials' => $paidRials,
                 'trackId' => $trackId,
             ]);

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2, ArrowRight, Eye } from 'lucide-react'
 import api from '@/lib/api'
+import { adminPath } from '@/lib/adminPaths'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -42,7 +43,7 @@ export function AdminBlogListPage() {
             <p className="text-sm text-muted">فقط مدیر کل — انتشار مقالات سئو</p>
           </div>
         </div>
-        <Link to="/admin/blog/new">
+        <Link to={adminPath('blog/new')}>
           <Button>
             <Plus className="h-4 w-4" />
             مقاله جدید
@@ -78,7 +79,7 @@ export function AdminBlogListPage() {
                         <Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button>
                       </a>
                     )}
-                    <Link to={`/admin/blog/${post.id}/edit`}>
+                    <Link to={adminPath(`blog/${post.id}/edit`)}>
                       <Button variant="outline" size="sm"><Pencil className="h-4 w-4" /></Button>
                     </Link>
                     <Button

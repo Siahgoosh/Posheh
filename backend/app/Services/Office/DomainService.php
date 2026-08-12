@@ -192,6 +192,10 @@ class DomainService
             return false;
         }
 
+        if (! $this->dnsTokenPresent($office->custom_domain, $office->domain_dns_token)) {
+            return false;
+        }
+
         $office->update(['custom_domain_status' => 'verified']);
 
         DomainOrder::where('office_id', $office->id)
@@ -200,6 +204,26 @@ class DomainService
             ->update(['status' => 'connected', 'connected_at' => now()]);
 
         return true;
+    }
+
+    /** Confirm TXT record `_posheh-verify.<domain>` contains the ownership token. */
+    private function dnsTokenPresent(string $domain, string $token): bool
+    {
+        $host = '_posheh-verify.'.$domain;
+        $records = @dns_get_record($host, DNS_TXT);
+
+        if (! is_array($records)) {
+            return false;
+        }
+
+        foreach ($records as $record) {
+            $txt = (string) ($record['txt'] ?? '');
+            if ($txt !== '' && hash_equals($token, $txt)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function activateDomain(Office $office): void

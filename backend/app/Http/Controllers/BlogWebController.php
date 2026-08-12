@@ -101,7 +101,7 @@ class BlogWebController extends Controller
                 ->get();
         }
 
-        $title = ($post->meta_title ?: $post->title).' | پوشه';
+        $title = $this->pageTitle($post->meta_title ?: $post->title);
         $description = $post->meta_description ?: $post->excerpt ?: '';
         $image = $post->cover_image ? (str_starts_with($post->cover_image, 'http') ? $post->cover_image : $this->siteUrl().$post->cover_image) : null;
 
@@ -114,6 +114,8 @@ class BlogWebController extends Controller
             'publishedJalali' => $post->published_at ? Jalalian::fromDateTime($post->published_at)->format('Y/m/d') : null,
             'seo' => array_merge($this->seo($title, $description, "/blog/{$post->slug}", image: $image, type: 'article'), [
                 'keywords' => $post->keywords,
+                'publishedTime' => $publishedIso,
+                'modifiedTime' => $updatedIso ?: $publishedIso,
             ]),
             'jsonLd' => array_values(array_filter([
                 [
@@ -149,9 +151,14 @@ class BlogWebController extends Controller
     {
         $base = $this->siteUrl();
         $body = "User-agent: *\n";
-        $body .= "Allow: /\nAllow: /blog\nAllow: /blog/\nAllow: /register\nAllow: /download\n";
-        $body .= "Disallow: /dashboard\nDisallow: /properties\nDisallow: /settings\nDisallow: /admin\nDisallow: /api/\n\n";
+        $body .= "Allow: /\nAllow: /blog\nAllow: /blog/\nAllow: /register\nAllow: /download\nAllow: /contact\n";
+        $body .= "Allow: /tour/\nAllow: /p/\nAllow: /o/\n";
+        $body .= "Disallow: /dashboard\nDisallow: /properties\nDisallow: /settings\nDisallow: /admin\nDisallow: /api/\n";
+        $body .= "Disallow: /team-chat\nDisallow: /tickets\nDisallow: /accounting\nDisallow: /crm\nDisallow: /embed/\n\n";
         $body .= "Sitemap: {$base}/sitemap.xml\n";
+        $body .= "Sitemap: {$base}/sitemap-blog.xml\n";
+        $body .= "Sitemap: {$base}/sitemap-pages.xml\n";
+        $body .= "Sitemap: {$base}/sitemap-tours.xml\n";
 
         return response($body, 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
     }
@@ -226,5 +233,18 @@ class BlogWebController extends Controller
                 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $f['answer']],
             ])->all(),
         ];
+    }
+
+    private function pageTitle(string $title): string
+    {
+        $trimmed = trim($title);
+        if ($trimmed === '') {
+            return 'پوشه';
+        }
+        if (str_contains($trimmed, 'پوشه')) {
+            return $trimmed;
+        }
+
+        return $trimmed.' | پوشه';
     }
 }

@@ -21,6 +21,8 @@ class ApiKeyController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        abort_unless($request->user()->canManageOffice(), 403, 'فقط مدیر دفتر می‌تواند کلید API بسازد.');
+
         $data = $request->validate(['name' => ['required', 'string', 'max:100']]);
         $plain = 'pk_'.Str::random(40);
 
@@ -29,7 +31,7 @@ class ApiKeyController extends Controller
             'name' => $data['name'],
             'key_hash' => hash('sha256', $plain),
             'key_prefix' => substr($plain, 0, 12),
-            'abilities' => ['properties:read', 'properties:write'],
+            'abilities' => ['properties:read'],
             'is_active' => true,
         ]);
 
@@ -42,6 +44,8 @@ class ApiKeyController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
+        abort_unless($request->user()->canManageOffice(), 403);
+
         OfficeApiKey::where('office_id', $request->user()->office_id)->where('id', $id)->update(['is_active' => false]);
 
         return response()->json(['message' => 'کلید غیرفعال شد.']);

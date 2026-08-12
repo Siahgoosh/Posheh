@@ -19,14 +19,23 @@ class Commission extends Model
         'base_amount',
         'rate_percent',
         'commission_amount',
+        'office_share_amount',
+        'consultant_share_amount',
         'status',
         'notes',
         'paid_at',
+        'accounting_settlement_id',
     ];
 
     protected function casts(): array
     {
-        return ['paid_at' => 'datetime'];
+        return [
+            'paid_at' => 'datetime',
+            'base_amount' => 'integer',
+            'commission_amount' => 'integer',
+            'office_share_amount' => 'integer',
+            'consultant_share_amount' => 'integer',
+        ];
     }
 
     public function user(): BelongsTo
@@ -42,5 +51,10 @@ class Commission extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
+    }
+
+    public function settlement(): BelongsTo
+    {
+        return $this->belongsTo(AccountingSettlement::class, 'accounting_settlement_id');
     }
 }

@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input'
 import { Select, SelectOption } from '@/components/ui/select'
+import { JalaliDatePicker } from '@/components/ui/JalaliDatePicker'
 import { IRAN_PROVINCES } from '@/constants/property'
 import type { FilingField, FilingFormValues } from '@/lib/filing'
 
@@ -107,6 +108,37 @@ function FieldRenderer({
           onChange={(e) => onChange(field.key, e.target.value)}
           rows={4}
           className="flex w-full rounded-xl border border-card-border bg-background px-4 py-3 text-sm resize-none focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+        />
+      </div>
+    )
+  }
+
+  if (field.type === 'user_select') {
+    return (
+      <div className={span}>
+        <label className="text-sm text-muted mb-1 block">
+          {field.label}{field.required ? ' *' : ''}
+        </label>
+        <Input
+          type="number"
+          value={String(val ?? '')}
+          onChange={(e) => onChange(field.key, e.target.value)}
+          required={field.required}
+          dir="ltr"
+          placeholder="شناسه کاربر (اختیاری)"
+        />
+        <p className="text-xs text-muted mt-1">خالی بگذارید تا به خودتان اختصاص یابد.</p>
+      </div>
+    )
+  }
+
+  if (field.type === 'jalali_date') {
+    return (
+      <div className={span}>
+        <JalaliDatePicker
+          label={`${field.label}${field.required ? ' *' : ''}`}
+          value={String(val ?? '')}
+          onChange={(d) => onChange(field.key, d)}
         />
       </div>
     )

@@ -16,7 +16,8 @@ export function Sidebar() {
   const { user, logout } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
   const hasTeam = usePlanFeature('team')
-  const hasTeamChat = usePlanFeature('team_chat')
+  const hasTeamChatFeature = usePlanFeature('team_chat')
+  const hasTeamChat = hasTeam || hasTeamChatFeature
   const hasAccounting = usePlanFeature('accounting')
   const hasCrm = usePlanFeature('crm')
   const hasWebsite = usePlanFeature('website_listing')

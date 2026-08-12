@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Save, Trash2 } from 'lucide-react'
 import api from '@/lib/api'
+import { adminPath } from '@/lib/adminPaths'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -88,7 +89,7 @@ export function AdminDownloadsPage() {
   return (
     <div className="space-y-6 animate-fade-in max-w-3xl mx-auto">
       <div className="flex items-center gap-3">
-        <Link to="/admin">
+        <Link to={adminPath('/')}>
           <Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button>
         </Link>
         <div>

@@ -153,7 +153,28 @@ export function OfficeSitePage({ subdomain: subdomainProp }: { subdomain?: strin
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-800">
-      <SeoHead title={`${office.name} | املاک`} description={office.description || `دفتر املاک ${office.name}`} path={`/site/${subdomain}`} />
+      <SeoHead
+        title={`${office.brand_name || office.name} | املاک`}
+        description={office.description || `دفتر املاک ${office.name}${office.city ? ` در ${office.city}` : ''}`}
+        path="/"
+        image={office.logo_url || undefined}
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'RealEstateAgent',
+          name: office.brand_name || office.name,
+          url: office.url || (typeof window !== 'undefined' ? window.location.origin : undefined),
+          description: office.description || undefined,
+          telephone: office.phone || undefined,
+          address: office.address ? {
+            '@type': 'PostalAddress',
+            streetAddress: office.address,
+            addressLocality: office.city || undefined,
+            addressCountry: 'IR',
+          } : undefined,
+          image: office.logo_url || undefined,
+          areaServed: office.city || 'IR',
+        }}
+      />
 
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-200">

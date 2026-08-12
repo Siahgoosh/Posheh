@@ -13,10 +13,19 @@ class VirtualTourHotspot extends Model
         'target_scene_id',
         'yaw',
         'pitch',
+        'position_x',
+        'position_y',
+        'position_z',
         'title',
+        'label',
+        'tooltip',
         'content',
         'link_url',
         'icon',
+        'style',
+        'action',
+        'popup',
+        'sort_order',
     ];
 
     protected function casts(): array
@@ -24,6 +33,13 @@ class VirtualTourHotspot extends Model
         return [
             'yaw' => 'float',
             'pitch' => 'float',
+            'position_x' => 'float',
+            'position_y' => 'float',
+            'position_z' => 'float',
+            'style' => 'array',
+            'action' => 'array',
+            'popup' => 'array',
+            'sort_order' => 'integer',
         ];
     }
 

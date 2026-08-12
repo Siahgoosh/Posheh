@@ -151,7 +151,7 @@ class PropertyController extends Controller
     public function shareMessage(Request $request, int $id): JsonResponse
     {
         $property = $this->propertyService->find($request->user(), $id);
-        $property->load(['media', 'type', 'property_category']);
+        $property->load(['media']);
         $officeName = $request->user()->office?->name;
 
         return response()->json([
@@ -171,7 +171,7 @@ class PropertyController extends Controller
         ]);
 
         $property = $this->propertyService->find($request->user(), $id);
-        $property->load(['media', 'type', 'property_category']);
+        $property->load(['media']);
         $message = $this->shareService->buildMessage($property, $request->user()->office?->name);
         $links = $this->shareService->shareLinks($message, $data['recipient_mobile']);
 
