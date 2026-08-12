@@ -13,8 +13,13 @@ class BlogCmsBootstrapCommand extends Command
 
     public function handle(BlogCmsBootstrapService $bootstrap): int
     {
-        $bootstrap->ensureDefaults();
-        $this->info('Blog CMS defaults ready (categories + author).');
+        $result = $bootstrap->ensureDefaults();
+        if (! ($result['ok'] ?? false)) {
+            $this->error($result['message_fa'] ?? 'Blog CMS bootstrap failed');
+
+            return self::FAILURE;
+        }
+        $this->info($result['message_fa'] ?? 'Blog CMS defaults ready.');
 
         return self::SUCCESS;
     }

@@ -13,8 +13,13 @@ class CroBootstrapCommand extends Command
 
     public function handle(CroBootstrapService $bootstrap): int
     {
-        $bootstrap->ensureDefaults();
-        $this->info('CRO defaults ensured.');
+        $result = $bootstrap->ensureDefaults();
+        if (! ($result['ok'] ?? false)) {
+            $this->error($result['message_fa'] ?? 'CRO bootstrap failed');
+
+            return self::FAILURE;
+        }
+        $this->info($result['message_fa'] ?? 'CRO defaults ensured.');
 
         return self::SUCCESS;
     }

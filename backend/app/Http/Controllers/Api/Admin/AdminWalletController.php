@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Office;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Services\Admin\AuditLogService;
@@ -20,7 +21,7 @@ class AdminWalletController extends Controller
             ->when($request->filled('office_id'), fn ($q) => $q->where('office_id', $request->integer('office_id')))
             ->orderByDesc('balance');
 
-        return response()->json($query->paginate(20));
+        return response()->json($query->paginate(50));
     }
 
     public function transactions(Request $request): JsonResponse
@@ -36,36 +37,68 @@ class AdminWalletController extends Controller
 
     public function adjust(Request $request, int $officeId): JsonResponse
     {
+        Office::query()->findOrFail($officeId);
+
         $data = $request->validate([
-            'amount' => ['required', 'integer'],
+            'amount' => ['required', 'numeric', 'min:1'],
             'type' => ['required', 'in:credit,debit'],
             'description' => ['required', 'string', 'max:500'],
         ]);
 
-        $wallet = Wallet::firstOrCreate(['office_id' => $officeId], ['balance' => 0]);
+        $amount = (int) abs((float) $data['amount']);
+        if ($amount < 1) {
+            return response()->json(['message' => 'مبلغ باید حداقل ۱ تومان باشد.'], 422);
+        }
 
-        return DB::transaction(function () use ($wallet, $data, $officeId) {
-            $amount = abs($data['amount']);
-            if ($data['type'] === 'debit' && $wallet->balance < $amount) {
+        try {
+            $wallet = DB::transaction(function () use ($officeId, $data, $amount) {
+                $wallet = Wallet::query()->firstOrCreate(
+                    ['office_id' => $officeId],
+                    ['balance' => 0]
+                );
+
+                $wallet = Wallet::query()->whereKey($wallet->id)->lockForUpdate()->firstOrFail();
+
+                if ($data['type'] === 'debit' && (int) $wallet->balance < $amount) {
+                    throw new \RuntimeException('INSUFFICIENT_BALANCE');
+                }
+
+                if ($data['type'] === 'credit') {
+                    $wallet->increment('balance', $amount);
+                } else {
+                    $wallet->decrement('balance', $amount);
+                }
+
+                $wallet->refresh();
+
+                $wallet->transactions()->create([
+                    'type' => $data['type'] === 'credit' ? 'credit' : 'debit',
+                    'amount' => $amount,
+                    'balance_after' => (int) $wallet->balance,
+                    'description' => $data['description'].' (مدیر سیستم)',
+                ]);
+
+                $this->audit->log(
+                    'wallet.adjusted',
+                    Wallet::class,
+                    $wallet->id,
+                    $data['description'],
+                    null,
+                    ['type' => $data['type'], 'amount' => $amount, 'office_id' => $officeId]
+                );
+
+                return $wallet->fresh('office');
+            });
+        } catch (\RuntimeException $e) {
+            if ($e->getMessage() === 'INSUFFICIENT_BALANCE') {
                 return response()->json(['message' => 'موجودی کافی نیست.'], 422);
             }
+            throw $e;
+        }
 
-            if ($data['type'] === 'credit') {
-                $wallet->increment('balance', $amount);
-            } else {
-                $wallet->decrement('balance', $amount);
-            }
-
-            $wallet->transactions()->create([
-                'type' => $data['type'] === 'credit' ? 'credit' : 'debit',
-                'amount' => $amount,
-                'balance_after' => $wallet->balance,
-                'description' => $data['description'].' (مدیر سیستم)',
-            ]);
-
-            $this->audit->log('wallet.adjusted', Wallet::class, $wallet->id, $data['description'], null, $data);
-
-            return response()->json(['data' => $wallet->fresh()]);
-        });
+        return response()->json([
+            'data' => $wallet,
+            'message' => $data['type'] === 'credit' ? 'کیف پول با موفقیت شارژ شد.' : 'برداشت با موفقیت انجام شد.',
+        ]);
     }
 }

@@ -15,10 +15,19 @@ class AdminController extends Controller
 {
     public function offices(Request $request): JsonResponse
     {
+        $perPage = max(10, min(200, (int) $request->input('per_page', 20)));
         $offices = Office::with(['subscription.plan', 'users'])
             ->withCount('properties')
+            ->when($request->filled('q'), function ($q) use ($request) {
+                $term = '%'.$request->string('q').'%';
+                $q->where(function ($inner) use ($term) {
+                    $inner->where('name', 'like', $term)
+                        ->orWhere('slug', 'like', $term)
+                        ->orWhere('city', 'like', $term);
+                });
+            })
             ->latest()
-            ->paginate(20);
+            ->paginate($perPage);
 
         return response()->json($offices);
     }

@@ -9,6 +9,7 @@ use App\Models\SubscriptionPlan;
 use App\Services\Admin\AuditLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminSubscriptionController extends Controller
 {
@@ -55,35 +56,46 @@ class AdminSubscriptionController extends Controller
     {
         $office = Office::findOrFail($officeId);
         $data = $request->validate([
-            'plan_id' => ['required', 'exists:subscription_plans,id'],
-            'days' => ['nullable', 'integer', 'min:1', 'max:365'],
+            'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
+            'days' => ['nullable', 'integer', 'min:1', 'max:3650'],
         ]);
 
         $plan = SubscriptionPlan::findOrFail($data['plan_id']);
-        $days = $data['days'] ?? 30;
+        if (! $plan->is_active) {
+            return response()->json(['message' => 'این پلن غیرفعال است.'], 422);
+        }
 
-        Subscription::where('office_id', $office->id)->where('status', 'active')->update(['status' => 'expired']);
+        $days = $data['days'] ?? max(1, (int) ($plan->trial_days ?: 30));
 
-        $subscription = Subscription::create([
-            'office_id' => $office->id,
-            'subscription_plan_id' => $plan->id,
-            'status' => 'active',
-            'starts_at' => now(),
-            'ends_at' => now()->addDays($days),
-            'auto_renew' => false,
-        ]);
+        $subscription = DB::transaction(function () use ($office, $plan, $days) {
+            Subscription::where('office_id', $office->id)->where('status', 'active')->update(['status' => 'expired']);
 
-        $office->update([
-            'subscription_plan_id' => $plan->id,
-            'panel_type' => $plan->panel_type,
-            'plan_active' => true,
-        ]);
+            $subscription = Subscription::create([
+                'office_id' => $office->id,
+                'subscription_plan_id' => $plan->id,
+                'status' => 'active',
+                'starts_at' => now(),
+                'ends_at' => now()->addDays($days),
+                'auto_renew' => false,
+            ]);
+
+            $office->update([
+                'subscription_plan_id' => $plan->id,
+                'panel_type' => $plan->panel_type,
+                'plan_active' => true,
+            ]);
+
+            return $subscription;
+        });
 
         $this->audit->log('subscription.assigned', Office::class, $office->id, "اختصاص پلن {$plan->name}", null, [
             'plan_id' => $plan->id,
             'days' => $days,
         ]);
 
-        return response()->json(['data' => $subscription->load('plan')]);
+        return response()->json([
+            'data' => $subscription->load('plan'),
+            'message' => "پلن «{$plan->name}» برای {$days} روز تخصیص داده شد.",
+        ]);
     }
 }
