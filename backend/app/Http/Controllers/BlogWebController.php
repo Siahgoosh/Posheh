@@ -101,20 +101,29 @@ class BlogWebController extends Controller
                 ->get();
         }
 
-        $title = ($post->meta_title ?: $post->title).' | پوشه';
+        $metaTitle = $post->meta_title ?: $post->title;
+        $title = str_contains($metaTitle, 'پوشه') ? $metaTitle : $metaTitle.' | پوشه';
         $description = $post->meta_description ?: $post->excerpt ?: '';
         $image = $post->cover_image ? (str_starts_with($post->cover_image, 'http') ? $post->cover_image : $this->siteUrl().$post->cover_image) : null;
+        $robots = $post->robots_directive ?: 'index,follow';
+        $noindex = str_contains(strtolower($robots), 'noindex');
+        $canonical = $post->canonical_url
+            ? (str_starts_with($post->canonical_url, 'http') ? $post->canonical_url : $this->siteUrl().$post->canonical_url)
+            : $this->siteUrl()."/blog/{$post->slug}";
 
         $publishedIso = $post->published_at?->toIso8601String();
         $updatedIso = $post->updated_at?->toIso8601String();
+        $seo = $this->seo($title, $description, "/blog/{$post->slug}", image: $image, type: 'article', noindex: $noindex);
+        $seo['keywords'] = $post->keywords;
+        $seo['robots'] = $robots;
+        $seo['canonical'] = $canonical;
+        $seo['url'] = $canonical;
 
         return view('blog.show', [
             'post' => $post,
             'related' => $related,
             'publishedJalali' => $post->published_at ? Jalalian::fromDateTime($post->published_at)->format('Y/m/d') : null,
-            'seo' => array_merge($this->seo($title, $description, "/blog/{$post->slug}", image: $image, type: 'article'), [
-                'keywords' => $post->keywords,
-            ]),
+            'seo' => $seo,
             'jsonLd' => array_values(array_filter([
                 [
                     '@context' => 'https://schema.org',

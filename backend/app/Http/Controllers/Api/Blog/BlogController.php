@@ -90,8 +90,22 @@ class BlogController extends Controller
     public function sitemap(): JsonResponse
     {
         $posts = BlogPost::published()
+            ->where(function ($q) {
+                $q->whereNull('robots_directive')
+                    ->orWhere('robots_directive', 'not like', '%noindex%');
+            })
             ->orderByDesc('published_at')
-            ->get(['slug', 'updated_at', 'published_at', 'category_slug']);
+            ->get(['slug', 'updated_at', 'published_at', 'category_slug', 'canonical_url']);
+
+        $posts = $posts->filter(function (BlogPost $post) {
+            if (! $post->canonical_url) {
+                return true;
+            }
+            $canonical = rtrim($post->canonical_url, '/');
+            $self = '/blog/'.$post->slug;
+
+            return str_ends_with($canonical, $self) || $canonical === $self;
+        })->values();
 
         $categoryCounts = BlogPost::published()
             ->selectRaw('category_slug, count(*) as total, max(updated_at) as lastmod')
