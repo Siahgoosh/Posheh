@@ -42,9 +42,14 @@ class ContentRefreshEngine
         }
 
         $decay = null;
-        if (Schema::hasTable('seo_content_health')) {
+        if (Schema::hasTable('seo_content_health') && Schema::hasColumn('seo_content_health', 'health')) {
             $health = SeoContentHealth::query()->where('slug', $post->slug)->first();
-            if ($health && in_array($health->status ?? '', ['decaying', 'declining', 'outdated'], true)) {
+            // Column is `health` (healthy|needs_update|critical|unknown) — NOT `status`
+            $isDecaying = $health && (
+                in_array((string) $health->health, ['needs_update', 'critical'], true)
+                || ((float) ($health->decay_pct ?? 0) <= -20)
+            );
+            if ($isDecaying) {
                 $decay = $health->toArray();
                 $suggestions[] = ['area' => 'decay', 'change' => 'REFRESH_RECOMMENDED — افت عملکرد شناسایی شد', 'priority' => 'P0'];
             }
@@ -52,7 +57,7 @@ class ContentRefreshEngine
         if (Schema::hasTable('seo_opportunities')) {
             $opp = SeoOpportunity::query()
                 ->where('slug', $post->slug)
-                ->whereIn('type', ['content_decay', 'ctr_issue', 'quick_win'])
+                ->whereIn('type', ['decay', 'content_decay', 'ctr', 'ctr_issue', 'quick_win'])
                 ->orderByDesc('priority_score')
                 ->first();
             if ($opp) {
@@ -114,11 +119,25 @@ class ContentRefreshEngine
         if (! Schema::hasTable('seo_content_health') || ! Schema::hasColumn('blog_posts', 'freshness_class')) {
             return 0;
         }
+        // Guard: production schema uses `health`, never `status`
+        if (! Schema::hasColumn('seo_content_health', 'health')) {
+            return 0;
+        }
+
         $n = 0;
         $rows = SeoContentHealth::query()
-            ->whereIn('status', ['decaying', 'declining', 'outdated'])
+            ->where(function ($q) {
+                $q->whereIn('health', ['needs_update', 'critical'])
+                    ->orWhere(function ($qq) {
+                        if (Schema::hasColumn('seo_content_health', 'decay_pct')) {
+                            $qq->whereNotNull('decay_pct')->where('decay_pct', '<=', -20);
+                        }
+                    });
+            })
+            ->orderByRaw("CASE health WHEN 'critical' THEN 1 WHEN 'needs_update' THEN 2 ELSE 3 END")
             ->limit($limit)
             ->get();
+
         foreach ($rows as $h) {
             $post = BlogPost::query()->where('slug', $h->slug)->first();
             if (! $post) {

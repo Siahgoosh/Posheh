@@ -32,6 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('content:ops-audit --process=5')->dailyAt('03:10');
         $schedule->command('content:ops-audit --weekly')->weeklyOn(1, '05:30');
         $schedule->command('content:ops-audit --monthly')->monthlyOn(1, '06:00');
+        $schedule->command('blog:image-process --limit=10')->everyFiveMinutes();
+        $schedule->command('blog:image-audit')->weeklyOn(4, '03:40');
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);

@@ -33,6 +33,8 @@ import { AdminBlogMediaPage } from '@/pages/admin/AdminBlogMediaPage'
 import { AdminSeoGrowthPage } from '@/pages/admin/AdminSeoGrowthPage'
 import { AdminTechnicalSeoPage } from '@/pages/admin/AdminTechnicalSeoPage'
 import { AdminLocalSeoPage } from '@/pages/admin/AdminLocalSeoPage'
+import { AdminContentOpsPage } from '@/pages/admin/AdminContentOpsPage'
+import { AdminBlogImagesPage } from '@/pages/admin/AdminBlogImagesPage'
 import { AdminCroDashboardPage } from '@/pages/admin/AdminCroDashboardPage'
 import { AboutPage } from '@/pages/AboutPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
@@ -239,6 +241,22 @@ export default function App() {
               element={
                 <SuperAdminRoute>
                   <AdminLocalSeoPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/content-ops"
+              element={
+                <SuperAdminRoute>
+                  <AdminContentOpsPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/blog-images"
+              element={
+                <SuperAdminRoute>
+                  <AdminBlogImagesPage />
                 </SuperAdminRoute>
               }
             />

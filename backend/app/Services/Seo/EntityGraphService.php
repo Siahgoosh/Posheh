@@ -62,6 +62,15 @@ class EntityGraphService
     public function napConsistencyWarnings(): array
     {
         $warnings = [];
+        if (! Schema::hasTable('seo_business_profiles')) {
+            $warnings[] = [
+                'severity' => 'high',
+                'code' => 'ENTITY_CONSISTENCY_WARNING',
+                'message' => 'seo_business_profiles missing — run migrations + seo:local-bootstrap',
+            ];
+
+            return $warnings;
+        }
         $profile = SeoBusinessProfile::query()->first();
         if (! $profile) {
             $warnings[] = [

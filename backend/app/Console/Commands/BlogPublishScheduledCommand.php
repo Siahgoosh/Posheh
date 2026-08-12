@@ -22,12 +22,20 @@ class BlogPublishScheduledCommand extends Command
 
         $count = 0;
         foreach ($due as $post) {
-            $result = $publisher->publish($post);
-            if ($result['ok'] ?? false) {
-                $count++;
-                $this->info("Published: {$post->slug}");
-            } else {
-                $this->warn("Blocked: {$post->slug} — ".implode('; ', $result['gate']['blockers'] ?? []));
+            try {
+                $result = $publisher->publish($post);
+                if ($result['ok'] ?? false) {
+                    $count++;
+                    $this->info("Published: {$post->slug}");
+                } else {
+                    $blockers = array_merge(
+                        $result['gate']['blockers'] ?? [],
+                        $result['ops_blockers'] ?? []
+                    );
+                    $this->warn("Blocked: {$post->slug} — ".implode('; ', $blockers));
+                }
+            } catch (\Throwable $e) {
+                $this->error("Failed: {$post->slug} — ".$e->getMessage());
             }
         }
 

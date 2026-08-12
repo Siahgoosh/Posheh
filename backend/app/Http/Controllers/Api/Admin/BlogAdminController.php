@@ -17,6 +17,7 @@ use App\Services\Blog\BlogSeoAnalyzer;
 use App\Services\Blog\BlogSitemapService;
 use App\Services\Blog\BlogVersioningService;
 use App\Services\Blog\PersianTextNormalizer;
+use App\Services\ContentOps\AiOutputSanitizer;
 use App\Services\ContentOps\EditorialWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,6 +39,7 @@ class BlogAdminController extends Controller
         private readonly PersianTextNormalizer $normalizer,
         private readonly BlogAuditLogger $audit,
         private readonly EditorialWorkflowService $editorial,
+        private readonly AiOutputSanitizer $htmlSanitizer,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -304,7 +306,11 @@ class BlogAdminController extends Controller
         ]);
         $result = $this->publisher->schedule(BlogPost::findOrFail($id), $data['scheduled_at'], $request);
         if (! ($result['ok'] ?? false)) {
-            return response()->json(['message' => 'زمان‌بندی مسدود شد.', 'gate' => $result['gate']], 422);
+            return response()->json([
+                'message' => 'زمان‌بندی مسدود شد.',
+                'gate' => $result['gate'] ?? null,
+                'ops_blockers' => $result['ops_blockers'] ?? [],
+            ], 422);
         }
 
         return response()->json([
@@ -713,6 +719,10 @@ class BlogAdminController extends Controller
             if (! empty($data['content'])) {
                 $data['content'] = $this->normalizer->normalizeEditorial($data['content']);
             }
+        }
+
+        if (! empty($data['content']) && is_string($data['content'])) {
+            $data['content'] = $this->htmlSanitizer->sanitizeHtml($data['content']);
         }
 
         if (! empty($data['content'])) {

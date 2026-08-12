@@ -20,6 +20,7 @@ import { AdminSeoGrowthPage } from '@/pages/admin/AdminSeoGrowthPage'
 import { AdminTechnicalSeoPage } from '@/pages/admin/AdminTechnicalSeoPage'
 import { AdminLocalSeoPage } from '@/pages/admin/AdminLocalSeoPage'
 import { AdminContentOpsPage } from '@/pages/admin/AdminContentOpsPage'
+import { AdminBlogImagesPage } from '@/pages/admin/AdminBlogImagesPage'
 import { AdminCroDashboardPage } from '@/pages/admin/AdminCroDashboardPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage'
@@ -127,6 +128,7 @@ export function PanelApp() {
             <Route path="seo-technical" element={<AdminTechnicalSeoPage />} />
             <Route path="seo-local" element={<AdminLocalSeoPage />} />
             <Route path="content-ops" element={<AdminContentOpsPage />} />
+            <Route path="blog-images" element={<AdminBlogImagesPage />} />
             <Route path="cro" element={<AdminCroDashboardPage />} />
             <Route path="downloads" element={<AdminDownloadsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />

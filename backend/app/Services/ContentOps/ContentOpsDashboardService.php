@@ -42,8 +42,10 @@ class ContentOpsDashboardService
         ];
 
         $reviewQueue = BlogPost::query()
-            ->whereIn('ops_status', ['EDITOR_REVIEW', 'FACT_CHECK', 'SEO_REVIEW', 'CHANGES_REQUESTED'])
-            ->orWhereIn('review_status', ['in_review', 'seo_review', 'content_review'])
+            ->where(function ($q) {
+                $q->whereIn('ops_status', ['EDITOR_REVIEW', 'FACT_CHECK', 'SEO_REVIEW', 'CHANGES_REQUESTED'])
+                    ->orWhereIn('review_status', ['in_review', 'seo_review', 'content_review']);
+            })
             ->orderByDesc('updated_at')
             ->limit(20)
             ->get(['id', 'title', 'slug', 'ops_status', 'review_status', 'ops_priority', 'updated_at']);

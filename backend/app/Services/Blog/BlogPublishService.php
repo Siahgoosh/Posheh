@@ -3,7 +3,7 @@
 namespace App\Services\Blog;
 
 use App\Models\BlogPost;
-use App\Services\Blog\BlogQualityGate;
+use App\Services\ContentOps\FactCheckEngine;
 use Illuminate\Support\Str;
 
 class BlogPublishService
@@ -13,9 +13,10 @@ class BlogPublishService
         private readonly BlogReadingTimeCalculator $readingTime,
         private readonly BlogSitemapService $sitemap,
         private readonly BlogAuditLogger $audit,
+        private readonly FactCheckEngine $facts,
     ) {}
 
-    /** @param array<string, mixed> $data @return array{ok: bool, post?: BlogPost, gate?: array} */
+    /** @param array<string, mixed> $data @return array{ok: bool, post?: BlogPost, gate?: array, ops_blockers?: list<string>} */
     public function publish(BlogPost $post, array $data = [], $request = null): array
     {
         $payload = array_merge($post->toArray(), $data, ['is_published' => true]);
@@ -24,8 +25,16 @@ class BlogPublishService
             return ['ok' => false, 'gate' => $gate];
         }
 
+        $opsBlockers = [];
+        if ($this->facts->hasBlockingClaims($post->id)) {
+            $opsBlockers[] = 'Unresolved sensitive claims — human fact review required';
+        }
+        if ($opsBlockers !== []) {
+            return ['ok' => false, 'gate' => $gate, 'ops_blockers' => $opsBlockers];
+        }
+
         $old = $post->only(['is_published', 'review_status', 'published_at', 'robots_directive']);
-        $post->fill([
+        $fill = [
             ...$data,
             'is_published' => true,
             'review_status' => BlogPost::REVIEW_PUBLISHED,
@@ -36,7 +45,12 @@ class BlogPublishService
                 : ($data['robots_directive'] ?? $post->robots_directive ?: 'index,follow'),
             'reading_time' => $this->readingTime->calculate($data['content'] ?? $post->content),
             'content_updated_at' => now(),
-        ]);
+        ];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('blog_posts', 'ops_status')) {
+            $fill['ops_status'] = 'PUBLISHED';
+            $fill['freshness_class'] = 'fresh';
+        }
+        $post->fill($fill);
         $post->save();
 
         $this->sitemap->invalidate();
@@ -65,13 +79,24 @@ class BlogPublishService
         if (! $gate['passed']) {
             return ['ok' => false, 'gate' => $gate];
         }
+        if ($this->facts->hasBlockingClaims($post->id)) {
+            return [
+                'ok' => false,
+                'gate' => $gate,
+                'ops_blockers' => ['Unresolved sensitive claims — cannot schedule until fact review'],
+            ];
+        }
 
-        $post->update([
+        $update = [
             'is_published' => false,
             'review_status' => 'scheduled',
             'scheduled_at' => $at,
             'published_at' => null,
-        ]);
+        ];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('blog_posts', 'ops_status')) {
+            $update['ops_status'] = 'SCHEDULED';
+        }
+        $post->update($update);
         $this->audit->log($post, 'article_scheduled', null, ['scheduled_at' => $at], $request);
 
         return ['ok' => true, 'post' => $post->fresh(), 'gate' => $gate];

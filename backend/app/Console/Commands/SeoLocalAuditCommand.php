@@ -17,26 +17,34 @@ class SeoLocalAuditCommand extends Command
 
     public function handle(EntityGraphService $graph, LocalSeoOpportunityService $opps, BlogSitemapService $sitemap): int
     {
-        $warnings = $graph->napConsistencyWarnings();
-        foreach ($warnings as $w) {
-            $this->warn("[{$w['severity']}] {$w['code']}: {$w['message']}");
+        try {
+            $warnings = $graph->napConsistencyWarnings();
+            foreach ($warnings as $w) {
+                $this->warn("[{$w['severity']}] {$w['code']}: {$w['message']}");
+            }
+
+            if (Schema::hasTable('seo_locations')) {
+                $published = SeoLocation::published()->count();
+                $this->info("Published indexable locations: {$published}");
+            }
+
+            if ($this->option('opportunities')) {
+                $rows = $opps->generateWeekly();
+                $this->info('Opportunities generated: '.count($rows));
+            }
+
+            $sitemap->invalidate();
+            $this->info('Sitemap cache invalidated.');
+
+            $critical = collect($warnings)->where('severity', 'critical')->count();
+            if ($critical > 0) {
+                $this->warn("Critical NAP/entity issues: {$critical} (logged; scheduler continues)");
+            }
+        } catch (\Throwable $e) {
+            $this->warn('seo:local-audit soft-fail: '.$e->getMessage());
         }
 
-        if (Schema::hasTable('seo_locations')) {
-            $published = SeoLocation::published()->count();
-            $this->info("Published indexable locations: {$published}");
-        }
-
-        if ($this->option('opportunities')) {
-            $rows = $opps->generateWeekly();
-            $this->info('Opportunities generated: '.count($rows));
-        }
-
-        $sitemap->invalidate();
-        $this->info('Sitemap cache invalidated.');
-
-        $critical = collect($warnings)->where('severity', 'critical')->count();
-
-        return $critical > 0 ? self::FAILURE : self::SUCCESS;
+        // Never fail the scheduler hard — issues are logged/warned above
+        return self::SUCCESS;
     }
 }

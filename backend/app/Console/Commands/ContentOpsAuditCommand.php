@@ -28,11 +28,20 @@ class ContentOpsAuditCommand extends Command
             $this->info(json_encode($bootstrap->ensureDefaults(), JSON_UNESCAPED_UNICODE));
         }
 
-        $decay = $refresh->scanDecayAlerts();
-        $this->info("Decay flagged: {$decay}");
+        try {
+            $decay = $refresh->scanDecayAlerts();
+            $this->info("Decay flagged: {$decay}");
+        } catch (\Throwable $e) {
+            // Never fail deploy/cron on optional SEO health schema drift
+            $this->warn('Decay scan skipped: '.$e->getMessage());
+        }
 
-        $processed = $jobs->processQueued((int) $this->option('process'));
-        $this->info("AI jobs processed: {$processed}");
+        try {
+            $processed = $jobs->processQueued((int) $this->option('process'));
+            $this->info("AI jobs processed: {$processed}");
+        } catch (\Throwable $e) {
+            $this->warn('AI job processing skipped: '.$e->getMessage());
+        }
 
         if ($this->option('weekly')) {
             $this->info(json_encode($dashboard->buildWeeklyReport(), JSON_UNESCAPED_UNICODE));
