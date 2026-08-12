@@ -39,6 +39,8 @@ class CustomerService
 
     public function create(User $user, array $data): Customer
     {
+        $this->assertAssigneeInOffice($user, $data['assigned_to'] ?? null);
+
         return Customer::create([
             ...$data,
             'office_id' => $user->office_id,
@@ -50,6 +52,9 @@ class CustomerService
     public function update(User $user, int $id, array $data): Customer
     {
         $customer = $this->find($user, $id);
+        if (array_key_exists('assigned_to', $data)) {
+            $this->assertAssigneeInOffice($user, $data['assigned_to']);
+        }
         $customer->update($data);
 
         return $customer->fresh()->load('assignee');
@@ -58,6 +63,17 @@ class CustomerService
     public function delete(User $user, int $id): void
     {
         $this->find($user, $id)->delete();
+    }
+
+    private function assertAssigneeInOffice(User $user, mixed $assignedTo): void
+    {
+        if ($assignedTo === null || $assignedTo === '') {
+            return;
+        }
+        $ok = User::where('office_id', $user->office_id)->where('id', (int) $assignedTo)->exists();
+        if (! $ok) {
+            throw ValidationException::withMessages(['assigned_to' => ['کاربر متعلق به دفتر شما نیست.']]);
+        }
     }
 
     public function matchProperties(User $user, int $customerId, int $limit = 10): Collection
