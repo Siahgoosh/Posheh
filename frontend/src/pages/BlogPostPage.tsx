@@ -37,7 +37,6 @@ interface BlogPostDetail {
   cta_text?: string
   cta_url?: string
   search_intent?: string
-  category_slug?: string
   cro?: {
     id?: number | null
     key?: string
@@ -254,9 +253,9 @@ export function BlogPostPage() {
               articleSlug={post.slug}
               categorySlug={post.category_slug}
               intent={post.search_intent}
-              cta={post.cro || {
+              cta={post.cro ?? {
                 title: post.cta_text || 'آماده مدیریت حرفه‌ای املاک هستید؟',
-                button_text: post.cro?.button_text || 'آشنایی با پوشه',
+                button_text: 'آشنایی با پوشه',
                 url: post.cta_url || '/register',
               }}
               showSticky
