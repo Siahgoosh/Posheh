@@ -6,6 +6,7 @@ import api from '@/lib/api'
 import { adminPath } from '@/lib/adminPaths'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { OPS_JOB_TYPE_FA, labelFa } from '@/lib/blogLabelsFa'
 
 export function AdminContentOpsPage() {
   const qc = useQueryClient()
@@ -58,38 +59,38 @@ export function AdminContentOpsPage() {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => window.history.back()}><ArrowRight className="h-5 w-5" /></Button>
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2"><Bot className="h-6 w-6" /> AI Content Operations</h1>
-            <p className="text-sm text-muted">AI = Assistant — نه ناشر خودکار. بدون آمار/ریویو/قیمت جعلی.</p>
+            <h1 className="text-2xl font-bold flex items-center gap-2"><Bot className="h-6 w-6" /> عملیات محتوای هوشمند</h1>
+            <p className="text-sm text-muted">هوش مصنوعی = دستیار — نه ناشر خودکار. بدون آمار/ریویو/قیمت جعلی.</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to={adminPath('blog')}><Button variant="outline">Blog CMS</Button></Link>
-          <Link to={adminPath('seo-growth')}><Button variant="outline">SEO Growth</Button></Link>
-          <Button variant="outline" onClick={() => bootstrap.mutate()}>Bootstrap</Button>
-          <Button variant="outline" onClick={() => processJobs.mutate()}>Process Queue</Button>
-          <Button onClick={() => weekly.mutate()}><Sparkles className="h-4 w-4 ml-1" /> Weekly Report</Button>
+          <Link to={adminPath('blog')}><Button variant="outline">مدیریت وبلاگ</Button></Link>
+          <Link to={adminPath('seo-growth')}><Button variant="outline">رشد سئو</Button></Link>
+          <Button variant="outline" onClick={() => bootstrap.mutate()}>راه‌اندازی اولیه</Button>
+          <Button variant="outline" onClick={() => processJobs.mutate()}>پردازش صف</Button>
+          <Button onClick={() => weekly.mutate()}><Sparkles className="h-4 w-4 ml-1" /> گزارش هفتگی</Button>
         </div>
       </div>
 
       <Card>
         <CardContent className="p-4 text-sm text-muted space-y-1">
           <p>{data?.note}</p>
-          <p>Auto-publish: <strong>{String(data?.policies?.auto_publish ?? false)}</strong> · Auto-links: <strong>{String(data?.policies?.auto_insert_links ?? false)}</strong></p>
-          <p>Internal Quality Guidance only — not a Google Score.</p>
+          <p>انتشار خودکار: <strong>{String(data?.policies?.auto_publish ?? false)}</strong> · درج خودکار لینک: <strong>{String(data?.policies?.auto_insert_links ?? false)}</strong></p>
+          <p>فقط راهنمای کیفیت داخلی — نمره گوگل نیست.</p>
         </CardContent>
       </Card>
 
       {isLoading ? <p className="text-muted">در حال بارگذاری…</p> : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            ['Queued', jobCounts.queued],
-            ['Running', jobCounts.running],
-            ['Failed', jobCounts.failed],
-            ['Completed', jobCounts.completed],
-            ['Refresh needed', data?.refresh_needed],
-            ['High-risk claims', data?.high_risk_claims],
-            ['Month tokens', usage.tokens],
-            ['Month cost (toman)', usage.cost_toman],
+            ['در صف', jobCounts.queued],
+            ['در حال اجرا', jobCounts.running],
+            ['ناموفق', jobCounts.failed],
+            ['تکمیل‌شده', jobCounts.completed],
+            ['نیاز به به‌روزرسانی', data?.refresh_needed],
+            ['ادعای پرریسک', data?.high_risk_claims],
+            ['توکن ماه جاری', usage.tokens],
+            ['هزینه ماه (تومان)', usage.cost_toman],
           ].map(([label, val]) => (
             <Card key={String(label)}>
               <CardContent className="p-4">
@@ -102,28 +103,28 @@ export function AdminContentOpsPage() {
       )}
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Enqueue AI Job</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">افزودن کار هوش مصنوعی</CardTitle></CardHeader>
         <CardContent className="flex flex-wrap gap-2 items-end">
           <label className="text-sm">
-            Type
+            نوع کار
             <select className="block mt-1 border rounded-md px-2 py-1 bg-background" value={jobType} onChange={(e) => setJobType(e.target.value)}>
-              {['research', 'brief', 'outline', 'draft', 'seo_audit', 'fact_check', 'internal_linking', 'image_suggestion', 'refresh', 'repurpose'].map((t) => (
-                <option key={t} value={t}>{t}</option>
+              {Object.keys(OPS_JOB_TYPE_FA).map((t) => (
+                <option key={t} value={t}>{OPS_JOB_TYPE_FA[t]}</option>
               ))}
             </select>
           </label>
           <label className="text-sm">
-            Blog Post ID
-            <input className="block mt-1 border rounded-md px-2 py-1 bg-background" value={postId} onChange={(e) => setPostId(e.target.value)} placeholder="optional" />
+            شناسه مقاله (اختیاری)
+            <input className="block mt-1 border rounded-md px-2 py-1 bg-background" value={postId} onChange={(e) => setPostId(e.target.value)} placeholder="اختیاری" />
           </label>
-          <Button onClick={() => enqueue.mutate()} disabled={enqueue.isPending}>Run</Button>
-          {enqueue.isError && <p className="text-sm text-red-500">AI Assistant Temporarily Unavailable / Job rejected</p>}
+          <Button onClick={() => enqueue.mutate()} disabled={enqueue.isPending}>اجرا</Button>
+          {enqueue.isError && <p className="text-sm text-red-500">دستیار موقتاً در دسترس نیست یا کار رد شد</p>}
         </CardContent>
       </Card>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <Card>
-          <CardHeader><CardTitle className="text-base">Review Queue</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">صف بررسی</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
             {(data?.review_queue || []).slice(0, 12).map((p: { id: number; title: string; ops_status?: string; review_status?: string }) => (
               <div key={p.id} className="flex justify-between gap-2 border-b border-card-border pb-2">
@@ -135,13 +136,16 @@ export function AdminContentOpsPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-base">Recent Jobs</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">کارهای اخیر</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm max-h-80 overflow-auto">
             {(jobs || []).slice(0, 20).map((j: { id: number; type: string; status: string; error?: string; confidence?: number }) => (
               <div key={j.id} className="border-b border-card-border pb-2">
-                <div className="flex justify-between"><span>#{j.id} {j.type}</span><span>{j.status}</span></div>
+                <div className="flex justify-between">
+                  <span>#{j.id} {labelFa(OPS_JOB_TYPE_FA, j.type)}</span>
+                  <span>{j.status}</span>
+                </div>
                 {j.error && <p className="text-xs text-red-500">{j.error}</p>}
-                {j.confidence != null && <p className="text-xs text-muted">confidence: {j.confidence}</p>}
+                {j.confidence != null && <p className="text-xs text-muted">اطمینان: {j.confidence}</p>}
               </div>
             ))}
           </CardContent>
@@ -149,7 +153,7 @@ export function AdminContentOpsPage() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Top Opportunities (from SEO Growth)</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">برترین فرصت‌ها (از رشد سئو)</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm">
           {(data?.top_opportunities || []).map((o: { id: number; type: string; title: string; priority_score?: number }) => (
             <div key={o.id} className="flex justify-between gap-2">
@@ -157,7 +161,7 @@ export function AdminContentOpsPage() {
               <span className="text-xs text-muted">{o.type} · {o.priority_score ?? '—'}</span>
             </div>
           ))}
-          {!data?.top_opportunities?.length && <p className="text-muted">هنوز Opportunity واقعی ثبت نشده (GSC/CSV لازم است)</p>}
+          {!data?.top_opportunities?.length && <p className="text-muted">هنوز فرصت واقعی ثبت نشده (اتصال کنسول جستجو/CSV لازم است)</p>}
         </CardContent>
       </Card>
     </div>

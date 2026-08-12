@@ -77,9 +77,9 @@ class BlogCmsAdminController extends Controller
                 'gsc' => [
                     'enabled' => (bool) config('blog.gsc.enabled'),
                     'status' => config('blog.gsc.enabled') && config('blog.gsc.credentials_json')
-                        ? 'configured'
-                        : 'placeholder',
-                    'message' => 'Google Search Console API در حالت placeholder است تا credentials معتبر اضافه شود. Sitemap submission ≠ indexing guarantee.',
+                        ? 'پیکربندی‌شده'
+                        : 'آماده اتصال',
+                    'message' => 'API کنسول جستجوی گوگل تا افزودن credentials معتبر در حالت آماده است. ارسال نقشه سایت ≠ تضمین ایندکس.',
                 ],
                 'seo_health' => [
                     'note' => 'امتیاز داخلی مدیریت — نمره گوگل نیست',

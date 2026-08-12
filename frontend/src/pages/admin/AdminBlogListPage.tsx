@@ -7,6 +7,7 @@ import { adminPath } from '@/lib/adminPaths'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { REVIEW_STATUS_FA, labelFa } from '@/lib/blogLabelsFa'
 
 interface BlogPostRow {
   id: number
@@ -35,6 +36,8 @@ interface Dashboard {
   gsc?: { status: string; message: string }
   seo_health?: Record<string, string | number>
 }
+
+const STATUS_FILTER = ['draft', 'in_review', 'approved', 'scheduled', 'published', 'archived', 'trash'] as const
 
 export function AdminBlogListPage() {
   const queryClient = useQueryClient()
@@ -76,6 +79,8 @@ export function AdminBlogListPage() {
 
   const bulkMutation = useMutation({
     mutationFn: async (action: string) => {
+      const actionFa =
+        action === 'archive' ? 'آرشیو گروهی' : action === 'noindex' ? 'نویندکس گروهی' : action === 'index' ? 'ایندکس گروهی' : action
       const first = await api.post('/admin/blog/bulk', {
         ids: selected,
         action,
@@ -83,7 +88,7 @@ export function AdminBlogListPage() {
         confirm_destructive: false,
       }).catch((err) => err.response)
       const affected = first?.data?.affected || first?.data?.count
-      if (!confirm(`Affected: ${JSON.stringify(affected)}\nادامه برای «${action}»؟`)) return
+      if (!confirm(`تعداد تحت تأثیر: ${JSON.stringify(affected)}\nادامه برای «${actionFa}»؟`)) return
       return api.post('/admin/blog/bulk', {
         ids: selected,
         action,
@@ -109,21 +114,21 @@ export function AdminBlogListPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">مدیریت وبلاگ</h1>
-            <p className="text-sm text-muted">Phase 7 CMS — Draft / Review / Schedule / Publish</p>
+            <p className="text-sm text-muted">پیش‌نویس → بررسی → زمان‌بندی → انتشار</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to={adminPath('blog/calendar')}><Button variant="outline"><CalendarDays className="h-4 w-4" /> تقویم</Button></Link>
-          <Link to={adminPath('blog/media')}><Button variant="outline"><ImageIcon className="h-4 w-4" /> Media</Button></Link>
-          <Link to={adminPath('seo-growth')}><Button variant="outline">SEO Growth</Button></Link>
-          <Link to={adminPath('seo-technical')}><Button variant="outline">Technical SEO</Button></Link>
-          <Link to={adminPath('seo-local')}><Button variant="outline">Local SEO</Button></Link>
-          <Link to={adminPath('content-ops')}><Button variant="outline">Content Ops</Button></Link>
-          <Link to={adminPath('blog-images')}><Button variant="outline">Blog Images</Button></Link>
-          <Link to={adminPath('cro')}><Button variant="outline">CRO / Leads</Button></Link>
-          <Button variant="outline" onClick={() => bootstrapMutation.mutate()}>Bootstrap</Button>
+          <Link to={adminPath('blog/media')}><Button variant="outline"><ImageIcon className="h-4 w-4" /> رسانه</Button></Link>
+          <Link to={adminPath('seo-growth')}><Button variant="outline">رشد سئو</Button></Link>
+          <Link to={adminPath('seo-technical')}><Button variant="outline">سئوی فنی</Button></Link>
+          <Link to={adminPath('seo-local')}><Button variant="outline">سئوی محلی</Button></Link>
+          <Link to={adminPath('content-ops')}><Button variant="outline">عملیات محتوا</Button></Link>
+          <Link to={adminPath('blog-images')}><Button variant="outline">تصاویر وبلاگ</Button></Link>
+          <Link to={adminPath('cro')}><Button variant="outline">تبدیل / سرنخ</Button></Link>
+          <Button variant="outline" onClick={() => bootstrapMutation.mutate()}>راه‌اندازی اولیه</Button>
           <a href="/api/v1/admin/blog/export.csv" target="_blank" rel="noreferrer">
-            <Button variant="outline"><Download className="h-4 w-4" /> CSV</Button>
+            <Button variant="outline"><Download className="h-4 w-4" /> خروجی CSV</Button>
           </a>
           <Link to={adminPath('blog/new')}>
             <Button><Plus className="h-4 w-4" /> مقاله جدید</Button>
@@ -141,7 +146,7 @@ export function AdminBlogListPage() {
             ['نیاز به بررسی', dash.needs_review],
             ['بدون تصویر', dash.missing_image],
             ['بدون متا', dash.missing_meta],
-            ['Redirect فعال', dash.redirects],
+            ['ریدایرکت فعال', dash.redirects],
           ].map(([label, value]) => (
             <Card key={String(label)}>
               <CardContent className="p-4">
@@ -155,9 +160,19 @@ export function AdminBlogListPage() {
 
       {dash?.seo_health && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Health (داخلی)</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">سلامت محتوا (داخلی)</CardTitle></CardHeader>
           <CardContent className="text-sm text-muted">
             {String(dash.seo_health.note || 'امتیاز داخلی — نمره گوگل نیست')}
+          </CardContent>
+        </Card>
+      )}
+
+      {dash?.gsc && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">کنسول جستجوی گوگل</CardTitle></CardHeader>
+          <CardContent className="text-sm text-muted space-y-1">
+            <p>وضعیت: <strong>{dash.gsc.status}</strong></p>
+            <p>{dash.gsc.message}</p>
           </CardContent>
         </Card>
       )}
@@ -170,15 +185,15 @@ export function AdminBlogListPage() {
               <Input placeholder="جستجو…" value={q} onChange={(e) => setQ(e.target.value)} className="w-40" />
               <select className="rounded-xl border border-card-border bg-background/50 px-3 text-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="">همه وضعیت‌ها</option>
-                {['draft', 'in_review', 'approved', 'scheduled', 'published', 'archived', 'trash'].map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                {STATUS_FILTER.map((s) => (
+                  <option key={s} value={s}>{REVIEW_STATUS_FA[s] || s}</option>
                 ))}
               </select>
               {selected.length > 0 && (
                 <>
-                  <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate('archive')}>Bulk Archive</Button>
-                  <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate('noindex')}>Bulk Noindex</Button>
-                  <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate('index')}>Bulk Index</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate('archive')}>آرشیو گروهی</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate('noindex')}>نویندکس گروهی</Button>
+                  <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate('index')}>ایندکس گروهی</Button>
                 </>
               )}
             </div>
@@ -191,46 +206,52 @@ export function AdminBlogListPage() {
             <p className="text-muted text-sm">هنوز مقاله‌ای ثبت نشده.</p>
           ) : (
             <div className="space-y-2">
-              {data.rows.map((post) => (
-                <div key={post.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-card-border px-4 py-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <input type="checkbox" checked={selected.includes(post.id)} onChange={() => toggle(post.id)} />
-                    {post.cover_image ? (
-                      <img src={post.cover_image} alt="" className="h-10 w-14 object-cover rounded-md" />
-                    ) : (
-                      <div className="h-10 w-14 rounded-md bg-muted/30" />
-                    )}
-                    <div className="min-w-0">
-                      <p className="font-medium truncate">{post.title}</p>
-                      <p className="text-xs text-muted">
-                        /blog/{post.slug} · {post.review_status || (post.is_published ? 'published' : 'draft')}
-                        {post.author_name ? ` · ${post.author_name}` : ''}
-                        {post.category_label ? ` · ${post.category_label}` : ''}
-                        {post.rebuild_locked ? ' · locked' : ''} · {post.views} بازدید
-                      </p>
+              {data.rows.map((post) => {
+                const statusLabel = labelFa(
+                  REVIEW_STATUS_FA,
+                  post.review_status || (post.is_published ? 'published' : 'draft'),
+                )
+                return (
+                  <div key={post.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-card-border px-4 py-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <input type="checkbox" checked={selected.includes(post.id)} onChange={() => toggle(post.id)} />
+                      {post.cover_image ? (
+                        <img src={post.cover_image} alt="" className="h-10 w-14 object-cover rounded-md" />
+                      ) : (
+                        <div className="h-10 w-14 rounded-md bg-muted/30" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{post.title}</p>
+                        <p className="text-xs text-muted">
+                          /blog/{post.slug} · {statusLabel}
+                          {post.author_name ? ` · ${post.author_name}` : ''}
+                          {post.category_label ? ` · ${post.category_label}` : ''}
+                          {post.rebuild_locked ? ' · قفل‌شده' : ''} · {post.views} بازدید
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {post.is_published && (
+                        <a href={`/blog/${post.slug}`} target="_blank" rel="noreferrer">
+                          <Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button>
+                        </a>
+                      )}
+                      <Link to={adminPath(`blog/${post.id}/edit`)}>
+                        <Button variant="outline" size="sm"><Pencil className="h-4 w-4" /></Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm('انتقال به سطل زباله؟')) deleteMutation.mutate(post.id)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    {post.is_published && (
-                      <a href={`/blog/${post.slug}`} target="_blank" rel="noreferrer">
-                        <Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button>
-                      </a>
-                    )}
-                    <Link to={adminPath(`blog/${post.id}/edit`)}>
-                      <Button variant="outline" size="sm"><Pencil className="h-4 w-4" /></Button>
-                    </Link>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        if (confirm('انتقال به سطل زباله؟')) deleteMutation.mutate(post.id)
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
               <p className="text-xs text-muted">جمع فیلتر: {data.meta?.total ?? data.rows.length}</p>
             </div>
           )}

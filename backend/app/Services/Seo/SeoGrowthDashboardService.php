@@ -37,8 +37,8 @@ class SeoGrowthDashboardService
             'data_quality' => [
                 'gsc_status' => $gscConfigured ? ($hasMetrics ? 'OK' : 'CONFIGURED_NO_ROWS') : 'DATA_UNAVAILABLE',
                 'message' => $hasMetrics
-                    ? 'Showing first-party GSC aggregates only.'
-                    : 'No invented metrics. Connect GSC or wait for sync.',
+                    ? 'فقط تجمیع داده‌های واقعی کنسول جستجو نمایش داده می‌شود.'
+                    : 'متریک جعلی ساخته نمی‌شود. کنسول جستجو را وصل کنید یا منتظر همگام‌سازی بمانید.',
             ],
             'kpis' => [
                 'organic_clicks_28d' => $clicks,

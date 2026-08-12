@@ -45,7 +45,7 @@ export function AdminBlogCalendarPage() {
           <Link to={adminPath('blog')}><Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button></Link>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2"><CalendarDays className="h-6 w-6" /> تقویم محتوا</h1>
-            <p className="text-sm text-muted">Scheduled / Published / Drafts</p>
+            <p className="text-sm text-muted">زمان‌بندی‌شده / منتشرشده / پیش‌نویس</p>
           </div>
         </div>
         <div className="flex gap-2 items-end">

@@ -34,7 +34,7 @@ export function AdminBlogMediaPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-blog-media'] }),
     onError: (err: unknown) => {
       const axiosErr = err as { response?: { data?: { message?: string; usage?: unknown } } }
-      alert(axiosErr.response?.data?.message || 'حذف ناموفق — Usage Check')
+      alert(axiosErr.response?.data?.message || 'حذف ناموفق — بررسی استفاده فایل')
     },
   })
 
@@ -46,7 +46,7 @@ export function AdminBlogMediaPage() {
         <div className="flex items-center gap-3">
           <Link to={adminPath('blog')}><Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button></Link>
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2"><ImageIcon className="h-6 w-6" /> Media Library</h1>
+            <h1 className="text-2xl font-bold flex items-center gap-2"><ImageIcon className="h-6 w-6" /> کتابخانه رسانه</h1>
             <p className="text-sm text-muted">
               کل: {data?.meta.total ?? '—'} · بدون استفاده: {data?.meta.unused ?? '—'}
             </p>
@@ -56,7 +56,7 @@ export function AdminBlogMediaPage() {
           <Input placeholder="جستجو مسیر…" value={q} onChange={(e) => setQ(e.target.value)} dir="ltr" className="w-48" />
           <label className="text-xs flex items-center gap-1">
             <input type="checkbox" checked={onlyUnused} onChange={(e) => setOnlyUnused(e.target.checked)} />
-            فقط Unused
+            فقط بدون استفاده
           </label>
         </div>
       </div>
@@ -71,13 +71,13 @@ export function AdminBlogMediaPage() {
                   <img src={item.url} alt="" className="h-28 w-full object-cover" loading="lazy" />
                   <div className="p-2 space-y-1">
                     <p className="text-[10px] text-muted truncate" dir="ltr">{item.path}</p>
-                    <p className="text-xs">استفاده: {item.usage_count}{item.unused ? ' · unused' : ''}</p>
+                    <p className="text-xs">استفاده: {item.usage_count}{item.unused ? ' · بدون استفاده' : ''}</p>
                     <Button
                       size="sm"
                       variant="ghost"
                       disabled={deleteMutation.isPending}
                       onClick={() => {
-                        if (confirm(item.unused ? 'حذف فایل بدون استفاده؟' : 'Usage Check: فایل استفاده شده — مطمئنید؟')) {
+                        if (confirm(item.unused ? 'حذف فایل بدون استفاده؟' : 'این فایل در حال استفاده است — مطمئنید؟')) {
                           deleteMutation.mutate(item.path)
                         }
                       }}

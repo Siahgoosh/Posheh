@@ -5,6 +5,7 @@ import api from '@/lib/api'
 import { adminPath } from '@/lib/adminPaths'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { LEAD_FEEDBACK_FA, LEAD_STATUS_FA, unknownFa } from '@/lib/blogLabelsFa'
 
 type Dash = {
   funnel: Record<string, number | null>
@@ -30,9 +31,28 @@ type Lead = {
   quality_feedback?: string
 }
 
+const FUNNEL_KEY_FA: Record<string, string> = {
+  impressions: 'نمایش',
+  clicks: 'کلیک',
+  cta_views: 'مشاهده فراخوان',
+  form_starts: 'شروع فرم',
+  form_submits: 'ارسال فرم',
+  leads: 'سرنخ',
+  qualified: 'واجد شرایط',
+  won: 'موفق',
+}
+
+const RATE_KEY_FA: Record<string, string> = {
+  ctr: 'نرخ کلیک',
+  cta_ctr: 'نرخ کلیک فراخوان',
+  form_start_rate: 'نرخ شروع فرم',
+  submit_rate: 'نرخ ارسال',
+  qualify_rate: 'نرخ واجد شرایط',
+  win_rate: 'نرخ موفقیت',
+}
+
 function fmt(v: number | null | undefined) {
-  if (v === null || v === undefined) return 'UNKNOWN'
-  return String(v)
+  return unknownFa(v)
 }
 
 export function AdminCroDashboardPage() {
@@ -69,33 +89,33 @@ export function AdminCroDashboardPage() {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => window.history.back()}><ArrowRight className="h-5 w-5" /></Button>
           <div>
-            <h1 className="text-2xl font-bold">CRO & Lead Funnel</h1>
-            <p className="text-sm text-muted">ترافیک → CTA → فرم → Lead → CRM (بدون داده جعلی)</p>
+            <h1 className="text-2xl font-bold">تبدیل و قیف سرنخ</h1>
+            <p className="text-sm text-muted">ترافیک → فراخوان → فرم → سرنخ → CRM (بدون داده جعلی)</p>
           </div>
         </div>
         <div className="flex gap-2">
-          <Link to={adminPath('seo-growth')}><Button variant="outline">SEO Growth</Button></Link>
-          <Button variant="outline" onClick={() => bootstrap.mutate()}>Bootstrap CTA</Button>
+          <Link to={adminPath('seo-growth')}><Button variant="outline">رشد سئو</Button></Link>
+          <Button variant="outline" onClick={() => bootstrap.mutate()}>راه‌اندازی فراخوان‌ها</Button>
         </div>
       </div>
 
       {isLoading && <p className="text-muted">در حال بارگذاری…</p>}
       {data && (
         <>
-          <p className="text-xs text-muted">{data.data_quality.note} · Revenue: {data.data_quality.revenue}</p>
+          <p className="text-xs text-muted">{data.data_quality.note} · درآمد: {unknownFa(data.data_quality.revenue)}</p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {Object.entries(data.funnel).map(([k, v]) => (
-              <Card key={k}><CardContent className="pt-4"><p className="text-xs text-muted">{k}</p><p className="text-xl font-bold mt-1">{fmt(v)}</p></CardContent></Card>
+              <Card key={k}><CardContent className="pt-4"><p className="text-xs text-muted">{FUNNEL_KEY_FA[k] || k}</p><p className="text-xl font-bold mt-1">{fmt(v)}</p></CardContent></Card>
             ))}
           </div>
           <div className="grid sm:grid-cols-3 gap-3">
             {Object.entries(data.rates).map(([k, v]) => (
-              <Card key={k}><CardContent className="pt-4"><p className="text-xs text-muted">{k}</p><p className="text-lg font-bold mt-1">{v === null ? 'UNKNOWN' : `${(v * 100).toFixed(2)}%`}</p></CardContent></Card>
+              <Card key={k}><CardContent className="pt-4"><p className="text-xs text-muted">{RATE_KEY_FA[k] || k}</p><p className="text-lg font-bold mt-1">{v === null ? 'نامشخص' : `${(v * 100).toFixed(2)}%`}</p></CardContent></Card>
             ))}
           </div>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">Weekly Growth Actions (max 10)</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">اقدامات رشد هفتگی (حداکثر ۱۰)</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
               {data.weekly_actions.map((a) => <p key={a.rank}>{a.rank}. {a.action}</p>)}
             </CardContent>
@@ -103,26 +123,26 @@ export function AdminCroDashboardPage() {
 
           <div className="grid lg:grid-cols-2 gap-4">
             <Card>
-              <CardHeader><CardTitle className="text-base">High traffic / low conversion</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">ترافیک بالا / تبدیل پایین</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
-                {!data.high_traffic_low_conversion.length && <p className="text-muted">داده‌ای نیست یا GSC خالی است.</p>}
+                {!data.high_traffic_low_conversion.length && <p className="text-muted">داده‌ای نیست یا کنسول جستجو خالی است.</p>}
                 {data.high_traffic_low_conversion.map((i) => (
                   <div key={i.slug} className="border-b border-card-border pb-2">
                     <p className="font-medium">{i.slug}</p>
-                    <p className="text-muted">imp {i.impressions_28d} · leads {i.leads_28d}</p>
+                    <p className="text-muted">نمایش {i.impressions_28d} · سرنخ {i.leads_28d}</p>
                     <p>{i.recommendation}</p>
                   </div>
                 ))}
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="text-base">Low traffic / high conversion</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">ترافیک پایین / تبدیل بالا</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
                 {!data.low_traffic_high_conversion.length && <p className="text-muted">هنوز سیگنال کافی نیست.</p>}
                 {data.low_traffic_high_conversion.map((i) => (
                   <div key={i.slug} className="border-b border-card-border pb-2">
                     <p className="font-medium">{i.slug}</p>
-                    <p className="text-muted">leads {i.leads_28d} · imp {i.impressions_28d}</p>
+                    <p className="text-muted">سرنخ {i.leads_28d} · نمایش {i.impressions_28d}</p>
                     <p>{i.recommendation}</p>
                   </div>
                 ))}
@@ -131,13 +151,13 @@ export function AdminCroDashboardPage() {
           </div>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">Top converting articles</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">مقالات با بیشترین تبدیل</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
-              {!data.top_converting_articles.length && <p className="text-muted">هنوز Lead مقاله‌ای ثبت نشده.</p>}
+              {!data.top_converting_articles.length && <p className="text-muted">هنوز سرنخ مقاله‌ای ثبت نشده.</p>}
               {data.top_converting_articles.map((a) => (
                 <div key={a.article_slug} className="flex justify-between gap-2">
                   <span>{a.article_slug}</span>
-                  <span className="text-muted">leads {a.leads} · qualified {a.qualified} · score {fmt(a.avg_score)}</span>
+                  <span className="text-muted">سرنخ {a.leads} · واجد شرایط {a.qualified} · امتیاز {fmt(a.avg_score)}</span>
                 </div>
               ))}
             </CardContent>
@@ -146,25 +166,25 @@ export function AdminCroDashboardPage() {
       )}
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Leads</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">سرنخ‌ها</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {!leads?.length && <p className="text-sm text-muted">Leadی نیست.</p>}
+          {!leads?.length && <p className="text-sm text-muted">سرنخی نیست.</p>}
           {leads?.map((l) => (
             <div key={l.id} className="rounded-xl border border-card-border p-3 space-y-2 text-sm">
               <div className="flex flex-wrap gap-2 text-xs">
-                <span className="px-2 py-0.5 rounded bg-muted">{l.status}</span>
+                <span className="px-2 py-0.5 rounded bg-muted">{LEAD_STATUS_FA[l.status] || l.status}</span>
                 <span className="px-2 py-0.5 rounded bg-muted">{l.source}</span>
-                <span className="px-2 py-0.5 rounded bg-muted">score {l.lead_score}</span>
-                {l.is_duplicate && <span className="px-2 py-0.5 rounded bg-muted">duplicate</span>}
+                <span className="px-2 py-0.5 rounded bg-muted">امتیاز {l.lead_score}</span>
+                {l.is_duplicate && <span className="px-2 py-0.5 rounded bg-muted">تکراری</span>}
               </div>
               <p className="font-medium">{l.name || 'بدون نام'} · {l.mobile}</p>
               <p className="text-muted">{l.request_type} · {l.article_slug || '—'}</p>
               <div className="flex flex-wrap gap-2">
-                {['CONTACTED', 'QUALIFIED', 'WON', 'LOST'].map((s) => (
-                  <Button key={s} size="sm" variant="outline" onClick={() => statusMutation.mutate({ id: l.id, status: s })}>{s}</Button>
+                {(['CONTACTED', 'QUALIFIED', 'WON', 'LOST'] as const).map((s) => (
+                  <Button key={s} size="sm" variant="outline" onClick={() => statusMutation.mutate({ id: l.id, status: s })}>{LEAD_STATUS_FA[s]}</Button>
                 ))}
-                {['good', 'bad', 'wrong_intent', 'converted'].map((f) => (
-                  <Button key={f} size="sm" variant="ghost" onClick={() => feedbackMutation.mutate({ id: l.id, quality_feedback: f })}>{f}</Button>
+                {(['good', 'bad', 'wrong_intent', 'converted'] as const).map((f) => (
+                  <Button key={f} size="sm" variant="ghost" onClick={() => feedbackMutation.mutate({ id: l.id, quality_feedback: f })}>{LEAD_FEEDBACK_FA[f]}</Button>
                 ))}
               </div>
             </div>

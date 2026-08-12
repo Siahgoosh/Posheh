@@ -64,9 +64,10 @@ function extractToc(html: string): { id: string; text: string }[] {
 
 function injectHeadingIds(html: string): string {
   let i = 0
-  return html.replace(/<h2([^>]*)>/gi, () => {
+  return html.replace(/<h2([^>]*)>/gi, (_full, attrs: string) => {
     i += 1
-    return `<h2 id="section-${i}"$1>`
+    const cleaned = String(attrs || '').replace(/\s*id\s*=\s*(["']).*?\1/i, '')
+    return `<h2 id="section-${i}"${cleaned}>`
   })
 }
 
