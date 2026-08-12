@@ -28,6 +28,8 @@ import { SuperAdminRoute } from '@/components/SuperAdminRoute'
 import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
 import { AdminSeoGrowthPage } from '@/pages/admin/AdminSeoGrowthPage'
+import { AdminCroDashboardPage } from '@/pages/admin/AdminCroDashboardPage'
+import { AboutPage } from '@/pages/AboutPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
 import { AdminSuperPanelPage } from '@/pages/admin/AdminSuperPanelPage'
 import { AnalyticsTracker } from '@/components/AnalyticsTracker'
@@ -110,6 +112,7 @@ export default function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/tour/:slug/scene/:sceneId" element={<VirtualTourPublicPage />} />
           <Route path="/tour/:slug" element={<VirtualTourPublicPage />} />
           <Route path="/embed/tour/:slug" element={<VirtualTourEmbedPage />} />
@@ -198,6 +201,14 @@ export default function App() {
               element={
                 <SuperAdminRoute>
                   <AdminSeoGrowthPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/cro"
+              element={
+                <SuperAdminRoute>
+                  <AdminCroDashboardPage />
                 </SuperAdminRoute>
               }
             />

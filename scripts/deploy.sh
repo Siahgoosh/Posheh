@@ -185,6 +185,8 @@ else
 fi
 $COMPOSE exec -T app php artisan blog:cms-bootstrap --no-interaction 2>/dev/null \
   || log "blog:cms-bootstrap skipped"
+$COMPOSE exec -T app php artisan cro:bootstrap --no-interaction 2>/dev/null \
+  || log "cro:bootstrap skipped"
 $COMPOSE exec -T app php artisan db:seed --class=VirtualTourSeeder --force --no-interaction 2>/dev/null \
   || log "VirtualTourSeeder skipped (virtual tour module not deployed yet)"
 $COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \

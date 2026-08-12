@@ -75,6 +75,9 @@ export function AdminBlogListPage() {
           <Link to={adminPath('seo-growth')}>
             <Button variant="outline">SEO Growth</Button>
           </Link>
+          <Link to={adminPath('cro')}>
+            <Button variant="outline">CRO / Leads</Button>
+          </Link>
           <Button variant="outline" onClick={() => bootstrapMutation.mutate()}>Bootstrap دسته‌ها</Button>
           <a href="/api/v1/admin/blog/export.csv" target="_blank" rel="noreferrer">
             <Button variant="outline"><Download className="h-4 w-4" /> خروجی CSV</Button>

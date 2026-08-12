@@ -40,6 +40,7 @@ class BlogController extends Controller
         private readonly BlogRelatedArticlesService $relatedService,
         private readonly BlogSitemapService $sitemapService,
         private readonly \App\Services\Seo\SeoInternalSearchLogger $internalSearchLogger,
+        private readonly \App\Services\Cro\CroCtaResolver $ctaResolver,
     ) {}
 
     public function home(): JsonResponse
@@ -404,6 +405,8 @@ class BlogController extends Controller
             'cta_url' => $post->cta_url,
             'search_intent' => $post->search_intent,
             'business_intent' => $post->business_intent,
+            'funnel_stage' => $post->funnel_stage,
+            'cro' => $this->ctaResolver->resolveForPost($post),
         ];
     }
 }

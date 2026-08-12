@@ -6,6 +6,7 @@ import { SeoHead } from '@/components/seo/SeoHead'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { SITE_CONTACT } from '@/constants/site'
 import { getOrganizationJsonLd } from '@/lib/seo'
+import { LeadCaptureBlock } from '@/components/cro/LeadCaptureBlock'
 
 export function ContactPage() {
   return (
@@ -107,6 +108,18 @@ export function ContactPage() {
             </CardContent>
           </Card>
         </div>
+
+        <LeadCaptureBlock
+          variant="specialized"
+          source="CONTACT"
+          intent="transactional"
+          cta={{
+            title: 'درخواست خود را ثبت کنید',
+            description: 'فروش، پشتیبانی یا آشنایی با پوشه — بدون اسپم',
+            button_text: 'برو به فرم',
+            url: '#lead-form',
+          }}
+        />
 
         <Card>
           <CardContent className="p-6 text-sm text-muted leading-8">

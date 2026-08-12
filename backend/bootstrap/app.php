@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('seo:collect-gsc')->dailyAt('03:15');
         $schedule->command('seo:analyze')->weeklyOn(1, '04:00');
         $schedule->command('seo:analyze --weekly-report')->weeklyOn(1, '04:30');
+        $schedule->command('cro:bootstrap')->weeklyOn(1, '05:00');
     })
     ->withMiddleware(function (Middleware $middleware): void {
         //

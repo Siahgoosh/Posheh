@@ -9,6 +9,7 @@ import { getSiteUrl } from '@/lib/seo'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SiteFooter } from '@/components/layout/SiteFooter'
+import { LeadCaptureBlock } from '@/components/cro/LeadCaptureBlock'
 
 interface FaqItem {
   question: string
@@ -35,6 +36,18 @@ interface BlogPostDetail {
   faq?: FaqItem[]
   cta_text?: string
   cta_url?: string
+  search_intent?: string
+  category_slug?: string
+  cro?: {
+    id?: number | null
+    key?: string
+    title?: string
+    description?: string
+    button_text?: string
+    url?: string
+    type?: string
+    funnel_stage?: string
+  }
   related?: { slug: string; title: string; excerpt?: string }[]
   previous?: { slug: string; title: string } | null
   next?: { slug: string; title: string } | null
@@ -234,11 +247,20 @@ export function BlogPostPage() {
             </section>
           )}
 
-          <div className="mt-12 p-6 rounded-2xl bg-primary/10 border border-primary/20 text-center">
-            <p className="font-medium mb-3">{post.cta_text || 'آماده مدیریت حرفه‌ای املاک هستید؟'}</p>
-            <Link to={post.cta_url || '/register'}>
-              <Button>شروع ۴۸ ساعت رایگان</Button>
-            </Link>
+          <div className="mt-12">
+            <LeadCaptureBlock
+              variant={post.search_intent === 'commercial' || post.search_intent === 'transactional' ? 'specialized' : 'short'}
+              source="ARTICLE"
+              articleSlug={post.slug}
+              categorySlug={post.category_slug}
+              intent={post.search_intent}
+              cta={post.cro || {
+                title: post.cta_text || 'آماده مدیریت حرفه‌ای املاک هستید؟',
+                button_text: post.cro?.button_text || 'آشنایی با پوشه',
+                url: post.cta_url || '/register',
+              }}
+              showSticky
+            />
           </div>
 
           <div className="mt-10 grid sm:grid-cols-2 gap-4">
