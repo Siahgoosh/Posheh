@@ -13,6 +13,11 @@ class BlogSitemapService
     {
         Cache::forget('blog.sitemap.payload.v2');
         Cache::forget('blog.sitemap.xml.v2');
+        Cache::forget('blog.sitemap.xml.v3');
+        Cache::forget('blog.sitemap.pages.v1');
+        Cache::forget('blog.sitemap.posts.v1');
+        Cache::forget('blog.sitemap.categories.v1');
+        Cache::forget('blog.sitemap.tours.v1');
     }
 
     /** @return array<string, mixed> */

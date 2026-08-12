@@ -37,6 +37,8 @@ interface BlogPostDetail {
   cta_text?: string
   cta_url?: string
   search_intent?: string
+  canonical_url?: string
+  robots_directive?: string
   cro?: {
     id?: number | null
     key?: string
@@ -141,6 +143,9 @@ export function BlogPostPage() {
         description={post.meta_description || post.excerpt}
         keywords={post.keywords}
         path={`/blog/${post.slug}`}
+        canonicalUrl={post.canonical_url || undefined}
+        robots={post.robots_directive || undefined}
+        noindex={!!post.robots_directive?.toLowerCase().includes('noindex')}
         type="article"
         image={post.cover_image ? (post.cover_image.startsWith('http') ? post.cover_image : `${getSiteUrl()}${post.cover_image}`) : undefined}
         publishedTime={post.published_at}
@@ -182,6 +187,8 @@ export function BlogPostPage() {
               height={630}
               className="w-full rounded-2xl mb-8 object-cover max-h-[420px]"
               loading="eager"
+              fetchPriority="high"
+              decoding="async"
             />
           )}
 

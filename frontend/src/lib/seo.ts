@@ -10,12 +10,14 @@ interface SeoProps {
   description?: string
   keywords?: string
   path?: string
+  canonicalUrl?: string
   image?: string
   type?: 'website' | 'article'
   publishedTime?: string
   modifiedTime?: string
   jsonLd?: Record<string, unknown> | Record<string, unknown>[]
   noindex?: boolean
+  robots?: string
 }
 
 function setMeta(name: string, content: string, attr: 'name' | 'property' = 'name') {
@@ -64,21 +66,26 @@ export function applySeo({
   description = DEFAULT_DESCRIPTION,
   keywords,
   path = '',
+  canonicalUrl,
   image,
   type = 'website',
   publishedTime,
   modifiedTime,
   jsonLd,
   noindex = false,
+  robots,
 }: SeoProps) {
   const fullTitle = formatPageTitle(title)
   const url = `${getSiteUrl()}${path}`
+  const canonical = canonicalUrl && canonicalUrl.trim() !== '' ? canonicalUrl : url
   const ogImage = image || `${getSiteUrl()}/og-default.png`
 
   document.title = fullTitle
   setMeta('description', description)
   if (keywords) setMeta('keywords', keywords)
-  setMeta('robots', noindex ? 'noindex,nofollow' : 'index,follow')
+  const robotsValue = robots?.trim()
+    || (noindex ? 'noindex,nofollow' : 'index,follow')
+  setMeta('robots', robotsValue)
 
   setMeta('og:title', fullTitle, 'property')
   setMeta('og:description', description, 'property')
@@ -99,7 +106,7 @@ export function applySeo({
   setMeta('twitter:description', description)
   setMeta('twitter:image', ogImage)
 
-  setCanonical(url)
+  setCanonical(canonical)
 
   if (jsonLd) setJsonLd(jsonLd)
   else clearJsonLd()

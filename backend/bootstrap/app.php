@@ -23,9 +23,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('seo:analyze')->weeklyOn(1, '04:00');
         $schedule->command('seo:analyze --weekly-report')->weeklyOn(1, '04:30');
         $schedule->command('cro:bootstrap')->weeklyOn(1, '05:00');
+        // Phase 8 — technical SEO audits (no fake metrics)
+        $schedule->command('seo:technical-audit --scope=daily')->dailyAt('02:30');
+        $schedule->command('seo:technical-audit --scope=weekly --scan-links')->weeklyOn(2, '02:45');
     })
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

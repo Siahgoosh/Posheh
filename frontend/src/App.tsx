@@ -30,6 +30,7 @@ import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
 import { AdminBlogCalendarPage } from '@/pages/admin/AdminBlogCalendarPage'
 import { AdminBlogMediaPage } from '@/pages/admin/AdminBlogMediaPage'
 import { AdminSeoGrowthPage } from '@/pages/admin/AdminSeoGrowthPage'
+import { AdminTechnicalSeoPage } from '@/pages/admin/AdminTechnicalSeoPage'
 import { AdminCroDashboardPage } from '@/pages/admin/AdminCroDashboardPage'
 import { AboutPage } from '@/pages/AboutPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
@@ -219,6 +220,14 @@ export default function App() {
               element={
                 <SuperAdminRoute>
                   <AdminSeoGrowthPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/seo-technical"
+              element={
+                <SuperAdminRoute>
+                  <AdminTechnicalSeoPage />
                 </SuperAdminRoute>
               }
             />

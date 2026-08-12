@@ -6,12 +6,14 @@ interface SeoHeadProps {
   description?: string
   keywords?: string
   path?: string
+  canonicalUrl?: string
   image?: string
   type?: 'website' | 'article'
   publishedTime?: string
   modifiedTime?: string
   jsonLd?: Record<string, unknown> | Record<string, unknown>[]
   noindex?: boolean
+  robots?: string
 }
 
 export function SeoHead(props: SeoHeadProps) {
@@ -22,11 +24,13 @@ export function SeoHead(props: SeoHeadProps) {
     props.description,
     props.keywords,
     props.path,
+    props.canonicalUrl,
     props.image,
     props.type,
     props.publishedTime,
     props.modifiedTime,
     props.noindex,
+    props.robots,
     props.jsonLd,
   ])
 

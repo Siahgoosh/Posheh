@@ -32,8 +32,17 @@ export function BlogCategoryPage() {
     queryFn: async () => (await api.get('/blog/categories')).data.data as CategoryMeta[],
   })
 
+  const { data: categoryDetail } = useQuery({
+    queryKey: ['blog-category-detail', category],
+    queryFn: async () => (await api.get(`/blog/category/${category}`)).data.data as {
+      category: { slug: string; label: string; is_indexable?: boolean; meta_description?: string; seo_title?: string }
+    },
+    enabled: !!category,
+  })
+
   const catMeta = categories?.find((c) => c.slug === category)
-  const label = catMeta?.label ?? category ?? 'دسته‌بندی'
+  const label = categoryDetail?.category?.label ?? catMeta?.label ?? category ?? 'دسته‌بندی'
+  const indexable = categoryDetail?.category?.is_indexable ?? true
 
   const { data, isLoading } = useQuery({
     queryKey: ['blog', 'category', category],
@@ -53,9 +62,10 @@ export function BlogCategoryPage() {
   return (
     <>
       <SeoHead
-        title={`${label} | وبلاگ پوشه`}
-        description={`مقالات تخصصی ${label} برای مشاوران و مدیران دفاتر املاک.`}
+        title={categoryDetail?.category?.seo_title || `${label} | وبلاگ پوشه`}
+        description={categoryDetail?.category?.meta_description || `مقالات تخصصی ${label} برای مشاوران و مدیران دفاتر املاک.`}
         path={`/blog/category/${category}`}
+        noindex={!indexable}
         jsonLd={getBreadcrumbJsonLd(breadcrumbs, getSiteUrl())}
       />
 

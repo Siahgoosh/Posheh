@@ -5,6 +5,7 @@ Allow: /blog/
 Allow: /register
 Allow: /download
 Allow: /contact
+Allow: /feed
 Allow: /tour/
 Allow: /p/
 Allow: /o/
@@ -18,6 +19,11 @@ Disallow: /tickets
 Disallow: /accounting
 Disallow: /crm
 Disallow: /embed/
+Disallow: /blog/search
+Disallow: /blog/preview/
+
+# Canonical robots are generated dynamically by Laravel at /robots.txt.
+# This static file is a fallback only for local/dev SPA serving.
 
 Sitemap: https://posheapp.ir/sitemap.xml
 Sitemap: https://posheapp.ir/sitemap-blog.xml

@@ -44,7 +44,8 @@
         .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
         .card { background: var(--card); border: 1px solid #334155; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }
         .badge { display:inline-block; padding:2px 10px; border-radius:999px; border:1px solid #475569; font-size:12px; margin-bottom:8px; }
-        article img { max-width:100%; border-radius:12px; }
+        article img { max-width:100%; height:auto; border-radius:12px; }
+        article img[loading="lazy"] { content-visibility: auto; }
         article p { color: var(--muted); }
         footer { margin-top:3rem; padding-top:1.5rem; border-top:1px solid #334155; color:var(--muted); font-size:0.85rem; text-align:center; }
         .cta { background: rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.3); border-radius:12px; padding:1.5rem; text-align:center; margin:2rem 0; }

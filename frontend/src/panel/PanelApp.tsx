@@ -16,6 +16,9 @@ import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
 import { AdminBlogCalendarPage } from '@/pages/admin/AdminBlogCalendarPage'
 import { AdminBlogMediaPage } from '@/pages/admin/AdminBlogMediaPage'
+import { AdminSeoGrowthPage } from '@/pages/admin/AdminSeoGrowthPage'
+import { AdminTechnicalSeoPage } from '@/pages/admin/AdminTechnicalSeoPage'
+import { AdminCroDashboardPage } from '@/pages/admin/AdminCroDashboardPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage'
 import { AdminUserDetailPage } from '@/pages/admin/AdminUserDetailPage'
@@ -118,6 +121,9 @@ export function PanelApp() {
             <Route path="blog/calendar" element={<AdminBlogCalendarPage />} />
             <Route path="blog/media" element={<AdminBlogMediaPage />} />
             <Route path="blog/:id/edit" element={<AdminBlogEditorPage />} />
+            <Route path="seo-growth" element={<AdminSeoGrowthPage />} />
+            <Route path="seo-technical" element={<AdminTechnicalSeoPage />} />
+            <Route path="cro" element={<AdminCroDashboardPage />} />
             <Route path="downloads" element={<AdminDownloadsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="system" element={<AdminSystemPage />} />
