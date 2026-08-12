@@ -103,18 +103,46 @@ export function CrmExecutivePanel() {
     return <div className="text-sm text-muted py-10 text-center">در حال بارگذاری داشبورد مدیریتی…</div>
   }
   if (isError || !data) {
-    return <div className="text-sm text-danger py-10 text-center">خطا در بارگذاری Executive Dashboard</div>
+    return <div className="text-sm text-danger py-10 text-center">خطا در بارگذاری داشبورد مدیریتی</div>
   }
 
   const maxFunnel = Math.max(...data.funnel.map((f) => f.count), 1)
   const highlightKeys = ['new_leads', 'hot_leads', 'won_deals', 'revenue', 'conversion_rate', 'viewings', 'offers', 'open_deals']
+
+  const opportunityLabels: Record<string, string> = {
+    hot_leads: 'سرنخ داغ',
+    overdue: 'پیگیری معوق',
+    pending_offers: 'پیشنهاد در انتظار',
+    stalled: 'مذاکره متوقف',
+    reactivation: 'فعال‌سازی مجدد',
+  }
+
+  const sourceLabel = (s: string) => {
+    if (!s || s === 'unknown') return 'نامشخص'
+    const map: Record<string, string> = {
+      instagram: 'اینستاگرام',
+      telegram: 'تلگرام',
+      whatsapp: 'واتساپ',
+      website: 'وب‌سایت',
+      divar: 'دیوار',
+      sheypoor: 'شیپور',
+      phone: 'تماس تلفنی',
+      walk_in: 'مراجعه حضوری',
+      referral: 'معرفی',
+      existing_customer: 'مشتری قبلی',
+      advertisement: 'تبلیغات',
+      google: 'گوگل',
+      other: 'سایر',
+    }
+    return map[s] || s
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold flex items-center gap-2">
-            <Gauge className="h-5 w-5 text-primary" /> Executive Dashboard
+            <Gauge className="h-5 w-5 text-primary" /> داشبورد مدیریتی
           </h2>
           <p className="text-xs text-muted mt-0.5">{data.briefing?.message}</p>
         </div>
@@ -156,7 +184,7 @@ export function CrmExecutivePanel() {
                 <div className="flex justify-between text-xs mb-1">
                   <span className="font-medium">{f.label}</span>
                   <span className="text-muted">
-                    {formatNumber(f.count)} · تبدیل {f.conversion_percent}% · افت {f.drop_off_percent}% · {f.average_duration_days} روز
+                    {formatNumber(f.count)} · تبدیل {formatNumber(f.conversion_percent)}٪ · افت {formatNumber(f.drop_off_percent)}٪ · {formatNumber(f.average_duration_days)} روز
                   </span>
                 </div>
                 <div className="h-2.5 rounded-full bg-white/5 overflow-hidden">
@@ -179,11 +207,11 @@ export function CrmExecutivePanel() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2"><Wallet className="h-4 w-4" /> پیش‌بینی Pipeline</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2"><Wallet className="h-4 w-4" /> پیش‌بینی قیف فروش</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between"><span className="text-muted">Pipeline</span><span className="font-bold">{formatPrice(data.forecast.pipeline_value)}</span></div>
-            <div className="flex justify-between"><span className="text-muted">Weighted</span><span className="font-bold text-primary">{formatPrice(data.forecast.weighted_pipeline)}</span></div>
+            <div className="flex justify-between"><span className="text-muted">ارزش قیف</span><span className="font-bold">{formatPrice(data.forecast.pipeline_value)}</span></div>
+            <div className="flex justify-between"><span className="text-muted">ارزش وزنی</span><span className="font-bold text-primary">{formatPrice(data.forecast.weighted_pipeline)}</span></div>
             <div className="flex justify-between"><span className="text-muted">کمیسیون انتظاری</span><span className="font-bold">{formatPrice(data.forecast.expected_commission)}</span></div>
             <div className="flex justify-between"><span className="text-muted">معاملات باز</span><span>{formatNumber(data.forecast.open_deals)}</span></div>
             <div className="border-t border-card-border pt-2 space-y-1">
@@ -191,7 +219,7 @@ export function CrmExecutivePanel() {
               {(data.forecast.near_close ?? []).slice(0, 5).map((d) => (
                 <div key={d.id} className="flex justify-between text-xs">
                   <span className="truncate">{d.title}</span>
-                  <span>{d.probability ?? '—'}%{d.value ? ` · ${formatPrice(d.value)}` : ''}</span>
+                  <span>احتمال {d.probability ?? '—'}٪{d.value ? ` · ${formatPrice(d.value)}` : ''}</span>
                 </div>
               ))}
               {!data.forecast.near_close?.length && <p className="text-xs text-muted">موردی نیست</p>}
@@ -208,9 +236,9 @@ export function CrmExecutivePanel() {
               <div key={a.agent_id} className="flex justify-between border-b border-card-border pb-1.5">
                 <div>
                   <p className="font-medium text-xs">{a.name}</p>
-                  <p className="text-[10px] text-muted">تبدیل {a.conversion_rate}% · {a.won_deals} معامله</p>
+                  <p className="text-[10px] text-muted">تبدیل {formatNumber(a.conversion_rate)}٪ · {formatNumber(a.won_deals)} معامله</p>
                 </div>
-                <Badge variant="outline" className="text-[10px]">Score {a.performance_score}</Badge>
+                <Badge variant="outline" className="text-[10px]">امتیاز {formatNumber(a.performance_score)}</Badge>
               </div>
             ))}
             {!data.agents?.length && <p className="text-xs text-muted">فقط مدیر دفتر مقایسه تیم را می‌بیند</p>}
@@ -218,12 +246,12 @@ export function CrmExecutivePanel() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">هوش منبع Lead</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">هوش منبع سرنخ</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
             {(data.sources ?? []).slice(0, 8).map((s) => (
               <div key={s.source} className="flex justify-between border-b border-card-border pb-1.5 text-xs">
-                <span>{s.source}</span>
-                <span className="text-muted">{s.leads} Lead · {s.deals} Deal · {formatPrice(s.revenue)}</span>
+                <span>{sourceLabel(s.source)}</span>
+                <span className="text-muted">{formatNumber(s.leads)} سرنخ · {formatNumber(s.deals)} معامله · {formatPrice(s.revenue)}</span>
               </div>
             ))}
             {!data.sources?.length && <p className="text-xs text-muted">داده‌ای نیست</p>}
@@ -253,16 +281,16 @@ export function CrmExecutivePanel() {
           <CardContent className="grid grid-cols-2 gap-2 text-xs">
             {Object.entries(data.opportunities_summary || {}).map(([k, v]) => (
               <div key={k} className="rounded-lg border border-card-border p-2">
-                <p className="text-muted">{k}</p>
-                <p className="text-lg font-bold">{v}</p>
+                <p className="text-muted">{opportunityLabels[k] || k}</p>
+                <p className="text-lg font-bold">{formatNumber(v)}</p>
               </div>
             ))}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">سلامت داده CRM</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">سلامت داده سی‌آر‌ام</CardTitle></CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <p className="text-2xl font-bold text-primary">{quality?.health_score ?? '—'}%</p>
+            <p className="text-2xl font-bold text-primary">{quality?.health_score != null ? `${formatNumber(quality.health_score)}٪` : '—'}</p>
             {(quality?.issues ?? []).map((i) => (
               <div key={i.key} className="flex justify-between text-xs border-b border-card-border pb-1">
                 <span>{i.label}</span>
@@ -297,7 +325,7 @@ export function CrmAiAssistantPanel() {
     <div className="space-y-4 max-w-2xl">
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> دستیار پیام (Rule-Based / AI-ready)</CardTitle>
+          <CardTitle className="text-sm flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> دستیار پیام هوشمند</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p className="text-xs text-muted">بدون ارسال داده به سرویس خارجی. فقط از حقایق ورودی استفاده می‌شود.</p>
@@ -312,7 +340,7 @@ export function CrmAiAssistantPanel() {
           <Button onClick={generate}>تولید پیام</Button>
           {message && <div className="rounded-xl border border-card-border p-3 text-sm whitespace-pre-wrap">{message}</div>}
           {usage && (
-            <p className="text-[10px] text-muted">مصرف AI این ماه: {usage.total_requests ?? 0} درخواست (local/rule-based)</p>
+            <p className="text-[10px] text-muted">مصرف هوش مصنوعی این ماه: {formatNumber(usage.total_requests ?? 0)} درخواست (محلی / مبتنی بر قاعده)</p>
           )}
         </CardContent>
       </Card>

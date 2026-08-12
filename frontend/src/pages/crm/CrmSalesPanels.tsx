@@ -6,6 +6,25 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
 
+const offerStatusLabel = (s?: string) => ({
+  draft: 'پیش‌نویس',
+  submitted: 'ارسال‌شده',
+  accepted: 'پذیرفته',
+  rejected: 'رد شده',
+  countered: 'پیشنهاد متقابل',
+  expired: 'منقضی',
+  withdrawn: 'پس‌گرفته',
+}[s || ''] || s || '—')
+
+const negotiationStatusLabel = (s?: string) => ({
+  open: 'باز',
+  stalled: 'متوقف',
+  agreed: 'توافق',
+  cancelled: 'لغو',
+}[s || ''] || s || '—')
+
+const sideLabel = (s?: string) => (s === 'seller' ? 'فروشنده' : s === 'buyer' ? 'خریدار' : s || '—')
+
 interface QueueItem {
   kind: string
   priority: string
@@ -103,15 +122,15 @@ export function CrmSalesQueuePanel() {
           >
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                {item.priority === 'overdue' && <Badge variant="outline" className="text-danger border-danger text-[10px]">OVERDUE</Badge>}
-                {item.priority === 'hot' && <Badge variant="outline" className="text-orange-600 border-orange-500/40 text-[10px]">HOT</Badge>}
+                {item.priority === 'overdue' && <Badge variant="outline" className="text-danger border-danger text-[10px]">معوق</Badge>}
+                {item.priority === 'hot' && <Badge variant="outline" className="text-orange-600 border-orange-500/40 text-[10px]">داغ</Badge>}
                 <span className="font-medium">{item.customer_name || '—'}</span>
-                {item.score != null && <span className="text-[10px] text-warning">Score {item.score}</span>}
+                {item.score != null && <span className="text-[10px] text-warning">امتیاز {item.score}</span>}
               </div>
               <p className="text-xs text-muted">{item.title}</p>
             </div>
-            <div className="text-[11px] text-muted text-left" dir="ltr">
-              {item.at ? formatJalaliDate(item.at) : ''}
+            <div className="text-[11px] text-muted">
+              {item.at ? formatJalaliDate(item.at, true) : ''}
             </div>
           </div>
         ))}
@@ -159,7 +178,7 @@ export function CrmOpportunitiesPanel() {
         {data.hot_leads.map((d) => (
           <div key={d.id} className="flex justify-between border-b border-card-border pb-2">
             <span>{d.contact_name || d.title}</span>
-            <span className="text-warning text-xs">Score {d.lead_score}{d.value ? ` · ${formatPrice(d.value)}` : ''}</span>
+            <span className="text-warning text-xs">امتیاز {d.lead_score}{d.value ? ` · ${formatPrice(d.value)}` : ''}</span>
           </div>
         ))}
       </Section>
@@ -168,7 +187,7 @@ export function CrmOpportunitiesPanel() {
         {data.overdue_follow_ups.map((d) => (
           <div key={d.id} className="flex justify-between border-b border-card-border pb-2 text-danger">
             <span>{d.title}</span>
-            <span className="text-xs">{d.follow_up_at ? formatJalaliDate(d.follow_up_at) : ''}</span>
+            <span className="text-xs">{d.follow_up_at ? formatJalaliDate(d.follow_up_at, true) : ''}</span>
           </div>
         ))}
       </Section>
@@ -177,7 +196,7 @@ export function CrmOpportunitiesPanel() {
         {data.stalled_negotiations.map((n) => (
           <div key={n.id} className="flex justify-between border-b border-card-border pb-2">
             <span>مذاکره #{n.id}</span>
-            <span className="text-xs">{n.current_price ? formatPrice(n.current_price) : n.status}</span>
+            <span className="text-xs">{n.current_price ? formatPrice(n.current_price) : negotiationStatusLabel(n.status)}</span>
           </div>
         ))}
       </Section>
@@ -185,8 +204,8 @@ export function CrmOpportunitiesPanel() {
         {data.pending_offers.length === 0 && <p className="text-xs text-muted">موردی نیست</p>}
         {data.pending_offers.map((o) => (
           <div key={o.id} className="flex justify-between border-b border-card-border pb-2">
-            <span>Offer #{o.id}</span>
-            <span className="text-xs">{formatPrice(o.amount)} · {o.status}</span>
+            <span>پیشنهاد #{o.id}</span>
+            <span className="text-xs">{formatPrice(o.amount)} · {offerStatusLabel(o.status)}</span>
           </div>
         ))}
       </Section>
@@ -228,19 +247,19 @@ export function CrmOffersPanel() {
           {(negotiations ?? []).map((n) => (
             <div key={n.id} className="flex justify-between border-b border-card-border pb-2">
               <span>{n.customer?.name || '—'} · {n.property?.code}</span>
-              <span className="text-xs">{n.status}{n.current_price ? ` · ${formatPrice(n.current_price)}` : ''}</span>
+              <span className="text-xs">{negotiationStatusLabel(n.status)}{n.current_price ? ` · ${formatPrice(n.current_price)}` : ''}</span>
             </div>
           ))}
           {!negotiations?.length && <p className="text-xs text-muted">مذاکره‌ای ثبت نشده</p>}
         </CardContent>
       </Card>
       <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-sm">پیشنهادها (Offers)</CardTitle></CardHeader>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">پیشنهادها</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm">
           {(offers ?? []).map((o) => (
             <div key={o.id} className="flex justify-between border-b border-card-border pb-2">
-              <span>#{o.id} · {o.customer?.name || o.side} · {o.property?.code}</span>
-              <span className="text-xs">{formatPrice(o.amount)} · {o.status}</span>
+              <span>#{o.id} · {o.customer?.name || sideLabel(o.side)} · {o.property?.code}</span>
+              <span className="text-xs">{formatPrice(o.amount)} · {offerStatusLabel(o.status)}</span>
             </div>
           ))}
           {!offers?.length && <p className="text-xs text-muted">پیشنهادی ثبت نشده</p>}

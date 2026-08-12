@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { JalaliDateTimePicker } from '@/components/ui/JalaliDateTimePicker'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
 import { CrmOffersPanel, CrmOpportunitiesPanel, CrmSalesQueuePanel } from '@/pages/crm/CrmSalesPanels'
 import { CrmAiAssistantPanel, CrmExecutivePanel } from '@/pages/crm/CrmExecutivePanel'
@@ -261,7 +262,7 @@ export function CrmPage() {
             <Kanban className="h-4 w-4" /> قیف
           </Button>
           <Button variant={tab === 'ai' ? 'default' : 'outline'} size="sm" onClick={() => setTab('ai')}>
-            <Sparkles className="h-4 w-4" /> AI
+            <Sparkles className="h-4 w-4" /> هوش مصنوعی
           </Button>
           <Button onClick={() => { setTab('pipeline'); setShowCreate((v) => !v) }}>
             <Plus className="h-4 w-4" /> معامله جدید
@@ -312,7 +313,7 @@ export function CrmPage() {
                 className={`text-xs px-3 py-1.5 rounded-full border ${d.is_overdue ? 'border-danger text-danger' : 'border-card-border'}`}
               >
                 {d.title}
-                {d.follow_up_at && <span className="mr-1 opacity-70">· {formatJalaliDate(d.follow_up_at)}</span>}
+                {d.follow_up_at && <span className="mr-1 opacity-70">· {formatJalaliDate(d.follow_up_at, true)}</span>}
               </button>
             ))}
           </CardContent>
@@ -331,7 +332,13 @@ export function CrmPage() {
               {Object.entries(PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
             <Input placeholder="منبع (دیوار، معرفی، …)" value={createForm.source} onChange={(e) => setCreateForm({ ...createForm, source: e.target.value })} />
-            <Input type="datetime-local" value={createForm.follow_up_at} onChange={(e) => setCreateForm({ ...createForm, follow_up_at: e.target.value })} />
+            <div>
+              <p className="text-xs text-muted mb-1">زمان پیگیری (شمسی)</p>
+              <JalaliDateTimePicker
+                value={createForm.follow_up_at}
+                onChange={(v) => setCreateForm({ ...createForm, follow_up_at: v })}
+              />
+            </div>
             <textarea className="sm:col-span-2 w-full min-h-[60px] rounded-xl border border-card-border bg-background/50 p-3 text-sm" placeholder="یادداشت" value={createForm.notes} onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })} />
             <div className="sm:col-span-2 flex gap-2">
               <Button onClick={() => createMutation.mutate()} disabled={!createForm.title || createMutation.isPending}>ثبت معامله</Button>
@@ -425,7 +432,13 @@ export function CrmPage() {
                 <select className="w-full rounded-xl border border-card-border bg-background/50 p-2 text-sm" value={editForm.priority} onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}>
                   {Object.entries(PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
-                <Input type="datetime-local" value={editForm.follow_up_at} onChange={(e) => setEditForm({ ...editForm, follow_up_at: e.target.value })} />
+                <div>
+                  <p className="text-xs text-muted mb-1">زمان پیگیری (شمسی)</p>
+                  <JalaliDateTimePicker
+                    value={editForm.follow_up_at}
+                    onChange={(v) => setEditForm({ ...editForm, follow_up_at: v })}
+                  />
+                </div>
                 <textarea className="w-full min-h-[50px] rounded-xl border border-card-border bg-background/50 p-2 text-xs" placeholder="یادداشت" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
                 {selected.lead_score != null && (
                   <p className="text-xs text-muted">امتیاز سرنخ: <span className="text-primary font-bold">{selected.lead_score}</span>/100</p>
@@ -457,7 +470,7 @@ export function CrmPage() {
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {activities?.map((a) => (
                       <div key={a.id} className="text-xs border-b border-card-border pb-2">
-                        <p className="text-[10px] text-muted">{ACTIVITY_TYPES.find((t) => t.value === a.type)?.label || a.type} · {a.user?.name} · {formatJalaliDate(a.created_at)}</p>
+                        <p className="text-[10px] text-muted">{ACTIVITY_TYPES.find((t) => t.value === a.type)?.label || a.type} · {a.user?.name} · {formatJalaliDate(a.created_at, true)}</p>
                         <p>{a.body}</p>
                       </div>
                     ))}
