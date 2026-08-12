@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('properties:remind-expiry')->dailyAt('09:30');
         $schedule->command('subscriptions:remind')->dailyAt('09:00');
         $schedule->command('visits:remind')->hourly();
+        $schedule->command('blog:publish-scheduled')->everyMinute();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         //

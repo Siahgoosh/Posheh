@@ -152,6 +152,8 @@ else
 fi
 $COMPOSE exec -T app php artisan blog:rebuild-batch 1 --force --no-interaction 2>/dev/null \
   || log "blog:rebuild-batch skipped (run after migrate if needed)"
+$COMPOSE exec -T app php artisan blog:cms-bootstrap --no-interaction 2>/dev/null \
+  || log "blog:cms-bootstrap skipped"
 $COMPOSE exec -T app php artisan db:seed --class=VirtualTourSeeder --force --no-interaction 2>/dev/null \
   || log "VirtualTourSeeder skipped (virtual tour module not deployed yet)"
 $COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \

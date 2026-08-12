@@ -21,6 +21,7 @@ import { SubscriptionPage } from '@/pages/SubscriptionPage'
 import { BlogListPage } from '@/pages/BlogListPage'
 import { BlogCategoryPage } from '@/pages/BlogCategoryPage'
 import { BlogPostPage } from '@/pages/BlogPostPage'
+import { BlogSearchPage } from '@/pages/BlogSearchPage'
 import { DownloadPage } from '@/pages/DownloadPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SuperAdminRoute } from '@/components/SuperAdminRoute'
@@ -92,6 +93,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/blog" element={<BlogListPage />} />
+          <Route path="/blog/search" element={<BlogSearchPage />} />
           <Route path="/blog/category/:category" element={<BlogCategoryPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
           <Route path="/download" element={<DownloadPage />} />

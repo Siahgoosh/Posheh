@@ -4,9 +4,13 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
+use App\Models\BlogPostVersion;
 use App\Services\Blog\BlogContentQualityScorer;
+use App\Services\Blog\BlogPublishService;
 use App\Services\Blog\BlogQualityGate;
+use App\Services\Blog\BlogReadingTimeCalculator;
 use App\Services\Blog\BlogSeoAnalyzer;
+use App\Services\Blog\BlogSitemapService;
 use App\Services\Blog\BlogVersioningService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +24,9 @@ class BlogAdminController extends Controller
         private readonly BlogContentQualityScorer $qualityScorer,
         private readonly BlogQualityGate $qualityGate,
         private readonly BlogVersioningService $versioning,
+        private readonly BlogPublishService $publisher,
+        private readonly BlogReadingTimeCalculator $readingTime,
+        private readonly BlogSitemapService $sitemap,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -78,9 +85,15 @@ class BlogAdminController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $this->validated($request);
+        $tagIds = $data['_tag_ids'] ?? null;
+        unset($data['_tag_ids']);
         $data['quality_scores'] = ['after' => $this->qualityScorer->score($data)];
         $post = BlogPost::create($data);
+        if (is_array($tagIds)) {
+            $post->tags()->sync($tagIds);
+        }
         $this->versioning->snapshot($post, 'create', $request->user()?->email);
+        $this->sitemap->invalidate();
 
         return response()->json([
             'data' => $this->adminItem($post, includeContent: true),
@@ -114,7 +127,13 @@ class BlogAdminController extends Controller
             'before' => $post->quality_scores['after'] ?? $this->qualityScorer->score($post->toArray()),
             'after' => $this->qualityScorer->score(array_merge($post->toArray(), $data)),
         ];
+        $tagIds = $data['_tag_ids'] ?? null;
+        unset($data['_tag_ids']);
         $post->update($data);
+        if (is_array($tagIds)) {
+            $post->tags()->sync($tagIds);
+        }
+        $this->sitemap->invalidate();
 
         return response()->json([
             'data' => $this->adminItem($post->fresh(), includeContent: true),
@@ -127,8 +146,80 @@ class BlogAdminController extends Controller
     public function destroy(int $id): JsonResponse
     {
         BlogPost::findOrFail($id)->delete();
+        $this->sitemap->invalidate();
 
         return response()->json(['message' => 'مقاله حذف شد.']);
+    }
+
+    public function publish(Request $request, int $id): JsonResponse
+    {
+        $post = BlogPost::findOrFail($id);
+        $result = $this->publisher->publish($post, [], $request);
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => 'انتشار مسدود شد.', 'gate' => $result['gate']], 422);
+        }
+
+        return response()->json([
+            'data' => $this->adminItem($result['post'], includeContent: true),
+            'gate' => $result['gate'],
+        ]);
+    }
+
+    public function unpublish(Request $request, int $id): JsonResponse
+    {
+        $post = $this->publisher->unpublish(BlogPost::findOrFail($id), $request);
+
+        return response()->json(['data' => $this->adminItem($post, includeContent: true)]);
+    }
+
+    public function schedule(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate(['scheduled_at' => ['required', 'date', 'after:now']]);
+        $result = $this->publisher->schedule(BlogPost::findOrFail($id), $data['scheduled_at'], $request);
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['message' => 'زمان‌بندی مسدود شد.', 'gate' => $result['gate']], 422);
+        }
+
+        return response()->json(['data' => $this->adminItem($result['post'], includeContent: true)]);
+    }
+
+    public function previewToken(int $id): JsonResponse
+    {
+        $post = BlogPost::findOrFail($id);
+        $token = $this->publisher->ensurePreviewToken($post);
+
+        return response()->json([
+            'data' => [
+                'token' => $token,
+                'url' => '/blog/preview/'.$token,
+            ],
+        ]);
+    }
+
+    public function restoreVersion(Request $request, int $id, int $versionId): JsonResponse
+    {
+        $post = BlogPost::findOrFail($id);
+        $version = BlogPostVersion::where('blog_post_id', $post->id)->where('id', $versionId)->firstOrFail();
+        $restored = $this->versioning->restore($post, $version);
+        $this->sitemap->invalidate();
+
+        return response()->json(['data' => $this->adminItem($restored, includeContent: true)]);
+    }
+
+    public function submitReview(Request $request, int $id): JsonResponse
+    {
+        $post = BlogPost::findOrFail($id);
+        $post->update(['review_status' => BlogPost::REVIEW_IN_REVIEW]);
+
+        return response()->json(['data' => $this->adminItem($post->fresh())]);
+    }
+
+    public function approve(Request $request, int $id): JsonResponse
+    {
+        $post = BlogPost::findOrFail($id);
+        $post->update(['review_status' => BlogPost::REVIEW_APPROVED]);
+
+        return response()->json(['data' => $this->adminItem($post->fresh())]);
     }
 
     public function categories(): JsonResponse
@@ -249,7 +340,19 @@ class BlogAdminController extends Controller
             'image_prompt' => ['nullable', 'string', 'max:2000'],
             'scheduled_at' => ['nullable', 'date'],
             'content_brief' => ['nullable', 'array'],
+            'og_title' => ['nullable', 'string', 'max:255'],
+            'og_description' => ['nullable', 'string', 'max:500'],
+            'og_image' => ['nullable', 'string', 'max:500'],
+            'is_featured' => ['sometimes', 'boolean'],
+            'is_editors_pick' => ['sometimes', 'boolean'],
+            'blog_category_id' => ['nullable', 'integer', 'exists:blog_categories,id'],
+            'blog_author_id' => ['nullable', 'integer', 'exists:blog_authors,id'],
+            'tag_ids' => ['nullable', 'array'],
+            'tag_ids.*' => ['integer', 'exists:blog_tags,id'],
         ]);
+
+        $tagIds = $data['tag_ids'] ?? null;
+        unset($data['tag_ids']);
 
         if (! empty($data['category_slug']) && empty($data['category_label'])) {
             $data['category_label'] = \App\Http\Controllers\Api\Blog\BlogController::CATEGORIES[$data['category_slug']] ?? null;
@@ -259,9 +362,12 @@ class BlogAdminController extends Controller
             $data['slug'] = BlogPost::makeSlug($data['title']);
         }
 
-        if (empty($data['reading_time'])) {
-            $plain = strip_tags($data['content']);
-            $data['reading_time'] = max(1, (int) ceil(mb_strlen($plain) / 800));
+        if (empty($data['reading_time']) && ! empty($data['content'])) {
+            $data['reading_time'] = $this->readingTime->calculate($data['content']);
+        }
+
+        if (! empty($data['content'])) {
+            $data['content_updated_at'] = now();
         }
 
         if (($data['is_published'] ?? false) && empty($data['published_at'])) {
@@ -272,6 +378,8 @@ class BlogAdminController extends Controller
             $data['published_at'] = null;
             $data['review_status'] = $data['review_status'] ?? BlogPost::REVIEW_DRAFT;
         }
+
+        $data['_tag_ids'] = $tagIds;
 
         return $data;
     }
@@ -309,9 +417,18 @@ class BlogAdminController extends Controller
             'quality_scores' => $post->quality_scores,
             'content_brief' => $post->content_brief,
             'image_prompt' => $post->image_prompt,
+            'is_featured' => (bool) $post->is_featured,
+            'is_editors_pick' => (bool) $post->is_editors_pick,
+            'blog_category_id' => $post->blog_category_id,
+            'blog_author_id' => $post->blog_author_id,
+            'tag_ids' => $post->tags()->pluck('blog_tags.id'),
+            'og_title' => $post->og_title,
+            'og_description' => $post->og_description,
+            'og_image' => $post->og_image,
             'scheduled_at' => $post->scheduled_at?->toIso8601String(),
             'published_at' => $post->published_at?->toIso8601String(),
             'updated_at' => $post->updated_at?->toIso8601String(),
+            'content_updated_at' => $post->content_updated_at?->toIso8601String(),
         ];
 
         if ($includeContent) {
