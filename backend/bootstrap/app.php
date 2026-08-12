@@ -28,6 +28,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('seo:technical-audit --scope=weekly --scan-links')->weeklyOn(2, '02:45');
         $schedule->command('seo:local-audit')->dailyAt('02:50');
         $schedule->command('seo:local-audit --opportunities')->weeklyOn(3, '03:00');
+        $schedule->command('content:process-ai-jobs --limit=20')->everyFiveMinutes();
+        $schedule->command('content:ops-audit --process=5')->dailyAt('03:10');
+        $schedule->command('content:ops-audit --weekly')->weeklyOn(1, '05:30');
+        $schedule->command('content:ops-audit --monthly')->monthlyOn(1, '06:00');
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);

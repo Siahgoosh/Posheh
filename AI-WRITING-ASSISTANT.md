@@ -19,7 +19,11 @@ AI is an **assistant**, never the publisher.
 
 ## Actions
 
-`outline`, `titles`, `meta_description`, `excerpt`, `slug`, `faq`, `brief`, `intro`, `conclusion`, `simplify`, `expand`, `cta`, `normalize_persian`, `internal_links`, `cannibalization_check`, `intent_suggest`
+`outline`, `titles`, `meta_description`, `excerpt`, `slug`, `faq`, `brief`, `intro`, `conclusion`, `simplify`, `expand`, `cta`, `normalize_persian`, `internal_links`, `cannibalization_check`, `intent_suggest`, `draft`, `image_brief`, `refresh_plan`, `repurpose_hints`
+
+## Phase 10
+
+Full Content OS jobs/queue/cost/editorial live under `/admin/content-ops` — see `AI-CONTENT-OPERATIONS.md`. Same rule: **never auto-publish**.
 
 ## Output rules
 

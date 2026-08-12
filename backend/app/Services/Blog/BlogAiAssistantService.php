@@ -45,6 +45,10 @@ class BlogAiAssistantService
             'internal_links' => ['action' => $action, 'prompt_version' => 'SEO_ANALYZER_V1', 'result' => $this->internalLinks($payload)],
             'cannibalization_check' => ['action' => $action, 'prompt_version' => 'SEO_ANALYZER_V1', 'result' => $this->cannibalizationCheck($title, $focus, (int) ($payload['exclude_id'] ?? 0))],
             'intent_suggest' => ['action' => $action, 'prompt_version' => 'SEO_ANALYZER_V1', 'result' => $this->intentSuggest($title, $plain)],
+            'draft' => ['action' => $action, 'prompt_version' => self::PROMPT_VERSION, 'result' => $this->draft($title, $focus, $intent, $plain)],
+            'image_brief' => ['action' => $action, 'prompt_version' => 'CONTENT_EDITOR_V1', 'result' => $this->imageBrief($title, $focus)],
+            'refresh_plan' => ['action' => $action, 'prompt_version' => 'SEO_ANALYZER_V1', 'result' => $this->refreshPlan($title, $plain)],
+            'repurpose_hints' => ['action' => $action, 'prompt_version' => 'CONTENT_EDITOR_V1', 'result' => $this->repurposeHints($title, $plain)],
             default => ['action' => $action, 'error' => 'Unknown action', 'available' => $this->availableActions()],
         };
     }
@@ -56,6 +60,7 @@ class BlogAiAssistantService
             'outline', 'titles', 'meta_description', 'excerpt', 'slug', 'faq', 'brief',
             'intro', 'conclusion', 'simplify', 'expand', 'cta', 'normalize_persian',
             'internal_links', 'cannibalization_check', 'intent_suggest',
+            'draft', 'image_brief', 'refresh_plan', 'repurpose_hints',
         ];
     }
 
@@ -276,5 +281,72 @@ class BlogAiAssistantService
         }
 
         return ['intent' => 'informational', 'confidence' => 'low'];
+    }
+
+    /** @return array<string,mixed> */
+    private function draft(string $title, string $focus, string $intent, string $plain): array
+    {
+        $topic = $focus ?: $title ?: 'موضوع';
+        $intro = strip_tags((string) ($this->intro($title, $focus)['html'] ?? ''));
+        $body = $plain !== ''
+            ? Str::limit($plain, 800, '…')
+            : "این پیش‌نویس فقط اسکلت محتواست. آمار، قیمت، قانون و منبع را فقط با دادهٔ تأییدشده اضافه کنید.";
+        $outro = strip_tags((string) ($this->conclusion($title)['html'] ?? ''));
+
+        return [
+            'html' => '<h2>پاسخ کوتاه</h2><p>'.$intro.'</p>'
+                .'<h2>'.$topic.' در عمل</h2><p>'.$body.'</p>'
+                .'<h2>چک‌لیست</h2><ul><li>نیاز کاربر را مشخص کنید</li><li>گزینه‌ها را با معیار واقعی مقایسه کنید</li><li>قبل از تصمیم، منبع را بررسی کنید</li></ul>'
+                .'<h2>جمع‌بندی</h2><p>'.$outro.'</p>',
+            'word_count_hint' => 'طول بر اساس intent/پیچیدگی — بدون هدف کلمهٔ اجباری',
+            'intent' => $intent,
+            'anti_ai_generic' => true,
+            'disclaimer' => 'پیش‌نویس دستیار — انتشار خودکار ممنوع. Claims حساس نیاز به Fact Check انسانی دارند.',
+        ];
+    }
+
+    /** @return list<array<string,string>> */
+    private function imageBrief(string $title, string $focus): array
+    {
+        $subject = $focus ?: $title ?: 'موضوع املاک';
+
+        return [
+            [
+                'purpose' => 'hero',
+                'placement' => 'top',
+                'subject' => 'تصویر مستند مرتبط با '.$subject,
+                'aspect_ratio' => '1200x630',
+                'alt_text' => $subject.' — تصویر توصیفی',
+                'prompt' => 'Documentary real-estate office scene related to '.$subject.'. No fake logos, charts-as-facts, or readable fake KPIs.',
+            ],
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private function refreshPlan(string $title, string $plain): array
+    {
+        return [
+            'policy' => 'surgical_refresh',
+            'sections_to_touch' => array_values(array_filter([
+                mb_strlen($plain) < 400 ? 'expand_weak_sections' : null,
+                'update_outdated_time_sensitive_bits',
+                'strengthen_faq_with_real_questions',
+                'add_natural_internal_links',
+            ])),
+            'do_not' => ['full_rewrite_without_reason', 'invent_stats', 'fake_reviews'],
+            'title' => $title,
+        ];
+    }
+
+    /** @return array<string,string> */
+    private function repurposeHints(string $title, string $plain): array
+    {
+        $ex = Str::limit($plain !== '' ? $plain : $title, 160, '…');
+
+        return [
+            'telegram' => "📌 {$title}\n{$ex}",
+            'instagram' => "{$title}\n{$ex}",
+            'snippet' => $ex,
+        ];
     }
 }

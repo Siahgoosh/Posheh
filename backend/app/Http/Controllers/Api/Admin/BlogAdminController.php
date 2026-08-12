@@ -17,6 +17,7 @@ use App\Services\Blog\BlogSeoAnalyzer;
 use App\Services\Blog\BlogSitemapService;
 use App\Services\Blog\BlogVersioningService;
 use App\Services\Blog\PersianTextNormalizer;
+use App\Services\ContentOps\EditorialWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -36,6 +37,7 @@ class BlogAdminController extends Controller
         private readonly BlogPublishChecklistService $checklist,
         private readonly PersianTextNormalizer $normalizer,
         private readonly BlogAuditLogger $audit,
+        private readonly EditorialWorkflowService $editorial,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -254,6 +256,13 @@ class BlogAdminController extends Controller
     public function publish(Request $request, int $id): JsonResponse
     {
         $post = BlogPost::findOrFail($id);
+        $opsGate = $this->editorial->publishGate($post);
+        if (! ($opsGate['passed'] ?? false) && ! $request->boolean('force')) {
+            return response()->json([
+                'message' => 'Content OS publish gate failed — AI cannot override.',
+                'ops_gate' => $opsGate,
+            ], 422);
+        }
         $checklist = $this->checklist->evaluate($post->toArray());
         if (! $checklist['passed'] && ! $request->boolean('force')) {
             return response()->json([
@@ -266,10 +275,13 @@ class BlogAdminController extends Controller
             return response()->json(['message' => 'انتشار مسدود شد.', 'gate' => $result['gate'], 'checklist' => $checklist], 422);
         }
 
+        $this->editorial->afterPublish($result['post'], $request->user()?->id);
+
         return response()->json([
             'data' => $this->adminItem($result['post'], includeContent: true),
             'gate' => $result['gate'],
             'checklist' => $checklist,
+            'ops_gate' => $opsGate,
             'automation' => [
                 'sitemap_invalidated' => true,
                 'note' => 'قرارگیری در Sitemap تضمین Index گوگل نیست.',
