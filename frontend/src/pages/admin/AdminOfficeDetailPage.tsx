@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { formatJalaliDate, formatNumber, formatPrice, toEnglishDigits } from '@/lib/utils'
+import { extractApiError } from '@/lib/apiError'
 import { useMemo, useState } from 'react'
 
 type PlanOption = {
@@ -22,12 +23,6 @@ function parseAmount(raw: string): number {
   const cleaned = toEnglishDigits(raw).replace(/[^\d]/g, '')
   if (!cleaned) return 0
   return parseInt(cleaned, 10) || 0
-}
-
-function apiError(err: unknown): string {
-  const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } }; message?: string }
-  const field = e.response?.data?.errors && Object.values(e.response.data.errors)[0]?.[0]
-  return field || e.response?.data?.message || e.message || 'عملیات ناموفق بود'
 }
 
 export function AdminOfficeDetailPage() {
@@ -66,7 +61,7 @@ export function AdminOfficeDetailPage() {
       setFeedback({ type: 'ok', text: 'وضعیت دفتر به‌روز شد.' })
       queryClient.invalidateQueries({ queryKey: ['admin-office', id] })
     },
-    onError: (err) => setFeedback({ type: 'err', text: apiError(err) }),
+    onError: (err) => setFeedback({ type: 'err', text: extractApiError(err) }),
   })
 
   const assignPlan = useMutation({
@@ -79,7 +74,7 @@ export function AdminOfficeDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-office', id] })
       queryClient.invalidateQueries({ queryKey: ['admin-subscriptions'] })
     },
-    onError: (err) => setFeedback({ type: 'err', text: apiError(err) }),
+    onError: (err) => setFeedback({ type: 'err', text: extractApiError(err) }),
   })
 
   const walletMutation = useMutation({
@@ -95,7 +90,7 @@ export function AdminOfficeDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-office', id] })
       queryClient.invalidateQueries({ queryKey: ['admin-wallets'] })
     },
-    onError: (err) => setFeedback({ type: 'err', text: apiError(err) }),
+    onError: (err) => setFeedback({ type: 'err', text: extractApiError(err) }),
   })
 
   if (isLoading || !office) return <p className="text-muted p-6">بارگذاری…</p>

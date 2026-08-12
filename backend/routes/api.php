@@ -80,6 +80,31 @@ use App\Http\Middleware\EnsureUserHasRole;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
+    Route::get('/version', function () {
+        $git = 'unknown';
+        $root = base_path('..');
+        try {
+            $out = trim((string) shell_exec('git -C '.escapeshellarg(base_path()).' rev-parse --short HEAD 2>/dev/null'));
+            if ($out !== '') {
+                $git = $out;
+            }
+        } catch (\Throwable) {
+            // ignore
+        }
+
+        $frontendVersion = null;
+        $versionPath = $root.'/frontend/dist/version.json';
+        if (is_readable($versionPath)) {
+            $frontendVersion = json_decode((string) file_get_contents($versionPath), true);
+        }
+
+        return response()->json([
+            'git' => $git,
+            'app' => config('app.name'),
+            'frontend' => $frontendVersion,
+        ]);
+    });
+
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:15,1');
     Route::get('/auth/capabilities', [AuthController::class, 'capabilities']);
     Route::post('/auth/otp/send', [AuthController::class, 'sendOtp'])->middleware('throttle:10,1');

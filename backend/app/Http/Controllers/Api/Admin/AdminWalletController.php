@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Office;
 use App\Models\Wallet;
-use App\Models\WalletTransaction;
 use App\Services\Admin\AuditLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 class AdminWalletController extends Controller
 {
@@ -26,7 +28,7 @@ class AdminWalletController extends Controller
 
     public function transactions(Request $request): JsonResponse
     {
-        $query = WalletTransaction::with(['wallet.office:id,name'])
+        $query = \App\Models\WalletTransaction::with(['wallet.office:id,name'])
             ->when($request->filled('office_id'), function ($q) use ($request) {
                 $q->whereHas('wallet', fn ($w) => $w->where('office_id', $request->integer('office_id')));
             })
@@ -37,20 +39,28 @@ class AdminWalletController extends Controller
 
     public function adjust(Request $request, int $officeId): JsonResponse
     {
-        Office::query()->findOrFail($officeId);
-
-        $data = $request->validate([
-            'amount' => ['required', 'numeric', 'min:1'],
-            'type' => ['required', 'in:credit,debit'],
-            'description' => ['required', 'string', 'max:500'],
-        ]);
-
-        $amount = (int) abs((float) $data['amount']);
-        if ($amount < 1) {
-            return response()->json(['message' => 'مبلغ باید حداقل ۱ تومان باشد.'], 422);
-        }
-
         try {
+            if (! Schema::hasTable('wallets') || ! Schema::hasTable('wallet_transactions')) {
+                return response()->json([
+                    'message' => 'جدول کیف پول در دیتابیس وجود ندارد. لطفاً migrate را اجرا کنید.',
+                    'code' => 'schema_outdated',
+                ], 500);
+            }
+
+            Office::query()->findOrFail($officeId);
+
+            $data = $request->validate([
+                'amount' => ['required', 'numeric', 'min:1'],
+                'type' => ['required', 'in:credit,debit'],
+                // DB column is varchar(255); keep room for " (مدیر سیستم)"
+                'description' => ['required', 'string', 'max:200'],
+            ]);
+
+            $amount = (int) abs((float) $data['amount']);
+            if ($amount < 1) {
+                return response()->json(['message' => 'مبلغ باید حداقل ۱ تومان باشد.'], 422);
+            }
+
             $wallet = DB::transaction(function () use ($officeId, $data, $amount) {
                 $wallet = Wallet::query()->firstOrCreate(
                     ['office_id' => $officeId],
@@ -71,11 +81,14 @@ class AdminWalletController extends Controller
 
                 $wallet->refresh();
 
+                $suffix = ' (مدیر سیستم)';
+                $baseDesc = mb_substr((string) $data['description'], 0, 255 - mb_strlen($suffix));
+
                 $wallet->transactions()->create([
                     'type' => $data['type'] === 'credit' ? 'credit' : 'debit',
                     'amount' => $amount,
                     'balance_after' => (int) $wallet->balance,
-                    'description' => $data['description'].' (مدیر سیستم)',
+                    'description' => $baseDesc.$suffix,
                 ]);
 
                 return $wallet->fresh('office');
@@ -84,10 +97,12 @@ class AdminWalletController extends Controller
             if ($e->getMessage() === 'INSUFFICIENT_BALANCE') {
                 return response()->json(['message' => 'موجودی کافی نیست.'], 422);
             }
-            throw $e;
+
+            return $this->fail('کیف پول', $e);
+        } catch (Throwable $e) {
+            return $this->fail('کیف پول', $e);
         }
 
-        // Outside the money transaction so audit schema issues cannot roll back the charge.
         $this->audit->log(
             'wallet.adjusted',
             Wallet::class,
@@ -101,5 +116,31 @@ class AdminWalletController extends Controller
             'data' => $wallet,
             'message' => $data['type'] === 'credit' ? 'کیف پول با موفقیت شارژ شد.' : 'برداشت با موفقیت انجام شد.',
         ]);
+    }
+
+    private function fail(string $op, Throwable $e): JsonResponse
+    {
+        Log::error("admin.{$op}.failed", [
+            'error' => $e->getMessage(),
+            'class' => $e::class,
+        ]);
+
+        $hint = $this->schemaHint($e->getMessage());
+
+        return response()->json([
+            'message' => $hint ?: ("خطا در عملیات {$op}: ".$e->getMessage()),
+            'code' => $hint ? 'schema_outdated' : class_basename($e),
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+
+    private function schemaHint(string $message): ?string
+    {
+        $m = mb_strtolower($message);
+        if (str_contains($m, 'audit_logs') || str_contains($m, 'unknown column') || str_contains($m, 'base table or view not found')) {
+            return 'اسکیمای دیتابیس قدیمی است. روی سرور اجرا کنید: ./scripts/deploy.sh cursor/production-release-a876';
+        }
+
+        return null;
     }
 }

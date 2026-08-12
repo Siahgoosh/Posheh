@@ -5,14 +5,16 @@ export function extractApiError(err: unknown, fallback = 'خطای سرور'): s
     return err instanceof Error ? err.message : fallback
   }
 
+  const status = err.response?.status
   const data = err.response?.data as {
     message?: string
+    error?: string
     errors?: Record<string, string[]>
     code?: string
   } | undefined
 
   if (data?.code === 'schema_outdated') {
-    return data.message || 'دیتابیس به‌روز نیست. لطفاً migrate را اجرا کنید.'
+    return data.message || 'دیتابیس به‌روز نیست. لطفاً migrate / deploy را اجرا کنید.'
   }
 
   if (data?.errors) {
@@ -28,12 +30,24 @@ export function extractApiError(err: unknown, fallback = 'خطای سرور'): s
     return data.message
   }
 
-  if (err.response?.status === 500) {
-    return 'خطای سرور هنگام آپلود. اگر تازه deploy کرده‌اید، migrate را اجرا کنید.'
+  if (data?.error) {
+    return data.error
   }
 
-  if (err.response?.status === 413) {
+  if (status === 502 || status === 503 || status === 504) {
+    return 'API در دسترس نیست (خطای دروازه). سرویس app/nginx را روی سرور بررسی کنید.'
+  }
+
+  if (status === 500) {
+    return 'خطای سرور. اگر تازه UI را آپدیت کرده‌اید، حتماً دوباره deploy کامل با migrate بزنید.'
+  }
+
+  if (status === 413) {
     return 'حجم فایل بیش از حد مجاز سرور است.'
+  }
+
+  if (!err.response) {
+    return 'ارتباط با سرور برقرار نشد. اتصال یا وضعیت API را بررسی کنید.'
   }
 
   return fallback

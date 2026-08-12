@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
+import { extractApiError } from '@/lib/apiError'
 
 type WalletRow = {
   id: number
@@ -20,12 +21,6 @@ function parseAmount(raw: string): number {
   const cleaned = toEnglishDigits(raw).replace(/[^\d]/g, '')
   if (!cleaned) return 0
   return parseInt(cleaned, 10) || 0
-}
-
-function apiError(err: unknown): string {
-  const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } }; message?: string }
-  const field = e.response?.data?.errors && Object.values(e.response.data.errors)[0]?.[0]
-  return field || e.response?.data?.message || e.message || 'عملیات ناموفق بود'
 }
 
 export function AdminWalletsPage() {
@@ -73,7 +68,7 @@ export function AdminWalletsPage() {
       setDesc('')
       setFeedback({ type: 'ok', text: res.data?.message || 'عملیات کیف پول انجام شد.' })
     },
-    onError: (err) => setFeedback({ type: 'err', text: apiError(err) }),
+    onError: (err) => setFeedback({ type: 'err', text: extractApiError(err) }),
   })
 
   return (
