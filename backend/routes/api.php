@@ -306,6 +306,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/impersonation-sessions', [AdminDataController::class, 'impersonationSessions']);
 
             Route::get('/blog', [BlogAdminController::class, 'index']);
+            Route::get('/blog/health', [BlogAdminController::class, 'health']);
             Route::get('/blog/categories', [BlogAdminController::class, 'categories']);
             Route::post('/blog/analyze-seo', [BlogAdminController::class, 'analyzeSeo']);
             Route::post('/blog/upload-image', [BlogAdminController::class, 'uploadImage']);
