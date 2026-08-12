@@ -28,4 +28,5 @@ Disallow: /blog/preview/
 Sitemap: https://posheapp.ir/sitemap.xml
 Sitemap: https://posheapp.ir/sitemap-blog.xml
 Sitemap: https://posheapp.ir/sitemap-pages.xml
+Sitemap: https://posheapp.ir/sitemap-locations.xml
 Sitemap: https://posheapp.ir/sitemap-tours.xml

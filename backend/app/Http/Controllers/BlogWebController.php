@@ -276,6 +276,7 @@ class BlogWebController extends Controller
         $body .= "Sitemap: {$base}/sitemap.xml\n";
         $body .= "Sitemap: {$base}/sitemap-blog.xml\n";
         $body .= "Sitemap: {$base}/sitemap-pages.xml\n";
+        $body .= "Sitemap: {$base}/sitemap-locations.xml\n";
         $body .= "Sitemap: {$base}/sitemap-tours.xml\n";
 
         return response($body, 200, ['Content-Type' => 'text/plain; charset=UTF-8']);

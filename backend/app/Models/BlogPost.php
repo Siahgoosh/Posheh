@@ -44,6 +44,9 @@ class BlogPost extends Model
     protected $fillable = [
         'blog_category_id',
         'blog_author_id',
+        'primary_entity_id',
+        'seo_location_id',
+        'seo_topic_id',
         'slug',
         'preview_token',
         'category_slug',

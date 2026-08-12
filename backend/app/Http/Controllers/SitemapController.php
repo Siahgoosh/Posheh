@@ -29,6 +29,7 @@ class SitemapController extends Controller
             $out .= $this->sitemapEntry($base.'/sitemap-pages.xml');
             $out .= $this->sitemapEntry($base.'/sitemap-posts.xml');
             $out .= $this->sitemapEntry($base.'/sitemap-categories.xml');
+            $out .= $this->sitemapEntry($base.'/sitemap-locations.xml');
             $out .= $this->sitemapEntry($base.'/sitemap-tours.xml');
             $out .= '</sitemapindex>';
 
@@ -89,6 +90,20 @@ class SitemapController extends Controller
         }
         foreach ($payload['tags'] ?? [] as $tag) {
             $xml .= $this->url($base.$tag['path'], (float) ($tag['priority'] ?? 0.5), $tag['lastmod'] ?? null);
+        }
+        $xml .= '</urlset>';
+
+        return $this->xmlResponse($xml);
+    }
+
+    public function locations(): Response
+    {
+        $payload = $this->sitemapService->payload();
+        $base = $this->baseUrl();
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+        foreach ($payload['locations'] ?? [] as $loc) {
+            $xml .= $this->url($base.$loc['path'], (float) ($loc['priority'] ?? 0.7), $loc['lastmod'] ?? null);
         }
         $xml .= '</urlset>';
 

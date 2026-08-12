@@ -117,6 +117,7 @@ export function AdminBlogListPage() {
           <Link to={adminPath('blog/media')}><Button variant="outline"><ImageIcon className="h-4 w-4" /> Media</Button></Link>
           <Link to={adminPath('seo-growth')}><Button variant="outline">SEO Growth</Button></Link>
           <Link to={adminPath('seo-technical')}><Button variant="outline">Technical SEO</Button></Link>
+          <Link to={adminPath('seo-local')}><Button variant="outline">Local SEO</Button></Link>
           <Link to={adminPath('cro')}><Button variant="outline">CRO / Leads</Button></Link>
           <Button variant="outline" onClick={() => bootstrapMutation.mutate()}>Bootstrap</Button>
           <a href="/api/v1/admin/blog/export.csv" target="_blank" rel="noreferrer">

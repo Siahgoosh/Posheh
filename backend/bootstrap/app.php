@@ -26,6 +26,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Phase 8 — technical SEO audits (no fake metrics)
         $schedule->command('seo:technical-audit --scope=daily')->dailyAt('02:30');
         $schedule->command('seo:technical-audit --scope=weekly --scan-links')->weeklyOn(2, '02:45');
+        $schedule->command('seo:local-audit')->dailyAt('02:50');
+        $schedule->command('seo:local-audit --opportunities')->weeklyOn(3, '03:00');
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);

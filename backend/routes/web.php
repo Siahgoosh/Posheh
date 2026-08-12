@@ -23,6 +23,7 @@ Route::get('/sitemap-index.xml', [SitemapController::class, 'index']);
 Route::get('/sitemap-pages.xml', [SitemapController::class, 'pages']);
 Route::get('/sitemap-posts.xml', [SitemapController::class, 'posts']);
 Route::get('/sitemap-categories.xml', [SitemapController::class, 'categories']);
+Route::get('/sitemap-locations.xml', [SitemapController::class, 'locations']);
 Route::get('/sitemap-blog.xml', [SitemapController::class, 'blog']);
 Route::get('/sitemap-tours.xml', [SitemapController::class, 'tours']);
 Route::get('/robots.txt', [BlogWebController::class, 'robots']);

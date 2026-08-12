@@ -22,6 +22,7 @@ import { BlogListPage } from '@/pages/BlogListPage'
 import { BlogCategoryPage } from '@/pages/BlogCategoryPage'
 import { BlogPostPage } from '@/pages/BlogPostPage'
 import { BlogSearchPage } from '@/pages/BlogSearchPage'
+import { LocationPage } from '@/pages/LocationPage'
 import { DownloadPage } from '@/pages/DownloadPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SuperAdminRoute } from '@/components/SuperAdminRoute'
@@ -31,6 +32,7 @@ import { AdminBlogCalendarPage } from '@/pages/admin/AdminBlogCalendarPage'
 import { AdminBlogMediaPage } from '@/pages/admin/AdminBlogMediaPage'
 import { AdminSeoGrowthPage } from '@/pages/admin/AdminSeoGrowthPage'
 import { AdminTechnicalSeoPage } from '@/pages/admin/AdminTechnicalSeoPage'
+import { AdminLocalSeoPage } from '@/pages/admin/AdminLocalSeoPage'
 import { AdminCroDashboardPage } from '@/pages/admin/AdminCroDashboardPage'
 import { AboutPage } from '@/pages/AboutPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
@@ -107,6 +109,7 @@ export default function App() {
           <Route path="/blog/search" element={<BlogSearchPage />} />
           <Route path="/blog/category/:category" element={<BlogCategoryPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/locations/:slug" element={<LocationPage />} />
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -228,6 +231,14 @@ export default function App() {
               element={
                 <SuperAdminRoute>
                   <AdminTechnicalSeoPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/seo-local"
+              element={
+                <SuperAdminRoute>
+                  <AdminLocalSeoPage />
                 </SuperAdminRoute>
               }
             />

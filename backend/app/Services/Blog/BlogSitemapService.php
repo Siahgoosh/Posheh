@@ -92,11 +92,13 @@ class BlogSitemapService
                     ['path' => '/register', 'priority' => 0.9],
                     ['path' => '/download', 'priority' => 0.8],
                     ['path' => '/contact', 'priority' => 0.7],
+                    ['path' => '/about', 'priority' => 0.7],
                     ['path' => '/privacy', 'priority' => 0.5],
                     ['path' => '/terms', 'priority' => 0.5],
                 ],
                 'categories' => $categoryPayload,
                 'tags' => $tags,
+                'locations' => $this->locationEntries(),
                 'posts' => $posts->map(fn (BlogPost $post) => [
                     'path' => '/blog/'.$post->slug,
                     'slug' => $post->slug,
@@ -104,5 +106,22 @@ class BlogSitemapService
                 ])->all(),
             ];
         });
+    }
+
+    /** @return list<array{path: string, priority: float, lastmod: string|null}> */
+    private function locationEntries(): array
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('seo_locations')) {
+            return [];
+        }
+
+        return \App\Models\Seo\SeoLocation::published()
+            ->orderBy('name')
+            ->get(['slug', 'content_updated_at', 'published_at', 'updated_at'])
+            ->map(fn ($loc) => [
+                'path' => '/locations/'.$loc->slug,
+                'priority' => 0.7,
+                'lastmod' => ($loc->content_updated_at ?? $loc->updated_at ?? $loc->published_at)?->toIso8601String(),
+            ])->all();
     }
 }
