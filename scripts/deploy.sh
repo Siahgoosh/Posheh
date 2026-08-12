@@ -140,10 +140,20 @@ clear_laravel_cache
 log "5/10 Seeding settings, blog and demo data"
 $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --no-interaction \
   || fail "SystemSettingsSeeder failed"
-$COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
-  || log "BlogSeeder warning (may already be seeded)"
-$COMPOSE exec -T app php artisan blog:seed --count=300 --force --no-interaction 2>/dev/null \
-  || log "Run ./scripts/seed-blog.sh to seed 300 SEO articles"
+# Blog seeding is opt-in to avoid overwriting curated / rebuild_locked drafts.
+# Set BLOG_SEED_ON_DEPLOY=1 only on empty environments that still need template posts.
+if [ "${BLOG_SEED_ON_DEPLOY:-0}" = "1" ]; then
+  $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
+    || log "BlogSeeder warning (may already be seeded)"
+  $COMPOSE exec -T app php artisan blog:seed --count=300 --force --no-interaction 2>/dev/null \
+    || log "Run ./scripts/seed-blog.sh to seed 300 SEO articles"
+else
+  log "Skipping mass blog seed (set BLOG_SEED_ON_DEPLOY=1 to enable). Rebuild drafts: php artisan blog:rebuild-batch 1 --force"
+fi
+$COMPOSE exec -T app php artisan blog:rebuild-batch 1 --force --no-interaction 2>/dev/null \
+  || log "blog:rebuild-batch skipped (run after migrate if needed)"
+$COMPOSE exec -T app php artisan blog:cms-bootstrap --no-interaction 2>/dev/null \
+  || log "blog:cms-bootstrap skipped"
 $COMPOSE exec -T app php artisan db:seed --class=VirtualTourSeeder --force --no-interaction 2>/dev/null \
   || log "VirtualTourSeeder skipped (virtual tour module not deployed yet)"
 $COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \

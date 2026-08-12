@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, ArrowRight, Eye } from 'lucide-react'
+import { Plus, Pencil, Trash2, ArrowRight, Eye, Download } from 'lucide-react'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,12 +10,32 @@ interface BlogPostRow {
   title: string
   slug: string
   is_published: boolean
+  review_status?: string
   views: number
   updated_at?: string
+  rebuild_locked?: boolean
+}
+
+interface Dashboard {
+  total: number
+  published: number
+  draft: number
+  scheduled: number
+  needs_review: number
+  missing_image: number
+  missing_meta: number
+  redirects: number
+  gsc?: { status: string; message: string }
+  seo_health?: Record<string, string | number>
 }
 
 export function AdminBlogListPage() {
   const queryClient = useQueryClient()
+
+  const { data: dash } = useQuery({
+    queryKey: ['admin-blog-dashboard'],
+    queryFn: async () => (await api.get('/admin/blog/dashboard')).data.data as Dashboard,
+  })
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-blog'],
@@ -27,7 +47,15 @@ export function AdminBlogListPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/admin/blog/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-blog'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-blog'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-blog-dashboard'] })
+    },
+  })
+
+  const bootstrapMutation = useMutation({
+    mutationFn: () => api.post('/admin/blog/bootstrap'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-blog-dashboard'] }),
   })
 
   return (
@@ -39,16 +67,53 @@ export function AdminBlogListPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">مدیریت وبلاگ</h1>
-            <p className="text-sm text-muted">فقط مدیر کل — انتشار مقالات سئو</p>
+            <p className="text-sm text-muted">CMS حرفه‌ای — Draft / Review / Publish</p>
           </div>
         </div>
-        <Link to="/admin/blog/new">
-          <Button>
-            <Plus className="h-4 w-4" />
-            مقاله جدید
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => bootstrapMutation.mutate()}>Bootstrap دسته‌ها</Button>
+          <a href="/api/v1/admin/blog/export.csv" target="_blank" rel="noreferrer">
+            <Button variant="outline"><Download className="h-4 w-4" /> خروجی CSV</Button>
+          </a>
+          <Link to="/admin/blog/new">
+            <Button>
+              <Plus className="h-4 w-4" />
+              مقاله جدید
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      {dash && (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            ['کل', dash.total],
+            ['منتشر', dash.published],
+            ['پیش‌نویس', dash.draft],
+            ['زمان‌بندی', dash.scheduled],
+            ['نیاز به بررسی', dash.needs_review],
+            ['بدون تصویر', dash.missing_image],
+            ['بدون متا', dash.missing_meta],
+            ['Redirect فعال', dash.redirects],
+          ].map(([label, value]) => (
+            <Card key={String(label)}>
+              <CardContent className="p-4">
+                <p className="text-xs text-muted">{label}</p>
+                <p className="text-2xl font-bold">{value}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {dash?.gsc && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Search Console</CardTitle></CardHeader>
+          <CardContent className="text-sm text-muted">
+            وضعیت: <strong>{dash.gsc.status}</strong> — {dash.gsc.message}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -69,7 +134,8 @@ export function AdminBlogListPage() {
                   <div>
                     <p className="font-medium">{post.title}</p>
                     <p className="text-xs text-muted">
-                      /blog/{post.slug} · {post.is_published ? 'منتشر شده' : 'پیش‌نویس'} · {post.views} بازدید
+                      /blog/{post.slug} · {post.review_status || (post.is_published ? 'published' : 'draft')}
+                      {post.rebuild_locked ? ' · locked' : ''} · {post.views} بازدید
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -84,12 +150,11 @@ export function AdminBlogListPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-danger"
                       onClick={() => {
-                        if (window.confirm('حذف این مقاله؟')) deleteMutation.mutate(post.id)
+                        if (confirm('حذف این مقاله؟')) deleteMutation.mutate(post.id)
                       }}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 </div>
