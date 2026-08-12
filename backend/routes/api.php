@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\CommissionController;
 use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\CrmMetaController;
+use App\Http\Controllers\Api\CrmSalesEngineController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\DownloadController;
 use App\Http\Controllers\Api\Office\OfficeController;
@@ -123,10 +124,13 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('owners', OwnerController::class);
         Route::apiResource('customers', CustomerController::class);
         Route::get('/customers/{id}/matches', [CustomerController::class, 'matches']);
+        Route::get('/customers/{id}/need-profile', [CustomerController::class, 'needProfile']);
+        Route::put('/customers/{id}/need-profile', [CustomerController::class, 'upsertNeedProfile']);
         Route::get('/visits', [VisitController::class, 'index']);
         Route::get('/visits/upcoming', [VisitController::class, 'upcoming']);
         Route::post('/visits', [VisitController::class, 'store']);
         Route::put('/visits/{id}', [VisitController::class, 'update']);
+        Route::post('/visits/{id}/complete', [VisitController::class, 'complete']);
         Route::delete('/visits/{id}', [VisitController::class, 'destroy']);
 
         Route::get('/tickets', [TicketController::class, 'index']);
@@ -156,6 +160,31 @@ Route::prefix('v1')->group(function () {
         Route::delete('/crm/deals/{id}', [CrmController::class, 'destroy']);
         Route::get('/crm/deals/{id}/activities', [CrmController::class, 'activities']);
         Route::post('/crm/deals/{id}/activities', [CrmController::class, 'addActivity']);
+
+        // CRM Phase 2 — Sales Engine
+        Route::get('/crm/sales-queue', [CrmSalesEngineController::class, 'salesQueue']);
+        Route::get('/crm/opportunities', [CrmSalesEngineController::class, 'opportunities']);
+        Route::get('/crm/briefing', [CrmSalesEngineController::class, 'briefing']);
+        Route::get('/crm/matching-weights', [CrmSalesEngineController::class, 'matchingWeights']);
+        Route::put('/crm/matching-weights', [CrmSalesEngineController::class, 'updateMatchingWeights']);
+        Route::get('/crm/properties/{propertyId}/reverse-matches', [CrmSalesEngineController::class, 'reverseMatch']);
+        Route::get('/crm/negotiations', [CrmSalesEngineController::class, 'listNegotiations']);
+        Route::post('/crm/negotiations', [CrmSalesEngineController::class, 'startNegotiation']);
+        Route::get('/crm/negotiations/{id}', [CrmSalesEngineController::class, 'showNegotiation']);
+        Route::get('/crm/offers', [CrmSalesEngineController::class, 'listOffers']);
+        Route::post('/crm/offers', [CrmSalesEngineController::class, 'storeOffer']);
+        Route::put('/crm/offers/{id}/status', [CrmSalesEngineController::class, 'updateOfferStatus']);
+        Route::post('/crm/offers/{id}/convert-deal', [CrmSalesEngineController::class, 'convertOfferToDeal']);
+        Route::post('/crm/presentations', [CrmSalesEngineController::class, 'presentProperty']);
+        Route::post('/crm/feedback', [CrmSalesEngineController::class, 'storeFeedback']);
+        Route::get('/crm/automation/rules', [CrmSalesEngineController::class, 'automationRules']);
+        Route::post('/crm/automation/rules', [CrmSalesEngineController::class, 'storeAutomationRule']);
+        Route::put('/crm/automation/rules/{id}', [CrmSalesEngineController::class, 'updateAutomationRule']);
+        Route::get('/crm/automation/logs', [CrmSalesEngineController::class, 'automationLogs']);
+        Route::get('/crm/deals/{dealId}/checklist', [CrmSalesEngineController::class, 'dealChecklist']);
+        Route::post('/crm/deals/{dealId}/checklist/{itemId}/toggle', [CrmSalesEngineController::class, 'toggleChecklistItem']);
+        Route::get('/crm/campaigns', [CrmSalesEngineController::class, 'campaigns']);
+        Route::post('/crm/campaigns', [CrmSalesEngineController::class, 'storeCampaign']);
 
         Route::get('/commissions', [CommissionController::class, 'index']);
         Route::get('/commissions/settings', [CommissionController::class, 'settings']);

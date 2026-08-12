@@ -31,7 +31,13 @@ class CrmService
     public function __construct(
         private readonly CommissionService $commissionService,
         private readonly CrmBootstrapService $bootstrap,
+        private readonly CrmAutomationService $automation,
     ) {}
+
+    private function automation(): CrmAutomationService
+    {
+        return $this->automation;
+    }
 
     public function list(User $user)
     {
@@ -79,6 +85,21 @@ class CrmService
 
         $this->logActivity($user, $deal, 'note', 'معامله ایجاد شد');
 
+        try {
+            $this->automation()->ensureDefaultRules((int) $user->office_id);
+            $this->automation()->ensureDealChecklist($deal);
+            $this->automation()->dispatch($user, 'lead_created', $deal, [
+                'lead_score' => $deal->lead_score,
+            ]);
+            if ((int) $deal->lead_score > 80) {
+                $this->automation()->dispatch($user, 'score_changed', $deal, [
+                    'lead_score' => $deal->lead_score,
+                ]);
+            }
+        } catch (\Throwable) {
+            // Phase 2 tables may not be migrated yet
+        }
+
         return $this->enrichDeal($user, $deal->load(['assignee', 'property', 'customer']));
     }
 
@@ -104,8 +125,19 @@ class CrmService
             $data['lead_score'] = max(0, min(100, (int) $data['lead_score']));
         }
 
+        $oldScore = (int) $deal->lead_score;
         $deal->update($data);
         $deal = $deal->fresh(['assignee', 'property', 'customer']);
+
+        if (isset($data['lead_score']) && (int) $deal->lead_score !== $oldScore) {
+            try {
+                $this->automation()->dispatch($user, 'score_changed', $deal, [
+                    'lead_score' => $deal->lead_score,
+                    'old_score' => $oldScore,
+                ]);
+            } catch (\Throwable) {
+            }
+        }
 
         if (isset($data['stage']) && $data['stage'] !== $oldStage) {
             $fromLabel = self::STAGE_LABELS[$oldStage] ?? $oldStage;
@@ -225,7 +257,11 @@ class CrmService
         $activity = $this->logActivity($user, $deal, $data['type'] ?? 'note', $data['body'] ?? '', $data['meta'] ?? null);
 
         if (in_array($data['type'] ?? '', ['call', 'meeting', 'visit', 'note'], true)) {
-            $deal->update(['last_contacted_at' => now()]);
+            $patch = ['last_contacted_at' => now()];
+            if (empty($deal->first_contacted_at) && \Illuminate\Support\Facades\Schema::hasColumn('crm_deals', 'first_contacted_at')) {
+                $patch['first_contacted_at'] = now();
+            }
+            $deal->update($patch);
         }
 
         return $activity;

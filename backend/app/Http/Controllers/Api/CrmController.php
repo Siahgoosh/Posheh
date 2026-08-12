@@ -48,6 +48,8 @@ class CrmController extends Controller
             'source_id' => ['nullable', 'integer'],
             'follow_up_at' => ['nullable', 'date'],
             'next_action' => ['nullable', 'string', 'max:255'],
+            'lead_score' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'campaign_id' => ['nullable', 'integer'],
         ]);
 
         return response()->json(['data' => $this->crm->create($request->user(), $data)], 201);
@@ -74,6 +76,8 @@ class CrmController extends Controller
             'lost_reason' => ['nullable', 'string', 'max:60'],
             'lost_reason_note' => ['nullable', 'string', 'max:255'],
             'next_action' => ['nullable', 'string', 'max:255'],
+            'campaign_id' => ['nullable', 'integer'],
+            'deal_status' => ['nullable', 'string', 'max:30'],
         ]);
 
         return response()->json(['data' => $this->crm->update($request->user(), $id, $data)]);

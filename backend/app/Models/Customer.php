@@ -41,6 +41,9 @@ class Customer extends Model
         'notes',
         'last_contacted_at',
         'next_follow_up_at',
+        'lifecycle',
+        'referred_by_customer_id',
+        'campaign_id',
     ];
 
     protected function casts(): array

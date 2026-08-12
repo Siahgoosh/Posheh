@@ -133,6 +133,17 @@ class CrmBootstrapService
                 );
             }
         });
+
+        // Phase 2 sales engine defaults (safe if tables missing)
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('crm_matching_weights')) {
+                app(PropertyMatchingService::class)->ensureWeights($officeId);
+            }
+            if (\Illuminate\Support\Facades\Schema::hasTable('crm_automation_rules')) {
+                app(CrmAutomationService::class)->ensureDefaultRules($officeId);
+            }
+        } catch (\Throwable) {
+        }
     }
 
     public function ensureForUser(User $user): void

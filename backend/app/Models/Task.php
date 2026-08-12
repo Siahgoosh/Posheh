@@ -15,6 +15,8 @@ class Task extends Model
         'assigned_to',
         'created_by',
         'property_id',
+        'crm_deal_id',
+        'customer_id',
         'title',
         'description',
         'priority',

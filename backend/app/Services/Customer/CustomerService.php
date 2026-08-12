@@ -80,60 +80,17 @@ class CustomerService
     {
         $customer = $this->find($user, $customerId);
 
-        $properties = Property::where('office_id', $user->office_id)
-            ->where('status', 'active')
-            ->with('media')
-            ->get();
+        return app(\App\Services\Crm\PropertyMatchingService::class)
+            ->matchForCustomer($user, $customer, $limit);
+    }
 
-        return $properties
-            ->map(function (Property $property) use ($customer) {
-                $score = 0;
-                $reasons = [];
+    public function upsertNeedProfile(User $user, int $customerId, array $data): \App\Models\CrmNeedProfile
+    {
+        $customer = $this->find($user, $customerId);
 
-                if ($customer->preferred_type && $property->type?->value === $customer->preferred_type) {
-                    $score += 25;
-                    $reasons[] = 'نوع معامله';
-                }
-                if ($customer->preferred_city && $property->city && str_contains($property->city, $customer->preferred_city)) {
-                    $score += 20;
-                    $reasons[] = 'شهر';
-                }
-                if ($customer->preferred_district && $property->district && str_contains($property->district, $customer->preferred_district)) {
-                    $score += 15;
-                    $reasons[] = 'منطقه';
-                }
-                if ($customer->budget_min || $customer->budget_max) {
-                    $price = $property->price ?? $property->rent ?? $property->deposit;
-                    if ($price) {
-                        $min = $customer->budget_min ?? 0;
-                        $max = $customer->budget_max ?? PHP_INT_MAX;
-                        if ($price >= $min && $price <= $max) {
-                            $score += 25;
-                            $reasons[] = 'بودجه';
-                        }
-                    }
-                }
-                if ($customer->min_area && $property->area && $property->area >= $customer->min_area) {
-                    $score += 10;
-                    $reasons[] = 'متراژ';
-                }
-                if ($customer->max_area && $property->area && $property->area <= $customer->max_area) {
-                    $score += 5;
-                }
-                if ($customer->min_rooms && $property->rooms && $property->rooms >= $customer->min_rooms) {
-                    $score += 10;
-                    $reasons[] = 'تعداد خواب';
-                }
-
-                return [
-                    'property' => $property,
-                    'score' => $score,
-                    'reasons' => $reasons,
-                ];
-            })
-            ->filter(fn ($item) => $item['score'] > 0)
-            ->sortByDesc('score')
-            ->take($limit)
-            ->values();
+        return \App\Models\CrmNeedProfile::updateOrCreate(
+            ['customer_id' => $customer->id],
+            array_merge($data, ['office_id' => $user->office_id])
+        );
     }
 }

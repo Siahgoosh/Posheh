@@ -17,7 +17,8 @@ class CrmDeal extends Model
         'title', 'contact_name', 'contact_mobile', 'stage', 'value', 'offer_amount',
         'notes', 'lost_reason', 'lost_reason_note', 'expected_close_at',
         'lead_score', 'probability', 'priority', 'source', 'source_id',
-        'follow_up_at', 'last_contacted_at', 'next_action',
+        'follow_up_at', 'last_contacted_at', 'first_contacted_at', 'next_action',
+        'campaign_id', 'deal_status',
     ];
 
     protected function casts(): array
@@ -26,6 +27,7 @@ class CrmDeal extends Model
             'expected_close_at' => 'datetime',
             'follow_up_at' => 'datetime',
             'last_contacted_at' => 'datetime',
+            'first_contacted_at' => 'datetime',
             'value' => 'integer',
             'offer_amount' => 'integer',
             'lead_score' => 'integer',

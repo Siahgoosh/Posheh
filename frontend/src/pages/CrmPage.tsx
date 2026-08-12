@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Kanban, Plus, GripVertical, Phone, User, Star, Clock, MessageSquare,
-  Trash2, Save, AlertCircle, TrendingUp,
+  Trash2, Save, AlertCircle, TrendingUp, Flame, Target, Handshake,
 } from 'lucide-react'
 import { useState } from 'react'
 import api from '@/lib/api'
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
+import { CrmOffersPanel, CrmOpportunitiesPanel, CrmSalesQueuePanel } from '@/pages/crm/CrmSalesPanels'
 
 const STAGES = [
   { key: 'lead', label: 'سرنخ', color: 'border-slate-500/30' },
@@ -80,6 +81,7 @@ const emptyForm = {
 export function CrmPage() {
   const hasCrm = usePlanFeature('crm')
   const queryClient = useQueryClient()
+  const [tab, setTab] = useState<'pipeline' | 'queue' | 'opportunities' | 'offers'>('pipeline')
   const [dragOver, setDragOver] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [note, setNote] = useState('')
@@ -87,6 +89,13 @@ export function CrmPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [createForm, setCreateForm] = useState(emptyForm)
   const [editForm, setEditForm] = useState(emptyForm)
+  const [lostReason, setLostReason] = useState('')
+
+  const { data: lostReasons } = useQuery({
+    queryKey: ['crm-lost-reasons'],
+    queryFn: async () => (await api.get('/crm/lost-reasons')).data.data as Array<{ key: string; label: string }>,
+    enabled: hasCrm,
+  })
 
   const { data: deals, isLoading, isError, error } = useQuery({
     queryKey: ['crm-deals'],
@@ -158,7 +167,8 @@ export function CrmPage() {
   })
 
   const moveMutation = useMutation({
-    mutationFn: ({ id, stage }: { id: number; stage: string }) => api.put(`/crm/deals/${id}`, { stage }),
+    mutationFn: ({ id, stage, lost_reason }: { id: number; stage: string; lost_reason?: string }) =>
+      api.put(`/crm/deals/${id}`, { stage, ...(lost_reason ? { lost_reason } : {}) }),
     onSuccess: invalidate,
   })
 
@@ -177,6 +187,11 @@ export function CrmPage() {
     if (!dealId) return
     const deal = deals?.find((d) => d.id === dealId)
     if (deal && deal.stage !== stage) {
+      if (stage === 'closed_lost') {
+        const reason = lostReason || lostReasons?.[0]?.key || 'other'
+        moveMutation.mutate({ id: dealId, stage, lost_reason: reason })
+        return
+      }
       moveMutation.mutate({ id: dealId, stage })
     }
   }
@@ -199,11 +214,11 @@ export function CrmPage() {
     return <div className="p-8 text-center text-muted">CRM در پلن شما فعال نیست.</div>
   }
 
-  if (isLoading) {
+  if (tab === 'pipeline' && isLoading) {
     return <div className="p-8 text-center text-muted">در حال بارگذاری CRM…</div>
   }
 
-  if (isError) {
+  if (tab === 'pipeline' && isError) {
     const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message
     return (
       <div className="p-8 text-center">
@@ -222,17 +237,37 @@ export function CrmPage() {
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Kanban className="h-6 w-6 text-primary" /> قیف فروش CRM
+            <Kanban className="h-6 w-6 text-primary" /> موتور فروش CRM
           </h1>
           <p className="text-sm text-muted mt-1">
             {totalOpen} معامله باز · ارزش کل {formatPrice(totalValue)}
           </p>
         </div>
-        <Button onClick={() => setShowCreate((v) => !v)}>
-          <Plus className="h-4 w-4" /> معامله جدید
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant={tab === 'queue' ? 'default' : 'outline'} size="sm" onClick={() => setTab('queue')}>
+            <Flame className="h-4 w-4" /> صف امروز
+          </Button>
+          <Button variant={tab === 'opportunities' ? 'default' : 'outline'} size="sm" onClick={() => setTab('opportunities')}>
+            <Target className="h-4 w-4" /> فرصت‌ها
+          </Button>
+          <Button variant={tab === 'offers' ? 'default' : 'outline'} size="sm" onClick={() => setTab('offers')}>
+            <Handshake className="h-4 w-4" /> پیشنهاد/مذاکره
+          </Button>
+          <Button variant={tab === 'pipeline' ? 'default' : 'outline'} size="sm" onClick={() => setTab('pipeline')}>
+            <Kanban className="h-4 w-4" /> قیف
+          </Button>
+          <Button onClick={() => { setTab('pipeline'); setShowCreate((v) => !v) }}>
+            <Plus className="h-4 w-4" /> معامله جدید
+          </Button>
+        </div>
       </div>
 
+      {tab === 'queue' && <CrmSalesQueuePanel />}
+      {tab === 'opportunities' && <CrmOpportunitiesPanel />}
+      {tab === 'offers' && <CrmOffersPanel />}
+
+      {tab === 'pipeline' && (
+      <>
       {pipeline && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {STAGES.map((s) => {
@@ -296,6 +331,14 @@ export function CrmPage() {
           </CardContent>
         </Card>
       )}
+
+      <div className="flex items-center gap-2 text-xs text-muted">
+        <span>دلیل ناموفق برای کشیدن به «ناموفق»:</span>
+        <select className="rounded-lg border border-card-border bg-background/50 p-1.5" value={lostReason} onChange={(e) => setLostReason(e.target.value)}>
+          <option value="">انتخاب دلیل…</option>
+          {(lostReasons ?? []).map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+        </select>
+      </div>
 
       <div className="grid xl:grid-cols-4 gap-4">
         <div className="xl:col-span-3 flex gap-3 overflow-x-auto pb-4 min-h-[480px]">
@@ -418,7 +461,9 @@ export function CrmPage() {
         </Card>
       </div>
 
-      <p className="text-xs text-muted text-center">معامله موفق → کمیسیون خودکار · امتیاز سرنخ بر اساس اطلاعات تماس و ارزش</p>
+      <p className="text-xs text-muted text-center">موتور فروش: Matching · Follow-up · Viewing · Offer · Deal · Commission</p>
+      </>
+      )}
     </div>
   )
 }
