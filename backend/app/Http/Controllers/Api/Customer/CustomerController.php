@@ -97,9 +97,62 @@ class CustomerController extends Controller
         return response()->json([
             'data' => $matches->map(fn ($m) => [
                 'score' => $m['score'],
-                'reasons' => $m['reasons'],
+                'band' => $m['band'] ?? null,
+                'match_type' => $m['match_type'] ?? null,
+                'budget_diff_percent' => $m['budget_diff_percent'] ?? null,
+                'checks' => $m['checks'] ?? [],
+                'reasons' => $m['reasons'] ?? [],
+                'warnings' => $m['warnings'] ?? [],
                 'property' => new PropertyResource($m['property']),
             ]),
         ]);
+    }
+
+    public function needProfile(Request $request, int $id): JsonResponse
+    {
+        $customer = $this->customerService->find($request->user(), $id);
+        $profile = \App\Models\CrmNeedProfile::where('customer_id', $customer->id)->first();
+
+        return response()->json(['data' => $profile]);
+    }
+
+    public function upsertNeedProfile(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'transaction_type' => ['nullable', 'string', 'max:40'],
+            'property_type' => ['nullable', 'string', 'max:40'],
+            'purpose' => ['nullable', 'string', 'max:40'],
+            'preferred_locations' => ['nullable', 'array'],
+            'excluded_locations' => ['nullable', 'array'],
+            'budget_min' => ['nullable', 'integer', 'min:0'],
+            'budget_max' => ['nullable', 'integer', 'min:0'],
+            'min_area' => ['nullable', 'integer', 'min:0'],
+            'max_area' => ['nullable', 'integer', 'min:0'],
+            'bedrooms' => ['nullable', 'integer', 'min:0', 'max:20'],
+            'max_building_age' => ['nullable', 'integer', 'min:0'],
+            'floor_preference' => ['nullable', 'string', 'max:40'],
+            'parking_required' => ['nullable', 'boolean'],
+            'elevator_preferred' => ['nullable', 'boolean'],
+            'storage_preferred' => ['nullable', 'boolean'],
+            'balcony_preferred' => ['nullable', 'boolean'],
+            'document_type' => ['nullable', 'string', 'max:40'],
+            'occupancy' => ['nullable', 'string', 'max:40'],
+            'payment_ability' => ['nullable', 'string', 'max:40'],
+            'down_payment' => ['nullable', 'integer', 'min:0'],
+            'monthly_payment' => ['nullable', 'integer', 'min:0'],
+            'deposit' => ['nullable', 'integer', 'min:0'],
+            'monthly_rent' => ['nullable', 'integer', 'min:0'],
+            'purchase_timeline' => ['nullable', 'string', 'max:40'],
+            'urgency' => ['nullable', 'string', 'max:20'],
+            'preferred_features' => ['nullable', 'array'],
+            'excluded_features' => ['nullable', 'array'],
+            'priority_weights' => ['nullable', 'array'],
+            'notes' => ['nullable', 'string'],
+            'crm_deal_id' => ['nullable', 'integer'],
+        ]);
+
+        $profile = $this->customerService->upsertNeedProfile($request->user(), $id, $data);
+
+        return response()->json(['data' => $profile]);
     }
 }
