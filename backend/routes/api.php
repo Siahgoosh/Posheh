@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\CommissionController;
 use App\Http\Controllers\Api\CrmController;
 use App\Http\Controllers\Api\CrmMetaController;
 use App\Http\Controllers\Api\CrmSalesEngineController;
+use App\Http\Controllers\Api\CrmIntelligenceController;
 use App\Http\Controllers\Api\Dashboard\DashboardController;
 use App\Http\Controllers\Api\DownloadController;
 use App\Http\Controllers\Api\Office\OfficeController;
@@ -185,6 +186,38 @@ Route::prefix('v1')->group(function () {
         Route::post('/crm/deals/{dealId}/checklist/{itemId}/toggle', [CrmSalesEngineController::class, 'toggleChecklistItem']);
         Route::get('/crm/campaigns', [CrmSalesEngineController::class, 'campaigns']);
         Route::post('/crm/campaigns', [CrmSalesEngineController::class, 'storeCampaign']);
+
+        // CRM Phase 3 — Intelligence / AI / Communication / Admin
+        Route::get('/crm/executive', [CrmIntelligenceController::class, 'executive']);
+        Route::get('/crm/agent-dashboard', [CrmIntelligenceController::class, 'agentDashboard']);
+        Route::get('/crm/funnel-analytics', [CrmIntelligenceController::class, 'funnel']);
+        Route::get('/crm/forecast', [CrmIntelligenceController::class, 'forecast']);
+        Route::get('/crm/agents/performance', [CrmIntelligenceController::class, 'agents']);
+        Route::get('/crm/sources/intelligence', [CrmIntelligenceController::class, 'sources']);
+        Route::get('/crm/properties/{propertyId}/intelligence', [CrmIntelligenceController::class, 'propertyIntel']);
+        Route::get('/crm/data-quality', [CrmIntelligenceController::class, 'dataQuality']);
+        Route::get('/crm/pipeline-probabilities', [CrmIntelligenceController::class, 'probabilities']);
+        Route::put('/crm/pipeline-probabilities', [CrmIntelligenceController::class, 'updateProbabilities']);
+        Route::post('/crm/deals/bulk', [CrmIntelligenceController::class, 'bulkDealAction']);
+        Route::get('/crm/ai/usage', [CrmIntelligenceController::class, 'aiUsage']);
+        Route::get('/crm/ai/customers/{customerId}/summary', [CrmIntelligenceController::class, 'aiCustomerSummary']);
+        Route::post('/crm/ai/message', [CrmIntelligenceController::class, 'aiMessage']);
+        Route::get('/crm/ai/properties/{propertyId}/listing', [CrmIntelligenceController::class, 'aiListing']);
+        Route::get('/crm/notifications', [CrmIntelligenceController::class, 'notifications']);
+        Route::post('/crm/notifications/{id}/read', [CrmIntelligenceController::class, 'markNotificationRead']);
+        Route::get('/crm/notification-preferences', [CrmIntelligenceController::class, 'notificationPreferences']);
+        Route::put('/crm/notification-preferences', [CrmIntelligenceController::class, 'updateNotificationPreferences']);
+        Route::get('/crm/message-templates', [CrmIntelligenceController::class, 'templates']);
+        Route::post('/crm/message-templates', [CrmIntelligenceController::class, 'storeTemplate']);
+        Route::post('/crm/message-templates/{id}/render', [CrmIntelligenceController::class, 'renderTemplate']);
+        Route::get('/crm/integrations', [CrmIntelligenceController::class, 'integrations']);
+        Route::get('/crm/custom-fields', [CrmIntelligenceController::class, 'customFields']);
+        Route::post('/crm/custom-fields', [CrmIntelligenceController::class, 'storeCustomField']);
+        Route::post('/crm/custom-field-values', [CrmIntelligenceController::class, 'setCustomFieldValue']);
+        Route::get('/crm/saved-views', [CrmIntelligenceController::class, 'savedViews']);
+        Route::post('/crm/saved-views', [CrmIntelligenceController::class, 'storeSavedView']);
+        Route::get('/crm/onboarding', [CrmIntelligenceController::class, 'onboarding']);
+        Route::post('/crm/onboarding/{id}/toggle', [CrmIntelligenceController::class, 'toggleOnboarding']);
 
         Route::get('/commissions', [CommissionController::class, 'index']);
         Route::get('/commissions/settings', [CommissionController::class, 'settings']);

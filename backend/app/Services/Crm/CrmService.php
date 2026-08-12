@@ -154,6 +154,13 @@ class CrmService
 
         if ($deal->stage === 'closed_won') {
             $this->commissionService->createFromDeal($user, $deal);
+            try {
+                if ($deal->customer_id && \Illuminate\Support\Facades\Schema::hasColumn('customers', 'lifecycle')) {
+                    Customer::where('id', $deal->customer_id)->where('office_id', $user->office_id)
+                        ->update(['lifecycle' => 'customer']);
+                }
+            } catch (\Throwable) {
+            }
         }
 
         return $this->enrichDeal($user, $deal);

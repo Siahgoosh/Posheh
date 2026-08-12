@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Kanban, Plus, GripVertical, Phone, User, Star, Clock, MessageSquare,
-  Trash2, Save, AlertCircle, TrendingUp, Flame, Target, Handshake,
+  Trash2, Save, AlertCircle, TrendingUp, Flame, Target, Handshake, Gauge, Sparkles,
 } from 'lucide-react'
 import { useState } from 'react'
 import api from '@/lib/api'
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
 import { CrmOffersPanel, CrmOpportunitiesPanel, CrmSalesQueuePanel } from '@/pages/crm/CrmSalesPanels'
+import { CrmAiAssistantPanel, CrmExecutivePanel } from '@/pages/crm/CrmExecutivePanel'
 
 const STAGES = [
   { key: 'lead', label: 'سرنخ', color: 'border-slate-500/30' },
@@ -81,7 +82,7 @@ const emptyForm = {
 export function CrmPage() {
   const hasCrm = usePlanFeature('crm')
   const queryClient = useQueryClient()
-  const [tab, setTab] = useState<'pipeline' | 'queue' | 'opportunities' | 'offers'>('pipeline')
+  const [tab, setTab] = useState<'executive' | 'pipeline' | 'queue' | 'opportunities' | 'offers' | 'ai'>('executive')
   const [dragOver, setDragOver] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [note, setNote] = useState('')
@@ -244,6 +245,9 @@ export function CrmPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant={tab === 'executive' ? 'default' : 'outline'} size="sm" onClick={() => setTab('executive')}>
+            <Gauge className="h-4 w-4" /> داشبورد
+          </Button>
           <Button variant={tab === 'queue' ? 'default' : 'outline'} size="sm" onClick={() => setTab('queue')}>
             <Flame className="h-4 w-4" /> صف امروز
           </Button>
@@ -256,12 +260,17 @@ export function CrmPage() {
           <Button variant={tab === 'pipeline' ? 'default' : 'outline'} size="sm" onClick={() => setTab('pipeline')}>
             <Kanban className="h-4 w-4" /> قیف
           </Button>
+          <Button variant={tab === 'ai' ? 'default' : 'outline'} size="sm" onClick={() => setTab('ai')}>
+            <Sparkles className="h-4 w-4" /> AI
+          </Button>
           <Button onClick={() => { setTab('pipeline'); setShowCreate((v) => !v) }}>
             <Plus className="h-4 w-4" /> معامله جدید
           </Button>
         </div>
       </div>
 
+      {tab === 'executive' && <CrmExecutivePanel />}
+      {tab === 'ai' && <CrmAiAssistantPanel />}
       {tab === 'queue' && <CrmSalesQueuePanel />}
       {tab === 'opportunities' && <CrmOpportunitiesPanel />}
       {tab === 'offers' && <CrmOffersPanel />}

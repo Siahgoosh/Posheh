@@ -144,6 +144,23 @@ class CrmBootstrapService
             }
         } catch (\Throwable) {
         }
+
+        // Phase 3 intelligence defaults
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('crm_pipeline_probabilities')) {
+                app(CrmIntelligenceService::class)->ensureProbabilities($officeId);
+            }
+            if (\Illuminate\Support\Facades\Schema::hasTable('crm_integrations')) {
+                app(CrmCommunicationService::class)->ensureIntegrationStubs($officeId);
+            }
+            if (\Illuminate\Support\Facades\Schema::hasTable('crm_onboarding_checklist')) {
+                app(CrmCommunicationService::class)->ensureOnboarding($officeId);
+            }
+            if (\Illuminate\Support\Facades\Schema::hasTable('ai_prompt_templates')) {
+                app(\App\Services\Ai\AiService::class)->ensureDefaultPrompts($officeId);
+            }
+        } catch (\Throwable) {
+        }
     }
 
     public function ensureForUser(User $user): void
