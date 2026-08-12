@@ -150,5 +150,10 @@ export function getWebSiteJsonLd() {
     name: SITE_NAME,
     url: getSiteUrl(),
     inLanguage: 'fa-IR',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${getSiteUrl()}/blog/search?q={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
   }
 }

@@ -31,7 +31,17 @@ class SeedBlogArticlesCommand extends Command
         $minWords = PHP_INT_MAX;
         $maxWords = 0;
 
+        $skippedLocked = 0;
+
         foreach ($articles as $data) {
+            $existing = BlogPost::query()->where('slug', $data['slug'])->first();
+            if ($existing?->rebuild_locked) {
+                $skippedLocked++;
+                $bar->advance();
+
+                continue;
+            }
+
             BlogPost::updateOrCreate(
                 ['slug' => $data['slug']],
                 $data,
@@ -47,7 +57,12 @@ class SeedBlogArticlesCommand extends Command
         $this->newLine(2);
         $total = BlogPost::where('is_published', true)->count();
         $this->info("Done. Published posts in DB: {$total}");
-        $this->info("Word count range (approx): {$minWords} – {$maxWords}");
+        if ($minWords !== PHP_INT_MAX) {
+            $this->info("Word count range (approx): {$minWords} – {$maxWords}");
+        }
+        if ($skippedLocked > 0) {
+            $this->warn("Skipped {$skippedLocked} rebuild_locked post(s) to preserve curated drafts.");
+        }
 
         return self::SUCCESS;
     }

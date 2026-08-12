@@ -2,88 +2,55 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Api\Blog\BlogController;
 use App\Modules\VirtualTour\Application\Services\TourSeoService;
+use App\Services\Blog\BlogSitemapService;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
 class SitemapController extends Controller
 {
+    public function __construct(
+        private readonly BlogSitemapService $sitemapService,
+    ) {}
+
     private function baseUrl(): string
     {
         return rtrim((string) config('app.frontend_url', config('app.url')), '/');
     }
 
-    /** @return array{static: list<array>, categories: list<array>, posts: list<array>} */
-    private function blogPayload(): array
-    {
-        $blog = app(BlogController::class)->sitemap();
-        $payload = json_decode($blog->getContent(), true) ?: [];
-
-        return [
-            'static' => $payload['static'] ?? [],
-            'categories' => $payload['categories'] ?? [],
-            'posts' => $payload['posts'] ?? [],
-        ];
-    }
-
     /** Sitemap index — submit this URL in Google Search Console. */
-    public function index(): Response
-    {
-        $base = $this->baseUrl();
-        $today = date('Y-m-d');
-        $children = [
-            "{$base}/sitemap-pages.xml",
-            "{$base}/sitemap-blog.xml",
-            "{$base}/sitemap-tours.xml",
-        ];
-
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
-        $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
-        foreach ($children as $loc) {
-            $escaped = htmlspecialchars($loc, ENT_XML1);
-            $xml .= "  <sitemap><loc>{$escaped}</loc><lastmod>{$today}</lastmod></sitemap>\n";
-        }
-        $xml .= '</sitemapindex>';
-
-        return $this->xmlResponse($xml);
-    }
-
-    /** Backward-compatible full urlset (also linked from robots). */
     public function xml(): Response
     {
-        $payload = $this->blogPayload();
         $base = $this->baseUrl();
+        $xml = Cache::remember('blog.sitemap.xml.v3', (int) config('blog.sitemap_cache_ttl', 300), function () use ($base) {
+            $out = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+            $out .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+            $out .= $this->sitemapEntry($base.'/sitemap-pages.xml');
+            $out .= $this->sitemapEntry($base.'/sitemap-posts.xml');
+            $out .= $this->sitemapEntry($base.'/sitemap-categories.xml');
+            $out .= $this->sitemapEntry($base.'/sitemap-tours.xml');
+            $out .= '</sitemapindex>';
 
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
-
-        foreach ($payload['static'] as $item) {
-            $xml .= $this->url($base.$item['path'], (float) ($item['priority'] ?? 0.5), $item['lastmod'] ?? null);
-        }
-        foreach ($payload['categories'] as $cat) {
-            $xml .= $this->url($base.$cat['path'], (float) ($cat['priority'] ?? 0.75), $cat['lastmod'] ?? null);
-        }
-        foreach ($payload['posts'] as $post) {
-            $xml .= $this->url($base.($post['path'] ?? '/blog/'.$post['slug']), 0.8, $post['updated_at'] ?? null);
-        }
-        foreach ($this->tourEntries() as $entry) {
-            $xml .= $this->url($base.$entry['path'], (float) $entry['priority'], $entry['lastmod'] ?? null);
-        }
-
-        $xml .= '</urlset>';
+            return $out;
+        });
 
         return $this->xmlResponse($xml);
+    }
+
+    /** Backward-compatible alias for older Search Console submissions. */
+    public function index(): Response
+    {
+        return $this->xml();
     }
 
     public function pages(): Response
     {
+        $payload = $this->sitemapService->payload();
         $base = $this->baseUrl();
-        $payload = $this->blogPayload();
-
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
         $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
-        foreach ($payload['static'] as $item) {
+        foreach ($payload['static'] ?? [] as $item) {
             $xml .= $this->url($base.$item['path'], (float) ($item['priority'] ?? 0.5), $item['lastmod'] ?? null);
         }
         $xml .= '</urlset>';
@@ -91,19 +58,37 @@ class SitemapController extends Controller
         return $this->xmlResponse($xml);
     }
 
-    public function blog(): Response
+    public function posts(): Response
     {
+        $payload = $this->sitemapService->payload();
         $base = $this->baseUrl();
-        $payload = $this->blogPayload();
-
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
         $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
-        $xml .= $this->url($base.'/blog', 0.9, null);
-        foreach ($payload['categories'] as $cat) {
+        foreach ($payload['posts'] ?? [] as $post) {
+            $xml .= $this->url($base.($post['path'] ?? '/blog/'.$post['slug']), 0.8, $post['updated_at'] ?? null);
+        }
+        $xml .= '</urlset>';
+
+        return $this->xmlResponse($xml);
+    }
+
+    /** Alias used by older robots.txt / GSC entries. */
+    public function blog(): Response
+    {
+        return $this->posts();
+    }
+
+    public function categories(): Response
+    {
+        $payload = $this->sitemapService->payload();
+        $base = $this->baseUrl();
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+        foreach ($payload['categories'] ?? [] as $cat) {
             $xml .= $this->url($base.$cat['path'], (float) ($cat['priority'] ?? 0.75), $cat['lastmod'] ?? null);
         }
-        foreach ($payload['posts'] as $post) {
-            $xml .= $this->url($base.($post['path'] ?? '/blog/'.$post['slug']), 0.8, $post['updated_at'] ?? null);
+        foreach ($payload['tags'] ?? [] as $tag) {
+            $xml .= $this->url($base.$tag['path'], (float) ($tag['priority'] ?? 0.5), $tag['lastmod'] ?? null);
         }
         $xml .= '</urlset>';
 
@@ -147,6 +132,11 @@ class SitemapController extends Controller
             'Cache-Control' => 'public, max-age=300',
             'X-Robots-Tag' => 'noindex',
         ]);
+    }
+
+    private function sitemapEntry(string $loc): string
+    {
+        return '  <sitemap><loc>'.htmlspecialchars($loc, ENT_XML1).'</loc></sitemap>'."\n";
     }
 
     private function url(string $loc, float $priority, ?string $lastmod = null): string
