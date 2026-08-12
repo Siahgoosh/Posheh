@@ -27,8 +27,9 @@ class ImageJobService
     public function bootstrap(): array
     {
         if (! Schema::hasTable('blog_image_provider_configs')) {
-            return ['ok' => false, 'message' => 'Migration required'];
+            return ['ok' => false, 'message_fa' => 'جداول تصاویر وبلاگ موجود نیست — ابتدا migrate را اجرا کنید.', 'message' => 'Migration required'];
         }
+        try {
         BlogImageProviderConfig::query()->firstOrCreate(
             ['key' => 'mock'],
             ['label' => 'Mock SVG', 'model' => 'mock-svg-v1', 'is_active' => true, 'cost_per_image_toman' => 0]
@@ -42,14 +43,26 @@ class ImageJobService
                 'cost_per_image_toman' => (int) config('blog_images.openai_cost_toman'),
             ]
         );
-        foreach (['per_image' => 0, 'per_article' => 0, 'daily' => 0, 'monthly' => 0] as $scope => $limit) {
-            BlogImageCostLimit::query()->firstOrCreate(
-                ['scope' => $scope],
-                ['limit_toman' => $limit, 'limit_count' => 0, 'is_active' => false]
-            );
+        if (Schema::hasTable('blog_image_cost_limits')) {
+            foreach (['per_image' => 0, 'per_article' => 0, 'daily' => 0, 'monthly' => 0] as $scope => $limit) {
+                BlogImageCostLimit::query()->firstOrCreate(
+                    ['scope' => $scope],
+                    ['limit_toman' => $limit, 'limit_count' => 0, 'is_active' => false]
+                );
+            }
         }
 
-        return ['ok' => true, 'providers' => $this->providers->list()];
+        return [
+            'ok' => true,
+            'message_fa' => 'ارائه‌دهندگان تصویر و سقف بودجه پیش‌فرض آماده شد.',
+            'providers' => $this->providers->list(),
+        ];
+        } catch (\Throwable $e) {
+            return [
+                'ok' => false,
+                'message_fa' => 'خطا در راه‌اندازی تصاویر: '.$e->getMessage(),
+            ];
+        }
     }
 
     /** @return array{allowed:bool,reason:?string} */

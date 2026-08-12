@@ -304,8 +304,18 @@ export function AccountingPage() {
   })
 
   const bootstrapMutation = useMutation({
-    mutationFn: () => api.post('/accounting/bootstrap'),
-    onSuccess: invalidateAll,
+    mutationFn: async () => {
+      const res = await api.post('/accounting/bootstrap')
+      return res.data
+    },
+    onSuccess: (data) => {
+      invalidateAll()
+      alert(data?.message || 'سرفصل‌های حسابداری آماده شد.')
+    },
+    onError: (err: unknown) => {
+      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string }
+      alert(axiosErr.response?.data?.message || axiosErr.message || 'راه‌اندازی حسابداری ناموفق بود')
+    },
   })
 
   const cashOptions = useMemo(() => cashAccounts ?? [], [cashAccounts])

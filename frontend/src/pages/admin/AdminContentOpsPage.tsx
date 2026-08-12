@@ -7,11 +7,13 @@ import { adminPath } from '@/lib/adminPaths'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { OPS_JOB_TYPE_FA, labelFa } from '@/lib/blogLabelsFa'
+import { BootstrapStatusBanner, useAdminBootstrap } from '@/lib/useAdminBootstrap'
 
 export function AdminContentOpsPage() {
   const qc = useQueryClient()
   const [jobType, setJobType] = useState('brief')
   const [postId, setPostId] = useState('')
+  const bootstrap = useAdminBootstrap('/admin/content-ops/bootstrap', ['admin-content-ops', 'admin-content-ops-jobs'])
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-content-ops'],
@@ -23,10 +25,6 @@ export function AdminContentOpsPage() {
     queryFn: async () => (await api.get('/admin/content-ops/jobs')).data.data,
   })
 
-  const bootstrap = useMutation({
-    mutationFn: () => api.post('/admin/content-ops/bootstrap'),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-content-ops'] }),
-  })
   const processJobs = useMutation({
     mutationFn: () => api.post('/admin/content-ops/jobs/process', { limit: 10 }),
     onSuccess: () => {
@@ -66,11 +64,15 @@ export function AdminContentOpsPage() {
         <div className="flex flex-wrap gap-2">
           <Link to={adminPath('blog')}><Button variant="outline">مدیریت وبلاگ</Button></Link>
           <Link to={adminPath('seo-growth')}><Button variant="outline">رشد سئو</Button></Link>
-          <Button variant="outline" onClick={() => bootstrap.mutate()}>راه‌اندازی اولیه</Button>
+          <Button type="button" variant="outline" onClick={() => bootstrap.run()} disabled={bootstrap.isPending}>
+            {bootstrap.isPending ? 'در حال راه‌اندازی…' : 'راه‌اندازی اولیه'}
+          </Button>
           <Button variant="outline" onClick={() => processJobs.mutate()}>پردازش صف</Button>
           <Button onClick={() => weekly.mutate()}><Sparkles className="h-4 w-4 ml-1" /> گزارش هفتگی</Button>
         </div>
       </div>
+
+      <BootstrapStatusBanner msg={bootstrap.msg} />
 
       <Card>
         <CardContent className="p-4 text-sm text-muted space-y-1">

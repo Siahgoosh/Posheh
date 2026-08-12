@@ -6,10 +6,12 @@ import api from '@/lib/api'
 import { adminPath } from '@/lib/adminPaths'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { BootstrapStatusBanner, useAdminBootstrap } from '@/lib/useAdminBootstrap'
 
 export function AdminBlogImagesPage() {
   const qc = useQueryClient()
   const [dryRun, setDryRun] = useState<Record<string, unknown> | null>(null)
+  const bootstrap = useAdminBootstrap('/admin/blog-images/bootstrap', ['admin-blog-images'])
 
   const { data } = useQuery({
     queryKey: ['admin-blog-images'],
@@ -21,10 +23,6 @@ export function AdminBlogImagesPage() {
     queryFn: async () => (await api.get('/admin/blog-images/jobs', { params: { status: 'generated' } })).data.data,
   })
 
-  const bootstrap = useMutation({
-    mutationFn: () => api.post('/admin/blog-images/bootstrap'),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-blog-images'] }),
-  })
   const audit = useMutation({
     mutationFn: () => api.post('/admin/blog-images/audit'),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-blog-images'] }),
@@ -71,12 +69,16 @@ export function AdminBlogImagesPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link to={adminPath('content-ops')}><Button variant="outline">عملیات محتوا</Button></Link>
-          <Button variant="outline" onClick={() => bootstrap.mutate()}>راه‌اندازی اولیه</Button>
+          <Button type="button" variant="outline" onClick={() => bootstrap.run()} disabled={bootstrap.isPending}>
+            {bootstrap.isPending ? 'در حال راه‌اندازی…' : 'راه‌اندازی اولیه'}
+          </Button>
           <Button variant="outline" onClick={() => audit.mutate()}>اسکن همه</Button>
           <Button variant="outline" onClick={() => runDry.mutate()}>اجرای آزمایشی</Button>
           <Button onClick={() => process.mutate()}>پردازش صف</Button>
         </div>
       </div>
+
+      <BootstrapStatusBanner msg={bootstrap.msg} />
 
       <Card>
         <CardContent className="p-4 text-sm text-muted space-y-1">

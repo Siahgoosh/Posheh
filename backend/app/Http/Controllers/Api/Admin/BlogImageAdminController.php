@@ -30,7 +30,10 @@ class BlogImageAdminController extends Controller
 
     public function bootstrap(): JsonResponse
     {
-        return response()->json(['data' => $this->jobs->bootstrap()]);
+        $result = $this->jobs->bootstrap();
+        $status = ($result['ok'] ?? false) ? 200 : 422;
+
+        return response()->json(['data' => $result], $status);
     }
 
     public function runAudit(): JsonResponse

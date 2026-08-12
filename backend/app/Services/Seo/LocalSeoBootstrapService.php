@@ -7,7 +7,6 @@ use App\Models\Seo\SeoEntity;
 use App\Models\Seo\SeoEntityRelationship;
 use App\Models\Seo\SeoTopic;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 /**
  * Bootstraps real Posheh business/topic entities. Never invents cities, coords, reviews, or NAP.
@@ -17,9 +16,13 @@ class LocalSeoBootstrapService
     public function ensureDefaults(): array
     {
         if (! Schema::hasTable('seo_business_profiles')) {
-            return ['ok' => false, 'message' => 'Migration required'];
+            return ['ok' => false, 'message_fa' => 'جداول سئوی محلی موجود نیست — ابتدا migrate را اجرا کنید.', 'message' => 'Migration required'];
+        }
+        if (! Schema::hasTable('seo_entities') || ! Schema::hasTable('seo_entity_relationships') || ! Schema::hasTable('seo_topics')) {
+            return ['ok' => false, 'message_fa' => 'جداول موجودیت/موضوع ناقص است — migrate را کامل اجرا کنید.'];
         }
 
+        try {
         $profile = SeoBusinessProfile::query()->first();
         if (! $profile) {
             $profile = SeoBusinessProfile::create([
@@ -102,12 +105,19 @@ class LocalSeoBootstrapService
 
         return [
             'ok' => true,
+            'message_fa' => 'پروفایل کسب‌وکار، موجودیت‌ها و موضوعات پایه آماده شد (بدون ساخت صفحه شهر جعلی).',
             'business_profile_id' => $profile->id,
             'entities' => SeoEntity::count(),
             'topics' => SeoTopic::count(),
             'locations' => 0,
             'note' => 'No city/neighborhood pages seeded — create only with unique local value + human approval.',
         ];
+        } catch (\Throwable $e) {
+            return [
+                'ok' => false,
+                'message_fa' => 'خطا در راه‌اندازی سئوی محلی: '.$e->getMessage(),
+            ];
+        }
     }
 
     /** @param array<string, mixed> $attrs */

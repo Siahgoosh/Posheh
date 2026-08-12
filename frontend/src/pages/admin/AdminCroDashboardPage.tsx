@@ -6,6 +6,7 @@ import { adminPath } from '@/lib/adminPaths'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LEAD_FEEDBACK_FA, LEAD_STATUS_FA, unknownFa } from '@/lib/blogLabelsFa'
+import { BootstrapStatusBanner, useAdminBootstrap } from '@/lib/useAdminBootstrap'
 
 type Dash = {
   funnel: Record<string, number | null>
@@ -57,6 +58,7 @@ function fmt(v: number | null | undefined) {
 
 export function AdminCroDashboardPage() {
   const qc = useQueryClient()
+  const bootstrap = useAdminBootstrap('/admin/cro/bootstrap', ['cro-dashboard', 'cro-leads'])
   const { data, isLoading } = useQuery({
     queryKey: ['cro-dashboard'],
     queryFn: async () => (await api.get('/admin/cro/dashboard')).data.data as Dash,
@@ -66,10 +68,6 @@ export function AdminCroDashboardPage() {
     queryFn: async () => (await api.get('/admin/cro/leads')).data.data as Lead[],
   })
 
-  const bootstrap = useMutation({
-    mutationFn: () => api.post('/admin/cro/bootstrap'),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cro-dashboard'] }),
-  })
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) => api.post(`/admin/cro/leads/${id}/status`, { status }),
     onSuccess: () => {
@@ -95,9 +93,13 @@ export function AdminCroDashboardPage() {
         </div>
         <div className="flex gap-2">
           <Link to={adminPath('seo-growth')}><Button variant="outline">رشد سئو</Button></Link>
-          <Button variant="outline" onClick={() => bootstrap.mutate()}>راه‌اندازی فراخوان‌ها</Button>
+          <Button type="button" variant="outline" onClick={() => bootstrap.run()} disabled={bootstrap.isPending}>
+            {bootstrap.isPending ? 'در حال راه‌اندازی…' : 'راه‌اندازی فراخوان‌ها'}
+          </Button>
         </div>
       </div>
+
+      <BootstrapStatusBanner msg={bootstrap.msg} />
 
       {isLoading && <p className="text-muted">در حال بارگذاری…</p>}
       {data && (

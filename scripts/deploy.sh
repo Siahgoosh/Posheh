@@ -187,6 +187,10 @@ $COMPOSE exec -T app php artisan blog:cms-bootstrap --no-interaction 2>/dev/null
   || log "blog:cms-bootstrap skipped"
 $COMPOSE exec -T app php artisan cro:bootstrap --no-interaction 2>/dev/null \
   || log "cro:bootstrap skipped"
+$COMPOSE exec -T app php artisan seo:local-bootstrap --no-interaction 2>/dev/null \
+  || log "seo:local-bootstrap skipped"
+$COMPOSE exec -T app php artisan content:ops-audit --bootstrap --process=0 --no-interaction 2>/dev/null \
+  || log "content:ops-audit --bootstrap skipped"
 $COMPOSE exec -T app php artisan db:seed --class=VirtualTourSeeder --force --no-interaction 2>/dev/null \
   || log "VirtualTourSeeder skipped (virtual tour module not deployed yet)"
 $COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \

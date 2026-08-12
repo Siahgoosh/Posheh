@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LOCATION_TYPE_FA, unknownFa } from '@/lib/blogLabelsFa'
+import { BootstrapStatusBanner, useAdminBootstrap } from '@/lib/useAdminBootstrap'
 
 export function AdminLocalSeoPage() {
   const qc = useQueryClient()
@@ -15,16 +16,13 @@ export function AdminLocalSeoPage() {
   const [locType, setLocType] = useState('city')
   const [locDesc, setLocDesc] = useState('')
   const [locUnique, setLocUnique] = useState('')
+  const bootstrap = useAdminBootstrap('/admin/seo/local/bootstrap', ['admin-seo-local'])
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-seo-local'],
     queryFn: async () => (await api.get('/admin/seo/local')).data.data,
   })
 
-  const bootstrap = useMutation({
-    mutationFn: () => api.post('/admin/seo/local/bootstrap'),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-seo-local'] }),
-  })
   const napScan = useMutation({
     mutationFn: () => api.get('/admin/seo/local/nap-scan'),
   })
@@ -60,11 +58,15 @@ export function AdminLocalSeoPage() {
         <div className="flex flex-wrap gap-2">
           <Link to={adminPath('seo-technical')}><Button variant="outline">سئوی فنی</Button></Link>
           <Link to={adminPath('seo-growth')}><Button variant="outline">رشد سئو</Button></Link>
-          <Button variant="outline" onClick={() => bootstrap.mutate()}>راه‌اندازی موجودیت‌ها</Button>
+          <Button type="button" variant="outline" onClick={() => bootstrap.run()} disabled={bootstrap.isPending}>
+            {bootstrap.isPending ? 'در حال راه‌اندازی…' : 'راه‌اندازی موجودیت‌ها'}
+          </Button>
           <Button variant="outline" onClick={() => napScan.mutate()}>اسکن نام/آدرس/تلفن</Button>
           <Button onClick={() => genOpp.mutate()}>فرصت‌های هفتگی</Button>
         </div>
       </div>
+
+      <BootstrapStatusBanner msg={bootstrap.msg} />
 
       <Card>
         <CardContent className="p-4 text-sm text-muted space-y-1">

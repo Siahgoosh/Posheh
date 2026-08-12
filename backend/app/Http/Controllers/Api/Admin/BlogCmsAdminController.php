@@ -26,9 +26,10 @@ class BlogCmsAdminController extends Controller
 
     public function bootstrap(): JsonResponse
     {
-        $this->bootstrap->ensureDefaults();
+        $result = $this->bootstrap->ensureDefaults();
+        $status = ($result['ok'] ?? false) ? 200 : 422;
 
-        return response()->json(['message' => 'OK']);
+        return response()->json(['data' => $result], $status);
     }
 
     public function dashboard(): JsonResponse

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { REVIEW_STATUS_FA, labelFa } from '@/lib/blogLabelsFa'
+import { BootstrapStatusBanner, useAdminBootstrap } from '@/lib/useAdminBootstrap'
 
 interface BlogPostRow {
   id: number
@@ -64,17 +65,14 @@ export function AdminBlogListPage() {
     },
   })
 
+  const bootstrap = useAdminBootstrap('/admin/blog/bootstrap', ['admin-blog-dashboard', 'admin-blog'])
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/admin/blog/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-blog'] })
       queryClient.invalidateQueries({ queryKey: ['admin-blog-dashboard'] })
     },
-  })
-
-  const bootstrapMutation = useMutation({
-    mutationFn: () => api.post('/admin/blog/bootstrap'),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-blog-dashboard'] }),
   })
 
   const bulkMutation = useMutation({
@@ -126,7 +124,9 @@ export function AdminBlogListPage() {
           <Link to={adminPath('content-ops')}><Button variant="outline">عملیات محتوا</Button></Link>
           <Link to={adminPath('blog-images')}><Button variant="outline">تصاویر وبلاگ</Button></Link>
           <Link to={adminPath('cro')}><Button variant="outline">تبدیل / سرنخ</Button></Link>
-          <Button variant="outline" onClick={() => bootstrapMutation.mutate()}>راه‌اندازی اولیه</Button>
+          <Button type="button" variant="outline" onClick={() => bootstrap.run()} disabled={bootstrap.isPending}>
+            {bootstrap.isPending ? 'در حال راه‌اندازی…' : 'راه‌اندازی اولیه'}
+          </Button>
           <a href="/api/v1/admin/blog/export.csv" target="_blank" rel="noreferrer">
             <Button variant="outline"><Download className="h-4 w-4" /> خروجی CSV</Button>
           </a>
@@ -135,6 +135,8 @@ export function AdminBlogListPage() {
           </Link>
         </div>
       </div>
+
+      <BootstrapStatusBanner msg={bootstrap.msg} />
 
       {dash && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
