@@ -18,10 +18,21 @@ class VirtualTour extends Model
         'title',
         'slug',
         'description',
+        'tour_type',
         'status',
+        'visibility',
+        'access_password',
+        'share_token',
         'settings',
         'view_count',
         'published_at',
+        'expires_at',
+        'archived_at',
+        'version',
+    ];
+
+    protected $hidden = [
+        'access_password',
     ];
 
     protected function casts(): array
@@ -29,7 +40,10 @@ class VirtualTour extends Model
         return [
             'settings' => 'array',
             'published_at' => 'datetime',
+            'expires_at' => 'datetime',
+            'archived_at' => 'datetime',
             'view_count' => 'integer',
+            'version' => 'integer',
         ];
     }
 
@@ -63,9 +77,24 @@ class VirtualTour extends Model
         return $this->hasMany(VirtualTourView::class);
     }
 
+    public function versions(): HasMany
+    {
+        return $this->hasMany(VirtualTourVersion::class)->orderByDesc('version_number');
+    }
+
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(VirtualTourActivityLog::class)->orderByDesc('created_at');
+    }
+
     public function scopePublished($query)
     {
-        return $query->where('status', 'published');
+        return $query->where('status', 'published')->whereNull('archived_at');
+    }
+
+    public function scopeNotArchived($query)
+    {
+        return $query->whereNull('archived_at');
     }
 
     public function publicUrl(): string
@@ -73,5 +102,17 @@ class VirtualTour extends Model
         $base = rtrim(config('app.frontend_url', config('app.url')), '/');
 
         return "{$base}/tour/{$this->slug}";
+    }
+
+    public function privateUrl(): string
+    {
+        return $this->publicUrl().'?token='.$this->share_token;
+    }
+
+    public function embedUrl(): string
+    {
+        $base = rtrim(config('app.frontend_url', config('app.url')), '/');
+
+        return "{$base}/embed/tour/{$this->slug}";
     }
 }

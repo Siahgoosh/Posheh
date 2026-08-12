@@ -71,6 +71,7 @@ class AdminUserController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         $user = User::findOrFail($id);
+        $actor = $request->user();
         $old = $user->only(['name', 'role', 'is_active', 'email', 'username', 'mobile']);
 
         $data = $request->validate([
@@ -82,6 +83,21 @@ class AdminUserController extends Controller
             'role' => ['sometimes', 'string', Rule::in(array_column(UserRole::cases(), 'value'))],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+
+        if (isset($data['role'])) {
+            $newRole = UserRole::from($data['role']);
+            // Only super_admin may assign/change platform roles (including self-promotion).
+            if ($newRole->isPlatformStaff() && ! $actor->isSuperAdmin()) {
+                return response()->json(['message' => 'فقط مدیر ارشد می‌تواند نقش مدیران پلتفرم را تغییر دهد.'], 403);
+            }
+            if ($user->isPlatformStaff() && ! $actor->isSuperAdmin()) {
+                return response()->json(['message' => 'ویرایش مدیران پلتفرم فقط برای مدیر ارشد مجاز است.'], 403);
+            }
+            // Nobody can assign super_admin except an existing super_admin, and never via self-service escalation by non-super.
+            if ($newRole === UserRole::SuperAdmin && ! $actor->isSuperAdmin()) {
+                return response()->json(['message' => 'ارتقای نقش به مدیر ارشد مجاز نیست.'], 403);
+            }
+        }
 
         if (! empty($data['password'])) {
             // hashed via User model cast
@@ -120,6 +136,10 @@ class AdminUserController extends Controller
 
     public function storePlatformStaff(Request $request): JsonResponse
     {
+        if (! $request->user()->isSuperAdmin()) {
+            return response()->json(['message' => 'فقط مدیر ارشد می‌تواند مدیر پلتفرم ایجاد کند.'], 403);
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'mobile' => ['required', 'string', 'max:20', 'unique:users,mobile'],

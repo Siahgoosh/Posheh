@@ -45,7 +45,8 @@ export function PropertyMediaUploader({ propertyId, media, onChange, disabled }:
       }
       onChange(updated)
     } catch {
-      setError('خطا در آپلود تصویر. حداکثر ۱۰ مگابایت و فرمت JPG/PNG.')
+      onChange(updated)
+      setError('خطا در آپلود تصویر. حداکثر ۱۰ مگابایت و فرمت JPG/PNG. موارد موفق ذخیره شدند.')
     } finally {
       setUploading(false)
       if (inputRef.current) inputRef.current.value = ''

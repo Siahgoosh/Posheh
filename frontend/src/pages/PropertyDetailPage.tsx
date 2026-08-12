@@ -92,6 +92,13 @@ export function PropertyDetailPage() {
     enabled: !!id,
   })
 
+  const { data: propertyFinance } = useQuery({
+    queryKey: ['property-finance', id],
+    queryFn: async () => (await api.get(`/accounting/properties/${id}/finance`)).data.data,
+    enabled: !!id,
+    retry: false,
+  })
+
   const favoriteMutation = useMutation({
     mutationFn: () => api.post(`/properties/${id}/favorite`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['property', id] }),
@@ -229,6 +236,29 @@ export function PropertyDetailPage() {
         </div>
 
         <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Building2 className="h-4 w-4" /> وضعیت مالی
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {!propertyFinance ? (
+                <p className="text-xs text-muted">در حال بارگذاری…</p>
+              ) : !propertyFinance.has_deal ? (
+                <p className="text-muted">{propertyFinance.status_label || 'بدون معامله'}</p>
+              ) : (
+                <>
+                  <Row label="وضعیت" value={propertyFinance.status_label} />
+                  <Row label="کمیسیون" value={formatPrice(propertyFinance.deal?.commission ?? 0)} />
+                  <Row label="دریافتی" value={formatPrice(propertyFinance.deal?.received ?? 0)} />
+                  <Row label="پرداختی" value={formatPrice(propertyFinance.deal?.paid ?? 0)} />
+                  <Row label="مانده" value={formatPrice(propertyFinance.deal?.balance ?? 0)} />
+                </>
+              )}
+            </CardContent>
+          </Card>
+
           {property.quality_score != null && (
             <Card>
               <CardHeader>

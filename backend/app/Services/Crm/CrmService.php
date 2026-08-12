@@ -4,6 +4,7 @@ namespace App\Services\Crm;
 
 use App\Models\CrmActivity;
 use App\Models\CrmDeal;
+use App\Models\Property;
 use App\Models\User;
 use App\Services\Commission\CommissionService;
 use Illuminate\Validation\ValidationException;
@@ -50,6 +51,7 @@ class CrmService
         if (isset($data['stage'])) {
             $this->assertValidStage($data['stage']);
         }
+        $this->assertOfficeRefs($user, $data);
 
         $deal = CrmDeal::create(array_merge($data, [
             'office_id' => $user->office_id,
@@ -68,6 +70,7 @@ class CrmService
     {
         $deal = CrmDeal::where('office_id', $user->office_id)->findOrFail($id);
         $oldStage = $deal->stage;
+        $this->assertOfficeRefs($user, $data);
 
         if (isset($data['stage'])) {
             $this->assertValidStage($data['stage']);
@@ -194,6 +197,22 @@ class CrmService
             throw ValidationException::withMessages([
                 'stage' => ['مرحله معامله نامعتبر است.'],
             ]);
+        }
+    }
+
+    private function assertOfficeRefs(User $user, array $data): void
+    {
+        if (! empty($data['property_id'])) {
+            $ok = Property::where('office_id', $user->office_id)->where('id', $data['property_id'])->exists();
+            if (! $ok) {
+                throw ValidationException::withMessages(['property_id' => ['ملک متعلق به دفتر شما نیست.']]);
+            }
+        }
+        if (! empty($data['assigned_to'])) {
+            $ok = User::where('office_id', $user->office_id)->where('id', $data['assigned_to'])->exists();
+            if (! $ok) {
+                throw ValidationException::withMessages(['assigned_to' => ['کاربر تخصیص‌یافته متعلق به دفتر شما نیست.']]);
+            }
         }
     }
 

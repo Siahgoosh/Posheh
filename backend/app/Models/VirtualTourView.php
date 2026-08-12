@@ -11,9 +11,14 @@ class VirtualTourView extends Model
 
     protected $fillable = [
         'virtual_tour_id',
+        'session_id',
         'ip',
         'user_agent',
         'referrer',
+        'device_type',
+        'screen_width',
+        'screen_height',
+        'duration_seconds',
         'viewed_at',
     ];
 

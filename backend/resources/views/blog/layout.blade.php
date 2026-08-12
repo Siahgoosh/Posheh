@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $seo['title'] }}</title>
     <meta name="description" content="{{ $seo['description'] }}">
+    <meta name="robots" content="{{ !empty($seo['noindex']) ? 'noindex,nofollow' : 'index,follow' }}">
     @if(!empty($seo['keywords'] ?? null))
     <meta name="keywords" content="{{ $seo['keywords'] }}">
     @endif
@@ -16,6 +17,12 @@
     <meta property="og:image" content="{{ $seo['ogImage'] }}">
     <meta property="og:locale" content="fa_IR">
     <meta property="og:site_name" content="پوشه">
+    @if(!empty($seo['publishedTime'] ?? null))
+    <meta property="article:published_time" content="{{ $seo['publishedTime'] }}">
+    @endif
+    @if(!empty($seo['modifiedTime'] ?? null))
+    <meta property="article:modified_time" content="{{ $seo['modifiedTime'] }}">
+    @endif
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $seo['title'] }}">
     <meta name="twitter:description" content="{{ $seo['description'] }}">

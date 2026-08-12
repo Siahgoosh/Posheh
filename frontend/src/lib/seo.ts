@@ -39,14 +39,24 @@ function setCanonical(url: string) {
   el.href = url
 }
 
+function clearJsonLd() {
+  document.getElementById('seo-jsonld')?.remove()
+}
+
 function setJsonLd(data: Record<string, unknown> | Record<string, unknown>[]) {
-  const id = 'seo-jsonld'
-  document.getElementById(id)?.remove()
+  clearJsonLd()
   const script = document.createElement('script')
-  script.id = id
+  script.id = 'seo-jsonld'
   script.type = 'application/ld+json'
   script.textContent = JSON.stringify(data)
   document.head.appendChild(script)
+}
+
+export function formatPageTitle(title?: string): string {
+  if (!title?.trim()) return `${SITE_NAME} | سامانه مدیریت املاک`
+  const t = title.trim()
+  if (t.includes(SITE_NAME)) return t
+  return `${t} | ${SITE_NAME}`
 }
 
 export function applySeo({
@@ -61,9 +71,9 @@ export function applySeo({
   jsonLd,
   noindex = false,
 }: SeoProps) {
-  const fullTitle = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | سامانه مدیریت املاک`
+  const fullTitle = formatPageTitle(title)
   const url = `${getSiteUrl()}${path}`
-  const ogImage = image || `${getSiteUrl()}/favicon.svg`
+  const ogImage = image || `${getSiteUrl()}/og-default.png`
 
   document.title = fullTitle
   setMeta('description', description)
@@ -87,10 +97,12 @@ export function applySeo({
   setMeta('twitter:card', 'summary_large_image')
   setMeta('twitter:title', fullTitle)
   setMeta('twitter:description', description)
+  setMeta('twitter:image', ogImage)
 
   setCanonical(url)
 
   if (jsonLd) setJsonLd(jsonLd)
+  else clearJsonLd()
 }
 
 export function getOrganizationJsonLd() {
@@ -99,7 +111,7 @@ export function getOrganizationJsonLd() {
     '@type': 'Organization',
     name: SITE_NAME,
     url: getSiteUrl(),
-    logo: `${getSiteUrl()}/favicon.svg`,
+    logo: `${getSiteUrl()}/og-default.png`,
     description: DEFAULT_DESCRIPTION,
     email: 'info@posheapp.ir',
     contactPoint: {
@@ -138,10 +150,5 @@ export function getWebSiteJsonLd() {
     name: SITE_NAME,
     url: getSiteUrl(),
     inLanguage: 'fa-IR',
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: `${getSiteUrl()}/blog?q={search_term_string}`,
-      'query-input': 'required name=search_term_string',
-    },
   }
 }

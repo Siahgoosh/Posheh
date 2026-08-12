@@ -195,6 +195,13 @@ export function CrmPage() {
     })
   }
 
+  const { data: dealFinance } = useQuery({
+    queryKey: ['deal-finance', selectedId],
+    queryFn: async () => (await api.get(`/accounting/deals/${selectedId}/finance`)).data.data,
+    enabled: !!selectedId && hasCrm,
+    retry: false,
+  })
+
   if (!hasCrm) {
     return <div className="p-8 text-center text-muted">CRM در پلن شما فعال نیست.</div>
   }
@@ -393,6 +400,25 @@ export function CrmPage() {
                   <Button size="sm" variant="outline" className="text-danger" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
+                </div>
+                <div className="border-t border-card-border pt-3 space-y-2">
+                  <p className="text-xs font-medium text-muted">امور مالی معامله</p>
+                  {dealFinance ? (
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between"><span>مبلغ معامله</span><span>{formatPrice(dealFinance.deal_value ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>کمیسیون</span><span>{formatPrice(dealFinance.commission ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>سهم دفتر</span><span>{formatPrice(dealFinance.office_share ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>سهم مشاور</span><span>{formatPrice(dealFinance.consultant_share ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>دریافت‌شده</span><span className="text-success">{formatPrice(dealFinance.received ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>پرداخت‌شده</span><span className="text-danger">{formatPrice(dealFinance.paid ?? 0)}</span></div>
+                      <div className="flex justify-between font-medium"><span>مانده</span><span>{formatPrice(dealFinance.balance ?? 0)}</span></div>
+                      <p className="text-[10px] text-muted pt-1">
+                        وضعیت تسویه: {dealFinance.settlement_status === 'settled' ? 'تسویه‌شده' : dealFinance.settlement_status === 'open' ? 'باز' : 'بدون کمیسیون'}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted">اطلاعات مالی در دسترس نیست (پلن حسابداری).</p>
+                  )}
                 </div>
                 <div className="border-t border-card-border pt-3 space-y-2">
                   <div className="flex gap-2">
