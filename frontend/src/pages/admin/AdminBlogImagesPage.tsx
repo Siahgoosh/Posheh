@@ -7,13 +7,15 @@ import { adminPath } from '@/lib/adminPaths'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BootstrapStatusBanner, useAdminBootstrap } from '@/lib/useAdminBootstrap'
+import { extractApiError } from '@/lib/apiError'
 
 export function AdminBlogImagesPage() {
   const qc = useQueryClient()
   const [dryRun, setDryRun] = useState<Record<string, unknown> | null>(null)
+  const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
   const bootstrap = useAdminBootstrap('/admin/blog-images/bootstrap', ['admin-blog-images'])
 
-  const { data } = useQuery({
+  const { data, isError, error } = useQuery({
     queryKey: ['admin-blog-images'],
     queryFn: async () => (await api.get('/admin/blog-images')).data.data,
   })
@@ -25,33 +27,54 @@ export function AdminBlogImagesPage() {
 
   const audit = useMutation({
     mutationFn: () => api.post('/admin/blog-images/audit'),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-blog-images'] }),
+    onSuccess: () => {
+      setFeedback({ type: 'ok', text: 'اسکن تصاویر انجام شد.' })
+      qc.invalidateQueries({ queryKey: ['admin-blog-images'] })
+    },
+    onError: (err) => setFeedback({ type: 'err', text: extractApiError(err) }),
   })
   const runDry = useMutation({
     mutationFn: async () => (await api.post('/admin/blog-images/dry-run', { limit: 400, batch_size: 50 })).data.data,
-    onSuccess: (d) => setDryRun(d),
+    onSuccess: (d) => {
+      setDryRun(d)
+      setFeedback({ type: 'ok', text: 'اجرای آزمایشی آماده شد.' })
+    },
+    onError: (err) => setFeedback({ type: 'err', text: extractApiError(err) }),
   })
   const confirm = useMutation({
     mutationFn: () => api.post('/admin/blog-images/batches/confirm', { dry_run: dryRun, confirm: true }),
     onSuccess: () => {
       setDryRun(null)
+      setFeedback({ type: 'ok', text: 'دسته تولید تأیید شد.' })
       qc.invalidateQueries({ queryKey: ['admin-blog-images'] })
     },
+    onError: (err) => setFeedback({ type: 'err', text: extractApiError(err) }),
   })
   const process = useMutation({
-    mutationFn: () => api.post('/admin/blog-images/jobs/process', { limit: 10 }),
-    onSuccess: () => {
+    mutationFn: () => api.post('/admin/blog-images/jobs/process', { limit: 20 }),
+    onSuccess: (res) => {
+      setFeedback({ type: 'ok', text: `پردازش شد: ${res.data?.data?.processed ?? 0} کار` })
       qc.invalidateQueries({ queryKey: ['admin-blog-images'] })
       qc.invalidateQueries({ queryKey: ['admin-blog-image-jobs'] })
     },
+    onError: (err) => setFeedback({ type: 'err', text: extractApiError(err) }),
   })
   const approve = useMutation({
     mutationFn: (id: number) => api.post(`/admin/blog-images/jobs/${id}/approve`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-blog-image-jobs'] }),
+    onSuccess: () => {
+      setFeedback({ type: 'ok', text: 'تصویر تأیید و روی مقاله اعمال شد.' })
+      qc.invalidateQueries({ queryKey: ['admin-blog-image-jobs'] })
+      qc.invalidateQueries({ queryKey: ['admin-blog-images'] })
+    },
+    onError: (err) => setFeedback({ type: 'err', text: extractApiError(err) }),
   })
   const reject = useMutation({
-    mutationFn: (id: number) => api.post(`/admin/blog-images/jobs/${id}/reject`, { reason: 'کیفیت ضعیف' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-blog-image-jobs'] }),
+    mutationFn: (id: number) => api.post(`/admin/blog-images/jobs/${id}/reject`, { reason: 'Poor Quality' }),
+    onSuccess: () => {
+      setFeedback({ type: 'ok', text: 'تصویر رد شد.' })
+      qc.invalidateQueries({ queryKey: ['admin-blog-image-jobs'] })
+    },
+    onError: (err) => setFeedback({ type: 'err', text: extractApiError(err) }),
   })
 
   const auditCounts = data?.audit || {}
@@ -64,27 +87,39 @@ export function AdminBlogImagesPage() {
           <Button variant="ghost" size="icon" onClick={() => window.history.back()}><ArrowRight className="h-5 w-5" /></Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2"><ImageIcon className="h-6 w-6" /> تصاویر هوشمند وبلاگ</h1>
-            <p className="text-sm text-muted">فقط برای مقالات با ارزش واقعی — پیش‌نمایش → تأیید انسان. پیش‌فرض: تصویرسازی توضیحی.</p>
+            <p className="text-sm text-muted">اسکن → آزمایشی → تأیید دسته → پردازش صف. ارائه‌دهنده پیش‌فرض mock تصویرسازی توضیحی می‌سازد.</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link to={adminPath('blog')}><Button variant="outline">مقالات</Button></Link>
           <Link to={adminPath('content-ops')}><Button variant="outline">عملیات محتوا</Button></Link>
           <Button type="button" variant="outline" onClick={() => bootstrap.run()} disabled={bootstrap.isPending}>
             {bootstrap.isPending ? 'در حال راه‌اندازی…' : 'راه‌اندازی اولیه'}
           </Button>
-          <Button variant="outline" onClick={() => audit.mutate()}>اسکن همه</Button>
-          <Button variant="outline" onClick={() => runDry.mutate()}>اجرای آزمایشی</Button>
-          <Button onClick={() => process.mutate()}>پردازش صف</Button>
+          <Button variant="outline" onClick={() => audit.mutate()} disabled={audit.isPending}>اسکن همه</Button>
+          <Button variant="outline" onClick={() => runDry.mutate()} disabled={runDry.isPending}>اجرای آزمایشی</Button>
+          <Button onClick={() => process.mutate()} disabled={process.isPending}>پردازش صف</Button>
         </div>
       </div>
 
       <BootstrapStatusBanner msg={bootstrap.msg} />
 
+      {feedback && (
+        <div className={`rounded-xl border px-3 py-2 text-sm ${feedback.type === 'ok' ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200' : 'border-red-500/40 bg-red-500/10 text-red-200'}`}>
+          {feedback.text}
+        </div>
+      )}
+      {isError && (
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          {extractApiError(error)}
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-4 text-sm text-muted space-y-1">
-          <p>{data?.note}</p>
-          <p>تأیید خودکار: <strong>{String(data?.policies?.auto_approve ?? false)}</strong> · ارائه‌دهنده: <strong>{data?.policies?.default_provider}</strong></p>
-          <p>تصویر جعلی به‌عنوان «عکس واقعی ملک» ممنوع است.</p>
+          <p>{data?.note || 'پس از راه‌اندازی اولیه، مقالات بدون تصویر را اسکن و تولید کنید.'}</p>
+          <p>تأیید خودکار: <strong>{String(data?.policies?.auto_approve ?? false)}</strong> · ارائه‌دهنده: <strong>{data?.policies?.default_provider || 'mock'}</strong></p>
+          <p>تصویر جعلی به‌عنوان «عکس واقعی ملک» ممنوع است. برای تصاویر واقعی OpenAI را با کلید فعال کنید.</p>
         </CardContent>
       </Card>
 
@@ -114,8 +149,7 @@ export function AdminBlogImagesPage() {
           <CardContent className="space-y-3 text-sm">
             <p>مقالات: <strong>{String(dryRun.count)}</strong> · برآورد هزینه: <strong>{String(dryRun.estimated_total_cost_toman)}</strong> · ارائه‌دهنده: {String(dryRun.provider)}</p>
             <p className="text-muted">{String(dryRun.note)}</p>
-            <Button onClick={() => confirm.mutate()} disabled={confirm.isPending}>تأیید تولید گروهی</Button>
-            {confirm.isError && <p className="text-red-500 text-xs">دسته رد شد — بودجه یا تأیید را بررسی کنید</p>}
+            <Button onClick={() => confirm.mutate()} disabled={confirm.isPending || !dryRun.count}>تأیید تولید گروهی</Button>
           </CardContent>
         </Card>
       )}
@@ -134,7 +168,7 @@ export function AdminBlogImagesPage() {
               <Button size="sm" variant="outline" onClick={() => reject.mutate(j.id)}>رد</Button>
             </div>
           ))}
-          {!jobs?.length && <p className="text-muted text-sm">صف تأیید خالی است</p>}
+          {!jobs?.length && <p className="text-muted text-sm">صف تأیید خالی است — اسکن و پردازش را اجرا کنید یا از ویرایشگر «ساخت تصویر شاخص» بزنید.</p>}
         </CardContent>
       </Card>
     </div>

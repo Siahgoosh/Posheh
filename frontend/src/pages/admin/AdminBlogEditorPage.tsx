@@ -21,6 +21,7 @@ import {
   SEARCH_INTENT_FA,
   labelFa,
 } from '@/lib/blogLabelsFa'
+import { extractApiError } from '@/lib/apiError'
 
 interface FaqItem { question: string; answer: string }
 interface SourceItem { title: string; url: string; publisher?: string; published_date?: string; access_date?: string }
@@ -93,6 +94,7 @@ export function AdminBlogEditorPage() {
   const [seoLoading, setSeoLoading] = useState(false)
   const [checklist, setChecklist] = useState<ChecklistResult | null>(null)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
   const [aiResult, setAiResult] = useState<unknown>(null)
   const [cannibal, setCannibal] = useState<{ risk?: string; matches?: unknown[]; recommendation?: string } | null>(null)
@@ -247,13 +249,18 @@ export function AdminBlogEditorPage() {
     },
     onSuccess: (res) => {
       setError('')
+      setSuccess(res.data?.message || (isNew ? 'پیش‌نویس ذخیره شد.' : 'مقاله ذخیره شد.'))
       setSeo(res.data.seo as SeoAnalysis)
       setChecklist(res.data.checklist as ChecklistResult)
       localStorage.removeItem(LOCAL_DRAFT_KEY(isNew ? 'new' : String(id)))
-      if (isNew) navigate(adminPath(`blog/${res.data.data.id}/edit`), { replace: true })
-      else queryClient.invalidateQueries({ queryKey: ['admin-blog', id] })
+      if (isNew && res.data?.data?.id) {
+        navigate(adminPath(`blog/${res.data.data.id}/edit`), { replace: true })
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['admin-blog', id] })
+      }
     },
     onError: (err: unknown) => {
+      setSuccess('')
       const axiosErr = err as { response?: { data?: { message?: string; code?: string; errors?: Record<string, string[]> }; status?: number } }
       if (axiosErr.response?.data?.code === 'slug_change_protected') {
         if (confirm(`${axiosErr.response.data.message}\n\nآیا ۳۰۱ ساخته و ادامه داده شود؟`)) {
@@ -265,11 +272,34 @@ export function AdminBlogEditorPage() {
         setError(axiosErr.response.data?.message || 'Conflict Warning — ویرایش همزمان')
         return
       }
-      setError(
-        Object.values(axiosErr.response?.data?.errors ?? {}).flat().join('، ')
-          || axiosErr.response?.data?.message
-          || 'خطا در ذخیره'
-      )
+      setError(extractApiError(err, 'خطا در ذخیره مقاله'))
+    },
+  })
+
+  const generateCover = useMutation({
+    mutationFn: async () => {
+      if (isNew || !id) throw new Error('ابتدا مقاله را ذخیره کنید.')
+      const res = await api.post('/admin/blog-images/jobs', {
+        blog_post_id: Number(id),
+        force: true,
+        run_now: true,
+      })
+      return res.data
+    },
+    onSuccess: (data) => {
+      setError('')
+      const url = data?.data?.public_url as string | undefined
+      if (url) {
+        update('cover_image', url)
+        setSuccess('تصویر شاخص ساخته و اعمال شد.')
+      } else {
+        setSuccess(data?.message || 'کار تصویر ساخته شد — از صفحه تصاویر تأیید کنید.')
+      }
+      queryClient.invalidateQueries({ queryKey: ['admin-blog', id] })
+    },
+    onError: (err) => {
+      setSuccess('')
+      setError(extractApiError(err, 'ساخت تصویر ناموفق بود'))
     },
   })
 
@@ -436,7 +466,16 @@ export function AdminBlogEditorPage() {
         </div>
       )}
 
-      {error && <p className="text-sm text-danger whitespace-pre-wrap">{error}</p>}
+      {error && (
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200 whitespace-pre-wrap" role="alert">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200" role="status">
+          {success}
+        </div>
+      )}
 
       {cannibal && cannibal.risk !== 'low' && (
         <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
@@ -697,6 +736,19 @@ export function AdminBlogEditorPage() {
                 <Input value={form.cro_cta_key} onChange={(e) => update('cro_cta_key', e.target.value)} dir="ltr" placeholder="کلید اختیاری" />
               </div>
               <ImageUploadField label="تصویر شاخص" value={form.cover_image} onChange={(url) => update('cover_image', url)} onUpload={uploadCover} hint="متن جایگزین و ابعاد را در کتابخانه رسانه بررسی کنید." />
+              {!isNew && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  disabled={generateCover.isPending}
+                  onClick={() => generateCover.mutate()}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {generateCover.isPending ? 'در حال ساخت تصویر…' : 'ساخت تصویر شاخص (AI)'}
+                </Button>
+              )}
               <div>
                 <label className="text-sm text-muted mb-1 block">نویسنده</label>
                 <Input value={form.author_name} onChange={(e) => update('author_name', e.target.value)} />

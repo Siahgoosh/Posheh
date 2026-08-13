@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { REVIEW_STATUS_FA, labelFa } from '@/lib/blogLabelsFa'
 import { BootstrapStatusBanner, useAdminBootstrap } from '@/lib/useAdminBootstrap'
+import { extractApiError } from '@/lib/apiError'
 
 interface BlogPostRow {
   id: number
@@ -46,12 +47,12 @@ export function AdminBlogListPage() {
   const [q, setQ] = useState('')
   const [selected, setSelected] = useState<number[]>([])
 
-  const { data: dash } = useQuery({
+  const { data: dash, isError: dashError, error: dashErr } = useQuery({
     queryKey: ['admin-blog-dashboard'],
     queryFn: async () => (await api.get('/admin/blog/dashboard')).data.data as Dashboard,
   })
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError: listError, error: listErr } = useQuery({
     queryKey: ['admin-blog', status, q],
     queryFn: async () => {
       const res = await api.get('/admin/blog', {
@@ -137,6 +138,11 @@ export function AdminBlogListPage() {
       </div>
 
       <BootstrapStatusBanner msg={bootstrap.msg} />
+      {(dashError || listError) && (
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          {extractApiError(dashErr || listErr)}
+        </div>
+      )}
 
       {dash && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">

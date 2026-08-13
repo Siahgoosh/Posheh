@@ -104,17 +104,24 @@ class BlogImageAdminController extends Controller
         $data = $request->validate([
             'blog_post_id' => ['required', 'integer', 'exists:blog_posts,id'],
             'run_now' => ['sometimes', 'boolean'],
+            'force' => ['sometimes', 'boolean'],
         ]);
         try {
-            $job = $this->jobs->enqueueForPost(BlogPost::findOrFail($data['blog_post_id']), $request->user()?->id);
-            if ($request->boolean('run_now')) {
+            $job = $this->jobs->enqueueForPost(
+                BlogPost::findOrFail($data['blog_post_id']),
+                $request->user()?->id,
+                null,
+                'A',
+                (bool) ($data['force'] ?? false),
+            );
+            if ($request->boolean('run_now') || $request->boolean('force')) {
                 $job = $this->jobs->process($job);
             }
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return response()->json(['data' => $job], 201);
+        return response()->json(['data' => $job, 'message' => 'تصویر در صف قرار گرفت.'], 201);
     }
 
     public function process(Request $request): JsonResponse

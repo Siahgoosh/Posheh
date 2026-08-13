@@ -21,6 +21,8 @@ use App\Services\ContentOps\AiOutputSanitizer;
 use App\Services\ContentOps\EditorialWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -118,26 +120,50 @@ class BlogAdminController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $data = $this->validated($request);
-        $tagIds = $data['_tag_ids'] ?? null;
-        unset($data['_tag_ids']);
-        $data['quality_scores'] = ['after' => $this->qualityScorer->score($data)];
-        $data['review_status'] = $data['review_status'] ?? BlogPost::REVIEW_DRAFT;
-        $post = BlogPost::create($data);
-        if (is_array($tagIds)) {
-            $post->tags()->sync($tagIds);
-        }
-        $this->versioning->snapshot($post, 'create', $request->user()?->email);
-        $this->audit->log($post, 'article_created', null, ['slug' => $post->slug], $request);
-        $this->sitemap->invalidate();
+        try {
+            $data = $this->validated($request);
+            $tagIds = $data['_tag_ids'] ?? null;
+            unset($data['_tag_ids']);
+            $data = $this->onlyExistingColumns($data);
+            $data['quality_scores'] = ['after' => $this->qualityScorer->score($data)];
+            $data['review_status'] = $data['review_status'] ?? BlogPost::REVIEW_DRAFT;
 
-        return response()->json([
-            'data' => $this->adminItem($post, includeContent: true),
-            'seo' => $this->seoAnalyzer->analyze($post->toArray()),
-            'quality' => $this->qualityScorer->score($post->toArray()),
-            'gate' => $this->qualityGate->evaluate($post->toArray(), forPublish: (bool) $post->is_published),
-            'checklist' => $this->checklist->evaluate($post->toArray()),
-        ], 201);
+            $post = DB::transaction(function () use ($data, $tagIds) {
+                $post = BlogPost::create($data);
+                if (is_array($tagIds) && Schema::hasTable('blog_post_tag') && Schema::hasTable('blog_tags')) {
+                    $post->tags()->sync($tagIds);
+                }
+
+                return $post;
+            });
+
+            $this->versioning->snapshot($post, 'create', $request->user()?->email);
+            $this->audit->log($post, 'article_created', null, ['slug' => $post->slug], $request);
+            try {
+                $this->sitemap->invalidate();
+            } catch (\Throwable) {
+                // Non-fatal
+            }
+
+            return response()->json([
+                'data' => $this->adminItem($post->fresh() ?? $post, includeContent: true),
+                'seo' => $this->seoAnalyzer->analyze($post->toArray()),
+                'quality' => $this->qualityScorer->score($post->toArray()),
+                'gate' => $this->qualityGate->evaluate($post->toArray(), forPublish: (bool) $post->is_published),
+                'checklist' => $this->checklist->evaluate($post->toArray()),
+                'message' => 'پیش‌نویس با موفقیت ذخیره شد.',
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'خطا در ذخیره مقاله: '.$e->getMessage(),
+                'error' => $e->getMessage(),
+                'code' => class_basename($e),
+            ], 500);
+        }
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -191,28 +217,48 @@ class BlogAdminController extends Controller
             }
         }
 
-        $this->versioning->snapshot($post, 'before-update', $request->user()?->email);
-        $data['quality_scores'] = [
-            'before' => $post->quality_scores['after'] ?? $this->qualityScorer->score($post->toArray()),
-            'after' => $this->qualityScorer->score(array_merge($post->toArray(), $data)),
-        ];
-        $tagIds = $data['_tag_ids'] ?? null;
-        unset($data['_tag_ids']);
-        $old = ['slug' => $post->slug, 'review_status' => $post->review_status];
-        $post->update($data);
-        if (is_array($tagIds)) {
-            $post->tags()->sync($tagIds);
-        }
-        $this->audit->log($post, 'article_updated', $old, ['slug' => $post->slug, 'review_status' => $post->review_status], $request);
-        $this->sitemap->invalidate();
+        try {
+            $this->versioning->snapshot($post, 'before-update', $request->user()?->email);
+            $data['quality_scores'] = [
+                'before' => $post->quality_scores['after'] ?? $this->qualityScorer->score($post->toArray()),
+                'after' => $this->qualityScorer->score(array_merge($post->toArray(), $data)),
+            ];
+            $tagIds = $data['_tag_ids'] ?? null;
+            unset($data['_tag_ids']);
+            $data = $this->onlyExistingColumns($data);
+            $old = ['slug' => $post->slug, 'review_status' => $post->review_status];
+            $post->update($data);
+            if (is_array($tagIds) && Schema::hasTable('blog_post_tag') && Schema::hasTable('blog_tags')) {
+                $post->tags()->sync($tagIds);
+            }
+            $this->audit->log($post, 'article_updated', $old, ['slug' => $post->slug, 'review_status' => $post->review_status], $request);
+            try {
+                $this->sitemap->invalidate();
+            } catch (\Throwable) {
+                // Non-fatal
+            }
 
-        return response()->json([
-            'data' => $this->adminItem($post->fresh(), includeContent: true),
-            'seo' => $this->seoAnalyzer->analyze($post->fresh()->toArray()),
-            'quality' => $this->qualityScorer->score($post->fresh()->toArray()),
-            'gate' => $this->qualityGate->evaluate($post->fresh()->toArray(), forPublish: (bool) $post->fresh()->is_published),
-            'checklist' => $this->checklist->evaluate($post->fresh()->toArray()),
-        ]);
+            $fresh = $post->fresh() ?? $post;
+
+            return response()->json([
+                'data' => $this->adminItem($fresh, includeContent: true),
+                'seo' => $this->seoAnalyzer->analyze($fresh->toArray()),
+                'quality' => $this->qualityScorer->score($fresh->toArray()),
+                'gate' => $this->qualityGate->evaluate($fresh->toArray(), forPublish: (bool) $fresh->is_published),
+                'checklist' => $this->checklist->evaluate($fresh->toArray()),
+                'message' => 'مقاله با موفقیت ذخیره شد.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'خطا در به‌روزرسانی مقاله: '.$e->getMessage(),
+                'error' => $e->getMessage(),
+                'code' => class_basename($e),
+            ], 500);
+        }
     }
 
     public function destroy(int $id, Request $request): JsonResponse
@@ -323,11 +369,13 @@ class BlogAdminController extends Controller
     {
         $post = BlogPost::findOrFail($id);
         $token = $this->publisher->ensurePreviewToken($post);
+        $base = rtrim((string) (config('app.frontend_url') ?: config('app.url') ?: 'https://posheapp.ir'), '/');
 
         return response()->json([
             'data' => [
                 'token' => $token,
-                'url' => '/blog/preview/'.$token,
+                // Absolute apex URL — panel.posheapp.ir has no /blog SPA routes.
+                'url' => $base.'/blog/preview/'.$token,
             ],
         ]);
     }
@@ -407,21 +455,27 @@ class BlogAdminController extends Controller
 
     public function categories(): JsonResponse
     {
-        $cms = \App\Models\BlogCategory::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'slug', 'name', 'parent_id']);
+        try {
+            if (Schema::hasTable('blog_categories')) {
+                $cms = \App\Models\BlogCategory::query()
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get(['id', 'slug', 'name', 'parent_id']);
 
-        if ($cms->isNotEmpty()) {
-            return response()->json([
-                'data' => $cms->map(fn ($c) => [
-                    'id' => $c->id,
-                    'slug' => $c->slug,
-                    'label' => $c->name,
-                    'parent_id' => $c->parent_id,
-                ]),
-            ]);
+                if ($cms->isNotEmpty()) {
+                    return response()->json([
+                        'data' => $cms->map(fn ($c) => [
+                            'id' => $c->id,
+                            'slug' => $c->slug,
+                            'label' => $c->name,
+                            'parent_id' => $c->parent_id,
+                        ]),
+                    ]);
+                }
+            }
+        } catch (\Throwable) {
+            // Fall through to static categories
         }
 
         return response()->json([
@@ -687,12 +741,35 @@ class BlogAdminController extends Controller
             'og_image' => ['nullable', 'string', 'max:500'],
             'is_featured' => ['sometimes', 'boolean'],
             'is_editors_pick' => ['sometimes', 'boolean'],
-            'blog_category_id' => ['nullable', 'integer', 'exists:blog_categories,id'],
-            'blog_author_id' => ['nullable', 'integer', 'exists:blog_authors,id'],
+            'blog_category_id' => ['nullable', 'integer'],
+            'blog_author_id' => ['nullable', 'integer'],
             'tag_ids' => ['nullable', 'array'],
-            'tag_ids.*' => ['integer', 'exists:blog_tags,id'],
+            'tag_ids.*' => ['integer'],
             'normalize_persian' => ['sometimes', 'boolean'],
         ]);
+
+        if (Schema::hasTable('blog_categories') && ! empty($data['blog_category_id'])) {
+            if (! \App\Models\BlogCategory::query()->whereKey($data['blog_category_id'])->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'blog_category_id' => ['دسته انتخاب‌شده معتبر نیست.'],
+                ]);
+            }
+        }
+        if (Schema::hasTable('blog_authors') && ! empty($data['blog_author_id'])) {
+            if (! \App\Models\BlogAuthor::query()->whereKey($data['blog_author_id'])->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'blog_author_id' => ['نویسنده انتخاب‌شده معتبر نیست.'],
+                ]);
+            }
+        }
+        if (Schema::hasTable('blog_tags') && is_array($data['tag_ids'] ?? null) && $data['tag_ids'] !== []) {
+            $found = \App\Models\BlogTag::query()->whereIn('id', $data['tag_ids'])->count();
+            if ($found !== count($data['tag_ids'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'tag_ids' => ['برچسب نامعتبر است.'],
+                ]);
+            }
+        }
 
         $tagIds = $data['tag_ids'] ?? null;
         unset($data['tag_ids']);
@@ -700,7 +777,14 @@ class BlogAdminController extends Controller
         unset($data['normalize_persian']);
 
         if (! empty($data['category_slug']) && empty($data['category_label'])) {
-            $cmsCat = \App\Models\BlogCategory::query()->where('slug', $data['category_slug'])->first();
+            $cmsCat = null;
+            if (Schema::hasTable('blog_categories')) {
+                try {
+                    $cmsCat = \App\Models\BlogCategory::query()->where('slug', $data['category_slug'])->first();
+                } catch (\Throwable) {
+                    $cmsCat = null;
+                }
+            }
             $data['category_label'] = $cmsCat?->name
                 ?? \App\Http\Controllers\Api\Blog\BlogController::CATEGORIES[$data['category_slug']]
                 ?? null;
@@ -794,9 +878,7 @@ class BlogAdminController extends Controller
             'is_editors_pick' => (bool) $post->is_editors_pick,
             'blog_category_id' => $post->blog_category_id,
             'blog_author_id' => $post->blog_author_id,
-            'tag_ids' => $post->relationLoaded('tags')
-                ? $post->tags->pluck('id')
-                : $post->tags()->pluck('blog_tags.id'),
+            'tag_ids' => $this->safeTagIds($post),
             'og_title' => $post->og_title,
             'og_description' => $post->og_description,
             'og_image' => $post->og_image,
@@ -816,5 +898,48 @@ class BlogAdminController extends Controller
         }
 
         return $item;
+    }
+
+    /** @return list<int> */
+    private function safeTagIds(BlogPost $post): array
+    {
+        try {
+            if (! Schema::hasTable('blog_tags') || ! Schema::hasTable('blog_post_tag')) {
+                return [];
+            }
+            if ($post->relationLoaded('tags')) {
+                return $post->tags->pluck('id')->map(fn ($id) => (int) $id)->all();
+            }
+
+            return $post->tags()->pluck('blog_tags.id')->map(fn ($id) => (int) $id)->all();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * Drop payload keys that are not yet present as DB columns (partial migrate safety).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function onlyExistingColumns(array $data): array
+    {
+        try {
+            $columns = array_flip(Schema::getColumnListing('blog_posts'));
+        } catch (\Throwable) {
+            return $data;
+        }
+
+        foreach (array_keys($data) as $key) {
+            if ($key === '_tag_ids') {
+                continue;
+            }
+            if (! isset($columns[$key])) {
+                unset($data[$key]);
+            }
+        }
+
+        return $data;
     }
 }

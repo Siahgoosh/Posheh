@@ -101,14 +101,17 @@ class ImageJobService
         return ['allowed' => true, 'reason' => null];
     }
 
-    public function enqueueForPost(BlogPost $post, ?int $userId = null, ?int $batchId = null, string $variant = 'A'): BlogImageJob
+    public function enqueueForPost(BlogPost $post, ?int $userId = null, ?int $batchId = null, string $variant = 'A', bool $force = false): BlogImageJob
     {
         $audit = $this->audit->auditPost($post);
-        if (! ($audit['should_generate'] ?? false)) {
+        if (! $force && ! ($audit['should_generate'] ?? false)) {
             throw new \RuntimeException('Generation skipped: '.($audit['skip_reason'] ?? 'not eligible'));
         }
 
         $type = (string) ($audit['recommended_type'] ?? 'HERO');
+        if ($force && empty($audit['recommended_type'])) {
+            $type = 'HERO';
+        }
         $brief = $this->briefs->build($post, $type);
         $provider = $this->providers->get();
         $cfg = Schema::hasTable('blog_image_provider_configs')
@@ -120,7 +123,7 @@ class ImageJobService
             throw new \RuntimeException($budget['reason'] ?? 'Budget blocked');
         }
 
-        $key = hash('sha256', $post->id.'|'.$type.'|'.$variant.'|'.ImageBriefBuilder::PROMPT_VERSION);
+        $key = hash('sha256', $post->id.'|'.$type.'|'.$variant.'|'.ImageBriefBuilder::PROMPT_VERSION.($force ? '|force' : ''));
 
         return BlogImageJob::query()->firstOrCreate(
             ['idempotency_key' => $key],
@@ -129,9 +132,9 @@ class ImageJobService
                 'batch_id' => $batchId,
                 'created_by' => $userId,
                 'status' => 'queued',
-                'priority' => $audit['priority'] ?? 'P2',
-                'opportunity_score' => $audit['opportunity_score'] ?? 0,
-                'image_status' => $audit['image_status'] ?? null,
+                'priority' => $force ? 'P0' : ($audit['priority'] ?? 'P2'),
+                'opportunity_score' => $audit['opportunity_score'] ?? ($force ? 100 : 0),
+                'image_status' => $audit['image_status'] ?? 'NO_IMAGE',
                 'image_type' => $type,
                 'provider' => $provider->key(),
                 'model' => $cfg->model ?? $provider->key(),
@@ -144,7 +147,8 @@ class ImageJobService
                 'seo_filename' => $brief['filename'],
                 'is_illustrative' => true,
                 'is_ai_generated' => true,
-                'auto_approve' => (bool) config('blog_images.auto_approve', false),
+                // Mock provider is illustrative-only; auto-apply so covers actually appear.
+                'auto_approve' => (bool) config('blog_images.auto_approve', false) || $provider->key() === 'mock',
                 'estimated_cost_toman' => $est,
             ]
         );
@@ -215,7 +219,7 @@ class ImageJobService
             ]);
             $job->save();
 
-            if ($job->auto_approve || config('blog_images.auto_approve')) {
+            if ($job->auto_approve || config('blog_images.auto_approve') || $job->provider === 'mock') {
                 return $this->approve($job, null, auto: true);
             }
 

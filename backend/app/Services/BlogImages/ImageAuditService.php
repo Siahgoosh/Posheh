@@ -82,15 +82,17 @@ class ImageAuditService
 
         if ($archiveCandidate) {
             $skip = 'ARCHIVE_CANDIDATE';
-        } elseif ($thin && $traffic < 5 && $impressions < 50) {
+        } elseif ($thin && ! $post->is_published && $traffic < 5 && $impressions < 50) {
+            // Thin drafts stay skipped; published posts without covers must still get images.
             $skip = 'THIN_LOW_VALUE';
         } elseif ($status === 'IMAGE_OK' && $score < 55) {
             $skip = 'IMAGE_OK';
         } elseif (! $post->is_published && $status === 'IMAGE_OK') {
             $skip = 'DRAFT_OK';
         } else {
-            $should = in_array($status, ['NO_IMAGE', 'HERO_MISSING', 'IMAGE_WEAK', 'IMAGE_NEEDS_REFRESH'], true)
-                && ($score >= 40 || $post->is_published);
+            $needsImage = in_array($status, ['NO_IMAGE', 'HERO_MISSING', 'IMAGE_WEAK', 'IMAGE_NEEDS_REFRESH'], true);
+            // Published articles missing a hero always qualify; drafts need opportunity score.
+            $should = $needsImage && ($post->is_published || $score >= 40);
             if ($should) {
                 $status = $status === 'IMAGE_OK' ? 'IMAGE_GENERATION_REQUIRED' : $status;
                 $type = $this->recommendType($post);

@@ -13,6 +13,7 @@ use App\Services\Blog\BlogRelatedArticlesService;
 use App\Services\Blog\BlogSitemapService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -43,26 +44,46 @@ class BlogCmsAdminController extends Controller
             ->limit(20)
             ->get();
 
-        $orphanish = BlogPost::published()
-            ->where(function ($q) {
-                $q->whereNull('related_slugs')->orWhere('related_slugs', '[]');
-            })
-            ->whereDoesntHave('tags')
-            ->count();
+        $orphanish = 0;
+        try {
+            $orphanishQuery = BlogPost::published()
+                ->where(function ($q) {
+                    $q->whereNull('related_slugs')->orWhere('related_slugs', '[]');
+                });
+            if (Schema::hasTable('blog_post_tag')) {
+                $orphanishQuery->whereDoesntHave('tags');
+            }
+            $orphanish = $orphanishQuery->count();
+        } catch (\Throwable) {
+            $orphanish = 0;
+        }
+
+        $total = (clone $base)->count();
+        $published = (clone $base)->where('is_published', true)->count();
+        $missingImage = (clone $base)->where(fn ($q) => $q->whereNull('cover_image')->orWhere('cover_image', ''))->count();
+        $missingMeta = (clone $base)->where(fn ($q) => $q->whereNull('meta_description')->orWhere('meta_description', ''))->count();
+        $redirects = Schema::hasTable('blog_redirects')
+            ? BlogRedirect::where('is_active', true)->count()
+            : 0;
+
+        $technical = $total === 0 ? 0 : (int) round(100 * (1 - min(1, $missingMeta / max(1, $total))));
+        $content = $total === 0 ? 0 : (int) round(100 * ($published / max(1, $total)));
+        $indexability = $published === 0 ? 0 : (int) round(100 * (1 - min(1, $orphanish / max(1, $published))));
+        $metadata = $total === 0 ? 0 : (int) round(100 * (1 - min(1, $missingImage / max(1, $total))));
 
         return response()->json([
             'data' => [
-                'total' => (clone $base)->count(),
-                'published' => (clone $base)->where('is_published', true)->count(),
+                'total' => $total,
+                'published' => $published,
                 'draft' => (clone $base)->where('is_published', false)->where('review_status', '!=', 'scheduled')->count(),
                 'scheduled' => (clone $base)->where('review_status', 'scheduled')->count(),
                 'needs_review' => (clone $base)->whereIn('review_status', ['in_review', 'seo_review', 'content_review'])->count(),
-                'missing_image' => (clone $base)->where(fn ($q) => $q->whereNull('cover_image')->orWhere('cover_image', ''))->count(),
-                'missing_meta' => (clone $base)->where(fn ($q) => $q->whereNull('meta_description')->orWhere('meta_description', ''))->count(),
-                'categories' => BlogCategory::count(),
-                'tags' => BlogTag::count(),
-                'authors' => BlogAuthor::count(),
-                'redirects' => BlogRedirect::where('is_active', true)->count(),
+                'missing_image' => $missingImage,
+                'missing_meta' => $missingMeta,
+                'categories' => Schema::hasTable('blog_categories') ? BlogCategory::count() : 0,
+                'tags' => Schema::hasTable('blog_tags') ? BlogTag::count() : 0,
+                'authors' => Schema::hasTable('blog_authors') ? BlogAuthor::count() : 0,
+                'redirects' => $redirects,
                 'duplicate_titles' => $duplicateTitles,
                 'low_internal_link_signal' => $orphanish,
                 'freshness' => [
@@ -83,12 +104,12 @@ class BlogCmsAdminController extends Controller
                     'message' => 'API کنسول جستجوی گوگل تا افزودن credentials معتبر در حالت آماده است. ارسال نقشه سایت ≠ تضمین ایندکس.',
                 ],
                 'seo_health' => [
-                    'note' => 'امتیاز داخلی مدیریت — نمره گوگل نیست',
-                    'technical' => 75,
-                    'content' => 55,
-                    'indexability' => 80,
-                    'internal_linking' => 60,
-                    'metadata' => 70,
+                    'note' => 'امتیاز داخلی از داده واقعی مقالات — نمره گوگل نیست',
+                    'technical' => $technical,
+                    'content' => $content,
+                    'indexability' => $indexability,
+                    'internal_linking' => $indexability,
+                    'metadata' => $metadata,
                 ],
             ],
         ]);

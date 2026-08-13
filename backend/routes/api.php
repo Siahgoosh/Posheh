@@ -24,6 +24,7 @@ use App\Http\Middleware\EnsurePlatformStaff;
 use App\Http\Controllers\Api\Admin\AdminOfficeController;
 use App\Http\Controllers\Api\Admin\AdminOperationsController;
 use App\Http\Controllers\Api\Admin\AppReleaseAdminController;
+use App\Http\Controllers\Api\Admin\BlogAdminController;
 use App\Http\Controllers\Api\Admin\BlogCmsAdminController;
 use App\Http\Controllers\Api\Admin\SeoGrowthAdminController;
 use App\Http\Controllers\Api\Admin\TechnicalSeoAdminController;
