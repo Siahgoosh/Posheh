@@ -82,14 +82,78 @@
 29. نقشه در تور ✅
 30. ژیروسکوپ/VR موبایل ✅
 
+## فاز ۳ — Enterprise
+
+### پنل مدیریت (`/virtual-tours`)
+- داشبورد آماری (کل، منتشر شده، پیش‌نویس، بایگانی، بازدید، سرنخ)
+- Draft / Publish / Archive / Duplicate
+- Import JSON · Export JSON · Export ZIP
+- Backup · Version History · Restore
+- Activity Log
+
+### اشتراک‌گذاری (تب «اشتراک» در ویرایشگر)
+- لینک عمومی و خصوصی (توکن)
+- QR Code · Embed / Iframe (`/embed/tour/{slug}`)
+- Public / Private · رمز دسترسی · تاریخ انقضا
+
+### امنیت
+- اعتبارسنجی MIME و حجم پانوراما (`config/virtual-tour.php`)
+- CSRF/Sanctum برای API احراز هویت‌شده
+- XSS-safe serialization · SQL injection via Eloquent
+- دسترسی office-scoped · لاگ فعالیت
+
+### Performance
+- Lazy loading صحنه‌ها (VirtualTourPlugin client mode)
+- Throttle به‌روزرسانی position (requestAnimationFrame)
+- CDN-ready URLs (`VT_CDN_URL`)
+- فشرده‌سازی تصویر سمت کلاینت (`utils/imageCompression.ts`)
+
+### API Enterprise
+
+| Method | Path | توضیح |
+|--------|------|------|
+| GET | `/api/v1/virtual-tours/dashboard` | آمار داشبورد |
+| POST | `/api/v1/virtual-tours/import` | Import JSON |
+| POST | `/api/v1/virtual-tours/{id}/duplicate` | کپی تور |
+| POST | `/api/v1/virtual-tours/{id}/publish` | انتشار |
+| POST | `/api/v1/virtual-tours/{id}/archive` | بایگانی |
+| PUT | `/api/v1/virtual-tours/{id}/sharing` | تنظیمات اشتراک |
+| GET | `/api/v1/virtual-tours/{id}/export/json` | Export JSON |
+| GET | `/api/v1/virtual-tours/{id}/export/zip` | Export ZIP |
+| POST | `/api/v1/virtual-tours/{id}/backup` | پشتیبان |
+| GET | `/api/v1/virtual-tours/{id}/versions` | تاریخچه نسخه |
+| POST | `/api/v1/virtual-tours/{id}/versions/{vid}/restore` | بازیابی |
+| POST | `/api/v1/tour/{slug}/verify-password` | تأیید رمز عمومی |
+
 ## Deploy
 
+روی سرور پوشه PHP روی host نصب نیست — از Docker استفاده کنید:
+
 ```bash
-./scripts/deploy.sh main
-docker compose exec app php artisan migrate --force
-docker compose exec app php artisan db:seed --force
+cd /var/www/posheh
+./scripts/deploy.sh cursor/virtual-tour-enterprise-e117
+```
+
+فقط migration:
+
+```bash
+./scripts/migrate.sh
+# یا: docker compose exec app php artisan migrate --force
+```
+
+### اتصال صحنه (Interactive Scene Linking)
+1. تب **اتصال** → روی تصویر کلیک کنید
+2. صحنه مقصد را انتخاب کنید
+3. **ذخیره اتصال‌ها** — مختصات خودکار ثبت می‌شود
+
+### متغیرهای محیطی (اختیاری)
+
+```
+VT_MAX_PANORAMA_MB=100
+VT_CDN_URL=https://cdn.example.com
+VT_VERSION_RETENTION=20
 ```
 
 ## آپلود پانوراما
 
-فایل equirectangular (نسبت ۲:۱) را در ویرایشگر تور آپلود کنید. فرمت‌های JPG/PNG تا ۵۰MB.
+فایل equirectangular (نسبت ۲:۱) را در ویرایشگر تور آپلود کنید. فرمت‌های JPG/PNG/WebP تا ۱۰۰MB (قابل تنظیم).

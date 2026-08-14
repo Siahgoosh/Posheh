@@ -60,6 +60,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       final schema = await ref.read(apiClientProvider).getFilingSchema();
       final pt = (schema['property_types'] as List?) ?? [];
       final tt = (schema['transaction_types'] as List?) ?? [];
+      if (!mounted) return;
       setState(() {
         _categories = pt.map((e) => (e['value'].toString(), e['label'].toString())).toList();
         _types = tt.map((e) => (e['value'].toString(), e['label'].toString())).toList();

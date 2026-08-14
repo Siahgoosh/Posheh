@@ -56,7 +56,7 @@ class BlogSeoAnalyzer
         }
 
         if ($len >= 30 && $len <= 60) {
-            return $this->result('title', 'طول عنوان', $max, $max, 'pass', "عنوان {$len} کاراکتر — مناسب گوگل.");
+            return $this->result('title', 'طول عنوان', $max, $max, 'pass', "عنوان {$len} کاراکتر — در محدوده پیشنهادی SERP (تخمینی).");
         }
 
         if ($len < 30) {
@@ -84,7 +84,7 @@ class BlogSeoAnalyzer
             return $this->result('meta_title', 'عنوان سئو (Title Tag)', 6, $max, 'warn', "meta title کوتاه ({$len}). پیشنهاد: ۵۰–۶۰ کاراکتر.");
         }
 
-        return $this->result('meta_title', 'عنوان سئو (Title Tag)', 5, $max, 'warn', "meta title بلند ({$len}). ممکن است در گوگل بریده شود.");
+        return $this->result('meta_title', 'عنوان سئو (Title Tag)', 5, $max, 'warn', "meta title بلند ({$len}). ممکن است در پیش‌نمایش SERP بریده شود (تخمینی).");
     }
 
     /** @return array{id: string, label: string, score: float, max: float, status: string, message: string} */
@@ -295,10 +295,10 @@ class BlogSeoAnalyzer
     private function summary(int $score): string
     {
         return match (true) {
-            $score >= 90 => 'این پست از نظر سئو آماده انتشار در گوگل است.',
-            $score >= 75 => 'پست خوب است؛ چند مورد کوچک را بهبود دهید.',
-            $score >= 60 => 'پست قابل انتشار است ولی برای رتبه بهتر نیاز به اصلاح دارد.',
-            default => 'قبل از انتشار، موارد قرمز و زرد را برطرف کنید.',
+            $score >= 90 => 'راهنمای داخلی: از نظر چک‌لیست سئو وضعیت قوی است (نمره گوگل نیست).',
+            $score >= 75 => 'راهنمای داخلی: وضعیت خوب است؛ چند مورد کوچک را بهبود دهید.',
+            $score >= 60 => 'راهنمای داخلی: قابل انتشار است ولی برای کیفیت بهتر نیاز به اصلاح دارد.',
+            default => 'قبل از انتشار، موارد قرمز و زرد را برطرف کنید. این نمره Google Score نیست.',
         };
     }
 

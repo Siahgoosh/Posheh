@@ -21,11 +21,22 @@ import { SubscriptionPage } from '@/pages/SubscriptionPage'
 import { BlogListPage } from '@/pages/BlogListPage'
 import { BlogCategoryPage } from '@/pages/BlogCategoryPage'
 import { BlogPostPage } from '@/pages/BlogPostPage'
+import { BlogSearchPage } from '@/pages/BlogSearchPage'
+import { LocationPage } from '@/pages/LocationPage'
 import { DownloadPage } from '@/pages/DownloadPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { SuperAdminRoute } from '@/components/SuperAdminRoute'
 import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
+import { AdminBlogCalendarPage } from '@/pages/admin/AdminBlogCalendarPage'
+import { AdminBlogMediaPage } from '@/pages/admin/AdminBlogMediaPage'
+import { AdminSeoGrowthPage } from '@/pages/admin/AdminSeoGrowthPage'
+import { AdminTechnicalSeoPage } from '@/pages/admin/AdminTechnicalSeoPage'
+import { AdminLocalSeoPage } from '@/pages/admin/AdminLocalSeoPage'
+import { AdminContentOpsPage } from '@/pages/admin/AdminContentOpsPage'
+import { AdminBlogImagesPage } from '@/pages/admin/AdminBlogImagesPage'
+import { AdminCroDashboardPage } from '@/pages/admin/AdminCroDashboardPage'
+import { AboutPage } from '@/pages/AboutPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
 import { AdminSuperPanelPage } from '@/pages/admin/AdminSuperPanelPage'
 import { AnalyticsTracker } from '@/components/AnalyticsTracker'
@@ -44,6 +55,7 @@ import { ContractsPage } from '@/pages/ContractsPage'
 import { CommissionsPage } from '@/pages/CommissionsPage'
 import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage'
 import { VisitsPage } from '@/pages/VisitsPage'
+import { ContentPlannerPage } from '@/pages/ContentPlannerPage'
 import { OwnersPage } from '@/pages/OwnersPage'
 import { OwnerDetailPage } from '@/pages/OwnerDetailPage'
 import { CustomersPage } from '@/pages/CustomersPage'
@@ -53,8 +65,12 @@ import { TermsPage } from '@/pages/TermsPage'
 import { PrivacyPage } from '@/pages/PrivacyPage'
 import { ContactPage } from '@/pages/ContactPage'
 import { VirtualTourPublicPage } from '@/pages/VirtualTourPublicPage'
+import { VirtualTourEmbedPage } from '@/pages/VirtualTourEmbedPage'
 import { VirtualToursPage } from '@/pages/VirtualToursPage'
 import { VirtualTourEditorPage } from '@/pages/VirtualTourEditorPage'
+import { VirtualTourPreviewPage } from '@/pages/VirtualTourPreviewPage'
+import { CommunicationWidgetRoot } from '@/features/communication/CommunicationWidgetRoot'
+import { NotFoundPage } from '@/pages/NotFoundPage'
 import { getOfficeSubdomain } from '@/lib/subdomain'
 
 const queryClient = new QueryClient({
@@ -89,11 +105,14 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthBootstrap>
         <AnalyticsTracker />
+        <CommunicationWidgetRoot />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/blog" element={<BlogListPage />} />
+          <Route path="/blog/search" element={<BlogSearchPage />} />
           <Route path="/blog/category/:category" element={<BlogCategoryPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/locations/:slug" element={<LocationPage />} />
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -102,7 +121,10 @@ export default function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/tour/:slug/scene/:sceneId" element={<VirtualTourPublicPage />} />
           <Route path="/tour/:slug" element={<VirtualTourPublicPage />} />
+          <Route path="/embed/tour/:slug" element={<VirtualTourEmbedPage />} />
           <Route path="/payment/callback" element={<PaymentCallbackPage />} />
           <Route path="/p/:token" element={<PropertyPublicPage />} />
           <Route path="/o/:slug" element={<OfficeLandingPage />} />
@@ -123,6 +145,7 @@ export default function App() {
             <Route path="/properties/:id" element={<PropertyDetailPage />} />
             <Route path="/virtual-tours" element={<VirtualToursPage />} />
             <Route path="/virtual-tours/:id/edit" element={<VirtualTourEditorPage />} />
+            <Route path="/virtual-tours/:id/preview" element={<VirtualTourPreviewPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/team" element={<TeamPage />} />
@@ -141,6 +164,7 @@ export default function App() {
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/customers/:id" element={<CustomerDetailPage />} />
             <Route path="/visits" element={<VisitsPage />} />
+            <Route path="/content-planner" element={<ContentPlannerPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route
               path="/admin/tickets"
@@ -183,6 +207,70 @@ export default function App() {
               }
             />
             <Route
+              path="/admin/blog/calendar"
+              element={
+                <SuperAdminRoute>
+                  <AdminBlogCalendarPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/blog/media"
+              element={
+                <SuperAdminRoute>
+                  <AdminBlogMediaPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/seo-growth"
+              element={
+                <SuperAdminRoute>
+                  <AdminSeoGrowthPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/seo-technical"
+              element={
+                <SuperAdminRoute>
+                  <AdminTechnicalSeoPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/seo-local"
+              element={
+                <SuperAdminRoute>
+                  <AdminLocalSeoPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/content-ops"
+              element={
+                <SuperAdminRoute>
+                  <AdminContentOpsPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/blog-images"
+              element={
+                <SuperAdminRoute>
+                  <AdminBlogImagesPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/cro"
+              element={
+                <SuperAdminRoute>
+                  <AdminCroDashboardPage />
+                </SuperAdminRoute>
+              }
+            />
+            <Route
               path="/admin/blog/new"
               element={
                 <SuperAdminRoute>
@@ -207,6 +295,7 @@ export default function App() {
               }
             />
           </Route>
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthBootstrap>
     </QueryClientProvider>

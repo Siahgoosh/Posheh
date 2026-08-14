@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { LogOut, Moon, Sun, Smartphone, User, Key, Bot, Save, Lock } from 'lucide-react'
+import { LogOut, Moon, Sun, Smartphone, User, Key, Bot, Save, Lock, Bell } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '@/lib/api'
@@ -330,6 +330,8 @@ export function SettingsPage() {
         </>
       )}
 
+      <ContentReminderSettings />
+
       <Card>
         <CardHeader><CardTitle className="text-base flex items-center gap-2"><Smartphone className="h-4 w-4" /> دستگاه‌های فعال</CardTitle></CardHeader>
         <CardContent className="space-y-2">
@@ -354,5 +356,65 @@ export function SettingsPage() {
         </Button>
       </div>
     </div>
+  )
+}
+
+function ContentReminderSettings() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['cp-settings'],
+    queryFn: async () => (await api.get('/content-planner/settings')).data.data as {
+      sms_reminder_enabled: boolean
+      in_app_notification_enabled: boolean
+      sms_mobile?: string
+    },
+  })
+  const qc = useQueryClient()
+  const [form, setForm] = useState({ sms_reminder_enabled: true, in_app_notification_enabled: true, sms_mobile: '' })
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    if (data) {
+      setForm({
+        sms_reminder_enabled: data.sms_reminder_enabled,
+        in_app_notification_enabled: data.in_app_notification_enabled,
+        sms_mobile: data.sms_mobile || '',
+      })
+    }
+  }, [data])
+
+  const save = useMutation({
+    mutationFn: () => api.put('/content-planner/settings', form),
+    onSuccess: () => {
+      setMsg('تنظیمات یادآوری محتوا ذخیره شد.')
+      qc.invalidateQueries({ queryKey: ['cp-settings'] })
+    },
+  })
+
+  if (isLoading) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2"><Bell className="h-4 w-4" /> یادآوری محتوا</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={form.sms_reminder_enabled} onChange={(e) => setForm((f) => ({ ...f, sms_reminder_enabled: e.target.checked }))} />
+          فعال بودن SMS Reminder
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={form.in_app_notification_enabled} onChange={(e) => setForm((f) => ({ ...f, in_app_notification_enabled: e.target.checked }))} />
+          Notification داخل پنل
+        </label>
+        <Input
+          dir="ltr"
+          placeholder="شماره دریافت SMS"
+          value={form.sms_mobile}
+          onChange={(e) => setForm((f) => ({ ...f, sms_mobile: e.target.value }))}
+        />
+        <Button onClick={() => save.mutate()} disabled={save.isPending}><Save className="h-4 w-4" />ذخیره</Button>
+        {msg && <p className="text-xs text-primary">{msg}</p>}
+      </CardContent>
+    </Card>
   )
 }

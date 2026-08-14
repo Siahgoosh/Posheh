@@ -16,7 +16,8 @@ export function Sidebar() {
   const { user, logout } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
   const hasTeam = usePlanFeature('team')
-  const hasTeamChat = usePlanFeature('team_chat')
+  const hasTeamChatFeature = usePlanFeature('team_chat')
+  const hasTeamChat = hasTeam || hasTeamChatFeature
   const hasAccounting = usePlanFeature('accounting')
   const hasCrm = usePlanFeature('crm')
   const hasWebsite = usePlanFeature('website_listing')
@@ -34,6 +35,7 @@ export function Sidebar() {
     { to: '/owners', icon: UserCircle, label: 'مالکین' },
     { to: '/customers', icon: Contact, label: 'مشتریان' },
     { to: '/visits', icon: CalendarDays, label: 'بازدیدها' },
+    { to: '/content-planner', icon: CalendarDays, label: 'تقویم محتوا' },
     { to: '/search', icon: Search, label: 'جستجو' },
     { to: '/favorites', icon: Star, label: 'علاقه‌مندی‌ها' },
     ...(hasCrm ? [{ to: '/crm', icon: Kanban, label: 'CRM' }] : []),

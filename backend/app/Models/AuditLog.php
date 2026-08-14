@@ -17,6 +17,12 @@ class AuditLog extends Model
         'new_values',
         'ip_address',
         'user_agent',
+        // Legacy columns (pre platform-admin schema)
+        'office_id',
+        'user_id',
+        'event',
+        'auditable_type',
+        'auditable_id',
     ];
 
     protected function casts(): array

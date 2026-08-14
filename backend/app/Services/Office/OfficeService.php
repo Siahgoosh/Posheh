@@ -22,6 +22,19 @@ class OfficeService
 
     public function createOffice(array $data, User $manager): Office
     {
+        // Prevent subscription/trial abuse: a user already tied to an office cannot mint another free trial.
+        if ($manager->office_id) {
+            throw ValidationException::withMessages([
+                'office' => ['شما از قبل عضو یک دفتر هستید و نمی‌توانید دفتر دیگری بسازید.'],
+            ]);
+        }
+
+        if ($manager->isPlatformStaff()) {
+            throw ValidationException::withMessages([
+                'office' => ['مدیران پلتفرم نمی‌توانند دفتر آزمایشی بسازند.'],
+            ]);
+        }
+
         $office = Office::create([
             'name' => $data['name'],
             'phone' => $data['phone'] ?? null,

@@ -52,7 +52,7 @@ export interface FilingFieldGroups {
 
 export type FilingFormValues = Record<string, string | number | boolean | string[] | null | undefined>
 
-export function buildFilingPayload(values: FilingFormValues): Record<string, unknown> {
+export function buildFilingPayload(values: FilingFormValues, fields: FilingField[] = []): Record<string, unknown> {
   const filingData: Record<string, Record<string, unknown>> = {
     owner: {},
     location: {},
@@ -61,12 +61,15 @@ export function buildFilingPayload(values: FilingFormValues): Record<string, unk
   }
 
   const topLevel: Record<string, unknown> = {}
+  const storageByKey = Object.fromEntries(fields.map((f) => [f.key, f.storage]))
 
   const assign = (key: string, val: unknown, storage?: string) => {
     if (val === '' || val === undefined || val === null) return
     if (storage?.startsWith('filing_data.')) {
       const part = storage.split('.')[1] as keyof typeof filingData
-      filingData[part][key] = val
+      if (filingData[part]) {
+        filingData[part][key] = val
+      }
       return
     }
     topLevel[key] = val
@@ -74,7 +77,7 @@ export function buildFilingPayload(values: FilingFormValues): Record<string, unk
 
   Object.entries(values).forEach(([key, val]) => {
     if (key.startsWith('__')) return
-    assign(key, val)
+    assign(key, val, storageByKey[key])
   })
 
   const payload: Record<string, unknown> = { ...topLevel }
@@ -97,6 +100,11 @@ export function buildFilingPayload(values: FilingFormValues): Record<string, unk
   })
 
   if (payload.area != null && payload.area !== '') payload.area = parseFloat(String(payload.area))
+  if (payload.latitude != null && payload.latitude !== '') payload.latitude = parseFloat(String(payload.latitude))
+  if (payload.longitude != null && payload.longitude !== '') payload.longitude = parseFloat(String(payload.longitude))
+
+  if (Array.isArray(payload.features) && !payload.features.length) payload.features = null
+  if (Array.isArray(payload.tags) && !payload.tags.length) payload.tags = null
 
   return payload
 }

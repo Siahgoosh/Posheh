@@ -4,12 +4,17 @@ set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-BRANCH="${1:-main}"
+# Prefer the production release branch so CRM + accounting + tour + chat + SEO
+# stay together. Deploying a single feature branch hard-resets the checkout and
+# makes earlier features "disappear" from the running code.
+DEFAULT_RELEASE_BRANCH="cursor/production-release-a876"
+BRANCH="${1:-$DEFAULT_RELEASE_BRANCH}"
 COMPOSE="docker compose"
 COMPOSE_MAIL="docker compose -f docker-compose.yml -f docker-compose.mail.yml"
 
 log() { printf '\n==> %s\n' "$1"; }
 fail() { printf '\n[ERROR] %s\n' "$1" >&2; exit 1; }
+warn() { printf '\n[WARN] %s\n' "$1" >&2; }
 
 wait_for_mysql() {
   log "Waiting for MySQL..."
@@ -60,6 +65,8 @@ ensure_env_file() {
   grep -q '^IPPANEL_API_MODE=' "$ENV_FILE" || set_env_var IPPANEL_API_MODE jspd
   grep -q '^APP_TIMEZONE=' "$ENV_FILE" || set_env_var APP_TIMEZONE Asia/Tehran
   grep -q '^TELEGRAM_WEBHOOK_BASE_URL=' "$ENV_FILE" || set_env_var TELEGRAM_WEBHOOK_BASE_URL "https://posheapp.ir"
+  grep -q '^FRONTEND_URL=' "$ENV_FILE" || set_env_var FRONTEND_URL "https://posheapp.ir"
+  grep -q '^APP_URL=' "$ENV_FILE" || set_env_var APP_URL "https://posheapp.ir"
   grep -q '^TELEGRAM_WEBHOOK_FORCE_HTTPS=' "$ENV_FILE" || set_env_var TELEGRAM_WEBHOOK_FORCE_HTTPS true
   grep -q '^CAFE_BAZAAR_PACKAGE_NAME=' "$ENV_FILE" || set_env_var CAFE_BAZAAR_PACKAGE_NAME ir.posheapp.posheh
   grep -q '^CAFE_BAZAAR_SKU_SOLO=' "$ENV_FILE" || set_env_var CAFE_BAZAAR_SKU_SOLO solo01
@@ -83,6 +90,20 @@ clear_laravel_cache() {
 
 log "Posheh deploy — branch: $BRANCH"
 
+case "$BRANCH" in
+  main|"$DEFAULT_RELEASE_BRANCH"|cursor/production-release-*|cursor/release-*)
+    ;;
+  *)
+    warn "You are deploying feature branch '$BRANCH'."
+    warn "This replaces the whole checkout (git reset --hard)."
+    warn "CRM / accounting / chat / tour / SEO from other unmerged branches will disappear."
+    warn "Recommended: ./scripts/deploy.sh $DEFAULT_RELEASE_BRANCH"
+    if [ "${ALLOW_FEATURE_DEPLOY:-0}" != "1" ]; then
+      fail "Refusing feature-only deploy. Set ALLOW_FEATURE_DEPLOY=1 to override, or deploy $DEFAULT_RELEASE_BRANCH."
+    fi
+    ;;
+esac
+
 if ! command -v docker >/dev/null 2>&1; then
   fail "Docker not found. Install Docker first."
 fi
@@ -96,6 +117,7 @@ sync_code() {
 
   # Laravel/Docker runtime edits tracked .gitignore files under storage/ and bootstrap/cache/.
   # Local Flutter scaffolds under mobile/ can also block checkout on production servers.
+  # IMPORTANT: never wipe DB volumes; only reset tracked code to the release branch tip.
   log "Resetting local runtime edits before checkout"
   git restore backend/bootstrap/cache backend/storage 2>/dev/null \
     || git checkout -- backend/bootstrap/cache backend/storage 2>/dev/null \
@@ -140,10 +162,35 @@ clear_laravel_cache
 log "5/10 Seeding settings, blog and demo data"
 $COMPOSE exec -T app php artisan db:seed --class=SystemSettingsSeeder --force --no-interaction \
   || fail "SystemSettingsSeeder failed"
-$COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
-  || log "BlogSeeder warning (may already be seeded)"
-$COMPOSE exec -T app php artisan blog:seed --count=300 --force --no-interaction 2>/dev/null \
-  || log "Run ./scripts/seed-blog.sh to seed 300 SEO articles"
+$COMPOSE exec -T app php artisan communication:install --force --no-interaction \
+  || log "communication:install warning — run: docker compose exec app php artisan communication:install --force"
+$COMPOSE exec -T app php artisan sitemap:generate --force --no-interaction \
+  || log "sitemap:generate warning — live /sitemap.xml route still works"
+# Blog seeding is opt-in to avoid overwriting curated / rebuild_locked drafts.
+# Set BLOG_SEED_ON_DEPLOY=1 only on empty environments that still need template posts.
+if [ "${BLOG_SEED_ON_DEPLOY:-0}" = "1" ]; then
+  $COMPOSE exec -T app php artisan db:seed --class=BlogSeeder --force --no-interaction \
+    || log "BlogSeeder warning (may already be seeded)"
+  $COMPOSE exec -T app php artisan blog:seed --count=300 --force --no-interaction 2>/dev/null \
+    || log "Run ./scripts/seed-blog.sh to seed 300 SEO articles"
+else
+  log "Skipping mass blog seed (set BLOG_SEED_ON_DEPLOY=1 to enable)"
+fi
+# Content rebuild batches are opt-in — never force-draft published posts on every deploy.
+if [ "${BLOG_REBUILD_ON_DEPLOY:-0}" = "1" ]; then
+  $COMPOSE exec -T app php artisan blog:rebuild-batch "${BLOG_REBUILD_BATCH:-1}" --force --no-interaction \
+    || log "blog:rebuild-batch warning"
+else
+  log "Skipping blog:rebuild-batch (set BLOG_REBUILD_ON_DEPLOY=1 to apply draft rebuilds)"
+fi
+$COMPOSE exec -T app php artisan blog:cms-bootstrap --no-interaction 2>/dev/null \
+  || log "blog:cms-bootstrap skipped"
+$COMPOSE exec -T app php artisan cro:bootstrap --no-interaction 2>/dev/null \
+  || log "cro:bootstrap skipped"
+$COMPOSE exec -T app php artisan seo:local-bootstrap --no-interaction 2>/dev/null \
+  || log "seo:local-bootstrap skipped"
+$COMPOSE exec -T app php artisan content:ops-audit --bootstrap --process=0 --no-interaction 2>/dev/null \
+  || log "content:ops-audit --bootstrap skipped"
 $COMPOSE exec -T app php artisan db:seed --class=VirtualTourSeeder --force --no-interaction 2>/dev/null \
   || log "VirtualTourSeeder skipped (virtual tour module not deployed yet)"
 $COMPOSE exec -T app php artisan db:seed --class=AppReleaseSeeder --force --no-interaction \
@@ -178,6 +225,7 @@ fi
 
 (
   cd frontend
+  export VITE_SITE_URL="${VITE_SITE_URL:-https://posheapp.ir}"
   if [ -f package-lock.json ]; then
     npm ci || npm install
   else
@@ -251,7 +299,8 @@ fi
 cat <<EOF
 
 Next steps:
-  - Deploy from main: ./scripts/deploy.sh main
+  - Production release (CRM+accounting+tour+chat+SEO): ./scripts/deploy.sh cursor/production-release-a876
+  - Do NOT deploy isolated feature branches unless ALLOW_FEATURE_DEPLOY=1
   - Platform admin panel: https://panel.posheapp.ir/login
   - Email setup: cp docker/mail/secrets.env.example docker/mail/secrets.env && ./scripts/setup-mail.sh
   - Fix broken mail: ./scripts/fix-mail-restart.sh  or  ./scripts/fix-site-and-mail.sh

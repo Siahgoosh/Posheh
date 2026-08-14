@@ -74,7 +74,11 @@ export function AdminUserDetailPage() {
   const impersonate = useMutation({
     mutationFn: async () => {
       const res = await api.post(`/admin/impersonate/${id}`)
-      if (res.data.url) window.open(res.data.url, '_blank')
+      if (res.data.url) {
+        window.open(res.data.url, '_blank')
+      } else if (res.data.token) {
+        window.open(`https://posheapp.ir/dashboard?impersonation_token=${encodeURIComponent(res.data.token)}`, '_blank')
+      }
     },
   })
 

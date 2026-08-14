@@ -15,6 +15,7 @@ import {
 import { usePlanFeature } from '@/components/SubscriptionGuard'
 import { useAuthStore } from '@/stores/auth'
 import type { FilingFieldGroups, FilingFormValues, FilingSchema } from '@/lib/filing'
+import { buildFilingPayload } from '@/lib/filing'
 
 const defaultForm: FilingFormValues = {
   code: '',
@@ -31,22 +32,6 @@ const defaultForm: FilingFormValues = {
   features: [],
   tags: [],
   show_on_website: false,
-}
-
-function toPayload(form: FilingFormValues) {
-  const payload: Record<string, unknown> = { ...form }
-  ;['price', 'deposit', 'rent'].forEach((k) => {
-    if (payload[k]) payload[k] = parseInt(String(payload[k]))
-  })
-  ;['area', 'latitude', 'longitude'].forEach((k) => {
-    if (payload[k]) payload[k] = parseFloat(String(payload[k]))
-  })
-  ;['rooms', 'building_age', 'floor', 'total_floors'].forEach((k) => {
-    if (payload[k]) payload[k] = parseInt(String(payload[k]))
-  })
-  if (Array.isArray(payload.features) && !payload.features.length) payload.features = null
-  if (Array.isArray(payload.tags) && !payload.tags.length) payload.tags = null
-  return payload
 }
 
 const sectionLabels: Record<string, string> = {
@@ -81,7 +66,7 @@ export function PropertyFormPage() {
     queryFn: async () => (await api.get('/filing/schema')).data.data as FilingSchema,
   })
 
-  const { data: fieldGroups } = useQuery({
+  const { data: fieldGroups, isError: fieldsError } = useQuery({
     queryKey: ['filing-fields', category, transaction],
     queryFn: async () => {
       const res = await api.get('/filing/fields', {
@@ -172,7 +157,10 @@ export function PropertyFormPage() {
         onSubmit={(e) => {
           e.preventDefault()
           setError('')
-          mutation.mutate(toPayload(form))
+          const allFields = fieldGroups
+            ? Object.values(fieldGroups).flat()
+            : []
+          mutation.mutate(buildFilingPayload(form, allFields))
         }}
         className="space-y-6"
       >
@@ -221,8 +209,9 @@ export function PropertyFormPage() {
         )}
 
         {error && <p className="text-danger text-sm">{error}</p>}
+        {fieldsError && <p className="text-danger text-sm">خطا در بارگذاری فیلدهای فرم. صفحه را تازه کنید.</p>}
 
-        <Button type="submit" size="lg" className="w-full" disabled={mutation.isPending || !fieldGroups}>
+        <Button type="submit" size="lg" className="w-full" disabled={mutation.isPending || !fieldGroups || fieldsError}>
           {mutation.isPending ? 'در حال ذخیره...' : isEdit ? 'ذخیره تغییرات' : 'ثبت فایل'}
         </Button>
 

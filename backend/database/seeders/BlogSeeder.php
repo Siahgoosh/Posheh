@@ -157,6 +157,11 @@ class BlogSeeder extends Seeder
         ];
 
         foreach ($posts as $i => $post) {
+            $existing = BlogPost::query()->where('slug', $post['slug'])->first();
+            if ($existing?->rebuild_locked) {
+                continue;
+            }
+
             BlogPost::updateOrCreate(
                 ['slug' => $post['slug']],
                 [

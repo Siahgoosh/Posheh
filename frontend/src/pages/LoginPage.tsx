@@ -10,6 +10,7 @@ import { getDeviceId, getDeviceName, getPlatform } from '@/lib/device'
 import { useAuthStore } from '@/stores/auth'
 import { normalizeMobile } from '@/lib/utils'
 import { isPanelSubdomain, isPlatformStaffRole } from '@/lib/subdomain'
+import { SeoHead } from '@/components/seo/SeoHead'
 
 const LEGACY_MOBILE_HINT =
   'حساب شما قبلاً با شماره موبایل ثبت شده است. لطفاً ایمیل یا نام کاربری و رمز عبور را وارد کنید. اگر رمز ندارید با پشتیبانی تماس بگیرید.'
@@ -89,6 +90,7 @@ export function LoginPage({ panelMode = false }: { panelMode?: boolean }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
+      <SeoHead title="ورود" description="ورود به پنل پوشه" path="/login" noindex />
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
         <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />

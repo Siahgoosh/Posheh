@@ -31,7 +31,8 @@ export function SeoScorePanel({ analysis, loading }: SeoScorePanelProps) {
   return (
     <div className="rounded-xl border border-card-border bg-card/40 p-4 space-y-4 sticky top-4">
       <div className="text-center">
-        <p className="text-sm text-muted mb-2">نمره سئو گوگل</p>
+        <p className="text-sm text-muted mb-1">راهنمای سئوی داخلی</p>
+        <p className="text-[10px] text-muted mb-2">امتیاز داخلی — نمره گوگل نیست و ایندکس را تضمین نمی‌کند</p>
         <div
           className={cn(
             'mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br text-2xl font-bold text-white shadow-lg',

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Save, Plus } from 'lucide-react'
 import api from '@/lib/api'
+import { adminPath } from '@/lib/adminPaths'
 import { formatPrice } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -95,7 +96,7 @@ export function AdminPlansPage() {
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
       <div className="flex items-center gap-3">
-        <Link to="/admin"><Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button></Link>
+        <Link to={adminPath('/')}><Button variant="ghost" size="icon"><ArrowRight className="h-5 w-5" /></Button></Link>
         <div>
           <h1 className="text-2xl font-bold">مدیریت پلن‌ها و قیمت‌ها</h1>
           <p className="text-sm text-muted">تعرفه، فیچرها و دوره آزمایشی</p>

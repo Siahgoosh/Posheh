@@ -1,0 +1,198 @@
+import { Link } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowRight } from 'lucide-react'
+import api from '@/lib/api'
+import { adminPath } from '@/lib/adminPaths'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { LEAD_FEEDBACK_FA, LEAD_STATUS_FA, unknownFa } from '@/lib/blogLabelsFa'
+import { BootstrapStatusBanner, useAdminBootstrap } from '@/lib/useAdminBootstrap'
+
+type Dash = {
+  funnel: Record<string, number | null>
+  rates: Record<string, number | null>
+  lead_quality?: Record<string, unknown> | null
+  top_converting_articles: { article_slug: string; leads: number; qualified: number; avg_score: number | null }[]
+  high_traffic_low_conversion: { slug: string; impressions_28d: number; leads_28d: number; recommendation: string }[]
+  low_traffic_high_conversion: { slug: string; leads_28d: number; impressions_28d: number; recommendation: string }[]
+  weekly_actions: { rank: number; action: string }[]
+  data_quality: { revenue: string; note: string }
+}
+
+type Lead = {
+  id: number
+  name?: string
+  mobile: string
+  request_type?: string
+  status: string
+  lead_score: number
+  source: string
+  article_slug?: string
+  is_duplicate?: boolean
+  quality_feedback?: string
+}
+
+const FUNNEL_KEY_FA: Record<string, string> = {
+  impressions: 'نمایش',
+  clicks: 'کلیک',
+  cta_views: 'مشاهده فراخوان',
+  form_starts: 'شروع فرم',
+  form_submits: 'ارسال فرم',
+  leads: 'سرنخ',
+  qualified: 'واجد شرایط',
+  won: 'موفق',
+}
+
+const RATE_KEY_FA: Record<string, string> = {
+  ctr: 'نرخ کلیک',
+  cta_ctr: 'نرخ کلیک فراخوان',
+  form_start_rate: 'نرخ شروع فرم',
+  submit_rate: 'نرخ ارسال',
+  qualify_rate: 'نرخ واجد شرایط',
+  win_rate: 'نرخ موفقیت',
+}
+
+function fmt(v: number | null | undefined) {
+  return unknownFa(v)
+}
+
+export function AdminCroDashboardPage() {
+  const qc = useQueryClient()
+  const bootstrap = useAdminBootstrap('/admin/cro/bootstrap', ['cro-dashboard', 'cro-leads'])
+  const { data, isLoading } = useQuery({
+    queryKey: ['cro-dashboard'],
+    queryFn: async () => (await api.get('/admin/cro/dashboard')).data.data as Dash,
+  })
+  const { data: leads } = useQuery({
+    queryKey: ['cro-leads'],
+    queryFn: async () => (await api.get('/admin/cro/leads')).data.data as Lead[],
+  })
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) => api.post(`/admin/cro/leads/${id}/status`, { status }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cro-leads'] })
+      qc.invalidateQueries({ queryKey: ['cro-dashboard'] })
+    },
+  })
+  const feedbackMutation = useMutation({
+    mutationFn: ({ id, quality_feedback }: { id: number; quality_feedback: string }) =>
+      api.post(`/admin/cro/leads/${id}/feedback`, { quality_feedback }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['cro-leads'] }),
+  })
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => window.history.back()}><ArrowRight className="h-5 w-5" /></Button>
+          <div>
+            <h1 className="text-2xl font-bold">تبدیل و قیف سرنخ</h1>
+            <p className="text-sm text-muted">ترافیک → فراخوان → فرم → سرنخ → CRM (بدون داده جعلی)</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Link to={adminPath('seo-growth')}><Button variant="outline">رشد سئو</Button></Link>
+          <Button type="button" variant="outline" onClick={() => bootstrap.run()} disabled={bootstrap.isPending}>
+            {bootstrap.isPending ? 'در حال راه‌اندازی…' : 'راه‌اندازی فراخوان‌ها'}
+          </Button>
+        </div>
+      </div>
+
+      <BootstrapStatusBanner msg={bootstrap.msg} />
+
+      {isLoading && <p className="text-muted">در حال بارگذاری…</p>}
+      {data && (
+        <>
+          <p className="text-xs text-muted">{data.data_quality.note} · درآمد: {unknownFa(data.data_quality.revenue)}</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {Object.entries(data.funnel).map(([k, v]) => (
+              <Card key={k}><CardContent className="pt-4"><p className="text-xs text-muted">{FUNNEL_KEY_FA[k] || k}</p><p className="text-xl font-bold mt-1">{fmt(v)}</p></CardContent></Card>
+            ))}
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3">
+            {Object.entries(data.rates).map(([k, v]) => (
+              <Card key={k}><CardContent className="pt-4"><p className="text-xs text-muted">{RATE_KEY_FA[k] || k}</p><p className="text-lg font-bold mt-1">{v === null ? 'نامشخص' : `${(v * 100).toFixed(2)}%`}</p></CardContent></Card>
+            ))}
+          </div>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">اقدامات رشد هفتگی (حداکثر ۱۰)</CardTitle></CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {data.weekly_actions.map((a) => <p key={a.rank}>{a.rank}. {a.action}</p>)}
+            </CardContent>
+          </Card>
+
+          <div className="grid lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader><CardTitle className="text-base">ترافیک بالا / تبدیل پایین</CardTitle></CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {!data.high_traffic_low_conversion.length && <p className="text-muted">داده‌ای نیست یا کنسول جستجو خالی است.</p>}
+                {data.high_traffic_low_conversion.map((i) => (
+                  <div key={i.slug} className="border-b border-card-border pb-2">
+                    <p className="font-medium">{i.slug}</p>
+                    <p className="text-muted">نمایش {i.impressions_28d} · سرنخ {i.leads_28d}</p>
+                    <p>{i.recommendation}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle className="text-base">ترافیک پایین / تبدیل بالا</CardTitle></CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {!data.low_traffic_high_conversion.length && <p className="text-muted">هنوز سیگنال کافی نیست.</p>}
+                {data.low_traffic_high_conversion.map((i) => (
+                  <div key={i.slug} className="border-b border-card-border pb-2">
+                    <p className="font-medium">{i.slug}</p>
+                    <p className="text-muted">سرنخ {i.leads_28d} · نمایش {i.impressions_28d}</p>
+                    <p>{i.recommendation}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">مقالات با بیشترین تبدیل</CardTitle></CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {!data.top_converting_articles.length && <p className="text-muted">هنوز سرنخ مقاله‌ای ثبت نشده.</p>}
+              {data.top_converting_articles.map((a) => (
+                <div key={a.article_slug} className="flex justify-between gap-2">
+                  <span>{a.article_slug}</span>
+                  <span className="text-muted">سرنخ {a.leads} · واجد شرایط {a.qualified} · امتیاز {fmt(a.avg_score)}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      <Card>
+        <CardHeader><CardTitle className="text-base">سرنخ‌ها</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          {!leads?.length && <p className="text-sm text-muted">سرنخی نیست.</p>}
+          {leads?.map((l) => (
+            <div key={l.id} className="rounded-xl border border-card-border p-3 space-y-2 text-sm">
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="px-2 py-0.5 rounded bg-muted">{LEAD_STATUS_FA[l.status] || l.status}</span>
+                <span className="px-2 py-0.5 rounded bg-muted">{l.source}</span>
+                <span className="px-2 py-0.5 rounded bg-muted">امتیاز {l.lead_score}</span>
+                {l.is_duplicate && <span className="px-2 py-0.5 rounded bg-muted">تکراری</span>}
+              </div>
+              <p className="font-medium">{l.name || 'بدون نام'} · {l.mobile}</p>
+              <p className="text-muted">{l.request_type} · {l.article_slug || '—'}</p>
+              <div className="flex flex-wrap gap-2">
+                {(['CONTACTED', 'QUALIFIED', 'WON', 'LOST'] as const).map((s) => (
+                  <Button key={s} size="sm" variant="outline" onClick={() => statusMutation.mutate({ id: l.id, status: s })}>{LEAD_STATUS_FA[s]}</Button>
+                ))}
+                {(['good', 'bad', 'wrong_intent', 'converted'] as const).map((f) => (
+                  <Button key={f} size="sm" variant="ghost" onClick={() => feedbackMutation.mutate({ id: l.id, quality_feedback: f })}>{LEAD_FEEDBACK_FA[f]}</Button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

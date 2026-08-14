@@ -92,7 +92,16 @@ class SubscriptionController extends Controller
 
             return redirect($frontend.'/payment/callback?'.$query);
         } catch (\Throwable $e) {
-            return redirect($frontend.'/payment/callback?status=failed&message='.urlencode($e->getMessage()));
+            $type = 'subscription';
+            $trackId = (string) $request->input('trackId', '');
+            if ($trackId !== '') {
+                $payment = \App\Models\Payment::where('authority', $trackId)->first();
+                if ($payment && ($payment->metadata['type'] ?? '') === 'domain_order') {
+                    $type = 'domain_order';
+                }
+            }
+
+            return redirect($frontend.'/payment/callback?status=failed&type='.$type.'&message='.urlencode($e->getMessage()));
         }
     }
 }

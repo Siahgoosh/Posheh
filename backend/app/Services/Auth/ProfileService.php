@@ -18,6 +18,10 @@ class ProfileService
             'mobile' => ['sometimes', 'string', 'regex:/^09\d{9}$/', 'unique:users,mobile,'.$user->id],
         ])->validate();
 
+        if (isset($validated['mobile']) && $validated['mobile'] !== $user->mobile) {
+            $validated['mobile_verified_at'] = null;
+        }
+
         $user->update($validated);
 
         return $user->fresh(['office.plan', 'office.subscription.plan']);

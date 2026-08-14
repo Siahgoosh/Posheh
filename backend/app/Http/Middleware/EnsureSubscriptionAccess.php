@@ -26,7 +26,7 @@ class EnsureSubscriptionAccess
     {
         $user = $request->user();
 
-        if (! $user || $user->isSuperAdmin()) {
+        if (! $user || $user->isSuperAdmin() || $user->isPlatformStaff()) {
             return $next($request);
         }
 

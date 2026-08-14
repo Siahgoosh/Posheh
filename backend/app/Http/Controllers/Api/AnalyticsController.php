@@ -12,7 +12,7 @@ class AnalyticsController extends Controller
     public function track(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'event_type' => ['required', 'string', 'in:page_view,download_click'],
+            'event_type' => ['required', 'string', 'in:page_view,download_click,cta_view,cta_click,form_start,form_submit,phone_click,whatsapp_click,telegram_click,lead_created'],
             'path' => ['nullable', 'string', 'max:500'],
             'referrer' => ['nullable', 'string', 'max:500'],
             'meta' => ['nullable', 'array'],

@@ -1,13 +1,23 @@
 import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect } from 'react'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { useAuthStore } from '@/stores/auth'
 
 export function PaymentCallbackPage() {
   const [params] = useSearchParams()
   const type = params.get('type')
   const success = params.get('status') === 'success'
   const isDomain = type === 'domain_order'
+  const refreshUser = useAuthStore((s) => s.refreshUser)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+
+  useEffect(() => {
+    if (success && isAuthenticated) {
+      refreshUser().catch(() => undefined)
+    }
+  }, [success, isAuthenticated, refreshUser])
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">

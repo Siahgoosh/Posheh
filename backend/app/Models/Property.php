@@ -59,6 +59,9 @@ class Property extends Model
         'document_status',
         'expires_at',
         'published_at',
+        'listed_at',
+        'minimum_acceptable_price',
+        'seller_motivation',
     ];
 
     protected function casts(): array
@@ -78,6 +81,8 @@ class Property extends Model
             'filing_data' => 'array',
             'expires_at' => 'datetime',
             'published_at' => 'datetime',
+            'listed_at' => 'datetime',
+            'minimum_acceptable_price' => 'integer',
             'area' => 'decimal:2',
             'latitude' => 'decimal:8',
             'longitude' => 'decimal:8',
@@ -111,6 +116,12 @@ class Property extends Model
 
     public function coverImage(): ?PropertyMedia
     {
+        if ($this->relationLoaded('media')) {
+            return $this->media->firstWhere('is_cover', true)
+                ?? $this->media->first(fn (PropertyMedia $m) => $m->type?->value === 'image' || $m->type === 'image')
+                ?? $this->media->first();
+        }
+
         return $this->media()->where('is_cover', true)->first()
             ?? $this->media()->where('type', 'image')->first();
     }
