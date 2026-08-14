@@ -40,6 +40,9 @@ export function SiteFooter() {
             <Link to="/contact" className="hover:text-primary transition-colors">
               تماس با ما
             </Link>
+            <Link to="/about" className="hover:text-primary transition-colors">
+              درباره ما
+            </Link>
             <Link to="/terms" className="hover:text-primary transition-colors">
               قوانین
             </Link>

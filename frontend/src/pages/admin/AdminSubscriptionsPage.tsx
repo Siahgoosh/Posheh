@@ -11,6 +11,7 @@ import { AdminPageHeader } from '@/components/admin/AdminPageHeader'
 export function AdminSubscriptionsPage() {
   const [extendId, setExtendId] = useState<number | null>(null)
   const [days, setDays] = useState('30')
+  const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -27,12 +28,29 @@ export function AdminSubscriptionsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-subscriptions'] })
       setExtendId(null)
+      setMsg({ type: 'ok', text: 'اشتراک تمدید شد.' })
+    },
+    onError: (err: unknown) => {
+      const e = err as { response?: { data?: { message?: string } }; message?: string }
+      setMsg({ type: 'err', text: e.response?.data?.message || e.message || 'تمدید ناموفق بود' })
     },
   })
 
   return (
     <div className="space-y-6 animate-fade-in">
       <AdminPageHeader title="مدیریت اشتراک‌ها" />
+
+      {msg && (
+        <div
+          className={`rounded-xl border px-3 py-2 text-sm ${
+            msg.type === 'ok'
+              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200'
+              : 'border-red-500/40 bg-red-500/10 text-red-200'
+          }`}
+        >
+          {msg.text}
+        </div>
+      )}
 
       <Card>
         <CardHeader><CardTitle>اشتراک‌های فعال و منقضی</CardTitle></CardHeader>

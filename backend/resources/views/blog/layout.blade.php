@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $seo['title'] }}</title>
     <meta name="description" content="{{ $seo['description'] }}">
+    <meta name="robots" content="{{ !empty($seo['noindex']) ? 'noindex,nofollow' : ($seo['robots'] ?? 'index,follow') }}">
     @if(!empty($seo['keywords'] ?? null))
     <meta name="keywords" content="{{ $seo['keywords'] }}">
     @endif
-    <link rel="canonical" href="{{ $seo['url'] }}">
+    <link rel="canonical" href="{{ $seo['canonical'] ?? $seo['url'] }}">
     <meta property="og:title" content="{{ $seo['title'] }}">
     <meta property="og:description" content="{{ $seo['description'] }}">
     <meta property="og:url" content="{{ $seo['url'] }}">
@@ -16,6 +17,12 @@
     <meta property="og:image" content="{{ $seo['ogImage'] }}">
     <meta property="og:locale" content="fa_IR">
     <meta property="og:site_name" content="پوشه">
+    @if(!empty($seo['publishedTime'] ?? null))
+    <meta property="article:published_time" content="{{ $seo['publishedTime'] }}">
+    @endif
+    @if(!empty($seo['modifiedTime'] ?? null))
+    <meta property="article:modified_time" content="{{ $seo['modifiedTime'] }}">
+    @endif
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $seo['title'] }}">
     <meta name="twitter:description" content="{{ $seo['description'] }}">
@@ -37,7 +44,8 @@
         .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
         .card { background: var(--card); border: 1px solid #334155; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }
         .badge { display:inline-block; padding:2px 10px; border-radius:999px; border:1px solid #475569; font-size:12px; margin-bottom:8px; }
-        article img { max-width:100%; border-radius:12px; }
+        article img { max-width:100%; height:auto; border-radius:12px; }
+        article img[loading="lazy"] { content-visibility: auto; }
         article p { color: var(--muted); }
         footer { margin-top:3rem; padding-top:1.5rem; border-top:1px solid #334155; color:var(--muted); font-size:0.85rem; text-align:center; }
         .cta { background: rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.3); border-radius:12px; padding:1.5rem; text-align:center; margin:2rem 0; }

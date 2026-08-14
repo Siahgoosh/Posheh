@@ -69,6 +69,7 @@ export const PLAN_FEATURE_LABELS: Record<string, string> = {
   quality_score: 'امتیاز کیفیت فایل',
   commissions: 'کمیسیون خودکار',
   visit_calendar: 'تقویم بازدید',
+  content_planner: 'تقویم محتوا',
   owner_portal: 'پورتال مالک',
   demand_heatmap: 'نقشه تقاضا',
   property_compare: 'مقایسه ملک',

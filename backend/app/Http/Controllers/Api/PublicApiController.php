@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\PropertyStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PublicPropertyResource;
 use App\Models\Office;
 use App\Models\OfficeApiKey;
 use App\Models\Property;
@@ -15,10 +17,22 @@ class PublicApiController extends Controller
     {
         $office = $this->resolveOffice($request);
         $properties = Property::where('office_id', $office->id)
-            ->where('status', 'active')
+            ->where('status', PropertyStatus::Active)
+            ->where('show_on_website', true)
+            ->where('website_approved', true)
+            ->with('media')
+            ->latest()
             ->paginate(min((int) $request->input('per_page', 20), 50));
 
-        return response()->json($properties);
+        return response()->json([
+            'data' => PublicPropertyResource::collection($properties),
+            'meta' => [
+                'current_page' => $properties->currentPage(),
+                'last_page' => $properties->lastPage(),
+                'per_page' => $properties->perPage(),
+                'total' => $properties->total(),
+            ],
+        ]);
     }
 
     private function resolveOffice(Request $request): Office

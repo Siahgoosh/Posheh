@@ -81,8 +81,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         children: [
                           const Text('مشخصات', style: TextStyle(fontWeight: FontWeight.bold)),
                           const SizedBox(height: 10),
-                          if (p['area'] != null) _row('متراژ', '${formatNumber(p['area'] as num)} متر'),
-                          if (p['rooms'] != null) _row('خواب', formatNumber(p['rooms'] as num)),
+                          if (p['area'] != null) _row('متراژ', '${formatNumber(p['area'])} متر'),
+                          if (p['rooms'] != null) _row('خواب', formatNumber(p['rooms'])),
                           if (p['city'] != null) _row('شهر', '${p['city']}'),
                           if (p['district'] != null) _row('منطقه', '${p['district']}'),
                           if (p['address'] != null) _row('آدرس', '${p['address']}'),
@@ -90,7 +90,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         ],
                       ),
                     ),
-                    if (p['description'] != null && '$p[description]'.isNotEmpty) ...[
+                    if (p['description'] != null && '${p['description']}'.trim().isNotEmpty) ...[
                       const SizedBox(height: 12),
                       GlassCard(
                         child: Column(

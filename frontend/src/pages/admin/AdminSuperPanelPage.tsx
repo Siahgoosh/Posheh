@@ -19,6 +19,7 @@ import {
   Heart,
 } from 'lucide-react'
 import api from '@/lib/api'
+import { adminPath } from '@/lib/adminPaths'
 import { formatNumber } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -117,12 +118,12 @@ export function AdminSuperPanelPage() {
           <p className="text-sm text-muted mt-1">آمار کاربران، بازدید، وبلاگ، دانلود و درآمد</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Link to="/admin/plans"><Button variant="outline" size="sm">پلن‌ها</Button></Link>
-          <Link to="/admin/offices"><Button variant="outline" size="sm">دفاتر</Button></Link>
-          <Link to="/admin/tickets"><Button variant="outline" size="sm">تیکت‌ها</Button></Link>
-          <Link to="/admin/blog"><Button variant="outline" size="sm">وبلاگ</Button></Link>
-          <Link to="/admin/downloads"><Button variant="outline" size="sm">دانلودها</Button></Link>
-          <Link to="/settings"><Button variant="outline" size="sm"><Settings className="h-3 w-3 ml-1" /> تنظیمات</Button></Link>
+          <Link to={adminPath('plans')}><Button variant="outline" size="sm">پلن‌ها</Button></Link>
+          <Link to={adminPath('tenants')}><Button variant="outline" size="sm">دفاتر</Button></Link>
+          <Link to={adminPath('tickets')}><Button variant="outline" size="sm">تیکت‌ها</Button></Link>
+          <Link to={adminPath('blog')}><Button variant="outline" size="sm">وبلاگ</Button></Link>
+          <Link to={adminPath('downloads')}><Button variant="outline" size="sm">دانلودها</Button></Link>
+          <Link to={adminPath('settings')}><Button variant="outline" size="sm"><Settings className="h-3 w-3 ml-1" /> تنظیمات</Button></Link>
         </div>
       </div>
 
@@ -171,9 +172,9 @@ export function AdminSuperPanelPage() {
       )}
 
       <div className="flex gap-2 flex-wrap">
-        <Link to="/health"><Button variant="outline" size="sm">Health Score</Button></Link>
-        <Link to="/virtual-tours"><Button variant="outline" size="sm">تور مجازی</Button></Link>
-        <Link to="/system"><Button variant="outline" size="sm">Feature Flags</Button></Link>
+        <Link to={adminPath('health')}><Button variant="outline" size="sm">Health Score</Button></Link>
+        <Link to={adminPath('virtual-tours')}><Button variant="outline" size="sm">تور مجازی</Button></Link>
+        <Link to={adminPath('system')}><Button variant="outline" size="sm">Feature Flags</Button></Link>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

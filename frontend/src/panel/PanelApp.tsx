@@ -14,6 +14,14 @@ import { AdminPlansPage } from '@/pages/admin/AdminPlansPage'
 import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage'
 import { AdminBlogListPage } from '@/pages/admin/AdminBlogListPage'
 import { AdminBlogEditorPage } from '@/pages/admin/AdminBlogEditorPage'
+import { AdminBlogCalendarPage } from '@/pages/admin/AdminBlogCalendarPage'
+import { AdminBlogMediaPage } from '@/pages/admin/AdminBlogMediaPage'
+import { AdminSeoGrowthPage } from '@/pages/admin/AdminSeoGrowthPage'
+import { AdminTechnicalSeoPage } from '@/pages/admin/AdminTechnicalSeoPage'
+import { AdminLocalSeoPage } from '@/pages/admin/AdminLocalSeoPage'
+import { AdminContentOpsPage } from '@/pages/admin/AdminContentOpsPage'
+import { AdminBlogImagesPage } from '@/pages/admin/AdminBlogImagesPage'
+import { AdminCroDashboardPage } from '@/pages/admin/AdminCroDashboardPage'
 import { AdminDownloadsPage } from '@/pages/admin/AdminDownloadsPage'
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage'
 import { AdminUserDetailPage } from '@/pages/admin/AdminUserDetailPage'
@@ -45,6 +53,7 @@ import { AdminChurnPage } from '@/pages/admin/AdminChurnPage'
 import { AdminHealthPage } from '@/pages/admin/AdminHealthPage'
 import { AdminVirtualToursStatsPage } from '@/pages/admin/AdminVirtualToursStatsPage'
 import { AdminDomainOrdersPage } from '@/pages/admin/AdminDomainOrdersPage'
+import { AdminCommunicationInboxPage } from '@/pages/admin/AdminCommunicationInboxPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -108,10 +117,19 @@ export function PanelApp() {
             <Route path="visits" element={<AdminVisitsPage />} />
             <Route path="contracts" element={<AdminContractsPage />} />
             <Route path="tickets" element={<AdminTicketsPage />} />
+            <Route path="communication" element={<AdminCommunicationInboxPage />} />
             <Route path="announcements" element={<AdminAnnouncementsPage />} />
             <Route path="blog" element={<AdminBlogListPage />} />
             <Route path="blog/new" element={<AdminBlogEditorPage />} />
+            <Route path="blog/calendar" element={<AdminBlogCalendarPage />} />
+            <Route path="blog/media" element={<AdminBlogMediaPage />} />
             <Route path="blog/:id/edit" element={<AdminBlogEditorPage />} />
+            <Route path="seo-growth" element={<AdminSeoGrowthPage />} />
+            <Route path="seo-technical" element={<AdminTechnicalSeoPage />} />
+            <Route path="seo-local" element={<AdminLocalSeoPage />} />
+            <Route path="content-ops" element={<AdminContentOpsPage />} />
+            <Route path="blog-images" element={<AdminBlogImagesPage />} />
+            <Route path="cro" element={<AdminCroDashboardPage />} />
             <Route path="downloads" element={<AdminDownloadsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="system" element={<AdminSystemPage />} />

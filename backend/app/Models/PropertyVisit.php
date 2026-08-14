@@ -14,6 +14,7 @@ class PropertyVisit extends Model
         'office_id',
         'property_id',
         'customer_id',
+        'crm_deal_id',
         'assigned_to',
         'created_by',
         'visit_at',
@@ -21,6 +22,11 @@ class PropertyVisit extends Model
         'status',
         'notes',
         'sms_reminder_sent',
+        'customer_reaction',
+        'property_rating',
+        'price_opinion',
+        'likelihood_to_buy',
+        'next_action',
     ];
 
     protected function casts(): array

@@ -35,10 +35,14 @@ class BazaarPaymentService {
 
   Future<PurchaseInfo> subscribe(String productId, {String payload = ''}) async {
     await connect();
+    // Only pass dynamic price JWT when it looks like a real JWT; a bad token
+    // can break all Cafe Bazaar purchases.
+    final jwt = bazaarDynamicDiscountJwt.trim();
+    final useJwt = jwt.split('.').length == 3;
     return FlutterPoolakey.subscribe(
       productId,
       payload: payload,
-      dynamicPriceToken: bazaarDynamicDiscountJwt,
+      dynamicPriceToken: useJwt ? jwt : '',
     );
   }
 }

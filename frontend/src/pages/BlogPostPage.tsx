@@ -9,6 +9,7 @@ import { getSiteUrl } from '@/lib/seo'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SiteFooter } from '@/components/layout/SiteFooter'
+import { LeadCaptureBlock } from '@/components/cro/LeadCaptureBlock'
 
 interface FaqItem {
   question: string
@@ -31,10 +32,26 @@ interface BlogPostDetail {
   published_at?: string
   published_at_jalali?: string
   updated_at?: string
+  updated_at_jalali?: string
   faq?: FaqItem[]
   cta_text?: string
   cta_url?: string
+  search_intent?: string
+  canonical_url?: string
+  robots_directive?: string
+  cro?: {
+    id?: number | null
+    key?: string
+    title?: string
+    description?: string
+    button_text?: string
+    url?: string
+    type?: string
+    funnel_stage?: string
+  }
   related?: { slug: string; title: string; excerpt?: string }[]
+  previous?: { slug: string; title: string } | null
+  next?: { slug: string; title: string } | null
 }
 
 function extractToc(html: string): { id: string; text: string }[] {
@@ -47,9 +64,10 @@ function extractToc(html: string): { id: string; text: string }[] {
 
 function injectHeadingIds(html: string): string {
   let i = 0
-  return html.replace(/<h2([^>]*)>/gi, () => {
+  return html.replace(/<h2([^>]*)>/gi, (_full, attrs: string) => {
     i += 1
-    return `<h2 id="section-${i}"$1>`
+    const cleaned = String(attrs || '').replace(/\s*id\s*=\s*(["']).*?\1/i, '')
+    return `<h2 id="section-${i}"${cleaned}>`
   })
 }
 
@@ -126,6 +144,9 @@ export function BlogPostPage() {
         description={post.meta_description || post.excerpt}
         keywords={post.keywords}
         path={`/blog/${post.slug}`}
+        canonicalUrl={post.canonical_url || undefined}
+        robots={post.robots_directive || undefined}
+        noindex={!!post.robots_directive?.toLowerCase().includes('noindex')}
         type="article"
         image={post.cover_image ? (post.cover_image.startsWith('http') ? post.cover_image : `${getSiteUrl()}${post.cover_image}`) : undefined}
         publishedTime={post.published_at}
@@ -151,30 +172,60 @@ export function BlogPostPage() {
           )}
 
           <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-4">{post.title}</h1>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted mb-8">
+          {post.excerpt && <p className="text-muted leading-relaxed mb-4">{post.excerpt}</p>}
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted mb-6">
             <span className="flex items-center gap-1"><Calendar className="h-4 w-4" />{post.published_at_jalali}</span>
+            {post.updated_at_jalali && <span>به‌روزرسانی: {post.updated_at_jalali}</span>}
             <span className="flex items-center gap-1"><Clock className="h-4 w-4" />{post.reading_time} دقیقه</span>
             <span>{post.author_name}</span>
           </div>
 
+          {post.cover_image && (
+            <img
+              src={post.cover_image.startsWith('http') ? post.cover_image : `${getSiteUrl()}${post.cover_image}`}
+              alt={post.title}
+              width={1200}
+              height={630}
+              className="w-full rounded-2xl mb-8 object-cover max-h-[420px]"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+            />
+          )}
+
           {toc.length > 1 && (
-            <nav className="mb-8 p-5 rounded-2xl border border-card-border bg-white/5">
-              <p className="font-semibold mb-3 text-sm">فهرست مطالب</p>
-              <ol className="space-y-2 text-sm text-muted list-decimal list-inside">
-                {toc.map((item) => (
-                  <li key={item.id}>
-                    <a href={`#${item.id}`} className="hover:text-primary">{item.text}</a>
-                  </li>
-                ))}
-              </ol>
+            <nav className="mb-8 p-5 rounded-2xl border border-card-border bg-white/5 md:sticky md:top-20">
+              <details open className="md:open">
+                <summary className="font-semibold mb-3 text-sm cursor-pointer">فهرست مطالب</summary>
+                <ol className="space-y-2 text-sm text-muted list-decimal list-inside">
+                  {toc.map((item) => (
+                    <li key={item.id}>
+                      <a href={`#${item.id}`} className="hover:text-primary scroll-smooth">{item.text}</a>
+                    </li>
+                  ))}
+                </ol>
+              </details>
             </nav>
           )}
 
           <div
-            className="prose prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted prose-p:leading-relaxed prose-a:text-primary prose-strong:text-foreground prose-li:text-muted"
+            className="prose prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted prose-p:leading-relaxed prose-a:text-primary prose-strong:text-foreground prose-li:text-muted prose-table:block prose-table:overflow-x-auto"
             dangerouslySetInnerHTML={{ __html: contentWithIds }}
           />
 
+          <div className="mt-8 flex flex-wrap gap-2 text-sm">
+            <span className="text-muted self-center ml-2">اشتراک‌گذاری:</span>
+            <a className="px-3 py-1.5 rounded-lg border border-card-border" href={`https://t.me/share/url?url=${encodeURIComponent(`${getSiteUrl()}/blog/${post.slug}`)}&text=${encodeURIComponent(post.title)}`} target="_blank" rel="noreferrer">تلگرام</a>
+            <a className="px-3 py-1.5 rounded-lg border border-card-border" href={`https://wa.me/?text=${encodeURIComponent(`${post.title} ${getSiteUrl()}/blog/${post.slug}`)}`} target="_blank" rel="noreferrer">واتساپ</a>
+            <a className="px-3 py-1.5 rounded-lg border border-card-border" href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(`${getSiteUrl()}/blog/${post.slug}`)}&text=${encodeURIComponent(post.title)}`} target="_blank" rel="noreferrer">X</a>
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded-lg border border-card-border"
+              onClick={() => navigator.clipboard?.writeText(`${getSiteUrl()}/blog/${post.slug}`)}
+            >
+              کپی لینک
+            </button>
+          </div>
           {post.faq && post.faq.length > 0 && (
             <section className="mt-12">
               <h2 className="text-xl font-bold mb-4">سوالات متداول</h2>
@@ -203,11 +254,35 @@ export function BlogPostPage() {
             </section>
           )}
 
-          <div className="mt-12 p-6 rounded-2xl bg-primary/10 border border-primary/20 text-center">
-            <p className="font-medium mb-3">{post.cta_text || 'آماده مدیریت حرفه‌ای املاک هستید؟'}</p>
-            <Link to={post.cta_url || '/register'}>
-              <Button>شروع ۴۸ ساعت رایگان</Button>
-            </Link>
+          <div className="mt-12">
+            <LeadCaptureBlock
+              variant={post.search_intent === 'commercial' || post.search_intent === 'transactional' ? 'specialized' : 'short'}
+              source="ARTICLE"
+              articleSlug={post.slug}
+              categorySlug={post.category_slug}
+              intent={post.search_intent}
+              cta={post.cro ?? {
+                title: post.cta_text || 'آماده مدیریت حرفه‌ای املاک هستید؟',
+                button_text: 'آشنایی با پوشه',
+                url: post.cta_url || '/register',
+              }}
+              showSticky
+            />
+          </div>
+
+          <div className="mt-10 grid sm:grid-cols-2 gap-4">
+            {post.previous && (
+              <Link to={`/blog/${post.previous.slug}`} className="p-4 rounded-xl border border-card-border text-sm">
+                <span className="text-muted block mb-1">قبلی</span>
+                {post.previous.title}
+              </Link>
+            )}
+            {post.next && (
+              <Link to={`/blog/${post.next.slug}`} className="p-4 rounded-xl border border-card-border text-sm sm:text-left">
+                <span className="text-muted block mb-1">بعدی</span>
+                {post.next.title}
+              </Link>
+            )}
           </div>
         </article>
 

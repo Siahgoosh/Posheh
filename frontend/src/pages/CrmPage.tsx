@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Kanban, Plus, GripVertical, Phone, User, Star, Clock, MessageSquare,
-  Trash2, Save, AlertCircle, TrendingUp,
+  Trash2, Save, AlertCircle, TrendingUp, Flame, Target, Handshake, Gauge, Sparkles,
 } from 'lucide-react'
 import { useState } from 'react'
 import api from '@/lib/api'
@@ -10,7 +10,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { JalaliDateTimePicker } from '@/components/ui/JalaliDateTimePicker'
 import { usePlanFeature } from '@/components/SubscriptionGuard'
+import { CrmOffersPanel, CrmOpportunitiesPanel, CrmSalesQueuePanel } from '@/pages/crm/CrmSalesPanels'
+import { CrmAiAssistantPanel, CrmExecutivePanel } from '@/pages/crm/CrmExecutivePanel'
 
 const STAGES = [
   { key: 'lead', label: 'سرنخ', color: 'border-slate-500/30' },
@@ -80,6 +83,7 @@ const emptyForm = {
 export function CrmPage() {
   const hasCrm = usePlanFeature('crm')
   const queryClient = useQueryClient()
+  const [tab, setTab] = useState<'executive' | 'pipeline' | 'queue' | 'opportunities' | 'offers' | 'ai'>('executive')
   const [dragOver, setDragOver] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [note, setNote] = useState('')
@@ -87,6 +91,13 @@ export function CrmPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [createForm, setCreateForm] = useState(emptyForm)
   const [editForm, setEditForm] = useState(emptyForm)
+  const [lostReason, setLostReason] = useState('')
+
+  const { data: lostReasons } = useQuery({
+    queryKey: ['crm-lost-reasons'],
+    queryFn: async () => (await api.get('/crm/lost-reasons')).data.data as Array<{ key: string; label: string }>,
+    enabled: hasCrm,
+  })
 
   const { data: deals, isLoading, isError, error } = useQuery({
     queryKey: ['crm-deals'],
@@ -158,7 +169,8 @@ export function CrmPage() {
   })
 
   const moveMutation = useMutation({
-    mutationFn: ({ id, stage }: { id: number; stage: string }) => api.put(`/crm/deals/${id}`, { stage }),
+    mutationFn: ({ id, stage, lost_reason }: { id: number; stage: string; lost_reason?: string }) =>
+      api.put(`/crm/deals/${id}`, { stage, ...(lost_reason ? { lost_reason } : {}) }),
     onSuccess: invalidate,
   })
 
@@ -177,6 +189,11 @@ export function CrmPage() {
     if (!dealId) return
     const deal = deals?.find((d) => d.id === dealId)
     if (deal && deal.stage !== stage) {
+      if (stage === 'closed_lost') {
+        const reason = lostReason || lostReasons?.[0]?.key || 'other'
+        moveMutation.mutate({ id: dealId, stage, lost_reason: reason })
+        return
+      }
       moveMutation.mutate({ id: dealId, stage })
     }
   }
@@ -195,15 +212,22 @@ export function CrmPage() {
     })
   }
 
+  const { data: dealFinance } = useQuery({
+    queryKey: ['deal-finance', selectedId],
+    queryFn: async () => (await api.get(`/accounting/deals/${selectedId}/finance`)).data.data,
+    enabled: !!selectedId && hasCrm,
+    retry: false,
+  })
+
   if (!hasCrm) {
     return <div className="p-8 text-center text-muted">CRM در پلن شما فعال نیست.</div>
   }
 
-  if (isLoading) {
+  if (tab === 'pipeline' && isLoading) {
     return <div className="p-8 text-center text-muted">در حال بارگذاری CRM…</div>
   }
 
-  if (isError) {
+  if (tab === 'pipeline' && isError) {
     const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message
     return (
       <div className="p-8 text-center">
@@ -222,17 +246,45 @@ export function CrmPage() {
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Kanban className="h-6 w-6 text-primary" /> قیف فروش CRM
+            <Kanban className="h-6 w-6 text-primary" /> موتور فروش CRM
           </h1>
           <p className="text-sm text-muted mt-1">
             {totalOpen} معامله باز · ارزش کل {formatPrice(totalValue)}
           </p>
         </div>
-        <Button onClick={() => setShowCreate((v) => !v)}>
-          <Plus className="h-4 w-4" /> معامله جدید
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant={tab === 'executive' ? 'default' : 'outline'} size="sm" onClick={() => setTab('executive')}>
+            <Gauge className="h-4 w-4" /> داشبورد
+          </Button>
+          <Button variant={tab === 'queue' ? 'default' : 'outline'} size="sm" onClick={() => setTab('queue')}>
+            <Flame className="h-4 w-4" /> صف امروز
+          </Button>
+          <Button variant={tab === 'opportunities' ? 'default' : 'outline'} size="sm" onClick={() => setTab('opportunities')}>
+            <Target className="h-4 w-4" /> فرصت‌ها
+          </Button>
+          <Button variant={tab === 'offers' ? 'default' : 'outline'} size="sm" onClick={() => setTab('offers')}>
+            <Handshake className="h-4 w-4" /> پیشنهاد/مذاکره
+          </Button>
+          <Button variant={tab === 'pipeline' ? 'default' : 'outline'} size="sm" onClick={() => setTab('pipeline')}>
+            <Kanban className="h-4 w-4" /> قیف
+          </Button>
+          <Button variant={tab === 'ai' ? 'default' : 'outline'} size="sm" onClick={() => setTab('ai')}>
+            <Sparkles className="h-4 w-4" /> هوش مصنوعی
+          </Button>
+          <Button onClick={() => { setTab('pipeline'); setShowCreate((v) => !v) }}>
+            <Plus className="h-4 w-4" /> معامله جدید
+          </Button>
+        </div>
       </div>
 
+      {tab === 'executive' && <CrmExecutivePanel />}
+      {tab === 'ai' && <CrmAiAssistantPanel />}
+      {tab === 'queue' && <CrmSalesQueuePanel />}
+      {tab === 'opportunities' && <CrmOpportunitiesPanel />}
+      {tab === 'offers' && <CrmOffersPanel />}
+
+      {tab === 'pipeline' && (
+      <>
       {pipeline && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {STAGES.map((s) => {
@@ -268,7 +320,7 @@ export function CrmPage() {
                 className={`text-xs px-3 py-1.5 rounded-full border ${d.is_overdue ? 'border-danger text-danger' : 'border-card-border'}`}
               >
                 {d.title}
-                {d.follow_up_at && <span className="mr-1 opacity-70">· {formatJalaliDate(d.follow_up_at)}</span>}
+                {d.follow_up_at && <span className="mr-1 opacity-70">· {formatJalaliDate(d.follow_up_at, true)}</span>}
               </button>
             ))}
           </CardContent>
@@ -287,7 +339,13 @@ export function CrmPage() {
               {Object.entries(PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
             <Input placeholder="منبع (دیوار، معرفی، …)" value={createForm.source} onChange={(e) => setCreateForm({ ...createForm, source: e.target.value })} />
-            <Input type="datetime-local" value={createForm.follow_up_at} onChange={(e) => setCreateForm({ ...createForm, follow_up_at: e.target.value })} />
+            <div>
+              <p className="text-xs text-muted mb-1">زمان پیگیری (شمسی)</p>
+              <JalaliDateTimePicker
+                value={createForm.follow_up_at}
+                onChange={(v) => setCreateForm({ ...createForm, follow_up_at: v })}
+              />
+            </div>
             <textarea className="sm:col-span-2 w-full min-h-[60px] rounded-xl border border-card-border bg-background/50 p-3 text-sm" placeholder="یادداشت" value={createForm.notes} onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })} />
             <div className="sm:col-span-2 flex gap-2">
               <Button onClick={() => createMutation.mutate()} disabled={!createForm.title || createMutation.isPending}>ثبت معامله</Button>
@@ -296,6 +354,14 @@ export function CrmPage() {
           </CardContent>
         </Card>
       )}
+
+      <div className="flex items-center gap-2 text-xs text-muted">
+        <span>دلیل ناموفق برای کشیدن به «ناموفق»:</span>
+        <select className="rounded-lg border border-card-border bg-background/50 p-1.5" value={lostReason} onChange={(e) => setLostReason(e.target.value)}>
+          <option value="">انتخاب دلیل…</option>
+          {(lostReasons ?? []).map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+        </select>
+      </div>
 
       <div className="grid xl:grid-cols-4 gap-4">
         <div className="xl:col-span-3 flex gap-3 overflow-x-auto pb-4 min-h-[480px]">
@@ -373,7 +439,13 @@ export function CrmPage() {
                 <select className="w-full rounded-xl border border-card-border bg-background/50 p-2 text-sm" value={editForm.priority} onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}>
                   {Object.entries(PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
-                <Input type="datetime-local" value={editForm.follow_up_at} onChange={(e) => setEditForm({ ...editForm, follow_up_at: e.target.value })} />
+                <div>
+                  <p className="text-xs text-muted mb-1">زمان پیگیری (شمسی)</p>
+                  <JalaliDateTimePicker
+                    value={editForm.follow_up_at}
+                    onChange={(v) => setEditForm({ ...editForm, follow_up_at: v })}
+                  />
+                </div>
                 <textarea className="w-full min-h-[50px] rounded-xl border border-card-border bg-background/50 p-2 text-xs" placeholder="یادداشت" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
                 {selected.lead_score != null && (
                   <p className="text-xs text-muted">امتیاز سرنخ: <span className="text-primary font-bold">{selected.lead_score}</span>/100</p>
@@ -395,6 +467,25 @@ export function CrmPage() {
                   </Button>
                 </div>
                 <div className="border-t border-card-border pt-3 space-y-2">
+                  <p className="text-xs font-medium text-muted">امور مالی معامله</p>
+                  {dealFinance ? (
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between"><span>مبلغ معامله</span><span>{formatPrice(dealFinance.deal_value ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>کمیسیون</span><span>{formatPrice(dealFinance.commission ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>سهم دفتر</span><span>{formatPrice(dealFinance.office_share ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>سهم مشاور</span><span>{formatPrice(dealFinance.consultant_share ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>دریافت‌شده</span><span className="text-success">{formatPrice(dealFinance.received ?? 0)}</span></div>
+                      <div className="flex justify-between"><span>پرداخت‌شده</span><span className="text-danger">{formatPrice(dealFinance.paid ?? 0)}</span></div>
+                      <div className="flex justify-between font-medium"><span>مانده</span><span>{formatPrice(dealFinance.balance ?? 0)}</span></div>
+                      <p className="text-[10px] text-muted pt-1">
+                        وضعیت تسویه: {dealFinance.settlement_status === 'settled' ? 'تسویه‌شده' : dealFinance.settlement_status === 'open' ? 'باز' : 'بدون کمیسیون'}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted">اطلاعات مالی در دسترس نیست (پلن حسابداری).</p>
+                  )}
+                </div>
+                <div className="border-t border-card-border pt-3 space-y-2">
                   <div className="flex gap-2">
                     <select className="rounded-lg border border-card-border bg-background/50 p-1.5 text-xs" value={activityType} onChange={(e) => setActivityType(e.target.value)}>
                       {ACTIVITY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -405,7 +496,7 @@ export function CrmPage() {
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {activities?.map((a) => (
                       <div key={a.id} className="text-xs border-b border-card-border pb-2">
-                        <p className="text-[10px] text-muted">{ACTIVITY_TYPES.find((t) => t.value === a.type)?.label || a.type} · {a.user?.name} · {formatJalaliDate(a.created_at)}</p>
+                        <p className="text-[10px] text-muted">{ACTIVITY_TYPES.find((t) => t.value === a.type)?.label || a.type} · {a.user?.name} · {formatJalaliDate(a.created_at, true)}</p>
                         <p>{a.body}</p>
                       </div>
                     ))}
@@ -418,7 +509,9 @@ export function CrmPage() {
         </Card>
       </div>
 
-      <p className="text-xs text-muted text-center">معامله موفق → کمیسیون خودکار · امتیاز سرنخ بر اساس اطلاعات تماس و ارزش</p>
+      <p className="text-xs text-muted text-center">موتور فروش: Matching · Follow-up · Viewing · Offer · Deal · Commission</p>
+      </>
+      )}
     </div>
   )
 }

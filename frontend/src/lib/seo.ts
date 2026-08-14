@@ -10,12 +10,14 @@ interface SeoProps {
   description?: string
   keywords?: string
   path?: string
+  canonicalUrl?: string
   image?: string
   type?: 'website' | 'article'
   publishedTime?: string
   modifiedTime?: string
   jsonLd?: Record<string, unknown> | Record<string, unknown>[]
   noindex?: boolean
+  robots?: string
 }
 
 function setMeta(name: string, content: string, attr: 'name' | 'property' = 'name') {
@@ -39,14 +41,24 @@ function setCanonical(url: string) {
   el.href = url
 }
 
+function clearJsonLd() {
+  document.getElementById('seo-jsonld')?.remove()
+}
+
 function setJsonLd(data: Record<string, unknown> | Record<string, unknown>[]) {
-  const id = 'seo-jsonld'
-  document.getElementById(id)?.remove()
+  clearJsonLd()
   const script = document.createElement('script')
-  script.id = id
+  script.id = 'seo-jsonld'
   script.type = 'application/ld+json'
   script.textContent = JSON.stringify(data)
   document.head.appendChild(script)
+}
+
+export function formatPageTitle(title?: string): string {
+  if (!title?.trim()) return `${SITE_NAME} | سامانه مدیریت املاک`
+  const t = title.trim()
+  if (t.includes(SITE_NAME)) return t
+  return `${t} | ${SITE_NAME}`
 }
 
 export function applySeo({
@@ -54,21 +66,26 @@ export function applySeo({
   description = DEFAULT_DESCRIPTION,
   keywords,
   path = '',
+  canonicalUrl,
   image,
   type = 'website',
   publishedTime,
   modifiedTime,
   jsonLd,
   noindex = false,
+  robots,
 }: SeoProps) {
-  const fullTitle = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | سامانه مدیریت املاک`
+  const fullTitle = formatPageTitle(title)
   const url = `${getSiteUrl()}${path}`
-  const ogImage = image || `${getSiteUrl()}/favicon.svg`
+  const canonical = canonicalUrl && canonicalUrl.trim() !== '' ? canonicalUrl : url
+  const ogImage = image || `${getSiteUrl()}/og-default.png`
 
   document.title = fullTitle
   setMeta('description', description)
   if (keywords) setMeta('keywords', keywords)
-  setMeta('robots', noindex ? 'noindex,nofollow' : 'index,follow')
+  const robotsValue = robots?.trim()
+    || (noindex ? 'noindex,nofollow' : 'index,follow')
+  setMeta('robots', robotsValue)
 
   setMeta('og:title', fullTitle, 'property')
   setMeta('og:description', description, 'property')
@@ -87,10 +104,12 @@ export function applySeo({
   setMeta('twitter:card', 'summary_large_image')
   setMeta('twitter:title', fullTitle)
   setMeta('twitter:description', description)
+  setMeta('twitter:image', ogImage)
 
-  setCanonical(url)
+  setCanonical(canonical)
 
   if (jsonLd) setJsonLd(jsonLd)
+  else clearJsonLd()
 }
 
 export function getOrganizationJsonLd() {
@@ -99,7 +118,7 @@ export function getOrganizationJsonLd() {
     '@type': 'Organization',
     name: SITE_NAME,
     url: getSiteUrl(),
-    logo: `${getSiteUrl()}/favicon.svg`,
+    logo: `${getSiteUrl()}/og-default.png`,
     description: DEFAULT_DESCRIPTION,
     email: 'info@posheapp.ir',
     contactPoint: {
@@ -140,7 +159,7 @@ export function getWebSiteJsonLd() {
     inLanguage: 'fa-IR',
     potentialAction: {
       '@type': 'SearchAction',
-      target: `${getSiteUrl()}/blog?q={search_term_string}`,
+      target: `${getSiteUrl()}/blog/search?q={search_term_string}`,
       'query-input': 'required name=search_term_string',
     },
   }

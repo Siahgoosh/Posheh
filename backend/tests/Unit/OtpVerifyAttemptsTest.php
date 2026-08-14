@@ -87,6 +87,7 @@ class OtpVerifyAttemptsTest extends TestCase
         $this->assertSame('09170577873', $result['user']->mobile);
     }
 
+    public function test_verify_works_with_cache_backed_otp(): void
     {
         $office = Office::create(['name' => 'Cache Office', 'slug' => 'cache-office']);
         User::create([
