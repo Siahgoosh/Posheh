@@ -35,6 +35,7 @@ export function Sidebar() {
     { to: '/owners', icon: UserCircle, label: 'مالکین' },
     { to: '/customers', icon: Contact, label: 'مشتریان' },
     { to: '/visits', icon: CalendarDays, label: 'بازدیدها' },
+    { to: '/content-planner', icon: CalendarDays, label: 'تقویم محتوا' },
     { to: '/search', icon: Search, label: 'جستجو' },
     { to: '/favorites', icon: Star, label: 'علاقه‌مندی‌ها' },
     ...(hasCrm ? [{ to: '/crm', icon: Kanban, label: 'CRM' }] : []),

@@ -212,6 +212,29 @@ Route::prefix('v1')->group(function () {
         Route::post('/visits/{id}/complete', [VisitController::class, 'complete']);
         Route::delete('/visits/{id}', [VisitController::class, 'destroy']);
 
+        Route::prefix('content-planner')->group(function () {
+            Route::get('/meta', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'meta']);
+            Route::get('/dashboard', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'dashboard']);
+            Route::get('/calendar', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'calendar']);
+            Route::get('/templates', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'templates']);
+            Route::post('/templates', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'storeTemplate']);
+            Route::get('/settings', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'settings']);
+            Route::put('/settings', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'updateSettings']);
+            Route::get('/notifications', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'notifications']);
+            Route::post('/quick-add', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'quickAdd']);
+            Route::get('/', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'store']);
+            Route::get('/{id}', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'show'])->whereNumber('id');
+            Route::put('/{id}', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'update'])->whereNumber('id');
+            Route::post('/{id}', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'update'])->whereNumber('id'); // multipart
+            Route::delete('/{id}', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'destroy'])->whereNumber('id');
+            Route::post('/{id}/duplicate', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'duplicate'])->whereNumber('id');
+            Route::post('/{id}/schedule', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'schedule'])->whereNumber('id');
+            Route::post('/{id}/cancel', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'cancel'])->whereNumber('id');
+            Route::post('/{id}/mark-published', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'markPublished'])->whereNumber('id');
+            Route::post('/{id}/move-day', [\App\Http\Controllers\Api\ContentPlanner\ContentPlannerController::class, 'moveDay'])->whereNumber('id');
+        });
+
         Route::get('/tickets', [TicketController::class, 'index']);
         Route::get('/tickets/{id}', [TicketController::class, 'show']);
         Route::post('/tickets', [TicketController::class, 'store']);

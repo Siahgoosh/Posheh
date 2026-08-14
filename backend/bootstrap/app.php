@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('properties:remind-expiry')->dailyAt('09:30');
         $schedule->command('subscriptions:remind')->dailyAt('09:00');
         $schedule->command('visits:remind')->hourly();
+        $schedule->command('content-planner:process-reminders')->everyMinute();
         $schedule->command('blog:publish-scheduled')->everyMinute();
         // SEO Growth Engine — automatic-safe jobs only (no auto rewrite/merge)
         $schedule->command('seo:collect-gsc')->dailyAt('03:15');

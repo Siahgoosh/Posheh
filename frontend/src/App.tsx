@@ -55,6 +55,7 @@ import { ContractsPage } from '@/pages/ContractsPage'
 import { CommissionsPage } from '@/pages/CommissionsPage'
 import { AdminTicketsPage } from '@/pages/admin/AdminTicketsPage'
 import { VisitsPage } from '@/pages/VisitsPage'
+import { ContentPlannerPage } from '@/pages/ContentPlannerPage'
 import { OwnersPage } from '@/pages/OwnersPage'
 import { OwnerDetailPage } from '@/pages/OwnerDetailPage'
 import { CustomersPage } from '@/pages/CustomersPage'
@@ -163,6 +164,7 @@ export default function App() {
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/customers/:id" element={<CustomerDetailPage />} />
             <Route path="/visits" element={<VisitsPage />} />
+            <Route path="/content-planner" element={<ContentPlannerPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route
               path="/admin/tickets"
