@@ -14,6 +14,18 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  // Default Content-Type is application/json. For FormData uploads the browser
+  // must set multipart/form-data with a boundary — otherwise Laravel never sees the file
+  // ("panorama/image field is required").
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    if (typeof config.headers.set === 'function') {
+      config.headers.set('Content-Type', false as unknown as string)
+    } else {
+      delete (config.headers as Record<string, unknown>)['Content-Type']
+    }
+  }
+
   return config
 })
 
