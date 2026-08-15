@@ -111,6 +111,23 @@ class TourAnalyticsService
                 'message' => $visitMessage,
                 'status' => 'new',
             ]);
+
+            try {
+                $comm = app(\App\Services\Crm\CrmCommunicationService::class);
+                $users = \App\Models\User::where('office_id', $tour->office_id)->where('is_active', true)->get();
+                foreach ($users as $officeUser) {
+                    $comm->notify(
+                        $officeUser,
+                        $officeUser,
+                        'viewings',
+                        'درخواست بازدید از تور مجازی',
+                        trim($data['name'].' — '.$mobile."\n".$visitMessage),
+                        '/visits',
+                        ['source' => 'virtual_tour', 'tour_id' => $tour->id]
+                    );
+                }
+            } catch (\Throwable) {
+            }
         }
 
         return $lead;

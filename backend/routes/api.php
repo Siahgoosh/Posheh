@@ -188,6 +188,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/filing/schema', [\App\Http\Controllers\Api\Property\FilingSchemaController::class, 'index']);
         Route::get('/filing/fields', [\App\Http\Controllers\Api\Property\FilingSchemaController::class, 'fields']);
         Route::get('/properties-export', [PropertyController::class, 'export']);
+        Route::get('/properties-import-template', [PropertyController::class, 'importTemplate']);
         Route::post('/properties-import', [PropertyController::class, 'import']);
         Route::apiResource('properties', PropertyController::class);
         Route::get('/properties/{id}/similar', [PropertyController::class, 'similar']);
@@ -201,12 +202,15 @@ Route::prefix('v1')->group(function () {
         Route::post('/properties/{id}/media/{mediaId}/cover', [PropertyController::class, 'setCoverMedia']);
 
         Route::apiResource('owners', OwnerController::class);
+        Route::get('/owners/{id}/customer-matches', [OwnerController::class, 'matchCustomers']);
         Route::apiResource('customers', CustomerController::class);
         Route::get('/customers/{id}/matches', [CustomerController::class, 'matches']);
         Route::get('/customers/{id}/need-profile', [CustomerController::class, 'needProfile']);
         Route::put('/customers/{id}/need-profile', [CustomerController::class, 'upsertNeedProfile']);
         Route::get('/visits', [VisitController::class, 'index']);
         Route::get('/visits/upcoming', [VisitController::class, 'upcoming']);
+        Route::get('/visits/inbound', [VisitController::class, 'inbound']);
+        Route::post('/visits/inbound/{id}/convert', [VisitController::class, 'convertInbound']);
         Route::post('/visits', [VisitController::class, 'store']);
         Route::put('/visits/{id}', [VisitController::class, 'update']);
         Route::post('/visits/{id}/complete', [VisitController::class, 'complete']);
@@ -333,6 +337,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/crm/ai/message', [CrmIntelligenceController::class, 'aiMessage']);
         Route::get('/crm/ai/properties/{propertyId}/listing', [CrmIntelligenceController::class, 'aiListing']);
         Route::get('/crm/notifications', [CrmIntelligenceController::class, 'notifications']);
+        Route::post('/crm/notifications/read-all', [CrmIntelligenceController::class, 'markAllNotificationsRead']);
         Route::post('/crm/notifications/{id}/read', [CrmIntelligenceController::class, 'markNotificationRead']);
         Route::get('/crm/notification-preferences', [CrmIntelligenceController::class, 'notificationPreferences']);
         Route::put('/crm/notification-preferences', [CrmIntelligenceController::class, 'updateNotificationPreferences']);

@@ -197,7 +197,7 @@ class OfficeSiteService
             }
         }
 
-        return OfficeVisitRequest::create([
+        $request = OfficeVisitRequest::create([
             'office_id' => $office->id,
             'property_id' => $propertyId,
             'name' => $data['name'],
@@ -208,6 +208,30 @@ class OfficeSiteService
             'message' => $data['message'] ?? null,
             'status' => 'new',
         ]);
+
+        $this->notifyOfficeVisitRequest($office, $request);
+
+        return $request;
+    }
+
+    private function notifyOfficeVisitRequest(Office $office, OfficeVisitRequest $request): void
+    {
+        try {
+            $comm = app(\App\Services\Crm\CrmCommunicationService::class);
+            $users = User::where('office_id', $office->id)->where('is_active', true)->get();
+            foreach ($users as $user) {
+                $comm->notify(
+                    $user,
+                    $user,
+                    'viewings',
+                    'درخواست بازدید از وبسایت',
+                    trim(($request->name ?: 'مشتری').' — '.($request->mobile ?: '')."\n".($request->message ?: '')),
+                    '/visits',
+                    ['office_visit_request_id' => $request->id, 'source' => 'website']
+                );
+            }
+        } catch (\Throwable) {
+        }
     }
 
     public function adminApproveWebsite(Office $office, string $action): Office

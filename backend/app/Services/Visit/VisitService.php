@@ -3,9 +3,11 @@
 namespace App\Services\Visit;
 
 use App\Models\Customer;
+use App\Models\OfficeVisitRequest;
 use App\Models\Property;
 use App\Models\PropertyVisit;
 use App\Models\User;
+use App\Services\Crm\CrmCommunicationService;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Morilog\Jalali\Jalalian;
@@ -34,17 +36,99 @@ class VisitService
             ->get();
     }
 
+    /** Inbound requests from office website / virtual tour (not yet converted). */
+    public function inboundRequests(User $user, int $limit = 50): Collection
+    {
+        return OfficeVisitRequest::query()
+            ->where('office_id', $user->office_id)
+            ->whereIn('status', ['new', 'pending', 'contacted'])
+            ->with('property:id,code,city,district,title')
+            ->latest()
+            ->limit($limit)
+            ->get();
+    }
+
     public function create(User $user, array $data): PropertyVisit
     {
         $this->assertOfficeRefs($user, $data);
         $this->assertNoDoubleBooking($user, $data);
 
-        return PropertyVisit::create([
+        $visit = PropertyVisit::create([
             ...$data,
             'office_id' => $user->office_id,
             'created_by' => $user->id,
             'assigned_to' => $data['assigned_to'] ?? $user->id,
+            'status' => $data['status'] ?? 'scheduled',
+            'duration_minutes' => $data['duration_minutes'] ?? 30,
         ])->load(['property', 'customer', 'assignee']);
+
+        try {
+            app(CrmCommunicationService::class)->notify(
+                $user,
+                $user,
+                'viewings',
+                'بازدید جدید ثبت شد',
+                'بازدید برای ملک '.($visit->property?->code ?? '#').' زمان‌بندی شد.',
+                '/visits',
+                ['visit_id' => $visit->id]
+            );
+        } catch (\Throwable) {
+        }
+
+        return $visit;
+    }
+
+    /**
+     * Convert website/tour OfficeVisitRequest into a scheduled PropertyVisit.
+     */
+    public function convertInboundRequest(User $user, int $requestId, array $overrides = []): PropertyVisit
+    {
+        $req = OfficeVisitRequest::where('office_id', $user->office_id)->findOrFail($requestId);
+
+        $customer = null;
+        if (! empty($req->mobile)) {
+            $customer = Customer::firstOrCreate(
+                ['office_id' => $user->office_id, 'mobile' => $req->mobile],
+                [
+                    'name' => $req->name ?: 'مشتری وبسایت',
+                    'created_by' => $user->id,
+                    'source' => 'website',
+                ]
+            );
+            if (! $customer->wasRecentlyCreated && $req->name && blank($customer->name)) {
+                $customer->update(['name' => $req->name]);
+            }
+        }
+
+        $visitAt = $overrides['visit_at'] ?? null;
+        if (! $visitAt) {
+            $date = $req->preferred_date ?: now()->addDay()->toDateString();
+            $time = $req->preferred_time ?: '11:00';
+            if (strlen((string) $time) === 5) {
+                $time .= ':00';
+            }
+            $visitAt = trim($date.' '.$time);
+        }
+
+        $propertyId = (int) ($overrides['property_id'] ?? $req->property_id);
+        if (! $propertyId) {
+            throw ValidationException::withMessages([
+                'property_id' => ['برای تبدیل درخواست، ملک الزامی است.'],
+            ]);
+        }
+
+        $visit = $this->create($user, [
+            'property_id' => $propertyId,
+            'customer_id' => $customer?->id,
+            'visit_at' => $visitAt,
+            'notes' => trim(($req->message ?: '')."\n[از درخواست وبسایت/تور #{$req->id}]"),
+            'assigned_to' => $overrides['assigned_to'] ?? $user->id,
+            'status' => 'scheduled',
+        ]);
+
+        $req->update(['status' => 'converted']);
+
+        return $visit;
     }
 
     public function update(User $user, int $id, array $data): PropertyVisit
@@ -70,7 +154,6 @@ class VisitService
         $end = (clone $start)->addMinutes($duration);
         $assignee = $data['assigned_to'] ?? $user->id;
 
-        // Portable overlap check (works on MySQL + SQLite): existing.start < new.end AND existing.end > new.start
         $candidates = PropertyVisit::where('office_id', $user->office_id)
             ->where('assigned_to', $assignee)
             ->where('status', 'scheduled')
@@ -117,7 +200,6 @@ class VisitService
                     'likelihood_to_buy' => $visit->likelihood_to_buy,
                 ]);
         } catch (\Throwable) {
-            // Automation optional if tables not migrated
         }
 
         return $visit;

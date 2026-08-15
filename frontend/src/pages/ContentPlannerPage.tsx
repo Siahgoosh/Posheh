@@ -674,13 +674,31 @@ export function ContentPlannerPage() {
 }
 
 export function ContentPlannerBell() {
+  const qc = useQueryClient()
   const { data } = useQuery({
-    queryKey: ['cp-notifications'],
-    queryFn: async () => (await api.get('/content-planner/notifications')).data.data as { id: number; title: string; body?: string; read_at?: string }[],
+    queryKey: ['panel-notifications'],
+    queryFn: async () => (await api.get('/crm/notifications')).data.data as {
+      id: number
+      title: string
+      body?: string
+      link?: string
+      read_at?: string
+      created_at?: string
+    }[],
     refetchInterval: 60_000,
   })
   const [open, setOpen] = useState(false)
   const unread = useMemo(() => (data ?? []).filter((n) => !n.read_at).length, [data])
+
+  const markOne = useMutation({
+    mutationFn: (id: number) => api.post(`/crm/notifications/${id}/read`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['panel-notifications'] }),
+  })
+
+  const markAll = useMutation({
+    mutationFn: () => api.post('/crm/notifications/read-all'),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['panel-notifications'] }),
+  })
 
   return (
     <div className="relative">
@@ -689,13 +707,37 @@ export function ContentPlannerBell() {
         {unread > 0 && <span className="absolute -top-0.5 -left-0.5 h-4 min-w-4 rounded-full bg-danger text-[10px] text-white flex items-center justify-center px-1">{toPersianDigits(String(unread))}</span>}
       </Button>
       {open && (
-        <div className="absolute left-0 top-10 z-50 w-72 rounded-xl border border-card-border bg-background shadow-xl p-2 max-h-80 overflow-y-auto">
-          <p className="text-xs text-muted px-2 py-1">یادآوری‌های محتوا</p>
+        <div className="absolute left-0 top-10 z-50 w-80 rounded-xl border border-card-border bg-background shadow-xl p-2 max-h-96 overflow-y-auto">
+          <div className="flex items-center justify-between px-2 py-1">
+            <p className="text-xs text-muted">اعلان‌ها (تا ۴۸ ساعت)</p>
+            {unread > 0 && (
+              <button type="button" className="text-[11px] text-primary" onClick={() => markAll.mutate()} disabled={markAll.isPending}>
+                همه را مشاهده کردم
+              </button>
+            )}
+          </div>
           {(data ?? []).length === 0 && <p className="text-sm p-3 text-muted">اعلانی نیست.</p>}
-          {(data ?? []).slice(0, 15).map((n) => (
-            <div key={n.id} className="px-2 py-2 border-b border-card-border/40 last:border-0">
+          {(data ?? []).slice(0, 20).map((n) => (
+            <div key={n.id} className={`px-2 py-2 border-b border-card-border/40 last:border-0 ${n.read_at ? 'opacity-60' : ''}`}>
               <p className="text-sm font-medium">{n.title}</p>
               {n.body && <p className="text-xs text-muted whitespace-pre-wrap mt-1 line-clamp-3">{n.body}</p>}
+              <div className="flex gap-2 mt-2">
+                {!n.read_at && (
+                  <button
+                    type="button"
+                    className="text-[11px] px-2 py-1 rounded-lg bg-primary/15 text-primary"
+                    onClick={() => markOne.mutate(n.id)}
+                    disabled={markOne.isPending}
+                  >
+                    مشاهده کردم
+                  </button>
+                )}
+                {n.link && (
+                  <a href={n.link} className="text-[11px] px-2 py-1 rounded-lg border border-card-border" onClick={() => setOpen(false)}>
+                    باز کردن
+                  </a>
+                )}
+              </div>
             </div>
           ))}
         </div>
