@@ -3,6 +3,7 @@
 namespace App\Services\Property;
 
 use App\Exports\PropertiesExport;
+use App\Exports\PropertiesImportTemplateExport;
 use App\Imports\PropertiesImport;
 use App\Models\User;
 use Maatwebsite\Excel\Facades\Excel;
@@ -18,11 +19,22 @@ class PropertyExportService
         );
     }
 
+    public function sampleTemplate(): BinaryFileResponse
+    {
+        return Excel::download(
+            new PropertiesImportTemplateExport,
+            'نمونه-ایمپورت-املاک.xlsx'
+        );
+    }
+
     public function import(User $user, $file): array
     {
         $import = new PropertiesImport($user);
         Excel::import($import, $file);
 
-        return ['imported' => $import->getRowCount(), 'message' => 'ایمپورت با موفقیت انجام شد.'];
+        return [
+            'imported' => $import->getRowCount(),
+            'message' => 'ایمپورت اکسل با موفقیت انجام شد. '.$import->getRowCount().' ردیف پردازش شد.',
+        ];
     }
 }

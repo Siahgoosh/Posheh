@@ -28,17 +28,59 @@ class VisitController extends Controller
         ]);
     }
 
+    public function inbound(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->visitService->inboundRequests($request->user()),
+        ]);
+    }
+
+    public function convertInbound(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'property_id' => ['nullable', 'integer', 'exists:properties,id'],
+            'visit_at' => ['nullable', 'date'],
+            'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        $visit = $this->visitService->convertInboundRequest($request->user(), $id, $data);
+
+        return response()->json([
+            'data' => $visit,
+            'message' => 'درخواست به بازدید زمان‌بندی‌شده تبدیل شد.',
+        ]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
             'property_id' => ['required', 'integer', 'exists:properties,id'],
             'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
+            'customer_name' => ['nullable', 'string', 'max:255'],
+            'customer_mobile' => ['nullable', 'string', 'max:20'],
             'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
             'visit_at' => ['required', 'date'],
             'duration_minutes' => ['nullable', 'integer', 'min:15', 'max:480'],
             'status' => ['nullable', 'string', 'in:scheduled,completed,cancelled'],
             'notes' => ['nullable', 'string'],
         ]);
+
+        // Allow creating customer inline (consultant / manager)
+        if (empty($data['customer_id']) && ! empty($data['customer_mobile'])) {
+            $customer = \App\Models\Customer::firstOrCreate(
+                [
+                    'office_id' => $request->user()->office_id,
+                    'mobile' => $data['customer_mobile'],
+                ],
+                [
+                    'name' => $data['customer_name'] ?? 'مشتری بازدید',
+                    'created_by' => $request->user()->id,
+                    'source' => 'visit',
+                ]
+            );
+            $data['customer_id'] = $customer->id;
+        }
+        unset($data['customer_name'], $data['customer_mobile']);
 
         $visit = $this->visitService->create($request->user(), $data);
 

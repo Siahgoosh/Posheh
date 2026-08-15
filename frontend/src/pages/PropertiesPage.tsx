@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Filter, MapPin, Bed, Maximize } from 'lucide-react'
+import { Plus, Search, Download, Upload, FileSpreadsheet, HelpCircle, CheckCircle2 } from 'lucide-react'
 import api from '@/lib/api'
+import { extractApiError } from '@/lib/apiError'
 import { formatPrice, formatNumber } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -28,9 +29,30 @@ interface Property {
   cover_image?: { url: string }
 }
 
+async function downloadBlob(path: string, filename: string) {
+  const res = await api.get(path, { responseType: 'blob' })
+  const type = String(res.headers['content-type'] || '')
+  if (type.includes('application/json') || type.includes('text/json')) {
+    const text = await res.data.text()
+    const json = JSON.parse(text)
+    throw new Error(json.message || 'دانلود ناموفق بود.')
+  }
+  const url = URL.createObjectURL(res.data)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export function PropertiesPage() {
   const [search, setSearch] = useState('')
   const [type, setType] = useState('')
+  const [showImportHelp, setShowImportHelp] = useState(false)
+  const [exportMsg, setExportMsg] = useState('')
+  const [importMsg, setImportMsg] = useState('')
+  const [busy, setBusy] = useState(false)
+  const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
     queryKey: ['properties', search, type],
@@ -53,6 +75,50 @@ export function PropertiesPage() {
     { value: 'commercial', label: 'تجاری' },
   ]
 
+  const onExport = async () => {
+    setExportMsg('')
+    setBusy(true)
+    try {
+      await downloadBlob('/properties-export', `املاک-${new Date().toISOString().slice(0, 10)}.xlsx`)
+      setExportMsg('فایل اکسل دانلود شد.')
+    } catch (err) {
+      setExportMsg(extractApiError(err, 'خروجی اکسل گرفته نشد.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onDownloadSample = async () => {
+    setImportMsg('')
+    try {
+      await downloadBlob('/properties-import-template', 'نمونه-ایمپورت-املاک.xlsx')
+      setImportMsg('فایل نمونه دانلود شد.')
+    } catch (err) {
+      setImportMsg(extractApiError(err, 'دانلود نمونه ناموفق بود.'))
+    }
+  }
+
+  const onImport = async (file: File) => {
+    setImportMsg('')
+    const ext = file.name.split('.').pop()?.toLowerCase()
+    if (ext !== 'xlsx' && ext !== 'xls') {
+      setImportMsg('فقط فایل اکسل (.xlsx یا .xls) قابل ایمپورت است.')
+      return
+    }
+    setBusy(true)
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await api.post('/properties-import', body)
+      setImportMsg(res.data.message || 'ایمپورت انجام شد.')
+      queryClient.invalidateQueries({ queryKey: ['properties'] })
+    } catch (err) {
+      setImportMsg(extractApiError(err, 'ایمپورت ناموفق بود.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -62,26 +128,13 @@ export function PropertiesPage() {
             {formatNumber(data?.meta?.total ?? 0)} ملک ثبت شده
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={async () => {
-            const res = await api.get('/properties-export', { responseType: 'blob' })
-            const url = URL.createObjectURL(res.data)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = 'properties.xlsx'
-            a.click()
-          }}>اکسل</Button>
-          <label className="cursor-pointer">
-            <Button variant="outline" size="sm" asChild><span>ایمپورت</span></Button>
-            <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={async (e) => {
-              const file = e.target.files?.[0]
-              if (!file) return
-              const body = new FormData()
-              body.append('file', file)
-              await api.post('/properties-import', body, { headers: { 'Content-Type': 'multipart/form-data' } })
-              window.location.reload()
-            }} />
-          </label>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" disabled={busy} onClick={onExport}>
+            <Download className="h-4 w-4" />اکسل
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowImportHelp((v) => !v)}>
+            <Upload className="h-4 w-4" />ایمپورت
+          </Button>
           <Link to="/properties/new">
             <Button>
               <Plus className="h-4 w-4" />
@@ -90,6 +143,52 @@ export function PropertiesPage() {
           </Link>
         </div>
       </div>
+
+      {(exportMsg || importMsg) && (
+        <p className="text-sm text-primary">{exportMsg || importMsg}</p>
+      )}
+
+      {showImportHelp && (
+        <Card className="p-5 space-y-4 border-primary/20">
+          <div className="flex items-start gap-3">
+            <HelpCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div>
+              <h2 className="font-semibold">آموزش ایمپورت اکسل</h2>
+              <p className="text-sm text-muted mt-1">فقط فایل اکسل (.xlsx / .xls) پذیرفته می‌شود. CSV پشتیبانی نمی‌شود.</p>
+            </div>
+          </div>
+          <ol className="text-sm space-y-2 list-decimal list-inside text-muted">
+            <li>ابتدا «دانلود فایل نمونه» را بزنید.</li>
+            <li>ردیف‌های نمونه را با داده‌های خود جایگزین کنید؛ ردیف اول (عنوان ستون‌ها) را پاک نکنید.</li>
+            <li>ستون <b>code</b> الزامی است. اگر کد تکراری باشد، همان ملک به‌روزرسانی می‌شود.</li>
+            <li>برای type از مقادیر انگلیسی استفاده کنید: sale, rent, mortgage, pre_sale, land, commercial</li>
+            <li>status معمولاً active باشد.</li>
+            <li>فایل را ذخیره کرده و از دکمه «انتخاب فایل اکسل» آپلود کنید.</li>
+          </ol>
+          <div className="rounded-xl bg-background/60 p-3 text-xs font-mono dir-ltr text-left overflow-x-auto">
+            code | type | status | price | deposit | rent | area | rooms | city | district | address | owner_name | owner_mobile | description
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={onDownloadSample}>
+              <FileSpreadsheet className="h-4 w-4" />دانلود فایل نمونه
+            </Button>
+            <label className="cursor-pointer">
+              <Button size="sm" asChild disabled={busy}><span><Upload className="h-4 w-4" />انتخاب فایل اکسل</span></Button>
+              <input
+                type="file"
+                className="hidden"
+                accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) onImport(file)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+          </div>
+          <p className="text-xs text-muted flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" />بعد از ایمپورت موفق، لیست املاک به‌روز می‌شود.</p>
+        </Card>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -120,83 +219,44 @@ export function PropertiesPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data?.data?.map((property: Property) => (
-            <Link key={property.id} to={`/properties/${property.id}`}>
-              <Card className="!p-0 overflow-hidden glass-hover cursor-pointer h-full">
-                <div className="h-40 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center overflow-hidden">
-                  {property.cover_image?.url ? (
-                    <img src={property.cover_image.url} alt={property.code} className="w-full h-full object-cover" />
-                  ) : (
-                    <Building2Placeholder />
-                  )}
-                </div>
-                <div className="p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-lg">{property.code}</span>
-                    <div className="flex gap-1 shrink-0">
-                      {property.property_category_label && (
-                        <Badge variant="outline" className="text-[10px]">{property.property_category_label}</Badge>
-                      )}
-                      <Badge>{property.type_label}</Badge>
-                    </div>
-                  </div>
-                  {(property.price || property.rent || property.deposit) && (
-                    <p className="text-primary font-semibold">
-                      {property.price
-                        ? formatPrice(property.price)
-                        : property.rent
-                          ? `اجاره ${formatPrice(property.rent)}`
-                          : property.deposit
-                            ? `رهن ${formatPrice(property.deposit)}`
-                            : ''}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-4 text-sm text-muted">
-                    {property.area && (
-                      <span className="flex items-center gap-1">
-                        <Maximize className="h-3.5 w-3.5" />
-                        {formatNumber(property.area)} متر
-                      </span>
-                    )}
-                    {property.rooms && (
-                      <span className="flex items-center gap-1">
-                        <Bed className="h-3.5 w-3.5" />
-                        {formatNumber(property.rooms)} خواب
-                      </span>
-                    )}
-                  </div>
-                  {property.city && (
-                    <p className="flex items-center gap-1 text-sm text-muted">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {property.city}{property.district ? `، ${property.district}` : ''}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between pt-2 border-t border-card-border">
-                    <Badge variant="outline">{property.permission_label}</Badge>
-                    <span className="text-xs text-muted">{property.created_at_jalali}</span>
-                  </div>
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {!isLoading && !data?.data?.length && (
-        <div className="text-center py-20">
-          <Filter className="h-12 w-12 text-muted mx-auto mb-4" />
-          <p className="text-muted">ملکی یافت نشد</p>
-        </div>
+        <PropertiesGrid items={(data?.data as Property[]) ?? []} />
       )}
     </div>
   )
 }
 
-function Building2Placeholder() {
+function PropertiesGrid({ items }: { items: Property[] }) {
+  const empty = useMemo(() => items.length === 0, [items])
+  if (empty) return <p className="text-center text-muted py-16">ملکی یافت نشد</p>
+
   return (
-    <svg className="h-16 w-16 text-primary/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-    </svg>
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {items.map((p) => (
+        <Link key={p.id} to={`/properties/${p.id}`}>
+          <Card className="overflow-hidden glass-hover h-full">
+            {p.cover_image?.url ? (
+              <img src={p.cover_image.url} alt="" className="h-36 w-full object-cover" />
+            ) : (
+              <div className="h-36 bg-primary/10" />
+            )}
+            <div className="p-4 space-y-2">
+              <div className="flex justify-between gap-2">
+                <h3 className="font-semibold truncate">{p.code}</h3>
+                <Badge variant="outline">{p.type_label}</Badge>
+              </div>
+              <p className="text-sm text-muted">{[p.city, p.district].filter(Boolean).join(' — ') || '—'}</p>
+              <p className="font-bold text-primary">
+                {p.price ? formatPrice(p.price) : p.rent ? `${formatPrice(p.rent)} اجاره` : '—'}
+              </p>
+              <div className="flex gap-3 text-xs text-muted">
+                {p.area != null && <span>{formatNumber(p.area)} متر</span>}
+                {p.rooms != null && <span>{formatNumber(p.rooms)} خواب</span>}
+                <span>{p.status_label}</span>
+              </div>
+            </div>
+          </Card>
+        </Link>
+      ))}
+    </div>
   )
 }

@@ -41,8 +41,11 @@ class CrmCommunicationService
 
     public function listNotifications(User $user, bool $unreadOnly = false)
     {
+        $this->purgeExpired();
+
         return CrmNotification::where('office_id', $user->office_id)
             ->where('user_id', $user->id)
+            ->where('created_at', '>=', now()->subHours(48))
             ->when($unreadOnly, fn ($q) => $q->whereNull('read_at'))
             ->orderByDesc('id')
             ->limit(50)
@@ -55,6 +58,23 @@ class CrmCommunicationService
         $n->update(['read_at' => now()]);
 
         return $n->fresh();
+    }
+
+    public function markAllRead(User $user): int
+    {
+        return CrmNotification::where('office_id', $user->office_id)
+            ->where('user_id', $user->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+    }
+
+    public function purgeExpired(): int
+    {
+        if (! Schema::hasTable('crm_notifications')) {
+            return 0;
+        }
+
+        return CrmNotification::where('created_at', '<', now()->subHours(48))->delete();
     }
 
     public function ensureDefaultPreferences(User $user): void

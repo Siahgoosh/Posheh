@@ -46,6 +46,13 @@ class OwnerController extends Controller
         return response()->json(['data' => $this->ownerService->find($request->user(), $id)]);
     }
 
+    public function matchCustomers(Request $request, int $id): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->ownerService->matchCustomers($request->user(), $id),
+        ]);
+    }
+
     public function update(Request $request, int $id): JsonResponse
     {
         $data = $request->validate([

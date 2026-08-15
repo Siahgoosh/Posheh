@@ -141,11 +141,28 @@ class PropertyController extends Controller
         return $this->exportService->export($request->user());
     }
 
+    public function importTemplate()
+    {
+        return $this->exportService->sampleTemplate();
+    }
+
     public function import(Request $request): JsonResponse
     {
-        $request->validate(['file' => ['required', 'file', 'mimes:xlsx,xls,csv']]);
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
+        ], [
+            'file.mimes' => 'فقط فایل اکسل (.xlsx یا .xls) قابل ایمپورت است.',
+        ]);
 
-        return response()->json($this->exportService->import($request->user(), $request->file('file')));
+        try {
+            return response()->json($this->exportService->import($request->user(), $request->file('file')));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'message' => 'ایمپورت اکسل انجام نشد. از فایل نمونه استفاده کنید و ستون‌ها را مطابق راهنما پر کنید.',
+            ], 422);
+        }
     }
 
     public function shareMessage(Request $request, int $id): JsonResponse

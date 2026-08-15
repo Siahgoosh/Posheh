@@ -162,6 +162,13 @@ class CrmIntelligenceController extends Controller
         return response()->json(['data' => $this->comm->markRead($request->user(), $id)]);
     }
 
+    public function markAllNotificationsRead(Request $request): JsonResponse
+    {
+        $count = $this->comm->markAllRead($request->user());
+
+        return response()->json(['message' => 'اعلان‌ها مشاهده شدند.', 'count' => $count]);
+    }
+
     public function notificationPreferences(Request $request): JsonResponse
     {
         $this->comm->ensureDefaultPreferences($request->user());
